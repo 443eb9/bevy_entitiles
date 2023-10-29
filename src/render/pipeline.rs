@@ -1,23 +1,34 @@
 use bevy::{
-    pbr::MeshUniform,
-    prelude::{FromWorld, HandleUntyped, Shader},
-    reflect::TypeUuid,
+    prelude::{FromWorld, Resource},
     render::{
         globals::GlobalsUniform,
         render_resource::{
-            BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
-            ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
-            PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
-            SamplerBindingType, ShaderStages, ShaderType, SpecializedRenderPipeline, TextureFormat,
-            TextureSampleType, TextureViewDimension, VertexBufferLayout, VertexFormat, VertexState,
-            VertexStepMode,
+            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
+            BufferBindingType, ColorTargetState, ColorWrites, Face, FragmentState, FrontFace,
+            MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
+            RenderPipelineDescriptor, SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType,
+            SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
+            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
     },
 };
 
-use super::{EntiTilesPipeline, EntiTilesPipelineKey, TILEMAP_SHADER};
+use crate::tilemap::TileType;
+
+use super::TILEMAP_SHADER;
+
+#[derive(Resource)]
+pub struct EntiTilesPipeline {
+    pub view_layout: BindGroupLayout,
+    pub texture_layout: BindGroupLayout,
+}
+
+#[derive(PartialEq, Eq, Hash, Clone)]
+pub struct EntiTilesPipelineKey {
+    pub map_type: TileType,
+}
 
 impl FromWorld for EntiTilesPipeline {
     fn from_world(world: &mut bevy::prelude::World) -> Self {
@@ -48,32 +59,6 @@ impl FromWorld for EntiTilesPipeline {
             ],
         });
 
-        let mesh_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("tilemap_mesh_layout"),
-            entries: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(MeshUniform::min_size()),
-                    },
-                    count: None,
-                },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(MeshUniform::min_size()),
-                    },
-                    count: None,
-                },
-            ],
-        });
-
         let texture_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some("tilemap_texture_layout"),
             entries: &[
@@ -98,7 +83,6 @@ impl FromWorld for EntiTilesPipeline {
 
         EntiTilesPipeline {
             view_layout,
-            mesh_layout,
             texture_layout,
         }
     }
@@ -108,26 +92,46 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
     type Key = EntiTilesPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
+        let mut shader_defs: Vec<ShaderDefVal> = vec![];
+        shader_defs.push(
+            {
+                match key.map_type {
+                    TileType::Square => "SQUARE",
+                }
+            }
+            .into(),
+        );
+
         let vertex_layout = VertexBufferLayout::from_vertex_formats(
             VertexStepMode::Vertex,
             vec![
                 // position
-                VertexFormat::Float32x2,
-                // texCoord
-                VertexFormat::Float32x2,
+                VertexFormat::Float32x3,
+                // texture_index
+                VertexFormat::Uint32,
             ],
         );
 
         RenderPipelineDescriptor {
             label: Some("tilemap_pipeline".into()),
-            layout: vec![self.view_layout.clone(), self.mesh_layout.clone()],
+            layout: vec![self.view_layout.clone(), self.texture_layout.clone()],
             push_constant_ranges: vec![],
             vertex: VertexState {
                 shader: TILEMAP_SHADER.typed(),
-                shader_defs: vec![],
+                shader_defs,
                 entry_point: "tilemap_vertex".into(),
                 buffers: vec![vertex_layout],
             },
+            fragment: Some(FragmentState {
+                shader: TILEMAP_SHADER.typed(),
+                shader_defs: vec![],
+                entry_point: "tilemap_fragment".into(),
+                targets: vec![Some(ColorTargetState {
+                    format: TextureFormat::bevy_default(),
+                    blend: None,
+                    write_mask: ColorWrites::ALL,
+                })],
+            }),
             primitive: PrimitiveState {
                 topology: PrimitiveTopology::TriangleList,
                 strip_index_format: None,
@@ -143,18 +147,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            fragment: Some(FragmentState {
-                shader: TILEMAP_SHADER.typed(),
-                shader_defs: vec![],
-                entry_point: "tilemap_fragment".into(),
-                targets: vec![Some(ColorTargetState {
-                    format: TextureFormat::bevy_default(),
-                    blend: None,
-                    write_mask: ColorWrites::ALL,
-                })],
-            }),
         }
     }
 }
 
-pub struct TileMapPipelineKey {}
+pub struct TilemapPipelineKey {}

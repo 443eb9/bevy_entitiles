@@ -503,7 +503,6 @@ name = "bevy_entitiles"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_mod_debugdump",
 ]
 
 [[package]]
@@ -686,21 +685,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6cfc2a21ea47970a9b1f0f4735af3256a8f204815bd756110051d10f9d909497"
 dependencies = [
  "glam",
-]
-
-[[package]]
-name = "bevy_mod_debugdump"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "85741df1a1a2aa03ecd2d9f70ba8787846c6b2b91b82ef85f71ed56f87591b15"
-dependencies = [
- "bevy_app",
- "bevy_ecs",
- "bevy_render",
- "bevy_utils",
- "once_cell",
- "petgraph",
- "pretty-type-name",
 ]
 
 [[package]]
@@ -2591,12 +2575,6 @@ checksum = "bb458bb7f6e250e6eb79d5026badc10a3ebb8f9a15d1fff0f13d17c71f4d6dee"
 dependencies = [
  "unicode-xid",
 ]
-
-[[package]]
-name = "pretty-type-name"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0f73cdaf19b52e6143685c3606206e114a4dfa969d6b14ec3894c88eb38bd4b"
 
 [[package]]
 name = "proc-macro-crate"

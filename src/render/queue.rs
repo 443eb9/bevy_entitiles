@@ -1,29 +1,47 @@
 use bevy::{
-    prelude::{Res, Query},
+    core_pipeline::core_2d::Transparent2d,
+    prelude::{Entity, Query, Res, ResMut},
     render::{
-        render_resource::{BindGroupDescriptor, BindGroupEntry, SpecializedRenderPipeline},
-        renderer::RenderDevice,
+        render_phase::{DrawFunctions, RenderPhase},
+        render_resource::{
+            PipelineCache, SpecializedRenderPipelines,
+        },
     },
+    utils::FloatOrd,
 };
 
-use super::{BindGroups, EntiTilesPipeline, EntiTilesPipelineKey, UniformData};
+use crate::tilemap::Tilemap;
+
+use super::{
+    draw::DrawTilemap,
+    pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
+};
 
 pub fn queue(
-    render_device: Res<RenderDevice>,
-    uniform_data: Res<UniformData>,
-    mut bind_groups: Query<&mut BindGroups>,
-    pipeline: Res<EntiTilesPipeline>,
+    mut views_query: Query<&mut RenderPhase<Transparent2d>>,
+    tilemaps_query: Query<(Entity, &Tilemap)>,
+    pipeline_cache: Res<PipelineCache>,
+    draw_functions: Res<DrawFunctions<Transparent2d>>,
+    mut tilemap_pipelines: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
+    entitile_pipeline: Res<EntiTilesPipeline>,
 ) {
-    if let Some(tile_data_binding) = uniform_data.tile_data.binding() {
-        bind_groups.get_single_mut().unwrap().tile_data = render_device.create_bind_group(&BindGroupDescriptor {
-            label: Some("tilemap_bind_group"),
-            layout: &pipeline.mesh_layout,
-            entries: &[BindGroupEntry {
-                binding: 1,
-                resource: tile_data_binding,
-            }],
-        });
-    }
+    for mut transparent_phase in views_query.iter_mut() {
+        for (tilemap_entity, tilemap_data) in tilemaps_query.iter() {
+            let pipeline = tilemap_pipelines.specialize(
+                &pipeline_cache,
+                &entitile_pipeline,
+                EntiTilesPipelineKey {
+                    map_type: tilemap_data.tile_type.clone(),
+                },
+            );
 
-    let specialize_pipeline = pipeline.specialize(EntiTilesPipelineKey {});
+            transparent_phase.add(Transparent2d {
+                sort_key: FloatOrd(tilemap_data.z_order),
+                entity: tilemap_entity,
+                pipeline,
+                draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
+                batch_range: None,
+            });
+        }
+    }
 }

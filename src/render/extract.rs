@@ -1,30 +1,36 @@
 use bevy::{
-    prelude::{Camera, Commands, Entity, OrthographicProjection, Query, ResMut},
-    render::Extract,
+    prelude::{
+        OrthographicProjection, Query, ResMut, UVec2, Component, Resource,
+    },
+    render::Extract
 };
 
-use crate::tilemap::Tile;
+use crate::tilemap::Tilemap;
 
-use super::{ExtractedData, ExtractedTile, ExtractedView};
+#[derive(Component)]
+pub struct ExtractedView {
+    pub projection: OrthographicProjection,
+}
+
+pub struct ExtractedTilemap {
+    pub id: u32,
+    pub size: UVec2,
+}
+
+#[derive(Resource, Default)]
+pub struct ExtractedData {
+    pub tilemaps: Vec<ExtractedTilemap>,
+}
 
 pub fn extract(
-    mut commands: Commands,
-    camera: Extract<Query<(Entity, &Camera, &OrthographicProjection)>>,
-    tiles: Extract<Query<&Tile>>,
-    mut extracted_tiles: ResMut<ExtractedData>,
+    tilemaps_query: Extract<Query<&Tilemap>>,
+    mut extracted_data: ResMut<ExtractedData>,
 ) {
-    for (entity, camera, projection) in camera.iter() {
-        commands.entity(entity).insert(ExtractedView {
-            projection: projection.clone(),
-        });
-    }
-
-    extracted_tiles.tiles = vec![];
-
-    for tile in tiles.iter() {
-        extracted_tiles.tiles.push(ExtractedTile {
-            texture_index: tile.texture_index,
-            coordinate: tile.coordinate,
-        });
-    }
+    extracted_data.tilemaps.clear();
+    extracted_data.tilemaps.extend(tilemaps_query.iter().map(|tilemap| {
+        ExtractedTilemap {
+            id: tilemap.id,
+            size: tilemap.size,
+        }
+    }));
 }

@@ -15,4 +15,3 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.11.3", features = ["dynamic_linking"] }
-bevy_mod_debugdump = "0.8.1"

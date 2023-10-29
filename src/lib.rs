@@ -1,6 +1,4 @@
-use bevy::{
-    prelude::{Plugin, Update},
-};
+use bevy::prelude::{Plugin, Startup};
 use test::*;
 
 pub mod math;
@@ -12,6 +10,6 @@ pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, random_tests);
+        app.add_systems(Startup, random_tests);
     }
 }

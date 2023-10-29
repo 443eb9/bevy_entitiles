@@ -1,26 +1,17 @@
 use bevy::{
     prelude::{Res, ResMut},
-    render::{
-        renderer::{RenderDevice, RenderQueue},
-    },
+    render::renderer::RenderDevice,
 };
 
-use super::{ExtractedData, TileData, UniformData};
+use super::RenderChunkStorage;
 
 pub fn prepare(
     render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
-    mut uniform_data: ResMut<UniformData>,
-    extracted_tiles: Res<ExtractedData>,
+    mut render_chunks: ResMut<RenderChunkStorage>,
 ) {
-    for t in extracted_tiles.tiles.iter() {
-        uniform_data.tile_data.push(TileData {
-            texture_index: t.texture_index,
-            coordinate: t.coordinate,
-        });
+    for (_, chunks) in render_chunks.value.iter_mut() {
+        for c in chunks {
+            c.update_mesh(&render_device);
+        }
     }
-
-    uniform_data
-        .tile_data
-        .write_buffer(&render_device, &render_queue);
 }

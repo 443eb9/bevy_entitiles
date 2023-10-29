@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Assets, Commands, Image, Query, Res, ResMut},
+    prelude::{Assets, Image, Query, Res, ResMut},
     render::{
         render_resource::{
             BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d, TextureAspect,
@@ -7,24 +7,27 @@ use bevy::{
             TextureViewDescriptor, TextureViewDimension,
         },
         renderer::RenderDevice,
-    },
-    utils::HashMap,
+    }
 };
 
-use crate::tilemap::TileMap;
+use crate::tilemap::Tilemap;
 
 use super::{BindGroups, EntiTilesPipeline};
 
 pub fn prepare_textures(
-    mut commands: Commands,
-    query: Query<&TileMap>,
-    mut bind_groups_query: Query<&mut BindGroups>,
+    query: Query<&Tilemap>,
+    mut bind_groups: ResMut<BindGroups>,
     render_device: Res<RenderDevice>,
     pipeline: Res<EntiTilesPipeline>,
     images: Res<Assets<Image>>,
 ) {
     for map in query.iter() {
         let texture_handle = map.texture.clone();
+
+        if bind_groups.tile_textures.contains_key(&texture_handle) {
+            continue;
+        }
+
         let texture_desc = &images.get(&texture_handle).unwrap().texture_descriptor;
 
         let gpu_texture = render_device.create_texture(&TextureDescriptor {
@@ -42,7 +45,7 @@ pub fn prepare_textures(
             view_formats: &[],
         });
 
-        let tile_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+        let tilemap_texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
             label: Some("tilemap_texture_bind_group"),
             layout: &pipeline.texture_layout,
             entries: &[BindGroupEntry {
@@ -62,13 +65,8 @@ pub fn prepare_textures(
             }],
         });
 
-        if let Ok(mut bind_groups) = bind_groups_query.get_single_mut() {
-            bind_groups.tile_data = tile_bind_group;
-        } else {
-            commands.spawn_empty().insert(BindGroups {
-                tile_data: tile_bind_group,
-                tile_textures: HashMap::default(),
-            });
-        }
+        bind_groups
+            .tile_textures
+            .insert(texture_handle, tilemap_texture_bind_group);
     }
 }

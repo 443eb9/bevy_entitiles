@@ -1,20 +1,21 @@
 use bevy::{
     asset::load_internal_asset,
-    prelude::{
-        Component, Handle, HandleUntyped, IVec2, Image, IntoSystemConfigs, OrthographicProjection,
-        Plugin, Resource, Shader, UVec2, Vec2,
-    },
+    core_pipeline::core_2d::Transparent2d,
+    prelude::{Handle, HandleUntyped, Image, IntoSystemConfigs, Plugin, Resource, Shader},
     reflect::TypeUuid,
     render::{
-        render_resource::{
-            BindGroup, BindGroupLayout, DynamicUniformBuffer, ShaderType,
-            SpecializedRenderPipelines,
-        },
+        render_phase::AddRenderCommand,
+        render_resource::{BindGroup, SpecializedRenderPipelines},
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
     utils::HashMap,
 };
 
+use crate::render::{draw::DrawTilemap, extract::ExtractedData, pipeline::EntiTilesPipeline};
+
+use self::chunk::TileRenderChunk;
+
+pub mod chunk;
 pub mod draw;
 pub mod extract;
 pub mod pipeline;
@@ -28,7 +29,7 @@ const TILEMAP_SHADER: HandleUntyped =
 pub struct EntiTilesRendererPlugin;
 
 impl Plugin for EntiTilesRendererPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {}
+    fn build(&self, _app: &mut bevy::prelude::App) {}
 
     fn finish(&self, _app: &mut bevy::prelude::App) {
         load_internal_asset!(
@@ -46,55 +47,23 @@ impl Plugin for EntiTilesRendererPlugin {
             .add_systems(Render, queue::queue.in_set(RenderSet::Queue));
 
         render_app
+            .init_resource::<RenderChunkStorage>()
             .init_resource::<ExtractedData>()
-            .init_resource::<UniformData>();
-
-        render_app
             .init_resource::<EntiTilesPipeline>()
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
+
+        render_app.add_render_command::<Transparent2d, DrawTilemap>();
     }
 }
 
 #[derive(Resource)]
-pub struct EntiTilesPipeline {
-    pub view_layout: BindGroupLayout,
-    pub mesh_layout: BindGroupLayout,
-    pub texture_layout: BindGroupLayout,
-}
-
-#[derive(PartialEq, Eq, Hash, Clone)]
-pub struct EntiTilesPipelineKey {}
-
-#[derive(Component)]
 pub struct BindGroups {
-    pub tile_data: BindGroup,
+    pub transform_matrices: BindGroup,
+    pub tilemap_props: BindGroup,
     pub tile_textures: HashMap<Handle<Image>, BindGroup>,
 }
 
-// Step 1: Extract
-
-pub struct ExtractedTile {
-    pub texture_index: u32,
-    pub coordinate: IVec2,
-}
-
-#[derive(Component)]
-pub struct ExtractedView {
-    pub projection: OrthographicProjection,
-}
-
 #[derive(Resource, Default)]
-pub struct ExtractedData {
-    pub tiles: Vec<ExtractedTile>,
+pub struct RenderChunkStorage {
+    pub value: HashMap<u32, Vec<TileRenderChunk>>,
 }
-
-// Step 2: Prepare
-
-#[derive(Resource, Default)]
-pub struct UniformData {
-    pub tile_data: DynamicUniformBuffer<TileData>,
-}
-
-// Step 3: Queue
-
-// Step 4: Draw
