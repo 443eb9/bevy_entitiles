@@ -16,7 +16,7 @@ use bevy::{
 
 use super::{
     draw::DrawTilemap,
-    extract::ExtractedData,
+    extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     texture::TilemapTextureArrayStorage,
     BindGroups,
@@ -30,6 +30,7 @@ pub struct TileViewBindGroup {
 pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
+    tilemaps_query: Query<(Entity, &ExtractedTilemap)>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut tilemap_pipelines: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
@@ -39,7 +40,6 @@ pub fn queue(
     render_queue: Res<RenderQueue>,
     mut bind_groups: ResMut<BindGroups>,
     render_images: Res<RenderAssets<Image>>,
-    extracted_data: Res<ExtractedData>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
@@ -61,7 +61,7 @@ pub fn queue(
             }),
         });
 
-        for tilemap in extracted_data.tilemaps.iter() {
+        for (entity, tilemap) in tilemaps_query.iter() {
             let pipeline = tilemap_pipelines.specialize(
                 &pipeline_cache,
                 &entitile_pipeline,
@@ -93,11 +93,11 @@ pub fn queue(
 
             bind_groups
                 .tilemap_texture_arrays
-                .insert(tilemap.texture.clone(), bind_group);
+                .insert(tilemap.texture.clone_weak(), bind_group);
 
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.z_order),
-                entity: tilemap.entity,
+                entity,
                 pipeline,
                 draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
                 batch_range: None,

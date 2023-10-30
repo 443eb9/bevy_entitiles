@@ -62,26 +62,31 @@ impl TilemapBuilder {
         }
     }
 
+    /// Override z order. Default is 0.
     pub fn with_z_order(mut self, z_order: f32) -> Self {
         self.z_order = z_order;
         self
     }
 
+    /// Override render chunk size. Default is 16x16.
     pub fn with_render_chunk_size(mut self, size: UVec2) -> Self {
         self.render_chunk_size = size;
         self
     }
 
+    /// Override transform. Default is identity.
     pub fn with_translate(mut self, translate: Vec3) -> Self {
         self.transform.translation = translate;
         self
     }
 
+    /// Override transform. Default is identity.
     pub fn with_transform(mut self, transform: Transform) -> Self {
         self.transform = transform;
         self
     }
 
+    /// Override filter mode. Default is nearest.
     pub fn with_filter_mode(mut self, filter_mode: FilterMode) -> Self {
         self.filter_mode = filter_mode;
         self

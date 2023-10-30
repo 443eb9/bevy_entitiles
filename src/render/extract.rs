@@ -1,6 +1,6 @@
 use bevy::{
     prelude::{
-        Component, Entity, Handle, Image, OrthographicProjection, Query, ResMut, Resource, UVec2,
+        Commands, Component, Entity, Handle, Image, OrthographicProjection, Query, ResMut, UVec2,
     },
     render::{render_resource::FilterMode, Extract},
 };
@@ -14,40 +14,38 @@ pub struct ExtractedView {
     pub projection: OrthographicProjection,
 }
 
+#[derive(Component)]
 pub struct ExtractedTilemap {
-    pub entity: Entity,
     pub id: u32,
     pub size: UVec2,
     pub tile_size: UVec2,
     pub tile_type: TileType,
-    pub filter_mode: FilterMode,
     pub texture: Handle<Image>,
+    pub filter_mode: FilterMode,
     pub z_order: f32,
 }
 
-#[derive(Resource, Default)]
-pub struct ExtractedData {
-    pub tilemaps: Vec<ExtractedTilemap>,
-}
-
 pub fn extract(
+    mut commands: Commands,
     tilemaps_query: Extract<Query<(Entity, &Tilemap)>>,
-    mut extracted_data: ResMut<ExtractedData>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
-    extracted_data.tilemaps.clear();
+    let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = Vec::new();
 
     for (entity, tilemap) in tilemaps_query.iter() {
-        extracted_data.tilemaps.push(ExtractedTilemap {
+        extracted_tilemaps.push((
             entity,
-            id: tilemap.id,
-            size: tilemap.size,
-            tile_size: tilemap.tile_size,
-            tile_type: tilemap.tile_type.clone(),
-            texture: tilemap.texture.clone_weak(),
-            filter_mode: tilemap.filter_mode,
-            z_order: tilemap.z_order,
-        });
+            ExtractedTilemap {
+                id: tilemap.id,
+                size: tilemap.size,
+                tile_size: tilemap.tile_size,
+                tile_type: tilemap.tile_type.clone(),
+                filter_mode: tilemap.filter_mode,
+                texture: tilemap.texture.clone_weak(),
+                z_order: tilemap.z_order,
+            },
+        ));
+
         tilemap_texture_array_storage.register(
             &tilemap.texture,
             TilemapTextureDescriptor {
@@ -57,4 +55,6 @@ pub fn extract(
             },
         )
     }
+
+    commands.insert_or_spawn_batch(extracted_tilemaps);
 }

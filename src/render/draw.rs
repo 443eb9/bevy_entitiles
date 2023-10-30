@@ -9,11 +9,44 @@ use bevy::{
     },
 };
 
-use crate::tilemap::Tilemap;
+use super::{queue::TileViewBindGroup, BindGroups, RenderChunkStorage, extract::ExtractedTilemap};
 
-use super::{queue::TileViewBindGroup, BindGroups, RenderChunkStorage};
+pub type DrawTilemap = (
+    SetPipeline,
+    SetTileViewBindGroup<0>,
+    SetTileTextureBindGroup<1>,
+    DrawTileMesh,
+);
 
-pub type DrawTilemap = (SetTileViewBindGroup<0>,SetTileTextureBindGroup<1>, SetPipeline, DrawTileMesh);
+pub struct SetPipeline;
+impl RenderCommand<Transparent2d> for SetPipeline {
+    type Param = SRes<PipelineCache>;
+
+    type ViewWorldQuery = ();
+
+    type ItemWorldQuery = ();
+
+    #[inline]
+    fn render<'w>(
+        item: &Transparent2d,
+        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
+        _entity: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
+        pipeline_cache: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        // dbg!(pipeline_cache.get_render_pipeline_state(item.pipeline));
+
+        if let Some(pipeline) = pipeline_cache
+            .into_inner()
+            .get_render_pipeline(item.pipeline)
+        {
+            pass.set_render_pipeline(pipeline);
+            RenderCommandResult::Success
+        } else {
+            RenderCommandResult::Failure
+        }
+    }
+}
 
 pub struct SetTileViewBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTileViewBindGroup<I> {
@@ -33,7 +66,6 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileViewBindGroup<I> {
         _param: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        println!("SetTileViewBindGroup");
         pass.set_bind_group(I, &view_bind_group.value, &[view_uniform_offset.offset]);
 
         RenderCommandResult::Success
@@ -46,7 +78,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = Read<Tilemap>;
+    type ItemWorldQuery = Read<ExtractedTilemap>;
 
     #[inline]
     fn render<'w>(
@@ -56,7 +88,6 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
         bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        println!("SetTileTextureBindGroup");
         pass.set_bind_group(
             I,
             bind_groups
@@ -71,42 +102,13 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
     }
 }
 
-pub struct SetPipeline;
-impl RenderCommand<Transparent2d> for SetPipeline {
-    type Param = SRes<PipelineCache>;
-
-    type ViewWorldQuery = ();
-
-    type ItemWorldQuery = ();
-
-    #[inline]
-    fn render<'w>(
-        item: &Transparent2d,
-        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
-        pipeline_cache: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        println!("SetPipeline");
-        if let Some(pipeline) = pipeline_cache
-            .into_inner()
-            .get_render_pipeline(item.pipeline)
-        {
-            pass.set_render_pipeline(pipeline);
-            RenderCommandResult::Success
-        } else {
-            RenderCommandResult::Failure
-        }
-    }
-}
-
 pub struct DrawTileMesh;
 impl RenderCommand<Transparent2d> for DrawTileMesh {
     type Param = SRes<RenderChunkStorage>;
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = Read<Tilemap>;
+    type ItemWorldQuery = Read<ExtractedTilemap>;
 
     #[inline]
     fn render<'w>(
@@ -118,6 +120,7 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
     ) -> RenderCommandResult {
         println!("DrawTileMesh");
         if let Some(chunks) = render_chunks.into_inner().value.get(&tilemap.id) {
+            println!("Start drawing");
             for chunk in chunks.iter() {
                 if let Some(gpu_mesh) = &chunk.gpu_mesh {
                     pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));

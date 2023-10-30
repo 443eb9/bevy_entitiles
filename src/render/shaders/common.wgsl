@@ -1,3 +1,5 @@
+#define_import_path bevy_entitiles::common
+
 struct VertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec4<f32>,

@@ -1,10 +1,12 @@
+#import bevy_entitiles::common VertexInput, VertexOutput
+
 #ifdef SQUARE
-    #import "square.wgsl" get_mesh
+    #import bevy_entitiles::square get_mesh
 #endif
 
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
-    let output: VertexOutput;
+    var output: VertexOutput;
     output.position = vec4<f32>(10.0, 10.0, 10.0, 10.0);
     return output;
 }

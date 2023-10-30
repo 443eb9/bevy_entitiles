@@ -12,7 +12,7 @@ use bevy::{
 };
 
 use crate::render::{
-    draw::DrawTilemap, extract::ExtractedData, pipeline::EntiTilesPipeline,
+    draw::DrawTilemap, pipeline::EntiTilesPipeline,
     texture::TilemapTextureArrayStorage,
 };
 
@@ -59,7 +59,6 @@ impl Plugin for EntiTilesRendererPlugin {
         render_app
             .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTextureArrayStorage>()
-            .init_resource::<ExtractedData>()
             .init_resource::<EntiTilesPipeline>()
             .init_resource::<BindGroups>()
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();

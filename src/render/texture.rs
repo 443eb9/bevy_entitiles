@@ -69,9 +69,9 @@ impl TilemapTextureArrayStorage {
 
             let sampler = render_device.create_sampler(&SamplerDescriptor {
                 label: Some("tilemap_texture_array_sampler"),
-                address_mode_u: AddressMode::ClampToBorder,
-                address_mode_v: AddressMode::ClampToBorder,
-                address_mode_w: AddressMode::ClampToBorder,
+                address_mode_u: AddressMode::ClampToEdge,
+                address_mode_v: AddressMode::ClampToEdge,
+                address_mode_w: AddressMode::ClampToEdge,
                 mag_filter: desc.filter_mode,
                 min_filter: desc.filter_mode,
                 mipmap_filter: desc.filter_mode,
@@ -162,7 +162,7 @@ impl TilemapTextureArrayStorage {
                 );
             }
 
-            render_queue.submit(Some(command_encoder.finish()));
+            render_queue.submit(vec![command_encoder.finish()]);
         }
     }
 }
