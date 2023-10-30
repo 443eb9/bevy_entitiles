@@ -11,7 +11,10 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::render::{draw::DrawTilemap, extract::ExtractedData, pipeline::EntiTilesPipeline};
+use crate::render::{
+    draw::DrawTilemap, extract::ExtractedData, pipeline::EntiTilesPipeline,
+    texture::TilemapTextureArrayStorage,
+};
 
 use self::chunk::TileRenderChunk;
 
@@ -23,6 +26,9 @@ pub mod prepare;
 pub mod queue;
 pub mod texture;
 
+const SQUARE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 4189641863548);
+
+const COMMON: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 548635415641535);
 const TILEMAP_SHADER: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 151631653416315);
 
@@ -32,6 +38,10 @@ impl Plugin for EntiTilesRendererPlugin {
     fn build(&self, _app: &mut bevy::prelude::App) {}
 
     fn finish(&self, _app: &mut bevy::prelude::App) {
+        load_internal_asset!(_app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
+
+        load_internal_asset!(_app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
+
         load_internal_asset!(
             _app,
             TILEMAP_SHADER,
@@ -48,19 +58,19 @@ impl Plugin for EntiTilesRendererPlugin {
 
         render_app
             .init_resource::<RenderChunkStorage>()
+            .init_resource::<TilemapTextureArrayStorage>()
             .init_resource::<ExtractedData>()
             .init_resource::<EntiTilesPipeline>()
+            .init_resource::<BindGroups>()
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
 
         render_app.add_render_command::<Transparent2d, DrawTilemap>();
     }
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct BindGroups {
-    pub transform_matrices: BindGroup,
-    pub tilemap_props: BindGroup,
-    pub tile_textures: HashMap<Handle<Image>, BindGroup>,
+    pub tilemap_texture_arrays: HashMap<Handle<Image>, BindGroup>,
 }
 
 #[derive(Resource, Default)]

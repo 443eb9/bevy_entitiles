@@ -3,7 +3,7 @@ use bevy::{
         Handle, Image,
         Transform, UVec2, Vec3, Component,
     },
-    render::{mesh::MeshVertexAttribute, render_resource::VertexFormat},
+    render::{mesh::MeshVertexAttribute, render_resource::{VertexFormat, FilterMode}},
 };
 
 use crate::render::RenderChunkStorage;
@@ -34,6 +34,7 @@ pub struct TilemapBuilder {
     tile_size: UVec2,
     render_chunk_size: UVec2,
     texture: Handle<Image>,
+    filter_mode: FilterMode,
     z_order: f32,
 }
 
@@ -56,6 +57,7 @@ impl TilemapBuilder {
             transform: Transform::default(),
             render_chunk_size: UVec2::new(16, 16),
             texture,
+            filter_mode: FilterMode::Nearest,
             z_order: 0.,
         }
     }
@@ -79,6 +81,11 @@ impl TilemapBuilder {
         self.transform = transform;
         self
     }
+
+    pub fn with_filter_mode(mut self, filter_mode: FilterMode) -> Self {
+        self.filter_mode = filter_mode;
+        self
+    }
 }
 
 #[derive(Component)]
@@ -91,6 +98,7 @@ pub struct Tilemap {
     pub(crate) render_chunk_size: UVec2,
     pub(crate) texture: Handle<Image>,
     pub(crate) z_order: f32,
+    pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Tile>>,
 }
 
@@ -105,6 +113,7 @@ impl From<TilemapBuilder> for Tilemap {
             tile_size: value.tile_size,
             render_chunk_size: value.render_chunk_size,
             texture: value.texture,
+            filter_mode: value.filter_mode,
             z_order: value.z_order,
         }
     }

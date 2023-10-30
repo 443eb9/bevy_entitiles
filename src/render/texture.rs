@@ -1,72 +1,168 @@
 use bevy::{
-    prelude::{Assets, Image, Query, Res, ResMut},
+    prelude::{Handle, Image, Res, Resource, UVec2, Vec2},
     render::{
+        render_asset::RenderAssets,
         render_resource::{
-            BindGroupDescriptor, BindGroupEntry, BindingResource, Extent3d, TextureAspect,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            AddressMode, Extent3d, FilterMode, ImageCopyTexture, Origin3d, SamplerDescriptor,
+            TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
             TextureViewDescriptor, TextureViewDimension,
         },
-        renderer::RenderDevice,
-    }
+        renderer::{RenderDevice, RenderQueue},
+        texture::GpuImage,
+    },
+    utils::{HashMap, HashSet},
 };
 
-use crate::tilemap::Tilemap;
+#[derive(Resource, Default)]
+pub struct TilemapTextureArrayStorage {
+    textures: HashMap<Handle<Image>, GpuImage>,
+    descs: HashMap<Handle<Image>, TilemapTextureDescriptor>,
+    textures_to_prepare: HashSet<Handle<Image>>,
+    textures_to_queue: HashSet<Handle<Image>>,
+}
 
-use super::{BindGroups, EntiTilesPipeline};
+pub struct TilemapTextureDescriptor {
+    pub tile_size: UVec2,
+    pub tile_count: u32,
+    pub filter_mode: FilterMode,
+}
 
-pub fn prepare_textures(
-    query: Query<&Tilemap>,
-    mut bind_groups: ResMut<BindGroups>,
-    render_device: Res<RenderDevice>,
-    pipeline: Res<EntiTilesPipeline>,
-    images: Res<Assets<Image>>,
-) {
-    for map in query.iter() {
-        let texture_handle = map.texture.clone();
+impl TilemapTextureArrayStorage {
+    /// Register a new image to be translated to texture array.
+    pub fn register(&mut self, image: &Handle<Image>, image_meta: TilemapTextureDescriptor) {
+        if !self.descs.contains_key(image) {
+            self.textures_to_prepare.insert(image.clone_weak());
+            self.descs.insert(image.clone_weak(), image_meta);
+        }
+    }
 
-        if bind_groups.tile_textures.contains_key(&texture_handle) {
-            continue;
+    /// Try to get the processed texture array.
+    pub fn try_get_texture_array(&self, image: &Handle<Image>) -> Option<&GpuImage> {
+        self.textures.get(image)
+    }
+
+    /// Prepare the texture, creating the texture array and translate images in `queue_texture` function.
+    pub fn prepare(&mut self, render_device: &Res<RenderDevice>) {
+        if self.textures_to_prepare.is_empty() {
+            return;
         }
 
-        let texture_desc = &images.get(&texture_handle).unwrap().texture_descriptor;
+        let to_prepare = self.textures_to_prepare.drain().collect::<Vec<_>>();
 
-        let gpu_texture = render_device.create_texture(&TextureDescriptor {
-            label: Some("tilemap_texture"),
-            size: Extent3d {
-                width: texture_desc.size.width,
-                height: texture_desc.size.height,
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8UnormSrgb,
-            usage: TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST,
-            view_formats: &[],
-        });
+        for image in to_prepare.iter() {
+            let desc = self.descs.get(image).unwrap();
 
-        let tilemap_texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-            label: Some("tilemap_texture_bind_group"),
-            layout: &pipeline.texture_layout,
-            entries: &[BindGroupEntry {
-                binding: 0,
-                resource: BindingResource::TextureView(&gpu_texture.create_view(
-                    &TextureViewDescriptor {
-                        label: Some("tilemap_texture_view"),
-                        format: None,
-                        dimension: Some(TextureViewDimension::D2Array),
+            let texture = render_device.create_texture(&TextureDescriptor {
+                label: Some("tilemap_texture_array"),
+                size: Extent3d {
+                    width: desc.tile_size.x,
+                    height: desc.tile_size.y,
+                    depth_or_array_layers: desc.tile_count,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::Rgba8UnormSrgb,
+                usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+
+            let sampler = render_device.create_sampler(&SamplerDescriptor {
+                label: Some("tilemap_texture_array_sampler"),
+                address_mode_u: AddressMode::ClampToBorder,
+                address_mode_v: AddressMode::ClampToBorder,
+                address_mode_w: AddressMode::ClampToBorder,
+                mag_filter: desc.filter_mode,
+                min_filter: desc.filter_mode,
+                mipmap_filter: desc.filter_mode,
+                lod_min_clamp: 0.,
+                lod_max_clamp: f32::MAX,
+                compare: None,
+                anisotropy_clamp: 1,
+                border_color: None,
+            });
+
+            let texture_view = texture.create_view(&TextureViewDescriptor {
+                label: Some("tilemap_texture_array_view"),
+                format: Some(TextureFormat::Rgba8UnormSrgb),
+                dimension: Some(TextureViewDimension::D2Array),
+                aspect: TextureAspect::All,
+                base_mip_level: 0,
+                base_array_layer: 0,
+                mip_level_count: None,
+                array_layer_count: Some(desc.tile_count),
+            });
+
+            let gpu_image = GpuImage {
+                texture_format: texture.format(),
+                mip_level_count: texture.mip_level_count(),
+                texture,
+                texture_view,
+                sampler,
+                size: Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
+            };
+
+            self.textures.insert(image.clone_weak(), gpu_image);
+        }
+    }
+
+    /// Translate images to texture array.
+    pub fn queue(
+        &mut self,
+        render_device: &Res<RenderDevice>,
+        render_queue: &Res<RenderQueue>,
+        render_images: &Res<RenderAssets<Image>>,
+    ) {
+        if self.textures_to_queue.is_empty() {
+            return;
+        }
+
+        let to_queue = self.textures_to_queue.drain().collect::<Vec<_>>();
+
+        for image in to_queue.iter() {
+            let Some(raw_gpu_image) = render_images.get(image) else {
+                self.textures_to_prepare.insert(image.clone_weak());
+                continue;
+            };
+
+            let desc = self.descs.get(image).unwrap();
+            let array_gpu_image = self.textures.get(image).unwrap();
+            let mut command_encoder = render_device.create_command_encoder(&Default::default());
+
+            for index in 0..desc.tile_count {
+                let sprite_x = index * desc.tile_size.x;
+                let sprite_y = index / desc.tile_size.x * desc.tile_size.y;
+
+                command_encoder.copy_texture_to_texture(
+                    ImageCopyTexture {
+                        texture: &raw_gpu_image.texture,
+                        mip_level: 0,
+                        origin: Origin3d {
+                            x: sprite_x,
+                            y: sprite_y,
+                            z: 0,
+                        },
                         aspect: TextureAspect::All,
-                        base_mip_level: 0,
-                        mip_level_count: None,
-                        base_array_layer: 0,
-                        array_layer_count: None,
                     },
-                )),
-            }],
-        });
+                    ImageCopyTexture {
+                        texture: &array_gpu_image.texture,
+                        mip_level: 0,
+                        origin: Origin3d {
+                            x: 0,
+                            y: 0,
+                            z: index,
+                        },
+                        aspect: TextureAspect::All,
+                    },
+                    Extent3d {
+                        width: desc.tile_size.x,
+                        height: desc.tile_size.y,
+                        depth_or_array_layers: 1,
+                    },
+                );
+            }
 
-        bind_groups
-            .tile_textures
-            .insert(texture_handle, tilemap_texture_bind_group);
+            render_queue.submit(Some(command_encoder.finish()));
+        }
     }
 }

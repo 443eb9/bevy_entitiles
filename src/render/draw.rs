@@ -5,17 +5,43 @@ use bevy::{
         mesh::GpuBufferInfo,
         render_phase::{RenderCommand, RenderCommandResult},
         render_resource::PipelineCache,
+        view::ViewUniformOffset,
     },
 };
 
 use crate::tilemap::Tilemap;
 
-use super::{BindGroups, RenderChunkStorage};
+use super::{queue::TileViewBindGroup, BindGroups, RenderChunkStorage};
 
-pub type DrawTilemap = (SetTileTextureBindingGroup<0>, SetPipeline, DrawTileMesh);
+pub type DrawTilemap = (SetTileViewBindGroup<0>,SetTileTextureBindGroup<1>, SetPipeline, DrawTileMesh);
 
-pub struct SetTileTextureBindingGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindingGroup<I> {
+pub struct SetTileViewBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTileViewBindGroup<I> {
+    type Param = ();
+
+    type ViewWorldQuery = (Read<ViewUniformOffset>, Read<TileViewBindGroup>);
+
+    type ItemWorldQuery = ();
+
+    fn render<'w>(
+        _item: &Transparent2d,
+        (view_uniform_offset, view_bind_group): bevy::ecs::query::ROQueryItem<
+            'w,
+            Self::ViewWorldQuery,
+        >,
+        _entity: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
+        _param: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        println!("SetTileViewBindGroup");
+        pass.set_bind_group(I, &view_bind_group.value, &[view_uniform_offset.offset]);
+
+        RenderCommandResult::Success
+    }
+}
+
+pub struct SetTileTextureBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I> {
     type Param = SRes<BindGroups>;
 
     type ViewWorldQuery = ();
@@ -30,11 +56,12 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindingGroup
         bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
+        println!("SetTileTextureBindGroup");
         pass.set_bind_group(
             I,
             bind_groups
                 .into_inner()
-                .tile_textures
+                .tilemap_texture_arrays
                 .get(&tilemaps.texture)
                 .unwrap(),
             &[],
@@ -60,6 +87,7 @@ impl RenderCommand<Transparent2d> for SetPipeline {
         pipeline_cache: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
+        println!("SetPipeline");
         if let Some(pipeline) = pipeline_cache
             .into_inner()
             .get_render_pipeline(item.pipeline)
@@ -88,6 +116,7 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
         render_chunks: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
+        println!("DrawTileMesh");
         if let Some(chunks) = render_chunks.into_inner().value.get(&tilemap.id) {
             for chunk in chunks.iter() {
                 if let Some(gpu_mesh) = &chunk.gpu_mesh {
