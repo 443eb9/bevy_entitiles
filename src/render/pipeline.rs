@@ -12,6 +12,7 @@ use bevy::{
         },
         renderer::RenderDevice,
         texture::BevyDefault,
+        view::ViewUniform,
     },
 };
 
@@ -22,11 +23,13 @@ use super::TILEMAP_SHADER;
 #[derive(Resource)]
 pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
+    pub tilemap_data_layout: BindGroupLayout,
     pub texture_layout: BindGroupLayout,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct EntiTilesPipelineKey {
+    pub msaa: u32,
     pub map_type: TileType,
 }
 
@@ -41,11 +44,26 @@ impl FromWorld for EntiTilesPipeline {
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: Some(GlobalsUniform::min_size()),
+                    min_binding_size: Some(ViewUniform::min_size()),
                 },
                 count: None,
             }],
         });
+
+        let tilemap_data_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("tilemap_data_layout"),
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
+                        min_binding_size: Some(GlobalsUniform::min_size()),
+                    },
+                    count: None,
+                }],
+            });
 
         let texture_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
             label: Some("tilemap_texture_layout"),
@@ -71,6 +89,7 @@ impl FromWorld for EntiTilesPipeline {
 
         EntiTilesPipeline {
             view_layout,
+            tilemap_data_layout,
             texture_layout,
         }
     }
@@ -97,6 +116,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 VertexFormat::Float32x3,
                 // texture_index
                 VertexFormat::Uint32,
+                // grid_index
+                VertexFormat::Uint32x2,
             ],
         );
 
@@ -131,7 +152,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             },
             depth_stencil: None,
             multisample: MultisampleState {
-                count: 1,
+                count: key.msaa,
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },

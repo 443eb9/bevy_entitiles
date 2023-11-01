@@ -1,6 +1,6 @@
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Commands, Component, Entity, Image, Query, Res, ResMut},
+    prelude::{Commands, Component, Entity, Image, Msaa, Query, Res, ResMut},
     render::{
         render_asset::RenderAssets,
         render_phase::{DrawFunctions, RenderPhase},
@@ -19,6 +19,7 @@ use super::{
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     texture::TilemapTextureArrayStorage,
+    uniform::TilemapUniformsStorage,
     BindGroups,
 };
 
@@ -41,6 +42,8 @@ pub fn queue(
     mut bind_groups: ResMut<BindGroups>,
     render_images: Res<RenderAssets<Image>>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
+    msaa: Res<Msaa>,
+    tilemap_uniform_strorage: Res<TilemapUniformsStorage>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -48,7 +51,6 @@ pub fn queue(
 
     tilemap_texture_array_storage.queue(&render_device, &render_queue, &render_images);
 
-    // queue tilemaps for each view
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TileViewBindGroup {
             value: render_device.create_bind_group(&BindGroupDescriptor {
@@ -66,6 +68,7 @@ pub fn queue(
                 &pipeline_cache,
                 &entitile_pipeline,
                 EntiTilesPipelineKey {
+                    msaa: msaa.samples(),
                     map_type: tilemap.tile_type.clone(),
                 },
             );
@@ -76,7 +79,7 @@ pub fn queue(
                 continue;
             };
 
-            let bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+            let texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
                 label: Some("tilemap_texture_bind_group"),
                 layout: &entitile_pipeline.texture_layout,
                 entries: &[
@@ -93,7 +96,21 @@ pub fn queue(
 
             bind_groups
                 .tilemap_texture_arrays
-                .insert(tilemap.texture.clone_weak(), bind_group);
+                .insert(tilemap.texture.clone_weak(), texture_bind_group);
+
+            if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.buffer.binding() {
+                let tilemap_data_bind_group =
+                    render_device.create_bind_group(&BindGroupDescriptor {
+                        label: Some("tilemap_data_bind_group"),
+                        layout: &entitile_pipeline.tilemap_data_layout,
+                        entries: &[BindGroupEntry {
+                            binding: 0,
+                            resource: tilemap_uniform_binding,
+                        }],
+                    });
+
+                bind_groups.tilemap_uniform_bind_group.insert(tilemap.id, tilemap_data_bind_group);
+            }
 
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.z_order),

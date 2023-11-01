@@ -2,8 +2,9 @@
 
 struct VertexInput {
     @builtin(vertex_index) v_index: u32,
-    @location(0) position: vec4<f32>,
+    @location(0) position: vec3<f32>,
     @location(1) texture_index: u32,
+    @location(2) grid_index: vec2<u32>,
 }
 
 struct VertexOutput {

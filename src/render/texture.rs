@@ -29,7 +29,7 @@ pub struct TilemapTextureDescriptor {
 
 impl TilemapTextureArrayStorage {
     /// Register a new image to be translated to texture array.
-    pub fn register(&mut self, image: &Handle<Image>, image_meta: TilemapTextureDescriptor) {
+    pub fn insert(&mut self, image: &Handle<Image>, image_meta: TilemapTextureDescriptor) {
         if !self.descs.contains_key(image) {
             self.textures_to_prepare.insert(image.clone_weak());
             self.descs.insert(image.clone_weak(), image_meta);

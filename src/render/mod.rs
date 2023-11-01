@@ -1,7 +1,7 @@
 use bevy::{
     asset::load_internal_asset,
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Handle, HandleUntyped, Image, IntoSystemConfigs, Plugin, Resource, Shader},
+    prelude::{Handle, HandleUntyped, Image, IntoSystemConfigs, Plugin, Resource, Shader, Entity},
     reflect::TypeUuid,
     render::{
         render_phase::AddRenderCommand,
@@ -12,19 +12,19 @@ use bevy::{
 };
 
 use crate::render::{
-    draw::DrawTilemap, pipeline::EntiTilesPipeline,
-    texture::TilemapTextureArrayStorage,
+    chunk::RenderChunkStorage, draw::DrawTilemap, pipeline::EntiTilesPipeline,
+    texture::TilemapTextureArrayStorage, uniform::TilemapUniformsStorage,
 };
 
-use self::chunk::TileRenderChunk;
-
 pub mod chunk;
+pub mod cleanup;
 pub mod draw;
 pub mod extract;
 pub mod pipeline;
 pub mod prepare;
 pub mod queue;
 pub mod texture;
+pub mod uniform;
 
 const SQUARE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 4189641863548);
 
@@ -59,6 +59,7 @@ impl Plugin for EntiTilesRendererPlugin {
         render_app
             .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTextureArrayStorage>()
+            .init_resource::<TilemapUniformsStorage>()
             .init_resource::<EntiTilesPipeline>()
             .init_resource::<BindGroups>()
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
@@ -69,10 +70,6 @@ impl Plugin for EntiTilesRendererPlugin {
 
 #[derive(Resource, Default)]
 pub struct BindGroups {
+    pub tilemap_uniform_bind_group: HashMap<Entity, BindGroup>,
     pub tilemap_texture_arrays: HashMap<Handle<Image>, BindGroup>,
-}
-
-#[derive(Resource, Default)]
-pub struct RenderChunkStorage {
-    pub value: HashMap<u32, Vec<TileRenderChunk>>,
 }
