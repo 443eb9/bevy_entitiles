@@ -2,6 +2,6 @@
 
 #import bevy_entitiles::common MeshOutput
 
-fn get_mesh(v_index: u32, v_pos_ws: vec3<f32>) -> MeshOutput {
+fn get_mesh(input: VertexInput) -> MeshOutput {
     let i = v_index % 4u;
 }

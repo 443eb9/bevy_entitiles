@@ -4,11 +4,12 @@ use bevy::{
         globals::GlobalsUniform,
         render_resource::{
             BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
-            BufferBindingType, ColorTargetState, ColorWrites, Face, FragmentState, FrontFace,
-            MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType,
-            SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
-            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+            BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType,
+            ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
+            PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
+            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedRenderPipeline,
+            TextureFormat, TextureSampleType, TextureViewDimension, VertexBufferLayout,
+            VertexFormat, VertexState, VertexStepMode,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
@@ -137,7 +138,18 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 entry_point: "tilemap_fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
-                    blend: None,
+                    blend: Some(BlendState {
+                        color: BlendComponent {
+                            src_factor: BlendFactor::SrcAlpha,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                        alpha: BlendComponent {
+                            src_factor: BlendFactor::SrcAlpha,
+                            dst_factor: BlendFactor::OneMinusSrcAlpha,
+                            operation: BlendOperation::Add,
+                        },
+                    }),
                     write_mask: ColorWrites::ALL,
                 })],
             }),
@@ -145,7 +157,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 topology: PrimitiveTopology::TriangleList,
                 strip_index_format: None,
                 front_face: FrontFace::Ccw,
-                cull_mode: Some(Face::Back),
+                // TODO: cull mode
+                cull_mode: None,
                 unclipped_depth: false,
                 polygon_mode: PolygonMode::Fill,
                 conservative: false,
