@@ -49,7 +49,7 @@ pub fn queue(
         return;
     };
 
-    tilemap_texture_array_storage.queue(&render_device, &render_queue, &render_images);
+    tilemap_texture_array_storage.queue_textures(&render_device, &render_queue, &render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TileViewBindGroup {
@@ -79,6 +79,20 @@ pub fn queue(
                 continue;
             };
 
+            if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
+                let tilemap_uniform_bind_group =
+                    render_device.create_bind_group(&BindGroupDescriptor {
+                        label: Some("tilemap_data_bind_group"),
+                        layout: &entitile_pipeline.tilemap_uniform_layout,
+                        entries: &[BindGroupEntry {
+                            binding: 0,
+                            resource: tilemap_uniform_binding,
+                        }],
+                    });
+
+                bind_groups.tilemap_uniform_bind_group.insert(tilemap.id, tilemap_uniform_bind_group);
+            }
+
             let texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
                 label: Some("tilemap_texture_bind_group"),
                 layout: &entitile_pipeline.texture_layout,
@@ -98,22 +112,8 @@ pub fn queue(
                 .tilemap_texture_arrays
                 .insert(tilemap.texture.clone_weak(), texture_bind_group);
 
-            if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.buffer.binding() {
-                let tilemap_data_bind_group =
-                    render_device.create_bind_group(&BindGroupDescriptor {
-                        label: Some("tilemap_data_bind_group"),
-                        layout: &entitile_pipeline.tilemap_data_layout,
-                        entries: &[BindGroupEntry {
-                            binding: 0,
-                            resource: tilemap_uniform_binding,
-                        }],
-                    });
-
-                bind_groups.tilemap_uniform_bind_group.insert(tilemap.id, tilemap_data_bind_group);
-            }
-
             transparent_phase.add(Transparent2d {
-                sort_key: FloatOrd(tilemap.z_order),
+                sort_key: FloatOrd(tilemap.transform.z_axis.w),
                 entity,
                 pipeline,
                 draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),

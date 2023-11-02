@@ -1,5 +1,8 @@
 use bevy::{
-    prelude::{Commands, Entity, Handle, Image, Mesh, Query, Res, ResMut, Resource, UVec2, Vec3},
+    prelude::{
+        Changed, Entity, Handle, Image, Mesh, Or, Query, Res, Resource,
+        UVec2, Vec2, Vec3, Vec4,
+    },
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
@@ -9,7 +12,8 @@ use bevy::{
 };
 
 use crate::tilemap::{
-    Tile, TileType, Tilemap, TILEMAP_MESH_ATTR_GRID_INDEX, TILEMAP_MESH_ATTR_TEXTURE_INDEX,
+    TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_GRID_INDEX,
+    TILEMAP_MESH_ATTR_TEXTURE_INDEX,
 };
 
 use super::extract::{ExtractedTile, ExtractedTilemap};
@@ -18,6 +22,7 @@ use super::extract::{ExtractedTile, ExtractedTilemap};
 pub struct TileData {
     pub grid_index: UVec2,
     pub texture_index: u32,
+    pub color: Vec4,
 }
 
 #[derive(Clone)]
@@ -37,7 +42,7 @@ impl TilemapRenderChunk {
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type.clone(),
             texture: tilemap.texture.clone(),
-            tiles: vec![None; tilemap.render_chunk_size.length_squared() as usize],
+            tiles: vec![None; (tilemap.render_chunk_size.x * tilemap.render_chunk_size.y) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
             dirty_mesh: true,
@@ -50,71 +55,60 @@ impl TilemapRenderChunk {
             return;
         }
 
-        // let mut v_index = 0;
-        // let len = self.tiles.len();
-        // let mut positions = Vec::with_capacity(len * 4);
-        // let mut texture_indices = Vec::with_capacity(len * 4);
-        // let mut grid_indices = Vec::with_capacity(len * 4);
-        // let mut vertex_indices = Vec::with_capacity(len * 6);
+        let mut v_index = 0;
+        let len = self.tiles.len();
+        let mut positions = Vec::with_capacity(len * 4);
+        let mut texture_indices = Vec::with_capacity(len * 4);
+        let mut grid_indices = Vec::with_capacity(len * 4);
+        let mut vertex_indices = Vec::with_capacity(len * 6);
+        let mut color = Vec::with_capacity(len * 4);
 
-        // for tile_data in self.tiles.iter() {
-        //     if let Some(tile) = tile_data {
-        //         positions.extend_from_slice(&[Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO]);
+        for tile_data in self.tiles.iter() {
+            if let Some(tile) = tile_data {
+                positions.extend_from_slice(&[Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO]);
 
-        //         grid_indices.extend_from_slice(&[
-        //             tile.grid_index,
-        //             tile.grid_index,
-        //             tile.grid_index,
-        //             tile.grid_index,
-        //         ]);
+                let grid_index_float =
+                    Vec2::new(tile.grid_index.x as f32, tile.grid_index.y as f32);
+                grid_indices.extend_from_slice(&[
+                    grid_index_float,
+                    grid_index_float,
+                    grid_index_float,
+                    grid_index_float,
+                ]);
 
-        //         texture_indices.extend_from_slice(&[
-        //             tile.texture_index,
-        //             tile.texture_index,
-        //             tile.texture_index,
-        //             tile.texture_index,
-        //         ]);
+                texture_indices.extend_from_slice(&[
+                    tile.texture_index,
+                    tile.texture_index,
+                    tile.texture_index,
+                    tile.texture_index,
+                ]);
 
-        //         vertex_indices.extend_from_slice(&[
-        //             v_index,
-        //             v_index + 2,
-        //             v_index + 1,
-        //             v_index,
-        //             v_index + 3,
-        //             v_index + 2,
-        //         ]);
+                vertex_indices.extend_from_slice(&[
+                    v_index,
+                    v_index + 1,
+                    v_index + 3,
+                    v_index + 1,
+                    v_index + 2,
+                    v_index + 3,
+                ]);
 
-        //         v_index += 4;
-        //     }
-        // }
+                v_index += 4;
 
-        // self.mesh
-        //     .insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        // self.mesh
-        //     .insert_attribute(TILEMAP_MESH_ATTR_GRID_INDEX, grid_indices);
-        // self.mesh
-        //     .insert_attribute(TILEMAP_MESH_ATTR_TEXTURE_INDEX, texture_indices);
-        // self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
+                color.extend_from_slice(&[tile.color, tile.color, tile.color, tile.color]);
+            }
+        }
 
-        self.mesh.insert_attribute(
-            Mesh::ATTRIBUTE_POSITION,
-            vec![
-                Vec3::X * 150.,
-                Vec3::NEG_X * 150.,
-                Vec3::Y * 150.,
-                Vec3::NEG_Y * 150.,
-            ],
-        );
-        self.mesh.insert_attribute(
-            TILEMAP_MESH_ATTR_GRID_INDEX,
-            vec![UVec2::ZERO, UVec2::ZERO, UVec2::ZERO, UVec2::ZERO],
-        );
         self.mesh
-            .insert_attribute(TILEMAP_MESH_ATTR_TEXTURE_INDEX, vec![0u32, 0u32, 0u32, 0u32]);
+            .insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         self.mesh
-            .set_indices(Some(Indices::U32(vec![0u32, 1u32, 2u32, 0u32, 3u32, 2u32])));
+            .insert_attribute(TILEMAP_MESH_ATTR_GRID_INDEX, grid_indices);
+        self.mesh
+            .insert_attribute(TILEMAP_MESH_ATTR_TEXTURE_INDEX, texture_indices);
+        self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
+        self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
 
-        let mesh_vert_cout = self.mesh.count_vertices() as u32;
+        let mesh_vert_count = self.mesh.count_vertices() as u32;
+        let mesh_indices_count = self.mesh.indices().unwrap().len() as u32;
 
         let vertex_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("tilemap_vertex_buffer"),
@@ -131,13 +125,13 @@ impl TilemapRenderChunk {
                         contents: data,
                         usage: BufferUsages::INDEX,
                     }),
-                    count: mesh_vert_cout,
+                    count: mesh_indices_count,
                     index_format: IndexFormat::Uint32,
                 });
 
         self.gpu_mesh = Some(GpuMesh {
             vertex_buffer,
-            vertex_count: mesh_vert_cout,
+            vertex_count: mesh_vert_count,
             morph_targets: None,
             buffer_info,
             primitive_topology: PrimitiveTopology::TriangleList,
@@ -148,22 +142,15 @@ impl TilemapRenderChunk {
     }
 
     /// Set a tile in the chunk. Overwrites the previous tile.
-    pub fn set_tile(&mut self, tile: &ExtractedTile) {
-        let index = (tile.grid_index.y * self.size.x + tile.grid_index.x) as usize;
+    pub fn set_tile(&mut self, grid_index: UVec2, tile: &ExtractedTile) {
+        let index = (grid_index.y * self.size.x + grid_index.x) as usize;
         self.tiles[index] = Some(TileData {
             grid_index: tile.grid_index,
             texture_index: tile.texture_index,
+            color: tile.color,
         });
         self.dirty_mesh = true;
-    }
-
-    /// Set multiple tiles in the chunk. Overwrites the previous tiles.
-    pub(crate) fn set_tiles(&mut self, tiles: &Vec<TileData>) {
-        tiles.iter().for_each(|elem| {
-            let index = (elem.grid_index.y * self.size.x + elem.grid_index.x) as usize;
-            self.tiles[index] = Some(elem.clone());
-        });
-        self.dirty_mesh = true;
+        // println!("Added tile: {:?} at index {}:({})", tile, index, self.tiles.len());
     }
 }
 
@@ -194,25 +181,41 @@ impl RenderChunkStorage {
         }
     }
 
+    /// Add tiles to the storage from a query.
     pub fn add_tiles_with_query(
         &mut self,
         tilemaps_query: &Query<&ExtractedTilemap>,
-        tiles_query: &Query<&ExtractedTile>,
+        changed_tiles_query: &Query<&ExtractedTile, Or<(Changed<ExtractedTile>,)>>,
     ) {
-        for tile in tiles_query.iter() {
-            if let Some(chunks) = self.value.get_mut(&tile.tilemap) {
-                if let Some(chunk) = chunks.get_mut(tile.render_chunk_index).unwrap() {
-                    chunk.set_tile(tile);
-                } else {
-                    let tilemap = tilemaps_query.get(tile.tilemap).unwrap();
+        for tile in changed_tiles_query.iter() {
+            let tilemap = tilemaps_query.get(tile.tilemap).unwrap();
+
+            let chunks = {
+                if !self.value.contains_key(&tile.tilemap) {
+                    self.insert_tilemap(tilemap)
+                }
+                self.value.get_mut(&tile.tilemap).unwrap()
+            };
+
+            let chunk = {
+                if chunks[tile.render_chunk_index].is_none() {
                     chunks[tile.render_chunk_index] = Some(TilemapRenderChunk::new(tilemap));
                 }
-            } else {
-                let tilemap = tilemaps_query.get(tile.tilemap).unwrap();
-                self.insert_tilemap(tilemap);
-                self.value.get_mut(&tile.tilemap).unwrap()[tile.render_chunk_index] =
-                    Some(TilemapRenderChunk::new(tilemap));
-            }
+                chunks.get_mut(tile.render_chunk_index).unwrap()
+            };
+
+            let c = {
+                if chunk.is_none() {
+                    chunk.replace(TilemapRenderChunk::new(tilemap));
+                };
+                chunk.as_mut().unwrap()
+            };
+
+            let grid_index = UVec2::new(
+                tile.grid_index.x % tilemap.render_chunk_size.x,
+                tile.grid_index.y % tilemap.render_chunk_size.y,
+            );
+            c.set_tile(grid_index, tile);
         }
     }
 
@@ -221,7 +224,7 @@ impl RenderChunkStorage {
     }
 
     fn calculate_render_chunk_storage_size(tilemap: &ExtractedTilemap) -> usize {
-        UVec2::new(
+        let size = UVec2::new(
             {
                 if tilemap.size.x % tilemap.render_chunk_size.x == 0 {
                     tilemap.size.x / tilemap.render_chunk_size.x
@@ -236,7 +239,7 @@ impl RenderChunkStorage {
                     tilemap.size.y / tilemap.render_chunk_size.y + 1
                 }
             },
-        )
-        .length_squared() as usize
+        );
+        (size.x * size.y) as usize
     }
 }

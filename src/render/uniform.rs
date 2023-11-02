@@ -1,44 +1,57 @@
 use bevy::{
-    prelude::{Component, Mat4, Resource, UVec2},
+    prelude::{Component, Mat4, Resource, Vec2},
     render::{
-        render_resource::{DynamicUniformBuffer, ShaderType},
+        render_resource::{BindingResource, DynamicUniformBuffer, ShaderType},
         renderer::{RenderDevice, RenderQueue},
     },
 };
 
 use super::extract::ExtractedTilemap;
 
-#[derive(ShaderType, Component, Clone, Copy)]
-pub struct TilemapUniform {
+#[derive(Component)]
+pub struct DynamicUniformComponent<T>
+where
+    T: ShaderType,
+{
     pub index: u32,
+    pub component: T,
+}
+
+#[derive(ShaderType, Clone, Copy)]
+pub struct TilemapUniform {
     pub transform: Mat4,
-    pub tile_size: UVec2,
+    pub tile_size: Vec2,
 }
 
 #[derive(Resource, Default)]
 pub struct TilemapUniformsStorage {
-    pub buffer_size: u32,
-    pub buffer: DynamicUniformBuffer<TilemapUniform>,
+    buffer: DynamicUniformBuffer<TilemapUniform>,
 }
 
 impl TilemapUniformsStorage {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
-    pub fn insert(&mut self, tilemap: &ExtractedTilemap) -> TilemapUniform {
+    pub fn insert(
+        &mut self,
+        tilemap: &ExtractedTilemap,
+    ) -> DynamicUniformComponent<TilemapUniform> {
         let component = TilemapUniform {
-            index: self.buffer_size,
             transform: tilemap.transform,
-            tile_size: tilemap.tile_size,
+            tile_size: tilemap.tile_render_size,
         };
 
-        self.buffer.push(component);
-        self.buffer_size += 1;
+        let index = self.buffer.push(component);
 
-        component
+        DynamicUniformComponent { index, component }
+    }
+
+    /// Get the binding resource for the uniform buffer.
+    pub fn binding(&self) -> Option<BindingResource> {
+        self.buffer.binding()
     }
 
     /// Clear the uniform buffer.
-    pub fn reset(&mut self) {
+    pub fn clear(&mut self) {
         self.buffer.clear();
     }
 

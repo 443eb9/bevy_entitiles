@@ -1,7 +1,8 @@
+use std::{mem::size_of, num::NonZeroU64};
+
 use bevy::{
     prelude::{FromWorld, Resource},
     render::{
-        globals::GlobalsUniform,
         render_resource::{
             BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
             BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType,
@@ -19,12 +20,12 @@ use bevy::{
 
 use crate::tilemap::TileType;
 
-use super::TILEMAP_SHADER;
+use super::{uniform::TilemapUniform, TILEMAP_SHADER};
 
 #[derive(Resource)]
 pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
-    pub tilemap_data_layout: BindGroupLayout,
+    pub tilemap_uniform_layout: BindGroupLayout,
     pub texture_layout: BindGroupLayout,
 }
 
@@ -51,16 +52,18 @@ impl FromWorld for EntiTilesPipeline {
             }],
         });
 
-        let tilemap_data_layout =
+        let tilemap_uniform_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("tilemap_data_layout"),
+                label: Some("tilemap_uniform_layout"),
                 entries: &[BindGroupLayoutEntry {
                     binding: 0,
                     visibility: ShaderStages::VERTEX,
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: true,
-                        min_binding_size: Some(GlobalsUniform::min_size()),
+                        min_binding_size: Some(
+                            NonZeroU64::new(size_of::<TilemapUniform>() as u64).unwrap(),
+                        ),
                     },
                     count: None,
                 }],
@@ -90,7 +93,7 @@ impl FromWorld for EntiTilesPipeline {
 
         EntiTilesPipeline {
             view_layout,
-            tilemap_data_layout,
+            tilemap_uniform_layout,
             texture_layout,
         }
     }
@@ -115,26 +118,32 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             vec![
                 // position
                 VertexFormat::Float32x3,
+                // grid_index
+                VertexFormat::Float32x2,
+                // color
+                VertexFormat::Float32x4,
                 // texture_index
                 VertexFormat::Uint32,
-                // grid_index
-                VertexFormat::Uint32x2,
             ],
         );
 
         RenderPipelineDescriptor {
             label: Some("tilemap_pipeline".into()),
-            layout: vec![self.view_layout.clone(), self.texture_layout.clone()],
+            layout: vec![
+                self.view_layout.clone(),
+                self.tilemap_uniform_layout.clone(),
+                self.texture_layout.clone(),
+            ],
             push_constant_ranges: vec![],
             vertex: VertexState {
                 shader: TILEMAP_SHADER.typed(),
-                shader_defs,
+                shader_defs: shader_defs.clone(),
                 entry_point: "tilemap_vertex".into(),
                 buffers: vec![vertex_layout],
             },
             fragment: Some(FragmentState {
                 shader: TILEMAP_SHADER.typed(),
-                shader_defs: vec![],
+                shader_defs: shader_defs.clone(),
                 entry_point: "tilemap_fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
@@ -156,9 +165,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             primitive: PrimitiveState {
                 topology: PrimitiveTopology::TriangleList,
                 strip_index_format: None,
-                front_face: FrontFace::Ccw,
-                // TODO: cull mode
-                cull_mode: None,
+                front_face: FrontFace::Cw,
+                cull_mode: Some(Face::Back),
                 unclipped_depth: false,
                 polygon_mode: PolygonMode::Fill,
                 conservative: false,
@@ -172,5 +180,3 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         }
     }
 }
-
-pub struct TilemapPipelineKey {}

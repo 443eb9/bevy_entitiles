@@ -1,6 +1,7 @@
 # Bevy EntiTiles
 
 A tilemap library for bevy.
+
 Which is still work in progress...
 
 ## Currently Working On
@@ -15,3 +16,5 @@ Which is still work in progress...
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
 - Tilemap Serializing
+- SSAO
+- Volumetric Clouds / Fog

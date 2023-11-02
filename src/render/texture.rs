@@ -22,17 +22,17 @@ pub struct TilemapTextureArrayStorage {
 }
 
 pub struct TilemapTextureDescriptor {
+    pub tile_count: UVec2,
     pub tile_size: UVec2,
-    pub tile_count: u32,
     pub filter_mode: FilterMode,
 }
 
 impl TilemapTextureArrayStorage {
     /// Register a new image to be translated to texture array.
-    pub fn insert(&mut self, image: &Handle<Image>, image_meta: TilemapTextureDescriptor) {
-        if !self.descs.contains_key(image) {
+    pub fn insert_texture(&mut self, image: &Handle<Image>, image_desc: TilemapTextureDescriptor) {
+        if !self.descs.contains_key(&image.clone_weak()) {
             self.textures_to_prepare.insert(image.clone_weak());
-            self.descs.insert(image.clone_weak(), image_meta);
+            self.descs.insert(image.clone_weak(), image_desc);
         }
     }
 
@@ -42,7 +42,7 @@ impl TilemapTextureArrayStorage {
     }
 
     /// Prepare the texture, creating the texture array and translate images in `queue_texture` function.
-    pub fn prepare(&mut self, render_device: &Res<RenderDevice>) {
+    pub fn prepare_textures(&mut self, render_device: &Res<RenderDevice>) {
         if self.textures_to_prepare.is_empty() {
             return;
         }
@@ -57,7 +57,7 @@ impl TilemapTextureArrayStorage {
                 size: Extent3d {
                     width: desc.tile_size.x,
                     height: desc.tile_size.y,
-                    depth_or_array_layers: desc.tile_count,
+                    depth_or_array_layers: desc.tile_count.x * desc.tile_count.y,
                 },
                 mip_level_count: 1,
                 sample_count: 1,
@@ -90,7 +90,7 @@ impl TilemapTextureArrayStorage {
                 base_mip_level: 0,
                 base_array_layer: 0,
                 mip_level_count: None,
-                array_layer_count: Some(desc.tile_count),
+                array_layer_count: Some(desc.tile_count.x * desc.tile_count.y),
             });
 
             let gpu_image = GpuImage {
@@ -102,12 +102,13 @@ impl TilemapTextureArrayStorage {
                 size: Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
             };
 
+            self.textures_to_prepare.clear();
             self.textures.insert(image.clone_weak(), gpu_image);
         }
     }
 
     /// Translate images to texture array.
-    pub fn queue(
+    pub fn queue_textures(
         &mut self,
         render_device: &Res<RenderDevice>,
         render_queue: &Res<RenderQueue>,
@@ -129,39 +130,39 @@ impl TilemapTextureArrayStorage {
             let array_gpu_image = self.textures.get(image).unwrap();
             let mut command_encoder = render_device.create_command_encoder(&Default::default());
 
-            for index in 0..desc.tile_count {
-                let sprite_x = index * desc.tile_size.x;
-                let sprite_y = index / desc.tile_size.x * desc.tile_size.y;
-
-                command_encoder.copy_texture_to_texture(
-                    ImageCopyTexture {
-                        texture: &raw_gpu_image.texture,
-                        mip_level: 0,
-                        origin: Origin3d {
-                            x: sprite_x,
-                            y: sprite_y,
-                            z: 0,
+            for index_y in 0..desc.tile_count.y {
+                for index_x in 0..desc.tile_count.x {
+                    command_encoder.copy_texture_to_texture(
+                        ImageCopyTexture {
+                            texture: &raw_gpu_image.texture,
+                            mip_level: 0,
+                            origin: Origin3d {
+                                x: index_x * desc.tile_size.x,
+                                y: index_y * desc.tile_size.y,
+                                z: 0,
+                            },
+                            aspect: TextureAspect::All,
                         },
-                        aspect: TextureAspect::All,
-                    },
-                    ImageCopyTexture {
-                        texture: &array_gpu_image.texture,
-                        mip_level: 0,
-                        origin: Origin3d {
-                            x: 0,
-                            y: 0,
-                            z: index,
+                        ImageCopyTexture {
+                            texture: &array_gpu_image.texture,
+                            mip_level: 0,
+                            origin: Origin3d {
+                                x: 0,
+                                y: 0,
+                                z: index_x + index_y * desc.tile_count.x,
+                            },
+                            aspect: TextureAspect::All,
                         },
-                        aspect: TextureAspect::All,
-                    },
-                    Extent3d {
-                        width: desc.tile_size.x,
-                        height: desc.tile_size.y,
-                        depth_or_array_layers: 1,
-                    },
-                );
+                        Extent3d {
+                            width: desc.tile_size.x,
+                            height: desc.tile_size.y,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                }
             }
 
+            self.textures_to_queue.clear();
             render_queue.submit(vec![command_encoder.finish()]);
         }
     }

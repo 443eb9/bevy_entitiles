@@ -10,14 +10,18 @@ use bevy::{
 };
 
 use super::{
-    chunk::RenderChunkStorage, extract::ExtractedTilemap, queue::TileViewBindGroup,
-    uniform::TilemapUniform, BindGroups,
+    chunk::RenderChunkStorage,
+    extract::ExtractedTilemap,
+    queue::TileViewBindGroup,
+    uniform::{DynamicUniformComponent, TilemapUniform},
+    BindGroups,
 };
 
 pub type DrawTilemap = (
     SetPipeline,
-    SetTileViewBindGroup<0>,
-    SetTileTextureBindGroup<1>,
+    SetTilemapViewBindGroup<0>,
+    SetTilemapDataBindGroup<1>,
+    SetTileTextureBindGroup<2>,
     DrawTileMesh,
 );
 
@@ -37,22 +41,20 @@ impl RenderCommand<Transparent2d> for SetPipeline {
         pipeline_cache: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        dbg!(pipeline_cache.get_render_pipeline_state(item.pipeline));
-        if let Some(pipeline) = pipeline_cache
-            .into_inner()
-            .get_render_pipeline(item.pipeline)
-        {
+        let pipeline_cache = pipeline_cache.into_inner();
+        if let Some(pipeline) = pipeline_cache.get_render_pipeline(item.pipeline) {
             pass.set_render_pipeline(pipeline);
             RenderCommandResult::Success
         } else {
+            pipeline_cache.get_render_pipeline_state(item.pipeline);
             println!("Failed to get render pipeline!");
-            RenderCommandResult::Failure
+            panic!();
         }
     }
 }
 
-pub struct SetTileViewBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTileViewBindGroup<I> {
+pub struct SetTilemapViewBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I> {
     type Param = ();
 
     type ViewWorldQuery = (Read<ViewUniformOffset>, Read<TileViewBindGroup>);
@@ -81,7 +83,10 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I>
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = (Read<ExtractedTilemap>, Read<TilemapUniform>);
+    type ItemWorldQuery = (
+        Read<ExtractedTilemap>,
+        Read<DynamicUniformComponent<TilemapUniform>>,
+    );
 
     fn render<'w>(
         _item: &Transparent2d,
@@ -129,7 +134,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
                 .unwrap(),
             &[],
         );
-
+        
         RenderCommandResult::Success
     }
 }
@@ -165,7 +170,6 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
                             index_format,
                         } => {
                             pass.set_index_buffer(buffer.slice(..), 0, *index_format);
-                            println!("draw!");
                             pass.draw_indexed(0..*count, 0, 0..1);
                         }
                         GpuBufferInfo::NonIndexed => {

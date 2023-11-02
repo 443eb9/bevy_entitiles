@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Commands, Entity, Query, Res, ResMut},
+    prelude::{Changed, Commands, Or, Query, Res, ResMut},
     render::renderer::{RenderDevice, RenderQueue},
 };
 
@@ -15,14 +15,14 @@ pub fn prepare(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     extracted_tilemaps: Query<&ExtractedTilemap>,
-    extracted_tiles: Query<&ExtractedTile>,
+    changed_extracted_tiles: Query<&ExtractedTile, Or<(Changed<ExtractedTile>,)>>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
     mut tilemap_uniforms_storage: ResMut<TilemapUniformsStorage>,
 ) {
-    render_chunks.add_tiles_with_query(&extracted_tilemaps, &extracted_tiles);
+    render_chunks.add_tiles_with_query(&extracted_tilemaps, &changed_extracted_tiles);
 
-    tilemap_uniforms_storage.reset();
+    tilemap_uniforms_storage.clear();
     for tilemap in extracted_tilemaps.iter() {
         commands
             .entity(tilemap.id)
@@ -32,5 +32,5 @@ pub fn prepare(
     }
     tilemap_uniforms_storage.write(&render_device, &render_queue);
 
-    tilemap_texture_array_storage.prepare(&render_device);
+    tilemap_texture_array_storage.prepare_textures(&render_device);
 }
