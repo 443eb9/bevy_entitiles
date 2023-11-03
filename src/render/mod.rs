@@ -17,7 +17,6 @@ use crate::render::{
 };
 
 pub mod chunk;
-pub mod cleanup;
 pub mod draw;
 pub mod extract;
 pub mod pipeline;

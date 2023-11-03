@@ -1,6 +1,15 @@
+use bevy::prelude::*;
+use bevy_entitiles::{render::EntiTilesRendererPlugin, EntiTilesPlugin};
 use bevy::{prelude::*, render::render_resource::FilterMode};
 
 use crate::{render::texture::TilemapTextureDescriptor, tilemap::*};
+
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesRendererPlugin))
+        .insert_resource(Msaa::Off)
+        .run();
+}
 
 pub fn random_tests(
     mut commands: Commands,

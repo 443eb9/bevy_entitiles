@@ -2,17 +2,15 @@
 name = "bevy_entitiles"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+license-file = "LICENSE"
+repository = "https://github.com/443eb9/bevy_entitiles"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-# Enable a small amount of optimization in debug mode
 [profile.dev]
 opt-level = 1
 
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
 [profile.dev.package."*"]
 opt-level = 3
 
 [dependencies]
 bevy = { version = "0.11.3", features = ["dynamic_linking"] }
-cargo-wgsl = "0.0.14"
