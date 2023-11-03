@@ -2,19 +2,27 @@
 #import bevy_sprite::mesh2d_view_bindings view
 
 #ifdef SQUARE
-    #import bevy_entitiles::square get_mesh
+    #import bevy_entitiles::square get_mesh_center
 #endif
 
 #ifdef ISO_DIAMOND
-    #import bevy_entitiles::iso_diamond get_mesh
+    #import bevy_entitiles::iso_diamond get_mesh_center
 #endif
 
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    let mesh_output = get_mesh(input);
+    let mesh_center = get_mesh_center(input);
+
+    var translations = array<vec2<f32>, 4>(
+        vec2<f32>(0., 0.),
+        vec2<f32>(0., 1.),
+        vec2<f32>(1., 1.),
+        vec2<f32>(1., 0.),
+    );
+
     var position_model = vec4<f32>(
-        mesh_output.position + mesh_output.translation * tilemap.tile_render_size,
+        mesh_center + translations[input.v_index % 4u] * tilemap.tile_render_size,
         0., 1.
     );
     var position_world = tilemap.transform * position_model;

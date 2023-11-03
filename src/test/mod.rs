@@ -16,21 +16,32 @@ pub fn random_tests(
         },
         ..default()
     });
+
+    TilemapBuilder::new(TileType::Square, UVec2::new(20, 20), Vec2::new(30., 30.))
+        .with_center(Vec2::ZERO)
+        .with_texture(
+            asset_server.load("test/test_square.png"),
+            TilemapTextureDescriptor {
+                tile_count: UVec2::new(2, 2),
+                tile_size: UVec2::new(16, 16),
+                filter_mode: FilterMode::Nearest,
+            },
+        )
+        .build(&mut commands);
+
     TilemapBuilder::new(
         TileType::IsometricDiamond,
-        UVec2::new(20, 20),
-        Vec2::new(30., 30.),
+        UVec2::new(10, 10),
+        Vec2::new(64., 32.),
     )
-    .with_center(Vec2::ZERO)
-    // .with_texture(
-    //     asset_server.load("test/test.png"),
-    //     TilemapTextureDescriptor {
-    //         tile_count: UVec2::new(2, 2),
-    //         tile_size: UVec2::new(16, 16),
-    //         filter_mode: FilterMode::Nearest,
-    //     },
-    // )
-    .build(&mut commands);
+    .with_texture(
+        asset_server.load("test/test_isometric.png"),
+        TilemapTextureDescriptor {
+            tile_count: UVec2::new(1, 2),
+            tile_size: UVec2::new(32, 16),
+            filter_mode: FilterMode::Nearest,
+        },
+    ).build(&mut commands);
 }
 
 static mut FLAG: bool = false;
@@ -43,15 +54,15 @@ pub fn set_tile(mut commands: Commands, mut tilemap: Query<&mut Tilemap>) {
             tilemap.fill_rect(
                 &mut commands,
                 UVec2::ZERO,
-                UVec2::new(20, 20),
-                &TileBuilder::new(UVec2::ZERO, 0).with_color(Color::WHITE.into()),
-            );
-            tilemap.fill_rect(
-                &mut commands,
-                UVec2::new(10, 12),
                 UVec2::new(5, 5),
-                &TileBuilder::new(UVec2::ZERO, 1),
-            )
+                &TileBuilder::new(UVec2::ZERO, 1).with_color(Color::WHITE.into()),
+            );
+            // tilemap.fill_rect(
+            //     &mut commands,
+            //     UVec2::new(10, 12),
+            //     UVec2::new(5, 5),
+            //     &TileBuilder::new(UVec2::ZERO, 1),
+            // );
         }
         FLAG = true;
     }

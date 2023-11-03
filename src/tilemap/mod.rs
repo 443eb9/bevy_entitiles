@@ -181,11 +181,6 @@ impl TilemapBuilder {
         texture: Handle<Image>,
         desc: TilemapTextureDescriptor,
     ) -> &mut Self {
-        assert!(
-            desc.tile_size % desc.tile_count == UVec2::ZERO,
-            "The tilemap size must be a multiple of the tile size."
-        );
-
         self.texture = Some(TileTexture { texture, desc });
         self.tile_size = desc.tile_size;
         self

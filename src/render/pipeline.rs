@@ -186,7 +186,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 front_face: FrontFace::Cw,
                 cull_mode: Some(Face::Back),
                 unclipped_depth: false,
-                polygon_mode: PolygonMode::Line,
+                polygon_mode: PolygonMode::Fill,
                 conservative: false,
             },
             depth_stencil: None,

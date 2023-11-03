@@ -15,11 +15,6 @@ struct VertexOutput {
     @location(2) texture_index: u32,
 }
 
-struct MeshOutput {
-    position: vec2<f32>,
-    translation: vec2<f32>,
-}
-
 struct Tilemap {
     transform: mat4x4<f32>,
     tile_render_size: vec2<f32>,
