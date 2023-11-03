@@ -70,6 +70,7 @@ pub fn queue(
                 EntiTilesPipelineKey {
                     msaa: msaa.samples(),
                     map_type: tilemap.tile_type.clone(),
+                    flip: tilemap.flip,
                 },
             );
 

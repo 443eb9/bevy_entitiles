@@ -22,8 +22,6 @@ struct MeshOutput {
 struct Tilemap {
     transform: mat4x4<f32>,
     tile_render_size: vec2<f32>,
-    flip: u32,
-    _pad: u32,
 }
 
 @group(1) @binding(0)

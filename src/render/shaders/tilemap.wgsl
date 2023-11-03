@@ -10,6 +10,8 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     let mesh_output = get_mesh(input);
     output.position = view.view_proj * mesh_output.position;
+    output.texture_index = input.texture_index;
+    output.color = input.color;
 
     var uv = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
@@ -19,8 +21,12 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     );
 
     output.uv = uv[input.v_index % 4u];
-    output.color = input.color;
-    output.texture_index = input.texture_index;
+#ifdef FLIP_H
+    output.uv.x = 1. - output.uv.x;
+#endif
+#ifdef FLIP_V
+    output.uv.y = 1. - output.uv.y;
+#endif
     return output;
 }
 

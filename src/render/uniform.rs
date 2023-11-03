@@ -21,8 +21,6 @@ where
 pub struct TilemapUniform {
     pub transform: Mat4,
     pub tile_size: Vec2,
-    pub flip: u32,
-    _pad: u32,
 }
 
 #[derive(Resource, Default)]
@@ -40,8 +38,6 @@ impl TilemapUniformsStorage {
         let component = TilemapUniform {
             transform: tilemap.transform,
             tile_size: tilemap.tile_render_size,
-            flip: tilemap.flip,
-            _pad: 0,
         };
 
         let index = self.buffer.push(component);

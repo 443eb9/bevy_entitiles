@@ -33,6 +33,7 @@ pub struct EntiTilesPipeline {
 pub struct EntiTilesPipelineKey {
     pub msaa: u32,
     pub map_type: TileType,
+    pub flip: u32,
 }
 
 impl FromWorld for EntiTilesPipeline {
@@ -112,6 +113,13 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             }
             .into(),
         );
+
+        if key.flip & 1u32 != 0 {
+            shader_defs.push("FLIP_H".into());
+        }
+        if key.flip & (1u32 << 1) != 0 {
+            shader_defs.push("FLIP_V".into());
+        }
 
         let vertex_layout = VertexBufferLayout::from_vertex_formats(
             VertexStepMode::Vertex,
