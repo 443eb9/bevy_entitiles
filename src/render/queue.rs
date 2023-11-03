@@ -15,7 +15,7 @@ use bevy::{
 };
 
 use super::{
-    draw::DrawTilemap,
+    draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     texture::TilemapTextureArrayStorage,
@@ -71,14 +71,9 @@ pub fn queue(
                     msaa: msaa.samples(),
                     map_type: tilemap.tile_type.clone(),
                     flip: tilemap.flip,
+                    is_pure_color: tilemap.texture.is_none(),
                 },
             );
-
-            let Some(texture_array) =
-                tilemap_texture_array_storage.get_texture_array(&tilemap.texture)
-            else {
-                continue;
-            };
 
             if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
                 let tilemap_uniform_bind_group =
@@ -91,35 +86,56 @@ pub fn queue(
                         }],
                     });
 
-                bind_groups.tilemap_uniform_bind_group.insert(tilemap.id, tilemap_uniform_bind_group);
+                bind_groups
+                    .tilemap_uniform_bind_group
+                    .insert(tilemap.id, tilemap_uniform_bind_group);
             }
 
-            let texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-                label: Some("tilemap_texture_bind_group"),
-                layout: &entitile_pipeline.texture_layout,
-                entries: &[
-                    BindGroupEntry {
-                        binding: 0,
-                        resource: BindingResource::TextureView(&texture_array.texture_view),
-                    },
-                    BindGroupEntry {
-                        binding: 1,
-                        resource: BindingResource::Sampler(&texture_array.sampler),
-                    },
-                ],
-            });
+            if let Some(texture) = tilemap.texture.clone() {
+                let Some(texture_array) =
+                    tilemap_texture_array_storage.get_texture_array(texture.get_handle())
+                else {
+                    continue;
+                };
 
-            bind_groups
-                .tilemap_texture_arrays
-                .insert(tilemap.texture.clone_weak(), texture_bind_group);
+                let texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
+                    label: Some("tilemap_texture_bind_group"),
+                    layout: &entitile_pipeline.texture_layout,
+                    entries: &[
+                        BindGroupEntry {
+                            binding: 0,
+                            resource: BindingResource::TextureView(&texture_array.texture_view),
+                        },
+                        BindGroupEntry {
+                            binding: 1,
+                            resource: BindingResource::Sampler(&texture_array.sampler),
+                        },
+                    ],
+                });
 
-            transparent_phase.add(Transparent2d {
-                sort_key: FloatOrd(tilemap.transform.z_axis.w),
-                entity,
-                pipeline,
-                draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
-                batch_range: None,
-            });
+                bind_groups
+                    .tilemap_texture_arrays
+                    .insert(texture.clone_weak(), texture_bind_group);
+
+                transparent_phase.add(Transparent2d {
+                    sort_key: FloatOrd(tilemap.transform.z_axis.w),
+                    entity,
+                    pipeline,
+                    draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
+                    batch_range: None,
+                });
+            } else {
+                transparent_phase.add(Transparent2d {
+                    sort_key: FloatOrd(tilemap.transform.z_axis.w),
+                    entity,
+                    pipeline,
+                    draw_function: draw_functions
+                        .read()
+                        .get_id::<DrawTilemapPureColor>()
+                        .unwrap(),
+                    batch_range: None,
+                });
+            }
         }
     }
 }

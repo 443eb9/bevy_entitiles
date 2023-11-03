@@ -12,7 +12,7 @@ use bevy::{
 
 use crate::tilemap::{
     TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_GRID_INDEX,
-    TILEMAP_MESH_ATTR_TEXTURE_INDEX,
+    TILEMAP_MESH_ATTR_TEXTURE_INDEX, TileTexture,
 };
 
 use super::extract::{ExtractedTile, ExtractedTilemap};
@@ -29,7 +29,7 @@ pub struct TilemapRenderChunk {
     pub dirty_mesh: bool,
     pub tile_type: TileType,
     pub size: UVec2,
-    pub texture: Handle<Image>,
+    pub texture: Option<TileTexture>,
     pub tiles: Vec<Option<TileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
@@ -40,7 +40,7 @@ impl TilemapRenderChunk {
         TilemapRenderChunk {
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type.clone(),
-            texture: tilemap.texture.clone_weak(),
+            texture: tilemap.texture.clone(),
             tiles: vec![None; (tilemap.render_chunk_size.x * tilemap.render_chunk_size.y) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,

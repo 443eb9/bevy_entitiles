@@ -12,7 +12,7 @@ use bevy::{
 };
 
 use crate::render::{
-    chunk::RenderChunkStorage, draw::DrawTilemap, pipeline::EntiTilesPipeline,
+    chunk::RenderChunkStorage, draw::{DrawTilemap, DrawTilemapPureColor}, pipeline::EntiTilesPipeline,
     texture::TilemapTextureArrayStorage, uniform::TilemapUniformsStorage,
 };
 
@@ -27,6 +27,7 @@ pub mod texture;
 pub mod uniform;
 
 const SQUARE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 4189641863548);
+const ISO_DIAMOND: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 65416516351);
 const COMMON: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 548635415641535);
 const TILEMAP_SHADER: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 151631653416315);
@@ -38,7 +39,7 @@ impl Plugin for EntiTilesRendererPlugin {
 
     fn finish(&self, _app: &mut bevy::prelude::App) {
         load_internal_asset!(_app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
-
+        load_internal_asset!(_app, ISO_DIAMOND, "shaders/iso_diamond.wgsl", Shader::from_wgsl);
         load_internal_asset!(_app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(
@@ -64,6 +65,7 @@ impl Plugin for EntiTilesRendererPlugin {
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
 
         render_app.add_render_command::<Transparent2d, DrawTilemap>();
+        render_app.add_render_command::<Transparent2d, DrawTilemapPureColor>();
     }
 }
 

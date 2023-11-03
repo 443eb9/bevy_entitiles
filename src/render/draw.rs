@@ -25,6 +25,13 @@ pub type DrawTilemap = (
     DrawTileMesh,
 );
 
+pub type DrawTilemapPureColor = (
+    SetPipeline,
+    SetTilemapViewBindGroup<0>,
+    SetTilemapDataBindGroup<1>,
+    DrawTileMesh,
+);
+
 pub struct SetPipeline;
 impl RenderCommand<Transparent2d> for SetPipeline {
     type Param = SRes<PipelineCache>;
@@ -125,15 +132,17 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
         bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        pass.set_bind_group(
-            I,
-            bind_groups
-                .into_inner()
-                .tilemap_texture_arrays
-                .get(&tilemaps.texture)
-                .unwrap(),
-            &[],
-        );
+        if let Some(texture) = &tilemaps.texture {
+            pass.set_bind_group(
+                I,
+                bind_groups
+                    .into_inner()
+                    .tilemap_texture_arrays
+                    .get(texture.get_handle())
+                    .unwrap(),
+                &[],
+            );
+        }
 
         RenderCommandResult::Success
     }

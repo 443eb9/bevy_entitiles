@@ -16,17 +16,21 @@ pub fn random_tests(
         },
         ..default()
     });
-    TilemapBuilder::new(TileType::Square, UVec2::new(20, 20), Vec2::new(30., 30.))
-        .with_center(Vec2::ZERO)
-        .with_texture(
-            asset_server.load("test/test.png"),
-            TilemapTextureDescriptor {
-                tile_count: UVec2::new(2, 2),
-                tile_size: UVec2::new(16, 16),
-                filter_mode: FilterMode::Nearest,
-            },
-        )
-        .build(&mut commands);
+    TilemapBuilder::new(
+        TileType::IsometricDiamond,
+        UVec2::new(20, 20),
+        Vec2::new(30., 30.),
+    )
+    .with_center(Vec2::ZERO)
+    // .with_texture(
+    //     asset_server.load("test/test.png"),
+    //     TilemapTextureDescriptor {
+    //         tile_count: UVec2::new(2, 2),
+    //         tile_size: UVec2::new(16, 16),
+    //         filter_mode: FilterMode::Nearest,
+    //     },
+    // )
+    .build(&mut commands);
 }
 
 static mut FLAG: bool = false;
@@ -40,7 +44,7 @@ pub fn set_tile(mut commands: Commands, mut tilemap: Query<&mut Tilemap>) {
                 &mut commands,
                 UVec2::ZERO,
                 UVec2::new(20, 20),
-                &TileBuilder::new(UVec2::ZERO, 0),
+                &TileBuilder::new(UVec2::ZERO, 0).with_color(Color::WHITE.into()),
             );
             tilemap.fill_rect(
                 &mut commands,

@@ -13,7 +13,7 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use crate::tilemap::{Tilemap, WaitForTextureUsageChange};
+use crate::tilemap::{Tilemap, WaitForTextureUsageChange, TileTexture};
 
 #[derive(Resource, Default)]
 pub struct TilemapTextureArrayStorage {
@@ -32,10 +32,10 @@ pub struct TilemapTextureDescriptor {
 
 impl TilemapTextureArrayStorage {
     /// Register a new image to be translated to texture array.
-    pub fn insert_texture(&mut self, texture: &Handle<Image>, desc: &TilemapTextureDescriptor) {
+    pub fn insert_texture(&mut self, texture: TileTexture) {
         if !self.descs.contains_key(&texture.clone_weak()) {
             self.textures_to_prepare.insert(texture.clone_weak());
-            self.descs.insert(texture.clone_weak(), *desc);
+            self.descs.insert(texture.clone_weak(), *texture.get_desc());
         }
     }
 

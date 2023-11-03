@@ -21,8 +21,12 @@ pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
 
 #[derive(Default, PartialEq, Eq, Hash, Clone, Debug)]
 pub enum TileType {
+    /// The most basic shape. I don't think I need to explain it.
     #[default]
     Square,
+    /// A diamond shape. It's like a square but rotated 45 degrees counterclockwise around the origin.
+    /// But the coordinate system is the same as `Square`.
+    IsometricDiamond,
 }
 
 #[repr(u32)]
@@ -30,6 +34,26 @@ pub enum TileType {
 pub enum TileFlip {
     Horizontal = 1u32 << 0,
     Vertical = 1u32 << 1,
+}
+
+#[derive(Clone)]
+pub struct TileTexture {
+    texture: Handle<Image>,
+    desc: TilemapTextureDescriptor,
+}
+
+impl TileTexture {
+    pub fn clone_weak(&self) -> Handle<Image> {
+        self.texture.clone_weak()
+    }
+
+    pub fn get_desc(&self) -> &TilemapTextureDescriptor {
+        &self.desc
+    }
+
+    pub fn get_handle(&self) -> &Handle<Image> {
+        &self.texture
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -101,8 +125,7 @@ pub struct TilemapBuilder {
     tile_size: UVec2,
     tile_render_size: Vec2,
     render_chunk_size: UVec2,
-    texture: Handle<Image>,
-    texture_desc: TilemapTextureDescriptor,
+    texture: Option<TileTexture>,
     filter_mode: FilterMode,
     transform: Transform,
     flip: u32,
@@ -120,9 +143,8 @@ impl TilemapBuilder {
             ty,
             size,
             tile_size: UVec2::ZERO,
-            texture: Handle::default(),
-            texture_desc: TilemapTextureDescriptor::default(),
             tile_render_size,
+            texture: None,
             render_chunk_size: UVec2::new(16, 16),
             filter_mode: FilterMode::Nearest,
             transform: Transform::IDENTITY,
@@ -164,9 +186,8 @@ impl TilemapBuilder {
             "The tilemap size must be a multiple of the tile size."
         );
 
-        self.texture = texture;
+        self.texture = Some(TileTexture { texture, desc });
         self.tile_size = desc.tile_size;
-        self.texture_desc = desc;
         self
     }
 
@@ -200,7 +221,6 @@ impl TilemapBuilder {
             tile_size: self.tile_size,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture.clone(),
-            texture_desc: self.texture_desc,
             filter_mode: self.filter_mode,
             render_chunks_to_update: HashMap::default(),
             flip: self.flip,
@@ -223,8 +243,7 @@ pub struct Tilemap {
     pub(crate) tile_size: UVec2,
     pub(crate) tile_render_size: Vec2,
     pub(crate) render_chunk_size: UVec2,
-    pub(crate) texture: Handle<Image>,
-    pub(crate) texture_desc: TilemapTextureDescriptor,
+    pub(crate) texture: Option<TileTexture>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) render_chunks_to_update: HashMap<UVec2, Vec<TileData>>,
@@ -316,7 +335,14 @@ impl Tilemap {
         commands: &mut Commands,
         image_assets: &mut ResMut<Assets<Image>>,
     ) {
-        let Some(image) = image_assets.get(&self.texture) else {
+        let Some(texture) = &self.texture else {
+            commands
+                .entity(self.id)
+                .remove::<WaitForTextureUsageChange>();
+            return;
+        };
+
+        let Some(image) = image_assets.get(&texture.clone_weak()) else {
             return;
         };
 
@@ -326,7 +352,7 @@ impl Tilemap {
             .contains(TextureUsages::COPY_SRC)
         {
             image_assets
-                .get_mut(&self.texture)
+                .get_mut(&texture.clone_weak())
                 .unwrap()
                 .texture_descriptor
                 .usage

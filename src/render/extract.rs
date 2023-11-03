@@ -6,7 +6,7 @@ use bevy::{
     render::{render_resource::FilterMode, Extract},
 };
 
-use crate::tilemap::{Tile, TileType, Tilemap, WaitForTextureUsageChange};
+use crate::tilemap::{Tile, TileType, Tilemap, WaitForTextureUsageChange, TileTexture};
 
 use super::texture::{TilemapTextureArrayStorage, TilemapTextureDescriptor};
 
@@ -18,8 +18,7 @@ pub struct ExtractedTilemap {
     pub tile_size: UVec2,
     pub tile_render_size: Vec2,
     pub render_chunk_size: UVec2,
-    pub texture: Handle<Image>,
-    pub texture_desc: TilemapTextureDescriptor,
+    pub texture: Option<TileTexture>,
     pub filter_mode: FilterMode,
     pub transform: Mat4,
     pub flip: u32,
@@ -46,7 +45,9 @@ pub fn extract(
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
 
     for (entity, tilemap, tilemap_transform) in tilemaps_query.iter() {
-        tilemap_texture_array_storage.insert_texture(&tilemap.texture, &tilemap.texture_desc);
+        if let Some(texture) = &tilemap.texture {
+            tilemap_texture_array_storage.insert_texture(texture.clone());
+        }
 
         extracted_tilemaps.push((
             entity,
@@ -59,7 +60,6 @@ pub fn extract(
                 render_chunk_size: tilemap.render_chunk_size,
                 filter_mode: tilemap.filter_mode,
                 texture: tilemap.texture.clone(),
-                texture_desc: tilemap.texture_desc,
                 transform: tilemap_transform.compute_matrix(),
                 flip: tilemap.flip,
             },

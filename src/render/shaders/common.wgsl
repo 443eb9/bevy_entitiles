@@ -16,7 +16,8 @@ struct VertexOutput {
 }
 
 struct MeshOutput {
-    position: vec4<f32>,
+    position: vec2<f32>,
+    translation: vec2<f32>,
 }
 
 struct Tilemap {
@@ -27,8 +28,10 @@ struct Tilemap {
 @group(1) @binding(0)
 var<uniform> tilemap: Tilemap;
 
+#ifndef PURE_COLOR
 @group(2) @binding(0)
 var texture: texture_2d_array<f32>;
 
 @group(2) @binding(1)
 var texture_sampler: sampler;
+#endif

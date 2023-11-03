@@ -34,6 +34,7 @@ pub struct EntiTilesPipelineKey {
     pub msaa: u32,
     pub map_type: TileType,
     pub flip: u32,
+    pub is_pure_color: bool,
 }
 
 impl FromWorld for EntiTilesPipeline {
@@ -109,6 +110,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             {
                 match key.map_type {
                     TileType::Square => "SQUARE",
+                    TileType::IsometricDiamond => "ISO_DIAMOND",
                 }
             }
             .into(),
@@ -119,6 +121,10 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         }
         if key.flip & (1u32 << 1) != 0 {
             shader_defs.push("FLIP_V".into());
+        }
+
+        if key.is_pure_color {
+            shader_defs.push("PURE_COLOR".into());
         }
 
         let vertex_layout = VertexBufferLayout::from_vertex_formats(
@@ -135,13 +141,17 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             ],
         );
 
+        let mut layout = vec![
+            self.view_layout.clone(),
+            self.tilemap_uniform_layout.clone(),
+        ];
+        if !key.is_pure_color {
+            layout.push(self.texture_layout.clone());
+        }
+
         RenderPipelineDescriptor {
             label: Some("tilemap_pipeline".into()),
-            layout: vec![
-                self.view_layout.clone(),
-                self.tilemap_uniform_layout.clone(),
-                self.texture_layout.clone(),
-            ],
+            layout,
             push_constant_ranges: vec![],
             vertex: VertexState {
                 shader: TILEMAP_SHADER.typed(),
@@ -176,7 +186,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 front_face: FrontFace::Cw,
                 cull_mode: Some(Face::Back),
                 unclipped_depth: false,
-                polygon_mode: PolygonMode::Fill,
+                polygon_mode: PolygonMode::Line,
                 conservative: false,
             },
             depth_stencil: None,
