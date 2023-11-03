@@ -217,7 +217,6 @@ impl TilemapBuilder {
             render_chunk_size: self.render_chunk_size,
             texture: self.texture.clone(),
             filter_mode: self.filter_mode,
-            render_chunks_to_update: HashMap::default(),
             flip: self.flip,
         };
         entity.insert((
@@ -241,7 +240,6 @@ pub struct Tilemap {
     pub(crate) texture: Option<TileTexture>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Entity>>,
-    pub(crate) render_chunks_to_update: HashMap<UVec2, Vec<TileData>>,
     pub(crate) flip: u32,
 }
 
