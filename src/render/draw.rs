@@ -134,7 +134,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
                 .unwrap(),
             &[],
         );
-        
+
         RenderCommandResult::Success
     }
 }

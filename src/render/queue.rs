@@ -74,7 +74,7 @@ pub fn queue(
             );
 
             let Some(texture_array) =
-                tilemap_texture_array_storage.try_get_texture_array(&tilemap.texture)
+                tilemap_texture_array_storage.get_texture_array(&tilemap.texture)
             else {
                 continue;
             };

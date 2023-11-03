@@ -27,7 +27,6 @@ pub mod texture;
 pub mod uniform;
 
 const SQUARE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 4189641863548);
-
 const COMMON: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 548635415641535);
 const TILEMAP_SHADER: HandleUntyped =
     HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 151631653416315);

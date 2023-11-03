@@ -1,7 +1,6 @@
 use bevy::{
     prelude::{
-        Changed, Entity, Handle, Image, Mesh, Or, Query, Res, Resource,
-        UVec2, Vec2, Vec3, Vec4,
+        Changed, Entity, Handle, Image, Mesh, Or, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4,
     },
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -41,7 +40,7 @@ impl TilemapRenderChunk {
         TilemapRenderChunk {
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type.clone(),
-            texture: tilemap.texture.clone(),
+            texture: tilemap.texture.clone_weak(),
             tiles: vec![None; (tilemap.render_chunk_size.x * tilemap.render_chunk_size.y) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
@@ -150,7 +149,6 @@ impl TilemapRenderChunk {
             color: tile.color,
         });
         self.dirty_mesh = true;
-        // println!("Added tile: {:?} at index {}:({})", tile, index, self.tiles.len());
     }
 }
 

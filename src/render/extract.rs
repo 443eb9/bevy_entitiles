@@ -1,16 +1,16 @@
 use bevy::{
     prelude::{
-        Changed, Commands, Component, Entity, Handle, Image, Mat4, Or,
-        Query, ResMut, Transform, UVec2, Vec2, Vec4,
+        Changed, Commands, Component, Entity, Handle, Image, Mat4, Or, Query, ResMut, Transform,
+        UVec2, Vec2, Vec4, Without,
     },
     render::{render_resource::FilterMode, Extract},
 };
 
-use crate::tilemap::{Tile, TileType, Tilemap};
+use crate::tilemap::{Tile, TileType, Tilemap, WaitForTextureUsageChange};
 
 use super::texture::{TilemapTextureArrayStorage, TilemapTextureDescriptor};
 
-#[derive(Component, Debug)]
+#[derive(Component)]
 pub struct ExtractedTilemap {
     pub id: Entity,
     pub tile_type: TileType,
@@ -19,8 +19,10 @@ pub struct ExtractedTilemap {
     pub tile_render_size: Vec2,
     pub render_chunk_size: UVec2,
     pub texture: Handle<Image>,
+    pub texture_desc: TilemapTextureDescriptor,
     pub filter_mode: FilterMode,
     pub transform: Mat4,
+    pub flip: u32,
 }
 
 #[derive(Component, Debug)]
@@ -34,7 +36,9 @@ pub struct ExtractedTile {
 
 pub fn extract(
     mut commands: Commands,
-    tilemaps_query: Extract<Query<(Entity, &Tilemap, &Transform)>>,
+    tilemaps_query: Extract<
+        Query<(Entity, &Tilemap, &Transform), Without<WaitForTextureUsageChange>>,
+    >,
     changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
@@ -42,6 +46,8 @@ pub fn extract(
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
 
     for (entity, tilemap, tilemap_transform) in tilemaps_query.iter() {
+        tilemap_texture_array_storage.insert_texture(&tilemap.texture, &tilemap.texture_desc);
+
         extracted_tilemaps.push((
             entity,
             ExtractedTilemap {
@@ -52,19 +58,12 @@ pub fn extract(
                 tile_render_size: tilemap.tile_render_size,
                 render_chunk_size: tilemap.render_chunk_size,
                 filter_mode: tilemap.filter_mode,
-                texture: tilemap.texture.clone_weak(),
+                texture: tilemap.texture.clone(),
+                texture_desc: tilemap.texture_desc,
                 transform: tilemap_transform.compute_matrix(),
+                flip: tilemap.flip,
             },
         ));
-
-        tilemap_texture_array_storage.insert_texture(
-            &tilemap.texture,
-            TilemapTextureDescriptor {
-                tile_size: tilemap.tile_size,
-                tile_count: UVec2::new(1, 1),
-                filter_mode: tilemap.filter_mode,
-            },
-        );
     }
 
     for (entity, tile) in changed_tiles_query.iter() {

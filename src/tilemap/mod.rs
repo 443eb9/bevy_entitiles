@@ -1,16 +1,16 @@
 use bevy::{
     prelude::{
-        Bundle, Commands, Component, Entity, Handle, Image, Transform, UVec2, Vec2, Vec3,
-        Vec4,
+        Assets, Bundle, Commands, Component, Entity, Handle, Image, ResMut, Transform, UVec2, Vec2,
+        Vec3, Vec4,
     },
     render::{
         mesh::MeshVertexAttribute,
-        render_resource::{FilterMode, VertexFormat},
+        render_resource::{FilterMode, TextureUsages, VertexFormat},
     },
     utils::HashMap,
 };
 
-use crate::render::chunk::TileData;
+use crate::render::{chunk::TileData, texture::TilemapTextureDescriptor};
 
 pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
@@ -23,6 +23,13 @@ pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
 pub enum TileType {
     #[default]
     Square,
+}
+
+#[repr(u32)]
+#[derive(Debug, Clone, Copy)]
+pub enum TileFlip {
+    Horizontal = 1u32 << 0,
+    Vertical = 1u32 << 1,
 }
 
 #[derive(Clone, Copy)]
@@ -95,8 +102,10 @@ pub struct TilemapBuilder {
     tile_render_size: Vec2,
     render_chunk_size: UVec2,
     texture: Handle<Image>,
+    texture_desc: TilemapTextureDescriptor,
     filter_mode: FilterMode,
     transform: Transform,
+    flip: u32,
 }
 
 impl TilemapBuilder {
@@ -106,22 +115,18 @@ impl TilemapBuilder {
     /// The id should **must** be unique. Randomly generated ids are recommended.
     ///
     /// `tile_size` is the size of the tile in pixels while `tile_render_size` is the size of the tile in the world.
-    pub fn new(
-        ty: TileType,
-        size: UVec2,
-        tile_size: UVec2,
-        tile_render_size: Vec2,
-        texture: Handle<Image>,
-    ) -> Self {
+    pub fn new(ty: TileType, size: UVec2, tile_render_size: Vec2) -> Self {
         Self {
             ty,
             size,
-            tile_size,
+            tile_size: UVec2::ZERO,
+            texture: Handle::default(),
+            texture_desc: TilemapTextureDescriptor::default(),
             tile_render_size,
             render_chunk_size: UVec2::new(16, 16),
-            texture,
             filter_mode: FilterMode::Nearest,
             transform: Transform::IDENTITY,
+            flip: 0,
         }
     }
 
@@ -149,6 +154,22 @@ impl TilemapBuilder {
         self
     }
 
+    pub fn with_texture(
+        &mut self,
+        texture: Handle<Image>,
+        desc: TilemapTextureDescriptor,
+    ) -> &mut Self {
+        assert!(
+            desc.tile_size % desc.tile_count == UVec2::ZERO,
+            "The tilemap size must be a multiple of the tile size."
+        );
+
+        self.texture = texture;
+        self.tile_size = desc.tile_size;
+        self.texture_desc = desc;
+        self
+    }
+
     /// Align the whole rendered tilemap to the center.
     ///
     /// It will override the `transform` you set.
@@ -158,6 +179,12 @@ impl TilemapBuilder {
             center.y - self.tile_render_size.y / 2. * self.size.y as f32,
             self.transform.translation.z,
         );
+        self
+    }
+
+    /// Flip the uv of tiles.
+    pub fn with_flip(&mut self, flip: TileFlip) -> &mut Self {
+        self.flip |= flip as u32;
         self
     }
 
@@ -173,13 +200,18 @@ impl TilemapBuilder {
             tile_size: self.tile_size,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture.clone(),
+            texture_desc: self.texture_desc,
             filter_mode: self.filter_mode,
             render_chunks_to_update: HashMap::default(),
+            flip: self.flip,
         };
-        entity.insert(TilemapBundle {
-            tilemap,
-            transform: self.transform,
-        });
+        entity.insert((
+            WaitForTextureUsageChange,
+            TilemapBundle {
+                tilemap,
+                transform: self.transform,
+            },
+        ));
     }
 }
 
@@ -192,9 +224,11 @@ pub struct Tilemap {
     pub(crate) tile_render_size: Vec2,
     pub(crate) render_chunk_size: UVec2,
     pub(crate) texture: Handle<Image>,
+    pub(crate) texture_desc: TilemapTextureDescriptor,
     pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) render_chunks_to_update: HashMap<UVec2, Vec<TileData>>,
+    pub(crate) flip: u32,
 }
 
 impl Tilemap {
@@ -223,10 +257,27 @@ impl Tilemap {
     }
 
     pub(crate) fn set_unchecked(&mut self, commands: &mut Commands, tile_builder: TileBuilder) {
-        let new_tile = tile_builder.build(commands, self);
         let index = (tile_builder.grid_index.y * self.size.x + tile_builder.grid_index.x) as usize;
-        // println!("set the tile at: {}", tile_builder.grid_index);
+        if let Some(previous) = self.tiles[index] {
+            commands.entity(previous).despawn();
+        }
+        let new_tile = tile_builder.build(commands, self);
         self.tiles[index] = Some(new_tile);
+    }
+
+    /// Remove a tile.
+    pub fn remove(&mut self, commands: &mut Commands, grid_index: UVec2) {
+        if self.is_out_of_tilemap(grid_index) || self.get(grid_index).is_none() {
+            return;
+        }
+
+        self.remove_unchecked(commands, grid_index);
+    }
+
+    pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, grid_index: UVec2) {
+        let index = (grid_index.y * self.size.x + grid_index.x) as usize;
+        commands.entity(self.tiles[index].unwrap()).despawn();
+        self.tiles[index] = None;
     }
 
     /// Fill a rectangle area with tiles.
@@ -258,6 +309,34 @@ impl Tilemap {
     pub fn is_out_of_tilemap(&self, grid_index: UVec2) -> bool {
         grid_index.x >= self.size.x || grid_index.y >= self.size.y
     }
+
+    /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
+    pub(crate) fn set_usage(
+        &mut self,
+        commands: &mut Commands,
+        image_assets: &mut ResMut<Assets<Image>>,
+    ) {
+        let Some(image) = image_assets.get(&self.texture) else {
+            return;
+        };
+
+        if !image
+            .texture_descriptor
+            .usage
+            .contains(TextureUsages::COPY_SRC)
+        {
+            image_assets
+                .get_mut(&self.texture)
+                .unwrap()
+                .texture_descriptor
+                .usage
+                .set(TextureUsages::COPY_SRC, true);
+        }
+
+        commands
+            .entity(self.id)
+            .remove::<WaitForTextureUsageChange>();
+    }
 }
 
 #[derive(Bundle)]
@@ -265,3 +344,6 @@ pub struct TilemapBundle {
     pub tilemap: Tilemap,
     pub transform: Transform,
 }
+
+#[derive(Component)]
+pub struct WaitForTextureUsageChange;

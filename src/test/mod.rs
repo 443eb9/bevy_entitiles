@@ -1,12 +1,13 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::render_resource::FilterMode};
 
-use crate::tilemap::*;
+use crate::{render::texture::TilemapTextureDescriptor, tilemap::*};
 
 pub fn random_tests(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut images: ResMut<Assets<Image>>,
 ) {
     commands.spawn(Camera2dBundle {
         projection: OrthographicProjection {
@@ -15,15 +16,17 @@ pub fn random_tests(
         },
         ..default()
     });
-    TilemapBuilder::new(
-        TileType::Square,
-        UVec2::new(20, 20),
-        UVec2::new(16, 16),
-        Vec2::new(30., 30.),
-        asset_server.load("test/test.png"),
-    )
-    .with_center(Vec2::ZERO)
-    .build(&mut commands);
+    TilemapBuilder::new(TileType::Square, UVec2::new(20, 20), Vec2::new(30., 30.))
+        .with_center(Vec2::ZERO)
+        .with_texture(
+            asset_server.load("test/test.png"),
+            TilemapTextureDescriptor {
+                tile_count: UVec2::new(2, 2),
+                tile_size: UVec2::new(16, 16),
+                filter_mode: FilterMode::Nearest,
+            },
+        )
+        .build(&mut commands);
 }
 
 static mut FLAG: bool = false;
@@ -37,8 +40,14 @@ pub fn set_tile(mut commands: Commands, mut tilemap: Query<&mut Tilemap>) {
                 &mut commands,
                 UVec2::ZERO,
                 UVec2::new(20, 20),
-                &TileBuilder::new(UVec2::ZERO, 0).with_color(Vec4::new(1., 1., 1., 1.)),
+                &TileBuilder::new(UVec2::ZERO, 0),
             );
+            tilemap.fill_rect(
+                &mut commands,
+                UVec2::new(10, 12),
+                UVec2::new(5, 5),
+                &TileBuilder::new(UVec2::ZERO, 1),
+            )
         }
         FLAG = true;
     }

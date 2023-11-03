@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Handle, Image, Res, Resource, UVec2, Vec2},
+    prelude::{Assets, Commands, Handle, Image, Query, Res, ResMut, Resource, UVec2, Vec2, With},
     render::{
         render_asset::RenderAssets,
         render_resource::{
@@ -13,6 +13,8 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
+use crate::tilemap::{Tilemap, WaitForTextureUsageChange};
+
 #[derive(Resource, Default)]
 pub struct TilemapTextureArrayStorage {
     textures: HashMap<Handle<Image>, GpuImage>,
@@ -21,6 +23,7 @@ pub struct TilemapTextureArrayStorage {
     textures_to_queue: HashSet<Handle<Image>>,
 }
 
+#[derive(Clone, Copy, Default, Debug)]
 pub struct TilemapTextureDescriptor {
     pub tile_count: UVec2,
     pub tile_size: UVec2,
@@ -29,15 +32,15 @@ pub struct TilemapTextureDescriptor {
 
 impl TilemapTextureArrayStorage {
     /// Register a new image to be translated to texture array.
-    pub fn insert_texture(&mut self, image: &Handle<Image>, image_desc: TilemapTextureDescriptor) {
-        if !self.descs.contains_key(&image.clone_weak()) {
-            self.textures_to_prepare.insert(image.clone_weak());
-            self.descs.insert(image.clone_weak(), image_desc);
+    pub fn insert_texture(&mut self, texture: &Handle<Image>, desc: &TilemapTextureDescriptor) {
+        if !self.descs.contains_key(&texture.clone_weak()) {
+            self.textures_to_prepare.insert(texture.clone_weak());
+            self.descs.insert(texture.clone_weak(), *desc);
         }
     }
 
     /// Try to get the processed texture array.
-    pub fn try_get_texture_array(&self, image: &Handle<Image>) -> Option<&GpuImage> {
+    pub fn get_texture_array(&self, image: &Handle<Image>) -> Option<&GpuImage> {
         self.textures.get(image)
     }
 
@@ -49,8 +52,12 @@ impl TilemapTextureArrayStorage {
 
         let to_prepare = self.textures_to_prepare.drain().collect::<Vec<_>>();
 
-        for image in to_prepare.iter() {
-            let desc = self.descs.get(image).unwrap();
+        for image_handle in to_prepare.iter() {
+            if image_handle.id() == Handle::<Image>::default().id() {
+                continue;
+            }
+
+            let desc = self.descs.get(image_handle).unwrap();
 
             let texture = render_device.create_texture(&TextureDescriptor {
                 label: Some("tilemap_texture_array"),
@@ -102,8 +109,8 @@ impl TilemapTextureArrayStorage {
                 size: Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
             };
 
-            self.textures_to_prepare.clear();
-            self.textures.insert(image.clone_weak(), gpu_image);
+            self.textures.insert(image_handle.clone_weak(), gpu_image);
+            self.textures_to_queue.insert(image_handle.clone_weak());
         }
     }
 
@@ -162,8 +169,17 @@ impl TilemapTextureArrayStorage {
                 }
             }
 
-            self.textures_to_queue.clear();
             render_queue.submit(vec![command_encoder.finish()]);
         }
+    }
+}
+
+pub fn set_texture_usage(
+    mut commands: Commands,
+    mut tilemaps_query: Query<&mut Tilemap, With<WaitForTextureUsageChange>>,
+    mut image_assets: ResMut<Assets<Image>>,
+) {
+    for mut tilemap in tilemaps_query.iter_mut() {
+        tilemap.set_usage(&mut commands, &mut image_assets);
     }
 }
