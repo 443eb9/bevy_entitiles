@@ -20,3 +20,8 @@ Highly recommend to checkout [`bevy_ecs_tilemap`]([StarArawn/bevy_ecs_tilemap: A
 - SSAO
 - Volumetric Clouds / Fog
 - Wang Tilling
+
+| Bevy ver | EntiTiles ver |
+| -------- | ------------- |
+| 0.11     | 0.1           |
+
