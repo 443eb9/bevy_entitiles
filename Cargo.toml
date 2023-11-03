@@ -5,6 +5,10 @@ edition = "2021"
 license = "MIT"
 license-file = "LICENSE"
 repository = "https://github.com/443eb9/bevy_entitiles"
+exclude = [
+    "test/*"
+]
+description = "A tilemap library for bevy."
 
 [profile.dev]
 opt-level = 1
