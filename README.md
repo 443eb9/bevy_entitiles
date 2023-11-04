@@ -4,7 +4,7 @@ A tilemap library for bevy.
 
 **Notice** that the crate is still in need of optimization. So don't use this in your formal projects.
 
-Strongly recommend that you take a look at the [bevy_ecs_tilemap]([StarArawn/bevy_ecs_tilemap: A tilemap rendering crate for bevy which is more ECS friendly. (github.com)](https://github.com/StarArawn/bevy_ecs_tilemap)) library first, as it is more comprehensive and mature.
+Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first, as it is more comprehensive and mature.
 
 ## Currently Working On
 
