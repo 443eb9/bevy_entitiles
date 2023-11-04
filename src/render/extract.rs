@@ -1,14 +1,18 @@
 use bevy::{
+    math::Vec3Swizzles,
     prelude::{
-        Changed, Commands, Component, Entity, Handle, Image, Mat4, Or, Query, ResMut, Transform,
+        Changed, Commands, Component, Entity, Mat4, Or, Query, ResMut, Transform,
         UVec2, Vec2, Vec4, Without,
     },
     render::{render_resource::FilterMode, Extract},
 };
 
-use crate::tilemap::{Tile, TileType, Tilemap, WaitForTextureUsageChange, TileTexture};
+use crate::{
+    math::geometry::AabbBox2d,
+    tilemap::{Tile, TileTexture, TileType, Tilemap, WaitForTextureUsageChange},
+};
 
-use super::texture::{TilemapTextureArrayStorage, TilemapTextureDescriptor};
+use super::texture::TilemapTextureArrayStorage;
 
 #[derive(Component)]
 pub struct ExtractedTilemap {
@@ -17,11 +21,19 @@ pub struct ExtractedTilemap {
     pub size: UVec2,
     pub tile_size: UVec2,
     pub tile_render_size: Vec2,
-    pub render_chunk_size: UVec2,
+    pub render_chunk_size: u32,
     pub texture: Option<TileTexture>,
     pub filter_mode: FilterMode,
-    pub transform: Mat4,
+    pub transfrom: Transform,
+    pub transform_matrix: Mat4,
     pub flip: u32,
+    pub aabb: AabbBox2d,
+}
+
+impl ExtractedTilemap {
+    pub fn get_center_in_world(&self) -> Vec2 {
+        self.transfrom.translation.xy() + self.aabb.center
+    }
 }
 
 #[derive(Component, Debug)]
@@ -36,7 +48,8 @@ pub struct ExtractedTile {
 pub fn extract(
     mut commands: Commands,
     tilemaps_query: Extract<
-        Query<(Entity, &Tilemap, &Transform), Without<WaitForTextureUsageChange>>,
+        Query<(Entity, &Tilemap, &Transform),
+        Without<WaitForTextureUsageChange>>
     >,
     changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
@@ -60,8 +73,10 @@ pub fn extract(
                 render_chunk_size: tilemap.render_chunk_size,
                 filter_mode: tilemap.filter_mode,
                 texture: tilemap.texture.clone(),
-                transform: tilemap_transform.compute_matrix(),
+                transfrom: *tilemap_transform,
+                transform_matrix: tilemap_transform.compute_matrix(),
                 flip: tilemap.flip,
+                aabb: tilemap.aabb.clone(),
             },
         ));
     }

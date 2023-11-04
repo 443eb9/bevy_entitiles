@@ -18,3 +18,12 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.11.3", features = ["dynamic_linking"] }
+
+[features]
+default = []
+debug = []
+
+[[example]]
+name = "test"
+path = "examples/test.rs"
+required-features=["debug"]

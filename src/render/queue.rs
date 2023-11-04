@@ -118,7 +118,7 @@ pub fn queue(
                     .insert(texture.clone_weak(), texture_bind_group);
 
                 transparent_phase.add(Transparent2d {
-                    sort_key: FloatOrd(tilemap.transform.z_axis.w),
+                    sort_key: FloatOrd(tilemap.transform_matrix.z_axis.w),
                     entity,
                     pipeline,
                     draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
@@ -126,7 +126,7 @@ pub fn queue(
                 });
             } else {
                 transparent_phase.add(Transparent2d {
-                    sort_key: FloatOrd(tilemap.transform.z_axis.w),
+                    sort_key: FloatOrd(tilemap.transform_matrix.z_axis.w),
                     entity,
                     pipeline,
                     draw_function: draw_functions

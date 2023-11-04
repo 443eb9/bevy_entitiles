@@ -1,7 +1,7 @@
 use bevy::{
     asset::load_internal_asset,
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Handle, HandleUntyped, Image, IntoSystemConfigs, Plugin, Resource, Shader, Entity},
+    prelude::{Entity, Handle, HandleUntyped, Image, IntoSystemConfigs, Plugin, Resource, Shader},
     reflect::TypeUuid,
     render::{
         render_phase::AddRenderCommand,
@@ -12,11 +12,15 @@ use bevy::{
 };
 
 use crate::render::{
-    chunk::RenderChunkStorage, draw::{DrawTilemap, DrawTilemapPureColor}, pipeline::EntiTilesPipeline,
-    texture::TilemapTextureArrayStorage, uniform::TilemapUniformsStorage,
+    chunk::RenderChunkStorage,
+    draw::{DrawTilemap, DrawTilemapPureColor},
+    pipeline::EntiTilesPipeline,
+    texture::TilemapTextureArrayStorage,
+    uniform::TilemapUniformsStorage,
 };
 
 pub mod chunk;
+pub mod culling;
 pub mod draw;
 pub mod extract;
 pub mod pipeline;
@@ -38,7 +42,12 @@ impl Plugin for EntiTilesRendererPlugin {
 
     fn finish(&self, _app: &mut bevy::prelude::App) {
         load_internal_asset!(_app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
-        load_internal_asset!(_app, ISO_DIAMOND, "shaders/iso_diamond.wgsl", Shader::from_wgsl);
+        load_internal_asset!(
+            _app,
+            ISO_DIAMOND,
+            "shaders/iso_diamond.wgsl",
+            Shader::from_wgsl
+        );
         load_internal_asset!(_app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(

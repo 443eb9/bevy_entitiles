@@ -36,7 +36,7 @@ impl TilemapUniformsStorage {
         tilemap: &ExtractedTilemap,
     ) -> DynamicUniformComponent<TilemapUniform> {
         let component = TilemapUniform {
-            transform: tilemap.transform,
+            transform: tilemap.transform_matrix,
             tile_size: tilemap.tile_render_size,
         };
 

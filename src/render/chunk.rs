@@ -1,6 +1,6 @@
 use bevy::{
     prelude::{
-        Changed, Entity, Handle, Image, Mesh, Or, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4,
+        Changed, Entity, Mesh, Or, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4,
     },
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -10,9 +10,12 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::tilemap::{
-    TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_GRID_INDEX,
-    TILEMAP_MESH_ATTR_TEXTURE_INDEX, TileTexture,
+use crate::{
+    math::geometry::AabbBox2d,
+    tilemap::{
+        TileTexture, TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_GRID_INDEX,
+        TILEMAP_MESH_ATTR_TEXTURE_INDEX,
+    },
 };
 
 use super::extract::{ExtractedTile, ExtractedTilemap};
@@ -26,25 +29,30 @@ pub struct TileData {
 
 #[derive(Clone)]
 pub struct TilemapRenderChunk {
+    pub index: UVec2,
     pub dirty_mesh: bool,
     pub tile_type: TileType,
-    pub size: UVec2,
+    pub size: u32,
     pub texture: Option<TileTexture>,
     pub tiles: Vec<Option<TileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
+    pub aabb: AabbBox2d,
 }
 
 impl TilemapRenderChunk {
-    pub fn new(tilemap: &ExtractedTilemap) -> Self {
+    pub fn from_grid_index(grid_index: UVec2, tilemap: &ExtractedTilemap) -> Self {
+        let index = grid_index / tilemap.render_chunk_size;
         TilemapRenderChunk {
+            index,
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type.clone(),
             texture: tilemap.texture.clone(),
-            tiles: vec![None; (tilemap.render_chunk_size.x * tilemap.render_chunk_size.y) as usize],
+            tiles: vec![None; (tilemap.render_chunk_size * tilemap.render_chunk_size) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
             dirty_mesh: true,
+            aabb: AabbBox2d::from_chunk(index, tilemap),
         }
     }
 
@@ -142,7 +150,7 @@ impl TilemapRenderChunk {
 
     /// Set a tile in the chunk. Overwrites the previous tile.
     pub fn set_tile(&mut self, grid_index: UVec2, tile: &ExtractedTile) {
-        let index = (grid_index.y * self.size.x + grid_index.x) as usize;
+        let index = (grid_index.y * self.size + grid_index.x) as usize;
         self.tiles[index] = Some(TileData {
             grid_index: tile.grid_index,
             texture_index: tile.texture_index,
@@ -154,14 +162,15 @@ impl TilemapRenderChunk {
 
 #[derive(Resource, Default)]
 pub struct RenderChunkStorage {
-    value: HashMap<Entity, Vec<Option<TilemapRenderChunk>>>,
+    pub(crate) value: HashMap<Entity, Vec<Option<TilemapRenderChunk>>>,
 }
 
 impl RenderChunkStorage {
     /// Insert new render chunks into the storage for a tilemap.
     pub fn insert_tilemap(&mut self, tilemap: &ExtractedTilemap) {
-        let amount = Self::calculate_render_chunk_storage_size(tilemap);
-        self.value.insert(tilemap.id, vec![None; amount]);
+        let amount = Self::calculate_render_chunk_count(tilemap);
+        self.value
+            .insert(tilemap.id, vec![None; (amount.x * amount.y) as usize]);
     }
 
     /// Update the mesh for all chunks of a tilemap.
@@ -197,22 +206,25 @@ impl RenderChunkStorage {
 
             let chunk = {
                 if chunks[tile.render_chunk_index].is_none() {
-                    chunks[tile.render_chunk_index] = Some(TilemapRenderChunk::new(tilemap));
+                    chunks[tile.render_chunk_index] = Some(TilemapRenderChunk::from_grid_index(
+                        tile.grid_index,
+                        tilemap,
+                    ));
                 }
                 chunks.get_mut(tile.render_chunk_index).unwrap()
             };
 
             let c = {
                 if chunk.is_none() {
-                    chunk.replace(TilemapRenderChunk::new(tilemap));
+                    chunk.replace(TilemapRenderChunk::from_grid_index(
+                        tile.grid_index,
+                        tilemap,
+                    ));
                 };
                 chunk.as_mut().unwrap()
             };
 
-            let grid_index = UVec2::new(
-                tile.grid_index.x % tilemap.render_chunk_size.x,
-                tile.grid_index.y % tilemap.render_chunk_size.y,
-            );
+            let grid_index = tile.grid_index % tilemap.render_chunk_size;
             c.set_tile(grid_index, tile);
         }
     }
@@ -221,23 +233,22 @@ impl RenderChunkStorage {
         self.value.get(&tilemap)
     }
 
-    fn calculate_render_chunk_storage_size(tilemap: &ExtractedTilemap) -> usize {
-        let size = UVec2::new(
+    pub fn calculate_render_chunk_count(tilemap: &ExtractedTilemap) -> UVec2 {
+        UVec2::new(
             {
-                if tilemap.size.x % tilemap.render_chunk_size.x == 0 {
-                    tilemap.size.x / tilemap.render_chunk_size.x
+                if tilemap.size.x % tilemap.render_chunk_size == 0 {
+                    tilemap.size.x / tilemap.render_chunk_size
                 } else {
-                    tilemap.size.x / tilemap.render_chunk_size.x + 1
+                    tilemap.size.x / tilemap.render_chunk_size + 1
                 }
             },
             {
-                if tilemap.size.y % tilemap.render_chunk_size.y == 0 {
-                    tilemap.size.y / tilemap.render_chunk_size.y
+                if tilemap.size.y % tilemap.render_chunk_size == 0 {
+                    tilemap.size.y / tilemap.render_chunk_size
                 } else {
-                    tilemap.size.y / tilemap.render_chunk_size.y + 1
+                    tilemap.size.y / tilemap.render_chunk_size + 1
                 }
             },
-        );
-        (size.x * size.y) as usize
+        )
     }
 }

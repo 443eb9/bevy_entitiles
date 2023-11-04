@@ -26,11 +26,13 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         0., 1.
     );
     var position_world = tilemap.transform * position_model;
-    position_model.z = input.grid_index.y;
+    position_world.z = tilemap.transform[3].z;
 
     output.position = view.view_proj * position_world;
     output.texture_index = input.texture_index;
     output.color = input.color;
+
+    output.color = vec4<f32>(tilemap.transform[3].z);
 
     var uv = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
@@ -51,7 +53,6 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
-    // return vec4<f32>(input.uv, 0., 1.);
 #ifdef PURE_COLOR
     let color = input.color;
 #else

@@ -1,16 +1,17 @@
 use bevy::{
     prelude::{
-        Assets, Bundle, Commands, Component, Entity, Handle, Image, ResMut, Transform, UVec2, Vec2,
-        Vec3, Vec4,
+        Assets, Bundle, Commands, Component, Entity, Handle, Image, ResMut, Transform, UVec2, Vec2, Vec4,
     },
     render::{
         mesh::MeshVertexAttribute,
         render_resource::{FilterMode, TextureUsages, VertexFormat},
     },
-    utils::HashMap,
 };
 
-use crate::render::{chunk::TileData, texture::TilemapTextureDescriptor};
+use crate::{
+    math::geometry::AabbBox2d,
+    render::texture::TilemapTextureDescriptor,
+};
 
 pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
@@ -85,16 +86,13 @@ impl TileBuilder {
     ///
     /// Use `Tilemap::set` instead.
     pub fn build(&self, commands: &mut Commands, tilemap: &Tilemap) -> Entity {
-        let render_chunk_index_2d = UVec2::new(
-            self.grid_index.x / tilemap.render_chunk_size.x,
-            self.grid_index.y / tilemap.render_chunk_size.y,
-        );
+        let render_chunk_index_2d = self.grid_index / tilemap.render_chunk_size;
         let render_chunk_index = {
-            if tilemap.size.x % tilemap.render_chunk_size.x == 0 {
-                render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size.x)
+            if tilemap.size.x % tilemap.render_chunk_size == 0 {
+                render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size)
                     + render_chunk_index_2d.x
             } else {
-                render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size.x + 1)
+                render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size + 1)
                     + render_chunk_index_2d.x
             }
         } as usize;
@@ -120,15 +118,16 @@ pub struct Tile {
 }
 
 pub struct TilemapBuilder {
-    ty: TileType,
-    size: UVec2,
-    tile_size: UVec2,
-    tile_render_size: Vec2,
-    render_chunk_size: UVec2,
-    texture: Option<TileTexture>,
-    filter_mode: FilterMode,
-    transform: Transform,
-    flip: u32,
+    pub(crate) tile_type: TileType,
+    pub(crate) size: UVec2,
+    pub(crate) tile_size: UVec2,
+    pub(crate) tile_render_size: Vec2,
+    pub(crate) render_chunk_size: u32,
+    pub(crate) texture: Option<TileTexture>,
+    pub(crate) filter_mode: FilterMode,
+    pub(crate) transform: Vec2,
+    pub(crate) z_order: f32,
+    pub(crate) flip: u32,
 }
 
 impl TilemapBuilder {
@@ -140,26 +139,27 @@ impl TilemapBuilder {
     /// `tile_size` is the size of the tile in pixels while `tile_render_size` is the size of the tile in the world.
     pub fn new(ty: TileType, size: UVec2, tile_render_size: Vec2) -> Self {
         Self {
-            ty,
+            tile_type: ty,
             size,
             tile_size: UVec2::ZERO,
             tile_render_size,
             texture: None,
-            render_chunk_size: UVec2::new(16, 16),
+            render_chunk_size: 16,
             filter_mode: FilterMode::Nearest,
-            transform: Transform::IDENTITY,
+            transform: Vec2::ZERO,
+            z_order: 0.,
             flip: 0,
         }
     }
 
     /// Override z order. Default is 0.
     pub fn with_z_order(&mut self, z_order: f32) -> &mut Self {
-        self.transform.translation.z = z_order;
+        self.z_order = z_order;
         self
     }
 
-    /// Override render chunk size. Default is 16x16.
-    pub fn with_render_chunk_size(&mut self, size: UVec2) -> &mut Self {
+    /// Override render chunk size. Default is 16.
+    pub fn with_render_chunk_size(&mut self, size: u32) -> &mut Self {
         self.render_chunk_size = size;
         self
     }
@@ -170,9 +170,9 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override transform. Default is identity.
-    pub fn with_transform(&mut self, transform: Transform) -> &mut Self {
-        self.transform = transform;
+    /// Override translation. Default is `Vec2::ZERO`.
+    pub fn with_translation(&mut self, translation: Vec2) -> &mut Self {
+        self.transform = translation;
         self
     }
 
@@ -190,10 +190,9 @@ impl TilemapBuilder {
     ///
     /// It will override the `transform` you set.
     pub fn with_center(&mut self, center: Vec2) -> &mut Self {
-        self.transform.translation = Vec3::new(
+        self.transform = Vec2::new(
             center.x - self.tile_render_size.x / 2. * self.size.x as f32,
             center.y - self.tile_render_size.y / 2. * self.size.y as f32,
-            self.transform.translation.z,
         );
         self
     }
@@ -211,19 +210,20 @@ impl TilemapBuilder {
             tiles: vec![None; self.size.x as usize * self.size.y as usize],
             id: entity.id(),
             tile_render_size: self.tile_render_size,
-            tile_type: self.ty.clone(),
+            tile_type: self.tile_type.clone(),
             size: self.size,
             tile_size: self.tile_size,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture.clone(),
             filter_mode: self.filter_mode,
             flip: self.flip,
+            aabb: AabbBox2d::from_tilemap_builder(self),
         };
         entity.insert((
             WaitForTextureUsageChange,
             TilemapBundle {
                 tilemap,
-                transform: self.transform,
+                transform: Transform::from_translation(self.transform.extend(self.z_order)),
             },
         ));
     }
@@ -236,11 +236,12 @@ pub struct Tilemap {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
     pub(crate) tile_render_size: Vec2,
-    pub(crate) render_chunk_size: UVec2,
+    pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TileTexture>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) flip: u32,
+    pub(crate) aabb: AabbBox2d,
 }
 
 impl Tilemap {
