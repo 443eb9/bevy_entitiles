@@ -51,15 +51,12 @@ pub struct ExtractCamera {
     pub transform: Vec2,
 }
 
-pub fn extract(
+pub fn extract_tilemaps(
     mut commands: Commands,
     tilemaps_query: Extract<
         Query<(Entity, &Tilemap, &Transform), Without<WaitForTextureUsageChange>>,
     >,
     changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
-    cameras: Extract<
-        Query<(Entity, &OrthographicProjection, &Transform), Or<(Changed<Transform>,)>>,
-    >,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
     let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = Vec::new();
@@ -101,6 +98,19 @@ pub fn extract(
         ));
     }
 
+    commands.insert_or_spawn_batch(extracted_tiles);
+    commands.insert_or_spawn_batch(extracted_tilemaps);
+}
+
+pub fn extract_camera(
+    mut commands: Commands,
+    cameras: Extract<
+        Query<
+            (Entity, &OrthographicProjection, &Transform),
+            Or<(Changed<Transform>, Changed<OrthographicProjection>)>,
+        >,
+    >,
+) {
     let mut extracted_cameras = vec![];
     for (entity, projection, transform) in cameras.iter() {
         extracted_cameras.push((
@@ -111,8 +121,5 @@ pub fn extract(
             },
         ));
     }
-
-    commands.insert_or_spawn_batch(extracted_tiles);
-    commands.insert_or_spawn_batch(extracted_tilemaps);
     commands.insert_or_spawn_batch(extracted_cameras);
 }

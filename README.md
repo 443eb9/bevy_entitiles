@@ -8,7 +8,7 @@ Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://gith
 
 ## Currently Working On
 
-- Frustum Culling
+- Frustum Culling ( Optimizing )
 
 ## Future Goals
 
@@ -21,6 +21,20 @@ Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://gith
 - Volumetric Clouds / Fog
 - Wang Tilling
 - Tilemap Mask
+
+## Show Case
+
+Platform: 10600KF RTX3070 With 1000*1000 tiles
+
+With Frustum Culling ( Before -> After )
+
+<div>
+	<img src="./docs/imgs/without_frustum_culling.png" width="300px"/>
+	<img src="./docs/imgs/with_frustum_culling.png" width="300px"/>
+</div>
+
+
+
 
 | Bevy ver | EntiTiles ver |
 | -------- | ------------- |

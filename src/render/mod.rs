@@ -60,7 +60,10 @@ impl Plugin for EntiTilesRendererPlugin {
         let render_app = _app.get_sub_app_mut(RenderApp).unwrap();
 
         render_app
-            .add_systems(ExtractSchedule, extract::extract)
+            .add_systems(
+                ExtractSchedule,
+                (extract::extract_tilemaps, extract::extract_camera),
+            )
             .add_systems(
                 Render,
                 (
