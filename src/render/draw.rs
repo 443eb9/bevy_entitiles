@@ -170,6 +170,10 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
                     continue;
                 };
 
+                if !c.visible {
+                    continue;
+                }
+
                 if let Some(gpu_mesh) = &c.gpu_mesh {
                     pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
                     match &gpu_mesh.buffer_info {

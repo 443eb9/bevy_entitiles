@@ -1,8 +1,8 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{
-        Changed, Commands, Component, Entity, Mat4, Or, Query, ResMut, Transform,
-        UVec2, Vec2, Vec4, Without,
+        Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query, ResMut,
+        Transform, UVec2, Vec2, Vec4, Without,
     },
     render::{render_resource::FilterMode, Extract},
 };
@@ -45,18 +45,24 @@ pub struct ExtractedTile {
     pub color: Vec4,
 }
 
+#[derive(Component)]
+pub struct ExtractCamera {
+    pub plane: f32,
+    pub transform: Vec2,
+}
+
 pub fn extract(
     mut commands: Commands,
     tilemaps_query: Extract<
-        Query<(Entity, &Tilemap, &Transform),
-        Without<WaitForTextureUsageChange>>
+        Query<(Entity, &Tilemap, &Transform), Without<WaitForTextureUsageChange>>,
     >,
     changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
+    cameras: Extract<
+        Query<(Entity, &OrthographicProjection, &Transform), Or<(Changed<Transform>,)>>,
+    >,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
     let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = Vec::new();
-    let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
-
     for (entity, tilemap, tilemap_transform) in tilemaps_query.iter() {
         if let Some(texture) = &tilemap.texture {
             tilemap_texture_array_storage.insert_texture(texture.clone());
@@ -81,6 +87,7 @@ pub fn extract(
         ));
     }
 
+    let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
     for (entity, tile) in changed_tiles_query.iter() {
         extracted_tiles.push((
             entity,
@@ -94,6 +101,18 @@ pub fn extract(
         ));
     }
 
+    let mut extracted_cameras = vec![];
+    for (entity, projection, transform) in cameras.iter() {
+        extracted_cameras.push((
+            entity,
+            ExtractCamera {
+                plane: projection.far * projection.scale,
+                transform: transform.translation.xy(),
+            },
+        ));
+    }
+
     commands.insert_or_spawn_batch(extracted_tiles);
     commands.insert_or_spawn_batch(extracted_tilemaps);
+    commands.insert_or_spawn_batch(extracted_cameras);
 }

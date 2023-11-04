@@ -1,7 +1,5 @@
 use bevy::{
-    prelude::{
-        Changed, Entity, Mesh, Or, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4,
-    },
+    prelude::{Changed, Entity, Mesh, Or, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4, Without},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
@@ -18,7 +16,10 @@ use crate::{
     },
 };
 
-use super::extract::{ExtractedTile, ExtractedTilemap};
+use super::{
+    culling::Visible,
+    extract::{ExtractedTile, ExtractedTilemap},
+};
 
 #[derive(Clone, Debug)]
 pub struct TileData {
@@ -29,6 +30,7 @@ pub struct TileData {
 
 #[derive(Clone)]
 pub struct TilemapRenderChunk {
+    pub visible: bool,
     pub index: UVec2,
     pub dirty_mesh: bool,
     pub tile_type: TileType,
@@ -44,6 +46,7 @@ impl TilemapRenderChunk {
     pub fn from_grid_index(grid_index: UVec2, tilemap: &ExtractedTilemap) -> Self {
         let index = grid_index / tilemap.render_chunk_size;
         TilemapRenderChunk {
+            visible: true,
             index,
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type.clone(),
@@ -191,7 +194,7 @@ impl RenderChunkStorage {
     /// Add tiles to the storage from a query.
     pub fn add_tiles_with_query(
         &mut self,
-        tilemaps_query: &Query<&ExtractedTilemap>,
+        tilemaps_query: &Query<&ExtractedTilemap, Without<Visible>>,
         changed_tiles_query: &Query<&ExtractedTile, Or<(Changed<ExtractedTile>,)>>,
     ) {
         for tile in changed_tiles_query.iter() {
@@ -231,6 +234,10 @@ impl RenderChunkStorage {
 
     pub fn get(&self, tilemap: Entity) -> Option<&Vec<Option<TilemapRenderChunk>>> {
         self.value.get(&tilemap)
+    }
+
+    pub fn get_mut(&mut self, tilemap: Entity) -> Option<&mut Vec<Option<TilemapRenderChunk>>> {
+        self.value.get_mut(&tilemap)
     }
 
     pub fn calculate_render_chunk_count(tilemap: &ExtractedTilemap) -> UVec2 {

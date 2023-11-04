@@ -1,6 +1,10 @@
 use bevy::{
     math::Vec3Swizzles,
-    prelude::{Color, Gizmos, Plugin, Query, Transform, UVec2, Update, Vec2},
+    prelude::{
+        default, Color, Commands, Gizmos, Plugin, Query, Startup, TextBundle, Transform, UVec2,
+        Update, Vec2,
+    },
+    text::{TextSection, TextStyle},
 };
 
 use crate::{
@@ -9,13 +13,47 @@ use crate::{
     tilemap::Tilemap,
 };
 
+use self::common::{debug_info_display, DebugFpsText};
+
+pub mod camera_movement;
+pub mod common;
+
 /// A bunch of systems for debugging. Since they're not optimized, don't use them unless you're debugging.
 pub struct EntiTilesDebugPlugin;
 
 impl Plugin for EntiTilesDebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, (draw_tilemap_aabb, draw_chunk_aabb));
+        app.add_systems(Startup, debug_startup).add_systems(
+            Update,
+            (debug_info_display),
+        );
+
+        app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
     }
+}
+
+pub fn debug_startup(mut commands: Commands) {
+    commands.spawn((
+        DebugFpsText,
+        TextBundle::from_sections([
+            TextSection::new(
+                "FPS: ",
+                TextStyle {
+                    font_size: 32.,
+                    color: Color::WHITE,
+                    ..default()
+                },
+            ),
+            TextSection::new(
+                "",
+                TextStyle {
+                    font_size: 32.,
+                    color: Color::WHITE,
+                    ..default()
+                },
+            ),
+        ]),
+    ));
 }
 
 pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform)>) {

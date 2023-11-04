@@ -1,9 +1,10 @@
 use bevy::{
-    prelude::{Changed, Commands, Or, Query, Res, ResMut},
+    prelude::{Changed, Commands, Or, Query, Res, ResMut, Without},
     render::renderer::{RenderDevice, RenderQueue},
 };
 
 use super::{
+    culling::Visible,
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTextureArrayStorage,
     uniform::TilemapUniformsStorage,
@@ -14,7 +15,7 @@ pub fn prepare(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    extracted_tilemaps: Query<&ExtractedTilemap>,
+    extracted_tilemaps: Query<&ExtractedTilemap, Without<Visible>>,
     changed_extracted_tiles: Query<&ExtractedTile, Or<(Changed<ExtractedTile>,)>>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,

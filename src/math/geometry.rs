@@ -1,7 +1,7 @@
 use bevy::prelude::{UVec2, Vec2};
 
 use crate::{
-    render::extract::ExtractedTilemap,
+    render::extract::{ExtractCamera, ExtractedTilemap},
     tilemap::{TileType, TilemapBuilder},
 };
 
@@ -27,7 +27,7 @@ impl AabbBox2d {
             TileType::IsometricDiamond => {
                 let chunk_index = chunk_index.as_vec2();
                 let chunk_render_size = tilemap.render_chunk_size as f32 * tilemap.tile_render_size;
-                
+
                 AabbBox2d {
                     center: Vec2::new(tilemap.tile_render_size.x / 2., chunk_render_size.y / 2.)
                         + Vec2::new(
@@ -66,6 +66,14 @@ impl AabbBox2d {
                     height: tilemap_render_size.y,
                 }
             }
+        }
+    }
+
+    pub fn from_camera(camera: &ExtractCamera) -> Self {
+        AabbBox2d {
+            center: Vec2::ZERO,
+            width: camera.plane,
+            height: camera.plane,
         }
     }
 
