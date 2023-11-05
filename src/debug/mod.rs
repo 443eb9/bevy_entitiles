@@ -74,7 +74,7 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform
     for (tilemap, tilemap_transform) in tilemaps.iter() {
         let tilemap = ExtractedTilemap {
             id: tilemap.id,
-            tile_type: tilemap.tile_type.clone(),
+            tile_type: tilemap.tile_type,
             size: tilemap.size,
             tile_size: tilemap.tile_size,
             tile_render_size: tilemap.tile_render_size,

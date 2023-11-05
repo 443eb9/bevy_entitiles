@@ -1,10 +1,11 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{
-        Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query, ResMut,
-        Transform, UVec2, Vec2, Vec4, Without,
+        Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query,
+        ResMut, Transform, UVec2, Vec2, Vec4, Without,
     },
-    render::{render_resource::FilterMode, Extract},
+    render::{camera::Viewport, render_resource::FilterMode, Extract},
+    window::Window,
 };
 
 use crate::{
@@ -46,8 +47,10 @@ pub struct ExtractedTile {
 }
 
 #[derive(Component)]
-pub struct ExtractCamera {
-    pub plane: f32,
+pub struct ExtractedView {
+    pub width: f32,
+    pub height: f32,
+    pub scale: f32,
     pub transform: Vec2,
 }
 
@@ -69,7 +72,7 @@ pub fn extract_tilemaps(
             entity,
             ExtractedTilemap {
                 id: tilemap.id,
-                tile_type: tilemap.tile_type.clone(),
+                tile_type: tilemap.tile_type,
                 size: tilemap.size,
                 tile_size: tilemap.tile_size,
                 tile_render_size: tilemap.tile_render_size,
@@ -102,21 +105,28 @@ pub fn extract_tilemaps(
     commands.insert_or_spawn_batch(extracted_tilemaps);
 }
 
-pub fn extract_camera(
+pub fn extract_view(
     mut commands: Commands,
     cameras: Extract<
         Query<
-            (Entity, &OrthographicProjection, &Transform),
+            (Entity, &OrthographicProjection, &Camera, &Transform),
             Or<(Changed<Transform>, Changed<OrthographicProjection>)>,
         >,
     >,
+    windows: Extract<Query<&Window>>,
 ) {
+    let Ok(window) = windows.get_single() else {
+        return;
+    };
+
     let mut extracted_cameras = vec![];
-    for (entity, projection, transform) in cameras.iter() {
+    for (entity, projection, camera, transform) in cameras.iter() {
         extracted_cameras.push((
             entity,
-            ExtractCamera {
-                plane: projection.far * projection.scale,
+            ExtractedView {
+                width: window.width(),
+                height: window.height(),
+                scale: projection.scale,
                 transform: transform.translation.xy(),
             },
         ));

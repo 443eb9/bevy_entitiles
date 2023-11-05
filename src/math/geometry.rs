@@ -1,15 +1,17 @@
 use bevy::prelude::{UVec2, Vec2};
 
 use crate::{
-    render::extract::{ExtractCamera, ExtractedTilemap},
+    render::extract::{ExtractedTilemap, ExtractedView},
     tilemap::{TileType, TilemapBuilder},
 };
 
-#[derive(Clone, Default)]
+#[derive(Clone, Copy, Default)]
 pub struct AabbBox2d {
     pub center: Vec2,
     pub width: f32,
     pub height: f32,
+    pub min: Vec2,
+    pub max: Vec2,
 }
 
 impl AabbBox2d {
@@ -22,6 +24,8 @@ impl AabbBox2d {
                         + chunk_render_size / 2.,
                     width: chunk_render_size.x,
                     height: chunk_render_size.y,
+                    min: chunk_index.as_vec2() * tilemap.tile_render_size + chunk_render_size * 1.5,
+                    max: chunk_index.as_vec2() * tilemap.tile_render_size - chunk_render_size / 2.,
                 }
             }
             TileType::IsometricDiamond => {
@@ -36,6 +40,18 @@ impl AabbBox2d {
                         ),
                     width: chunk_render_size.x,
                     height: chunk_render_size.y,
+                    min: Vec2::new(
+                        (chunk_index.x - chunk_index.y - 0.5) / 2. * chunk_render_size.x
+                            - tilemap.tile_render_size.x / 2.,
+                        (chunk_index.x + chunk_index.y - 0.5) / 2. * chunk_render_size.y
+                            - chunk_render_size.y / 2.,
+                    ),
+                    max: Vec2::new(
+                        (chunk_index.x - chunk_index.y - 0.5) / 2. * chunk_render_size.x
+                            + tilemap.tile_render_size.x / 2.,
+                        (chunk_index.x + chunk_index.y - 0.5) / 2. * chunk_render_size.y
+                            + chunk_render_size.y / 2.,
+                    ),
                 }
             }
         }
@@ -49,6 +65,8 @@ impl AabbBox2d {
                     center: tilemap_render_size / 2.,
                     width: tilemap_render_size.x,
                     height: tilemap_render_size.y,
+                    min: (tilemap_render_size - tilemap_render_size) / 2.,
+                    max: (tilemap_render_size + tilemap_render_size) / 2.,
                 }
             }
             TileType::IsometricDiamond => {
@@ -64,27 +82,60 @@ impl AabbBox2d {
                         ),
                     width: tilemap_render_size.x,
                     height: tilemap_render_size.y,
+                    min: Vec2::new(
+                        builder.tile_render_size.x / 2.
+                            - (builder.size.x as f32 - builder.size.y as f32)
+                                * builder.tile_render_size.x
+                                / 4.,
+                        tilemap_render_size.y / 2.,
+                    ),
+                    max: Vec2::new(
+                        builder.tile_render_size.x / 2.
+                            + (builder.size.x as f32 - builder.size.y as f32)
+                                * builder.tile_render_size.x
+                                / 4.,
+                        tilemap_render_size.y / 2.,
+                    ),
                 }
             }
         }
     }
 
-    pub fn from_camera(camera: &ExtractCamera) -> Self {
+    pub fn from_camera(camera: &ExtractedView) -> Self {
         AabbBox2d {
-            center: Vec2::ZERO,
-            width: camera.plane,
-            height: camera.plane,
+            center: camera.transform,
+            width: camera.width * camera.scale,
+            height: camera.height * camera.scale,
+            min: Vec2::new(
+                camera.transform.x - camera.width / 2.,
+                camera.transform.y - camera.height / 2.,
+            ),
+            max: Vec2::new(
+                camera.transform.x + camera.width / 2.,
+                camera.transform.y + camera.height / 2.,
+            ),
         }
     }
 
-    pub fn is_intersected_with(&self, lhs_offset: Vec2, rhs: &AabbBox2d, rhs_offset: Vec2) -> bool {
-        let mut l = self.clone();
-        let mut r = rhs.clone();
+    pub fn width(&self) -> f32 {
+        self.max.x - self.min.x
+    }
 
-        l.center += lhs_offset;
-        r.center += rhs_offset;
+    pub fn height(&self) -> f32 {
+        self.max.y - self.min.y
+    }
 
-        (l.center.x - r.center.x).abs() * 2. < (l.width + r.width)
-            && (l.center.y - r.center.y).abs() * 2. < (l.height + r.height)
+    pub fn area(&self) -> f32 {
+        self.width() * self.height()
+    }
+
+    pub fn expand(&mut self, other: &AabbBox2d) {
+        self.min = self.min.min(other.min);
+        self.max = self.max.max(other.max);
+    }
+
+    pub fn is_intersected_with(&self, rhs: &AabbBox2d) -> bool {
+        (self.center.x - rhs.center.x).abs() * 2. < (self.width + rhs.width)
+            && (self.center.y - rhs.center.y).abs() * 2. < (self.height + rhs.height)
     }
 }

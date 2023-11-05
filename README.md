@@ -8,7 +8,7 @@ Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://gith
 
 ## Currently Working On
 
-- Frustum Culling ( Optimizing )
+- Frustum Culling ( Optimizing with Bvh tree )
 
 ## Future Goals
 

@@ -49,7 +49,7 @@ impl TilemapRenderChunk {
             visible: true,
             index,
             size: tilemap.render_chunk_size,
-            tile_type: tilemap.tile_type.clone(),
+            tile_type: tilemap.tile_type,
             texture: tilemap.texture.clone(),
             tiles: vec![None; (tilemap.render_chunk_size * tilemap.render_chunk_size) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),

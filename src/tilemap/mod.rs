@@ -1,6 +1,7 @@
 use bevy::{
     prelude::{
-        Assets, Bundle, Commands, Component, Entity, Handle, Image, ResMut, Transform, UVec2, Vec2, Vec4,
+        Assets, Bundle, Commands, Component, Entity, Handle, Image, ResMut, Transform, UVec2, Vec2,
+        Vec4,
     },
     render::{
         mesh::MeshVertexAttribute,
@@ -8,10 +9,7 @@ use bevy::{
     },
 };
 
-use crate::{
-    math::geometry::AabbBox2d,
-    render::texture::TilemapTextureDescriptor,
-};
+use crate::{math::geometry::AabbBox2d, render::texture::TilemapTextureDescriptor};
 
 pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
@@ -20,7 +18,7 @@ pub const TILEMAP_MESH_ATTR_TEXTURE_INDEX: MeshVertexAttribute =
 pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
     MeshVertexAttribute::new("Color", 85415341854, VertexFormat::Float32x4);
 
-#[derive(Default, PartialEq, Eq, Hash, Clone, Debug)]
+#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum TileType {
     /// The most basic shape. I don't think I need to explain it.
     #[default]
