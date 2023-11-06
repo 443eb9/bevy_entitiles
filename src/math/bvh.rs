@@ -2,19 +2,20 @@ use bevy::prelude::Res;
 
 use crate::render::{chunk::RenderChunkStorage, extract::ExtractedTilemap};
 
-use super::geometry::AabbBox2d;
+use super::aabb::AabbBox2d;
 
 pub struct TilemapBvhTree {
     root: BvhNode,
 }
 
+#[derive(Clone)]
 pub struct BvhNode {
     pub aabb: AabbBox2d,
     pub left: Option<Box<BvhNode>>,
     pub right: Option<Box<BvhNode>>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 struct Bucket {
     aabb_indices: Vec<usize>,
     aabb: AabbBox2d,
@@ -43,29 +44,17 @@ impl Bucket {
 }
 
 impl TilemapBvhTree {
-    pub fn new(
-        tilemap_aabb: &AabbBox2d,
-        root: &AabbBox2d,
-        aabbs: &Vec<AabbBox2d>,
-        bucket_size: f32,
-    ) -> Self {
-        let root_node = BvhNode {
-            aabb: root.clone(),
-            left: None,
-            right: None,
-        };
-
-        TilemapBvhTree::create_node_recursive(
-            aabbs,
-            &Bucket {
-                aabb_indices: (0..aabbs.len()).collect(),
-                aabb: *tilemap_aabb,
-            },
-            bucket_size,
-        );
-
+    pub fn new(tilemap_aabb: &AabbBox2d, aabbs: &Vec<AabbBox2d>, bucket_count: usize) -> Self {
         TilemapBvhTree {
-            root: root_node,
+            root: TilemapBvhTree::create_node_recursive(
+                aabbs,
+                &Bucket {
+                    aabb_indices: (0..aabbs.len()).collect(),
+                    aabb: *tilemap_aabb,
+                },
+                bucket_count,
+            )
+            .unwrap(),
         }
     }
 
@@ -81,12 +70,7 @@ impl TilemapBvhTree {
             }
         }
 
-        Some(Self::new(
-            &tilemap.aabb,
-            &tilemap.aabb,
-            &processed_chunks,
-            100.,
-        ))
+        Some(Self::new(&tilemap.aabb, &processed_chunks, 10))
     }
 
     pub fn is_intersected_with(&self, other: &AabbBox2d) -> bool {
@@ -97,23 +81,21 @@ impl TilemapBvhTree {
     fn create_node_recursive(
         aabb_lookup: &Vec<AabbBox2d>,
         root_bucket: &Bucket,
-        bucket_size: f32,
+        bucket_count: usize,
     ) -> Option<BvhNode> {
-        let (bucket_lhs, bucket_rhs) = TilemapBvhTree::divide(
-            &root_bucket.aabb,
-            &root_bucket.aabb_indices,
-            aabb_lookup,
-            (root_bucket.aabb.width() / bucket_size).ceil() as usize,
-        );
-
-        let left_node =
-            TilemapBvhTree::create_node_recursive(aabb_lookup, &bucket_lhs, bucket_size);
-        let right_node =
-            TilemapBvhTree::create_node_recursive(aabb_lookup, &bucket_rhs, bucket_size);
-
-        if left_node.is_none() && right_node.is_none() {
+        if root_bucket.is_empty() {
+            println!("Empty source");
             return None;
         }
+
+        let (bucket_lhs, bucket_rhs) = TilemapBvhTree::divide(&root_bucket, aabb_lookup, bucket_count);
+
+        println!("lhs: {:?},\nrhs: {:?} \n\n", bucket_lhs, bucket_rhs);
+
+        let left_node =
+            TilemapBvhTree::create_node_recursive(aabb_lookup, &bucket_lhs, bucket_count);
+        let right_node =
+            TilemapBvhTree::create_node_recursive(aabb_lookup, &bucket_rhs, bucket_count);
 
         Some(BvhNode {
             aabb: root_bucket.aabb.clone(),
@@ -134,15 +116,39 @@ impl TilemapBvhTree {
         })
     }
 
+    // TODO: Optimization
     fn divide(
-        parent_aabb: &AabbBox2d,
-        child_aabbs: &Vec<usize>,
+        bucket: &Bucket,
         aabb_lookup: &Vec<AabbBox2d>,
         bucket_count: usize,
     ) -> (Bucket, Bucket) {
+        println!("dividing: {:?}", bucket);
+
+        if bucket.aabb_indices.len() == 1 {
+            return (Bucket::default(), Bucket::default());
+        }
+
+        if bucket.aabb_indices.len() == 2 {
+            let bucket_a = Bucket {
+                aabb_indices: vec![bucket.aabb_indices[0]],
+                aabb: aabb_lookup[bucket.aabb_indices[0]],
+            };
+            let bucket_b = Bucket {
+                aabb_indices: vec![bucket.aabb_indices[1]],
+                aabb: aabb_lookup[bucket.aabb_indices[1]],
+            };
+            if bucket_a.aabb.center().x < bucket_b.aabb.center().x {
+                return (bucket_a, bucket_b);
+            } else {
+                return (bucket_a, bucket_b);
+            }
+        }
+
+        let parent_center = bucket.aabb.center();
+        let half_parent_width = bucket.aabb.width() / 2.;
         let (bound_left, bound_right) = (
-            parent_aabb.center.x - parent_aabb.width / 2.,
-            parent_aabb.center.x + parent_aabb.width / 2.,
+            parent_center.x - half_parent_width,
+            parent_center.x + half_parent_width,
         );
         let bucket_width = (bound_right - bound_left) / bucket_count as f32;
         let (mut best_bucket_lhs, mut best_bucket_rhs) = (Bucket::default(), Bucket::default());
@@ -152,14 +158,19 @@ impl TilemapBvhTree {
             let bucket_split = bound_left + bucket_width * (strategy_index + 1) as f32;
             let (mut lhs, mut rhs) = (Bucket::default(), Bucket::default());
 
-            for aabb_index in child_aabbs.iter() {
-                if aabb_lookup[*aabb_index].center.x < bucket_split {
-                    lhs.insert(*aabb_index);
+            for aabb_index in bucket.aabb_indices.iter() {
+                if aabb_lookup[*aabb_index].center().x < bucket_split {
                     lhs.expand(&aabb_lookup[*aabb_index]);
+                    lhs.insert(*aabb_index);
                 } else {
-                    rhs.insert(*aabb_index);
                     rhs.expand(&aabb_lookup[*aabb_index]);
+                    rhs.insert(*aabb_index);
                 }
+            }
+
+            if lhs.is_empty() || rhs.is_empty() {
+                println!("Invalid strategy: {:?}", strategy_index);
+                continue;
             }
 
             if lhs.cost() + rhs.cost() < best_cost {
@@ -170,5 +181,48 @@ impl TilemapBvhTree {
         }
 
         (best_bucket_lhs, best_bucket_rhs)
+    }
+}
+
+mod test {
+    use super::*;
+
+    #[test]
+    pub fn test_bvh() {
+        let tree = serialize(&TilemapBvhTree::new(
+            &AabbBox2d::new(-2., -2., 10., 6.),
+            &vec![
+                AabbBox2d::new(-1., 1., 1., 5.),
+                AabbBox2d::new(1.5, -1., 3., 1.),
+                AabbBox2d::new(2., 2., 4., 3.),
+                AabbBox2d::new(5., 1., 8., 1.5),
+                AabbBox2d::new(6., -1., 9., 1.25),
+            ],
+            10,
+        ));
+        println!("{}", tree);
+    }
+
+    fn serialize(tree: &TilemapBvhTree) -> String {
+        serialize_recursive(Some(Box::new(tree.root.clone()))).unwrap()
+    }
+
+    fn serialize_recursive(root: Option<Box<BvhNode>>) -> Option<String> {
+        let Some(root) = root else {
+            return None;
+        };
+
+        let mut result = format!("{:?}\n", root.aabb);
+        result += &format!(
+            "left: {}\n",
+            serialize_recursive(root.left).unwrap_or("Empty".to_string())
+        )
+        .to_string();
+        result += &format!(
+            "right: {}\n",
+            serialize_recursive(root.right).unwrap_or("Empty".to_string())
+        )
+        .to_string();
+        Some(result)
     }
 }

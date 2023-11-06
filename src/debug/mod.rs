@@ -11,7 +11,7 @@ use bevy::{
 };
 
 use crate::{
-    math::geometry::AabbBox2d,
+    math::aabb::AabbBox2d,
     render::{chunk::RenderChunkStorage, extract::ExtractedTilemap},
     tilemap::Tilemap,
 };
@@ -28,7 +28,11 @@ impl Plugin for EntiTilesDebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
-            (debug_info_display.run_if(on_fixed_timer(Duration::from_millis(100)))),
+            (
+                draw_tilemap_aabb,
+                draw_chunk_aabb,
+                debug_info_display.run_if(on_fixed_timer(Duration::from_millis(100))),
+            ),
         );
 
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
@@ -62,9 +66,9 @@ pub fn debug_startup(mut commands: Commands) {
 pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform)>) {
     for (tilemap, transform) in tilemaps.iter() {
         gizmos.rect_2d(
-            tilemap.aabb.center + transform.translation.xy(),
+            tilemap.aabb.center() + transform.translation.xy(),
             0.,
-            Vec2::new(tilemap.aabb.width, tilemap.aabb.height),
+            Vec2::new(tilemap.aabb.width(), tilemap.aabb.height()),
             Color::RED,
         )
     }
@@ -92,9 +96,9 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform
             for x in 0..count.x {
                 let aabb = AabbBox2d::from_chunk(UVec2::new(x, y), &tilemap);
                 gizmos.rect_2d(
-                    aabb.center + tilemap_transform.translation.xy(),
+                    aabb.center() + tilemap_transform.translation.xy(),
                     0.,
-                    Vec2::new(aabb.width, aabb.height),
+                    Vec2::new(aabb.width(), aabb.height()),
                     Color::GREEN,
                 );
             }

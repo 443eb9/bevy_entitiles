@@ -9,7 +9,7 @@ use bevy::{
 };
 
 use crate::{
-    math::geometry::AabbBox2d,
+    math::aabb::AabbBox2d,
     tilemap::{
         TileTexture, TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_GRID_INDEX,
         TILEMAP_MESH_ATTR_TEXTURE_INDEX,

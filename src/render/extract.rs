@@ -9,7 +9,7 @@ use bevy::{
 };
 
 use crate::{
-    math::geometry::AabbBox2d,
+    math::aabb::AabbBox2d,
     tilemap::{Tile, TileTexture, TileType, Tilemap, WaitForTextureUsageChange},
 };
 
@@ -33,7 +33,7 @@ pub struct ExtractedTilemap {
 
 impl ExtractedTilemap {
     pub fn get_center_in_world(&self) -> Vec2 {
-        self.transfrom.translation.xy() + self.aabb.center
+        self.aabb.center()
     }
 }
 

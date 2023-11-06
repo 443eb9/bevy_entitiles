@@ -9,7 +9,7 @@ use bevy::{
     },
 };
 
-use crate::{math::geometry::AabbBox2d, render::texture::TilemapTextureDescriptor};
+use crate::{math::aabb::AabbBox2d, render::texture::TilemapTextureDescriptor};
 
 pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);

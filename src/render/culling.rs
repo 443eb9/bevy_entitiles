@@ -4,7 +4,7 @@ use bevy::{
     render::camera,
 };
 
-use crate::math::geometry::AabbBox2d;
+use crate::math::aabb::AabbBox2d;
 
 use super::{
     chunk::RenderChunkStorage,
@@ -23,7 +23,6 @@ pub fn cull_tilemaps(
         let camera_aabb = AabbBox2d::from_camera(camera);
 
         for (mut tilemap, transform) in tilemaps.iter_mut() {
-            tilemap.aabb.center = transform.translation.xy();
             if tilemap.aabb.is_intersected_with(&camera_aabb) {
                 commands.entity(tilemap.id).insert(Visible);
                 println!("visible");
@@ -48,11 +47,7 @@ pub fn cull_chunks(
             if let Some(chunks) = render_chunk_storage.get_mut(tilemap.id) {
                 for chunk in chunks.iter_mut() {
                     if let Some(chunk) = chunk {
-                        let chunk_aabb = AabbBox2d {
-                            center: tilemap_position + chunk.aabb.center,
-                            ..chunk.aabb
-                        };
-                        if chunk_aabb.is_intersected_with(&camera_aabb) {
+                        if chunk.aabb.is_intersected_with(&camera_aabb) {
                             chunk.visible = true;
                         } else {
                             chunk.visible = false;
