@@ -90,7 +90,7 @@ impl TilemapBvhTree {
 
         let (bucket_lhs, bucket_rhs) = TilemapBvhTree::divide(&root_bucket, aabb_lookup, bucket_count);
 
-        println!("lhs: {:?},\nrhs: {:?} \n\n", bucket_lhs, bucket_rhs);
+        // println!("lhs: {:?},\nrhs: {:?} \n\n", bucket_lhs, bucket_rhs);
 
         let left_node =
             TilemapBvhTree::create_node_recursive(aabb_lookup, &bucket_lhs, bucket_count);
@@ -122,7 +122,7 @@ impl TilemapBvhTree {
         aabb_lookup: &Vec<AabbBox2d>,
         bucket_count: usize,
     ) -> (Bucket, Bucket) {
-        println!("dividing: {:?}", bucket);
+        // println!("dividing: {:?}", bucket);
 
         if bucket.aabb_indices.len() == 1 {
             return (Bucket::default(), Bucket::default());
@@ -169,7 +169,7 @@ impl TilemapBvhTree {
             }
 
             if lhs.is_empty() || rhs.is_empty() {
-                println!("Invalid strategy: {:?}", strategy_index);
+                // println!("Invalid strategy: {:?}", strategy_index);
                 continue;
             }
 
