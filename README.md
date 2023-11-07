@@ -6,6 +6,8 @@ A tilemap library for bevy.
 
 Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first, as it is more comprehensive and mature.
 
+**I will maintain this repo as long as this message exists**
+
 ## Currently Working On
 
 - Frustum Culling ( Optimizing with Bvh tree )

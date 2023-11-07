@@ -66,12 +66,7 @@ impl Plugin for EntiTilesRendererPlugin {
             )
             .add_systems(
                 Render,
-                (
-                    prepare::prepare,
-                    culling::cull_tilemaps,
-                    culling::cull_chunks,
-                )
-                    .in_set(RenderSet::Prepare),
+                (prepare::prepare, culling::cull).in_set(RenderSet::Prepare),
             )
             .add_systems(Render, queue::queue.in_set(RenderSet::Queue));
 

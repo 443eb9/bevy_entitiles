@@ -4,7 +4,7 @@ use bevy::{
         Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query,
         ResMut, Transform, UVec2, Vec2, Vec4, Without,
     },
-    render::{camera::Viewport, render_resource::FilterMode, Extract},
+    render::{render_resource::FilterMode, Extract},
     window::Window,
 };
 

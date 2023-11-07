@@ -29,8 +29,8 @@ impl Plugin for EntiTilesDebugPlugin {
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
             (
-                draw_tilemap_aabb,
-                draw_chunk_aabb,
+                /*draw_tilemap_aabb,
+                draw_chunk_aabb,*/
                 debug_info_display.run_if(on_fixed_timer(Duration::from_millis(100))),
             ),
         );
@@ -66,7 +66,7 @@ pub fn debug_startup(mut commands: Commands) {
 pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform)>) {
     for (tilemap, transform) in tilemaps.iter() {
         gizmos.rect_2d(
-            tilemap.aabb.center() + transform.translation.xy(),
+            tilemap.aabb.center(),
             0.,
             Vec2::new(tilemap.aabb.width(), tilemap.aabb.height()),
             Color::RED,
@@ -90,13 +90,16 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform
             flip: tilemap.flip,
             aabb: tilemap.aabb.clone(),
         };
-        let count = RenderChunkStorage::calculate_render_chunk_count(&tilemap);
+        let count = RenderChunkStorage::calculate_render_chunk_count(
+            tilemap.size,
+            tilemap.render_chunk_size,
+        );
 
         for y in 0..count.y {
             for x in 0..count.x {
                 let aabb = AabbBox2d::from_chunk(UVec2::new(x, y), &tilemap);
                 gizmos.rect_2d(
-                    aabb.center() + tilemap_transform.translation.xy(),
+                    aabb.center(),
                     0.,
                     Vec2::new(aabb.width(), aabb.height()),
                     Color::GREEN,

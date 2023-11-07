@@ -9,7 +9,10 @@ use bevy::{
     },
 };
 
-use crate::{math::aabb::AabbBox2d, render::texture::TilemapTextureDescriptor};
+use crate::{
+    math::aabb::AabbBox2d,
+    render::{chunk::RenderChunkStorage, texture::TilemapTextureDescriptor},
+};
 
 pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
@@ -126,6 +129,7 @@ pub struct TilemapBuilder {
     pub(crate) transform: Vec2,
     pub(crate) z_order: f32,
     pub(crate) flip: u32,
+    pub(crate) safety_check: bool,
 }
 
 impl TilemapBuilder {
@@ -142,11 +146,12 @@ impl TilemapBuilder {
             tile_size: UVec2::ZERO,
             tile_render_size,
             texture: None,
-            render_chunk_size: 16,
+            render_chunk_size: 32,
             filter_mode: FilterMode::Nearest,
             transform: Vec2::ZERO,
             z_order: 0.,
             flip: 0,
+            safety_check: true,
         }
     }
 
@@ -156,7 +161,7 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override render chunk size. Default is 16.
+    /// Override render chunk size. Default is 32.
     pub fn with_render_chunk_size(&mut self, size: u32) -> &mut Self {
         self.render_chunk_size = size;
         self
@@ -174,6 +179,7 @@ impl TilemapBuilder {
         self
     }
 
+    /// Assign a texture to the tilemap.
     pub fn with_texture(
         &mut self,
         texture: Handle<Image>,
@@ -201,8 +207,34 @@ impl TilemapBuilder {
         self
     }
 
+    /// Disable safety check.
+    ///
+    /// # Important
+    /// This is **NOT** recommended. You should only use this if you know what you are doing.
+    pub fn with_disabled_safety_check(&mut self) -> &mut Self {
+        self.safety_check = false;
+        self
+    }
+
     /// Build the tilemap and spawn it into the world.
     pub fn build(&self, commands: &mut Commands) {
+        if self.safety_check {
+            let chunk_count =
+                RenderChunkStorage::calculate_render_chunk_count(self.size, self.render_chunk_size);
+            if chunk_count.x * chunk_count.y > 100 {
+                panic!(
+                    "\n============================================\
+                    \nYou have too many chunks which may cause stack overflow. \
+                    Max chunk count: 100, your chunk count: {}x{}={} \
+                    \nCall `with_disabled_safety_check` if you really need to do this.\
+                    \n============================================\n",
+                    chunk_count.x,
+                    chunk_count.y,
+                    chunk_count.x * chunk_count.y
+                );
+            }
+        }
+
         let mut entity = commands.spawn_empty();
         let tilemap = Tilemap {
             tiles: vec![None; self.size.x as usize * self.size.y as usize],
