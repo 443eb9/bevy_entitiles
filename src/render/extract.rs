@@ -1,8 +1,8 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{
-        Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query,
-        ResMut, Transform, UVec2, Vec2, Vec4, Without,
+        Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query, Res,
+        ResMut, Resource, Transform, UVec2, Vec2, Vec4, Without,
     },
     render::{render_resource::FilterMode, Extract},
     window::Window,
@@ -56,10 +56,7 @@ pub struct ExtractedView {
 
 pub fn extract_tilemaps(
     mut commands: Commands,
-    tilemaps_query: Extract<
-        Query<(Entity, &Tilemap, &Transform), Without<WaitForTextureUsageChange>>,
-    >,
-    changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
+    tilemaps_query: Extract<Query<(Entity, &Tilemap, &Transform)>>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
     let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = Vec::new();
@@ -87,6 +84,13 @@ pub fn extract_tilemaps(
         ));
     }
 
+    commands.insert_or_spawn_batch(extracted_tilemaps);
+}
+
+pub fn extract_tiles(
+    mut commands: Commands,
+    changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
+) {
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
     for (entity, tile) in changed_tiles_query.iter() {
         extracted_tiles.push((
@@ -100,9 +104,7 @@ pub fn extract_tilemaps(
             },
         ));
     }
-
     commands.insert_or_spawn_batch(extracted_tiles);
-    commands.insert_or_spawn_batch(extracted_tilemaps);
 }
 
 pub fn extract_view(
@@ -120,12 +122,12 @@ pub fn extract_view(
     };
 
     let mut extracted_cameras = vec![];
-    for (entity, projection, camera, transform) in cameras.iter() {
+    for (entity, projection, _, transform) in cameras.iter() {
         extracted_cameras.push((
             entity,
             ExtractedView {
-                width: window.width(),
-                height: window.height(),
+                width: window.width() / 2.,
+                height: window.height() / 2.,
                 scale: projection.scale,
                 transform: transform.translation.xy(),
             },

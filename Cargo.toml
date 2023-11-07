@@ -3,7 +3,6 @@ name = "bevy_entitiles"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/443eb9/bevy_entitiles"
 exclude = [
     "test/*"
@@ -17,7 +16,29 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.11.3", features = ["dynamic_linking"] }
+bevy = { version = "0.11.3", default-features = false, features = ["dynamic_linking", "trace"] }
+
+[dev-dependencies]
+tracing-tracy = "0.10.4"
+
+[dev-dependencies.bevy]
+version = "0.11.3"
+default-features = false
+features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_asset",
+    "bevy_gizmos",
+    "bevy_ui",
+    "png",
+    "bevy_winit",
+    "bevy_text",
+    "bevy_sprite",
+    "default_font",
+    "dynamic_linking",
+    "trace_tracy",
+    "multi-threaded"
+]
 
 [features]
 default = []

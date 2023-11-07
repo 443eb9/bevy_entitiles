@@ -125,4 +125,20 @@ impl AabbBox2d {
             && self.min.y < other.max.y
             && self.max.y > other.min.y
     }
+
+    pub fn with_additional_translation(&self, translation: Vec2) -> Self {
+        AabbBox2d {
+            min: self.min + translation,
+            max: self.max + translation,
+        }
+    }
+
+    pub fn with_uniform_scale(&self, scale: f32) -> Self {
+        let width = self.width() * scale;
+        let height = self.height() * scale;
+        AabbBox2d {
+            min: self.center() - Vec2::new(width, height) / 2.,
+            max: self.center() + Vec2::new(width, height) / 2.,
+        }
+    }
 }

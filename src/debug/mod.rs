@@ -1,10 +1,9 @@
 use std::time::Duration;
 
 use bevy::{
-    math::Vec3Swizzles,
     prelude::{
-        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query, Startup, TextBundle,
-        Transform, UVec2, Update, Vec2,
+        default, Color, Commands, Gizmos, Input, IntoSystemConfigs, KeyCode, Plugin, Query, Res,
+        Startup, TextBundle, Transform, UVec2, Update, Vec2,
     },
     text::{TextSection, TextStyle},
     time::common_conditions::on_fixed_timer,
@@ -26,11 +25,15 @@ pub struct EntiTilesDebugPlugin;
 
 impl Plugin for EntiTilesDebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
+        println!("==============================");
+        println!("Debug Enabled");
+        println!("==============================");
+
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
             (
-                /*draw_tilemap_aabb,
-                draw_chunk_aabb,*/
+                // draw_tilemap_aabb,
+                // draw_chunk_aabb,
                 debug_info_display.run_if(on_fixed_timer(Duration::from_millis(100))),
             ),
         );
