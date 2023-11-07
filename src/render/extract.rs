@@ -1,8 +1,8 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{
-        Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query, Res,
-        ResMut, Resource, Transform, UVec2, Vec2, Vec4, Without,
+        Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query,
+        ResMut, Transform, UVec2, Vec2, Vec4,
     },
     render::{render_resource::FilterMode, Extract},
     window::Window,
@@ -10,7 +10,7 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::{Tile, TileTexture, TileType, Tilemap, WaitForTextureUsageChange},
+    tilemap::{Tile, TileTexture, TileType, Tilemap},
 };
 
 use super::texture::TilemapTextureArrayStorage;
@@ -25,16 +25,10 @@ pub struct ExtractedTilemap {
     pub render_chunk_size: u32,
     pub texture: Option<TileTexture>,
     pub filter_mode: FilterMode,
-    pub transfrom: Transform,
+    pub transfrom: Vec2,
     pub transform_matrix: Mat4,
     pub flip: u32,
     pub aabb: AabbBox2d,
-}
-
-impl ExtractedTilemap {
-    pub fn get_center_in_world(&self) -> Vec2 {
-        self.aabb.center()
-    }
 }
 
 #[derive(Component, Debug)]
@@ -76,7 +70,7 @@ pub fn extract_tilemaps(
                 render_chunk_size: tilemap.render_chunk_size,
                 filter_mode: tilemap.filter_mode,
                 texture: tilemap.texture.clone(),
-                transfrom: *tilemap_transform,
+                transfrom: tilemap_transform.translation.xy(),
                 transform_matrix: tilemap_transform.compute_matrix(),
                 flip: tilemap.flip,
                 aabb: tilemap.aabb.clone(),

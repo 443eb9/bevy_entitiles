@@ -31,6 +31,8 @@ pub trait Vec2ToUVec2 {
     fn round_to_uvec(self) -> UVec2;
     fn ceil_to_uvec(self) -> UVec2;
     fn floor_to_uvec(self) -> UVec2;
+    fn ceil_x_floor_y_to_uvec(self) -> UVec2;
+    fn floor_x_ceil_y_to_uvec(self) -> UVec2;
 }
 
 impl Vec2ToUVec2 for Vec2 {
@@ -55,6 +57,22 @@ impl Vec2ToUVec2 for Vec2 {
         UVec2 {
             x: self.x as u32,
             y: self.y as u32,
+        }
+    }
+
+    #[inline]
+    fn ceil_x_floor_y_to_uvec(self) -> UVec2 {
+        UVec2 {
+            x: self.x.ceil_to_u32(),
+            y: self.y.floor_to_u32(),
+        }
+    }
+
+    #[inline]
+    fn floor_x_ceil_y_to_uvec(self) -> UVec2 {
+        UVec2 {
+            x: self.x.floor_to_u32(),
+            y: self.y.ceil_to_u32(),
         }
     }
 }

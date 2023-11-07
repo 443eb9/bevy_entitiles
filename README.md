@@ -1,8 +1,8 @@
-# Bevy EntiTiles
+# ✨Bevy EntiTiles 🎈
 
 A tilemap library for bevy.
 
-**Notice** that the crate is still in need of optimization. So don't use this in your formal projects.
+**Notice** that the crate is still in need of optimization and development. So don't use this in your formal projects.
 
 Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first, as it is more comprehensive and mature.
 
@@ -10,7 +10,7 @@ Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://gith
 
 ## Currently Working On
 
-- Frustum Culling ( Optimizing with Bvh tree )
+- Pathfinding
 
 ## Future Goals
 
@@ -23,10 +23,11 @@ Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://gith
 - Volumetric Clouds / Fog
 - Wang Tilling
 - Tilemap Mask
+- Frustum Culling ( Isometric Specific Optimization )
 
 ## Show Case
 
-Platform: 10600KF RTX3070 With 1000*1000 tiles
+Platform: 10600KF With 1000*1000 tiles
 
 With Frustum Culling ( Before -> After )
 
@@ -36,9 +37,10 @@ With Frustum Culling ( Before -> After )
 </div>
 
 
+## Versions
 
-
-| Bevy ver | EntiTiles ver |
-| -------- | ------------- |
-| 0.11     | 0.1.0         |
+| Bevy ver | EntiTiles ver       |
+| -------- | ------------------- |
+| 0.12.x   | Not on schedule yet |
+| 0.11.x   | 0.1.0               |
 

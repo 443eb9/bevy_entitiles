@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use bevy::{
+    math::Vec3Swizzles,
     prelude::{
-        default, Color, Commands, Gizmos, Input, IntoSystemConfigs, KeyCode, Plugin, Query, Res,
+        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query,
         Startup, TextBundle, Transform, UVec2, Update, Vec2,
     },
     text::{TextSection, TextStyle},
@@ -32,8 +33,8 @@ impl Plugin for EntiTilesDebugPlugin {
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
             (
-                // draw_tilemap_aabb,
-                // draw_chunk_aabb,
+                /*draw_tilemap_aabb,
+                draw_chunk_aabb,*/
                 debug_info_display.run_if(on_fixed_timer(Duration::from_millis(100))),
             ),
         );
@@ -88,7 +89,7 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform
             render_chunk_size: tilemap.render_chunk_size,
             filter_mode: tilemap.filter_mode,
             texture: tilemap.texture.clone(),
-            transfrom: *tilemap_transform,
+            transfrom: tilemap_transform.translation.xy(),
             transform_matrix: tilemap_transform.compute_matrix(),
             flip: tilemap.flip,
             aabb: tilemap.aabb.clone(),

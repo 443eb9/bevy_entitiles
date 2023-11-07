@@ -1,10 +1,11 @@
-use bevy::{
-    math::Vec3Swizzles,
-    prelude::{Component, Query, ResMut},
-};
+use bevy::prelude::{Component, Query, ResMut};
 
 use crate::{
-    math::{aabb::AabbBox2d, extension::Vec2ToUVec2},
+    math::{
+        aabb::AabbBox2d,
+        extension::Vec2ToUVec2,
+        tilemap::world_pos_to_chunk_square,
+    },
     tilemap::TileType,
 };
 
@@ -33,7 +34,7 @@ pub fn cull(
                 }
             }
 
-            let camera_aabb = AabbBox2d::from_camera(camera);
+            let camera_aabb = AabbBox2d::from_camera(camera).with_uniform_scale(0.2);
 
             match tilemap.tile_type {
                 TileType::Square => cull_square(&camera_aabb, tilemap, &mut render_chunk_storage),
@@ -53,22 +54,22 @@ fn cull_square(
     let Some(storage_size) = render_chunk_storage.get_storage_size(tilemap.id) else {
         return;
     };
-    let Some(chunks) = render_chunk_storage.get_chunks_mut(tilemap.id) else {
-        return;
-    };
+    let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
 
-    let camera_rel_aabb = camera_aabb
-        .with_additional_translation(-tilemap.transfrom.translation.xy());
-
-    let chunk_render_size = tilemap.render_chunk_size as f32 * tilemap.tile_render_size;
-    let min_chunk_index = camera_rel_aabb
-        .min
-        .div_euclid(chunk_render_size)
-        .floor_to_uvec();
-    let max_chunk_index = camera_rel_aabb
-        .max
-        .div_euclid(chunk_render_size)
-        .ceil_to_uvec();
+    let min_chunk_index = world_pos_to_chunk_square(
+        tilemap.transfrom,
+        tilemap.render_chunk_size,
+        tilemap.tile_render_size,
+        camera_aabb.min,
+    )
+    .floor_to_uvec();
+    let max_chunk_index = world_pos_to_chunk_square(
+        tilemap.transfrom,
+        tilemap.render_chunk_size,
+        tilemap.tile_render_size,
+        camera_aabb.max,
+    )
+    .ceil_to_uvec();
 
     for index_y in min_chunk_index.y..max_chunk_index.y {
         for index_x in min_chunk_index.x..max_chunk_index.x {
@@ -85,4 +86,13 @@ fn cull_isometric_diamond(
     tilemap: &ExtractedTilemap,
     render_chunk_storage: &mut ResMut<RenderChunkStorage>,
 ) {
+    let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
+
+    for chunk in chunks.iter_mut() {
+        if let Some(c) = chunk {
+            if c.aabb.is_intersected_with(camera_aabb) {
+                c.visible = true;
+            }
+        }
+    }
 }
