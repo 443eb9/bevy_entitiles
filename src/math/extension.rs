@@ -77,6 +77,17 @@ impl Vec2ToUVec2 for Vec2 {
     }
 }
 
+pub trait ManhattanDistance<T> {
+    fn manhattan_distance(self, other: Self) -> T;
+}
+
+impl ManhattanDistance<u32> for UVec2 {
+    fn manhattan_distance(self, other: Self) -> u32 {
+        let d = (self.as_ivec2() - other.as_ivec2()).abs().as_uvec2();
+        d.x + d.y
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

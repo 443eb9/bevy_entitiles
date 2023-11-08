@@ -7,7 +7,7 @@ repository = "https://github.com/443eb9/bevy_entitiles"
 exclude = [
     "test/*"
 ]
-description = "A tilemap library for bevy."
+description = "A tilemap library for bevy. With many algorithms built in."
 
 [profile.dev]
 opt-level = 1
@@ -16,7 +16,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.11.3", default-features = false, features = ["dynamic_linking", "trace"] }
+bevy = { version = "0.11.3", default-features = false }
 
 [dev-dependencies]
 tracing-tracy = "0.10.4"
@@ -41,10 +41,25 @@ features = [
 ]
 
 [features]
-default = []
-debug = []
+default = [
+    "bevy/bevy_core_pipeline",
+    "bevy/bevy_render",
+    "bevy/bevy_asset",
+    "bevy/png",
+    "bevy/bevy_winit",
+    "bevy/bevy_sprite",
+    "bevy/dynamic_linking",
+    "bevy/multi-threaded"
+]
+debug = [
+    "bevy/bevy_gizmos",
+    "bevy/bevy_text",
+    "bevy/bevy_ui",
+    "bevy/default_font"
+]
+pathfinding = []
 
 [[example]]
 name = "test"
 path = "examples/test.rs"
-required-features=["debug"]
+required-features = ["debug"]

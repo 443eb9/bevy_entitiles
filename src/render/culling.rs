@@ -34,7 +34,7 @@ pub fn cull(
                 }
             }
 
-            let camera_aabb = AabbBox2d::from_camera(camera).with_uniform_scale(0.2);
+            let camera_aabb = AabbBox2d::from_camera(camera);
 
             match tilemap.tile_type {
                 TileType::Square => cull_square(&camera_aabb, tilemap, &mut render_chunk_storage),

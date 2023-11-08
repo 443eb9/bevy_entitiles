@@ -1,6 +1,6 @@
 # ✨Bevy EntiTiles 🎈
 
-A tilemap library for bevy.
+A tilemap library for bevy. With many algorithms built in.
 
 **Notice** that the crate is still in need of optimization and development. So don't use this in your formal projects.
 

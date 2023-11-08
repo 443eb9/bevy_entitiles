@@ -1,8 +1,7 @@
 use bevy::prelude::{Plugin, Update};
-#[cfg(feature = "debug")]
-use debug::EntiTilesDebugPlugin;
 use render::{texture::set_texture_usage, EntiTilesRendererPlugin};
 
+pub mod algorithm;
 pub mod debug;
 pub mod math;
 pub mod render;
@@ -17,6 +16,8 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(EntiTilesRendererPlugin);
 
         #[cfg(feature = "debug")]
-        app.add_plugins(EntiTilesDebugPlugin);
+        app.add_plugins(debug::EntiTilesDebugPlugin);
+        #[cfg(feature = "pathfinding")]
+        app.add_plugins(algorithm::pathfinding::EntitilesPathfindingPlugin);
     }
 }
