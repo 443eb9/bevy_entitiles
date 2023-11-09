@@ -23,7 +23,11 @@ bevy = { version = "0.11.3", default-features = false, features = [
     "png",
     "bevy_winit",
     "bevy_sprite",
-    "multi-threaded"
+    "multi-threaded",
+    "bevy_gizmos",
+    "bevy_text",
+    "bevy_ui",
+    "default_font"
 ]}
 
 [dev-dependencies]
@@ -45,12 +49,7 @@ bevy = { version = "0.11.3", default-features = false, features = [
 
 [features]
 default = []
-debug = [
-    "bevy/bevy_gizmos",
-    "bevy/bevy_text",
-    "bevy/bevy_ui",
-    "bevy/default_font"
-]
+debug = []
 pathfinding = []
 
 [[example]]
