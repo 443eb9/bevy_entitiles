@@ -6,16 +6,14 @@ A tilemap library for bevy. With many algorithms built in.
 
 Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first, as it is more comprehensive and mature.
 
-**I will maintain this repo as long as this message exists**
-
 ## Currently Working On
 
-- Pathfinding
+- Wave Function Collapse
 
 ## Future Goals
 
 - Wave Function Collapse
-- Pathfinding
+- ~~Pathfinding~~
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
 - Tilemap Serializing
@@ -42,5 +40,5 @@ With Frustum Culling ( Before -> After )
 | Bevy ver | EntiTiles ver       |
 | -------- | ------------------- |
 | 0.12.x   | Not on schedule yet |
-| 0.11.x   | 0.1.0               |
+| 0.11.x   | 0.1.x               |
 
