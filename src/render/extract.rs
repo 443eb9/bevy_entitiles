@@ -1,8 +1,8 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{
-        Camera, Changed, Commands, Component, Entity, Mat4, Or, OrthographicProjection, Query,
-        ResMut, Transform, UVec2, Vec2, Vec4, Without,
+        Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query,
+        ResMut, Transform, UVec2, Vec2, Vec4,
     },
     render::{render_resource::FilterMode, Extract},
     window::Window,
@@ -10,7 +10,7 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::{Tile, TileTexture, TileType, Tilemap, WaitForTextureUsageChange},
+    tilemap::{Tile, TileTexture, TileType, Tilemap},
 };
 
 use super::texture::TilemapTextureArrayStorage;
@@ -25,16 +25,9 @@ pub struct ExtractedTilemap {
     pub render_chunk_size: u32,
     pub texture: Option<TileTexture>,
     pub filter_mode: FilterMode,
-    pub transfrom: Transform,
-    pub transform_matrix: Mat4,
+    pub translation: Vec2,
     pub flip: u32,
     pub aabb: AabbBox2d,
-}
-
-impl ExtractedTilemap {
-    pub fn get_center_in_world(&self) -> Vec2 {
-        self.aabb.center()
-    }
 }
 
 #[derive(Component, Debug)]
@@ -56,14 +49,11 @@ pub struct ExtractedView {
 
 pub fn extract_tilemaps(
     mut commands: Commands,
-    tilemaps_query: Extract<
-        Query<(Entity, &Tilemap, &Transform), Without<WaitForTextureUsageChange>>,
-    >,
-    changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
+    tilemaps_query: Extract<Query<(Entity, &Tilemap)>>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
 ) {
     let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = Vec::new();
-    for (entity, tilemap, tilemap_transform) in tilemaps_query.iter() {
+    for (entity, tilemap) in tilemaps_query.iter() {
         if let Some(texture) = &tilemap.texture {
             tilemap_texture_array_storage.insert_texture(texture.clone());
         }
@@ -79,14 +69,20 @@ pub fn extract_tilemaps(
                 render_chunk_size: tilemap.render_chunk_size,
                 filter_mode: tilemap.filter_mode,
                 texture: tilemap.texture.clone(),
-                transfrom: *tilemap_transform,
-                transform_matrix: tilemap_transform.compute_matrix(),
+                translation: tilemap.translation,
                 flip: tilemap.flip,
                 aabb: tilemap.aabb.clone(),
             },
         ));
     }
 
+    commands.insert_or_spawn_batch(extracted_tilemaps);
+}
+
+pub fn extract_tiles(
+    mut commands: Commands,
+    changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
+) {
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
     for (entity, tile) in changed_tiles_query.iter() {
         extracted_tiles.push((
@@ -100,9 +96,7 @@ pub fn extract_tilemaps(
             },
         ));
     }
-
     commands.insert_or_spawn_batch(extracted_tiles);
-    commands.insert_or_spawn_batch(extracted_tilemaps);
 }
 
 pub fn extract_view(
@@ -120,12 +114,12 @@ pub fn extract_view(
     };
 
     let mut extracted_cameras = vec![];
-    for (entity, projection, camera, transform) in cameras.iter() {
+    for (entity, projection, _, transform) in cameras.iter() {
         extracted_cameras.push((
             entity,
             ExtractedView {
-                width: window.width(),
-                height: window.height(),
+                width: window.width() / 2.,
+                height: window.height() / 2.,
                 scale: projection.scale,
                 transform: transform.translation.xy(),
             },

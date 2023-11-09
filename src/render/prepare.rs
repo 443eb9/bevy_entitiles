@@ -35,3 +35,4 @@ pub fn prepare(
 
     tilemap_texture_array_storage.prepare_textures(&render_device);
 }
+

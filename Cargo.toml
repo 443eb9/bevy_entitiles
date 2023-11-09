@@ -1,14 +1,13 @@
 [package]
 name = "bevy_entitiles"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/443eb9/bevy_entitiles"
 exclude = [
     "test/*"
 ]
-description = "A tilemap library for bevy."
+description = "A tilemap library for bevy. With many algorithms built in."
 
 [profile.dev]
 opt-level = 1
@@ -17,13 +16,53 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.11.3", features = ["dynamic_linking"] }
+bevy = { version = "0.11.3", default-features = false, features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_asset",
+    "png",
+    "bevy_winit",
+    "bevy_sprite",
+    "multi-threaded",
+    "bevy_gizmos",
+    "bevy_text",
+    "bevy_ui",
+    "default_font"
+]}
+
+[dev-dependencies]
+rand = "0.8.5"
+bevy = { version = "0.11.3", default-features = false, features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_asset",
+    "bevy_gizmos",
+    "bevy_ui",
+    "png",
+    "bevy_winit",
+    "bevy_text",
+    "bevy_sprite",
+    "default_font",
+    "trace_tracy",
+    "multi-threaded"
+]}
 
 [features]
 default = []
 debug = []
+pathfinding = []
 
 [[example]]
 name = "test"
 path = "examples/test.rs"
-required-features=["debug"]
+required-features = ["debug"]
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+required-features = ["debug"]
+
+[[example]]
+name = "pathfinding"
+path = "examples/pathfinding.rs"
+required-features = ["debug", "pathfinding"]

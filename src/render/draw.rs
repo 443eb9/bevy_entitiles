@@ -164,7 +164,7 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
         render_chunks: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(chunks) = render_chunks.into_inner().get(tilemap.id) {
+        if let Some(chunks) = render_chunks.into_inner().get_chunks(tilemap.id) {
             for chunk in chunks.iter() {
                 let Some(c) = chunk else {
                     continue;

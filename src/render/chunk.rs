@@ -165,15 +165,17 @@ impl TilemapRenderChunk {
 
 #[derive(Resource, Default)]
 pub struct RenderChunkStorage {
-    pub(crate) value: HashMap<Entity, Vec<Option<TilemapRenderChunk>>>,
+    pub(crate) value: HashMap<Entity, (UVec2, Vec<Option<TilemapRenderChunk>>)>,
 }
 
 impl RenderChunkStorage {
     /// Insert new render chunks into the storage for a tilemap.
     pub fn insert_tilemap(&mut self, tilemap: &ExtractedTilemap) {
         let amount = Self::calculate_render_chunk_count(tilemap.size, tilemap.render_chunk_size);
-        self.value
-            .insert(tilemap.id, vec![None; (amount.x * amount.y) as usize]);
+        self.value.insert(
+            tilemap.id,
+            (amount, vec![None; (amount.x * amount.y) as usize]),
+        );
     }
 
     /// Update the mesh for all chunks of a tilemap.
@@ -183,7 +185,7 @@ impl RenderChunkStorage {
         render_device: &Res<RenderDevice>,
     ) {
         if let Some(chunks) = self.value.get_mut(&tilemap.id) {
-            for chunk in chunks.iter_mut() {
+            for chunk in chunks.1.iter_mut() {
                 if let Some(c) = chunk {
                     c.update_mesh(render_device);
                 }
@@ -208,13 +210,13 @@ impl RenderChunkStorage {
             };
 
             let chunk = {
-                if chunks[tile.render_chunk_index].is_none() {
-                    chunks[tile.render_chunk_index] = Some(TilemapRenderChunk::from_grid_index(
+                if chunks.1[tile.render_chunk_index].is_none() {
+                    chunks.1[tile.render_chunk_index] = Some(TilemapRenderChunk::from_grid_index(
                         tile.grid_index,
                         tilemap,
                     ));
                 }
-                chunks.get_mut(tile.render_chunk_index).unwrap()
+                chunks.1.get_mut(tile.render_chunk_index).unwrap()
             };
 
             let c = {
@@ -232,12 +234,31 @@ impl RenderChunkStorage {
         }
     }
 
-    pub fn get(&self, tilemap: Entity) -> Option<&Vec<Option<TilemapRenderChunk>>> {
-        self.value.get(&tilemap)
+    pub fn get_chunks(&self, tilemap: Entity) -> Option<&Vec<Option<TilemapRenderChunk>>> {
+        if let Some(chunks) = self.value.get(&tilemap) {
+            Some(&chunks.1)
+        } else {
+            None
+        }
     }
 
-    pub fn get_mut(&mut self, tilemap: Entity) -> Option<&mut Vec<Option<TilemapRenderChunk>>> {
-        self.value.get_mut(&tilemap)
+    pub fn get_chunks_mut(
+        &mut self,
+        tilemap: Entity,
+    ) -> Option<&mut Vec<Option<TilemapRenderChunk>>> {
+        if let Some(chunks) = self.value.get_mut(&tilemap) {
+            Some(chunks.1.as_mut())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_storage_size(&self, tilemap: Entity) -> Option<UVec2> {
+        if let Some(chunks) = self.value.get(&tilemap) {
+            Some(chunks.0)
+        } else {
+            None
+        }
     }
 
     pub fn calculate_render_chunk_count(map_size: UVec2, render_chunk_size: u32) -> UVec2 {

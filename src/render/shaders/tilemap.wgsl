@@ -21,18 +21,12 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         vec2<f32>(1., 0.),
     );
 
-    var position_model = vec4<f32>(
-        mesh_center + translations[input.v_index % 4u] * tilemap.tile_render_size,
-        0., 1.
-    );
-    var position_world = tilemap.transform * position_model;
-    position_world.z = tilemap.transform[3].z;
+    var position_model = vec2<f32>(mesh_center + translations[input.v_index % 4u] * tilemap.tile_render_size);
+    var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
 
     output.position = view.view_proj * position_world;
     output.texture_index = input.texture_index;
     output.color = input.color;
-
-    output.color = vec4<f32>(tilemap.transform[3].z);
 
     var uv = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
