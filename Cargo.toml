@@ -16,15 +16,19 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.11.3", default-features = false }
+bevy = { version = "0.11.3", default-features = false, features = [
+    "bevy_core_pipeline",
+    "bevy_render",
+    "bevy_asset",
+    "png",
+    "bevy_winit",
+    "bevy_sprite",
+    "multi-threaded"
+]}
 
 [dev-dependencies]
-tracing-tracy = "0.10.4"
-
-[dev-dependencies.bevy]
-version = "0.11.3"
-default-features = false
-features = [
+rand = "0.8.5"
+bevy = { version = "0.11.3", default-features = false, features = [
     "bevy_core_pipeline",
     "bevy_render",
     "bevy_asset",
@@ -35,22 +39,12 @@ features = [
     "bevy_text",
     "bevy_sprite",
     "default_font",
-    "dynamic_linking",
     "trace_tracy",
     "multi-threaded"
-]
+]}
 
 [features]
-default = [
-    "bevy/bevy_core_pipeline",
-    "bevy/bevy_render",
-    "bevy/bevy_asset",
-    "bevy/png",
-    "bevy/bevy_winit",
-    "bevy/bevy_sprite",
-    "bevy/dynamic_linking",
-    "bevy/multi-threaded"
-]
+default = []
 debug = [
     "bevy/bevy_gizmos",
     "bevy/bevy_text",
@@ -63,3 +57,13 @@ pathfinding = []
 name = "test"
 path = "examples/test.rs"
 required-features = ["debug"]
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"
+required-features = ["debug"]
+
+[[example]]
+name = "pathfinding"
+path = "examples/pathfinding.rs"
+required-features = ["debug", "pathfinding"]

@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, Mat4, Resource, Vec2},
+    prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{BindingResource, DynamicUniformBuffer, ShaderType},
         renderer::{RenderDevice, RenderQueue},
@@ -19,7 +19,7 @@ where
 
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
-    pub transform: Mat4,
+    pub transform: Vec2,
     pub tile_size: Vec2,
 }
 
@@ -36,7 +36,7 @@ impl TilemapUniformsStorage {
         tilemap: &ExtractedTilemap,
     ) -> DynamicUniformComponent<TilemapUniform> {
         let component = TilemapUniform {
-            transform: tilemap.transform_matrix,
+            transform: tilemap.translation,
             tile_size: tilemap.tile_render_size,
         };
 

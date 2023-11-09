@@ -1,6 +1,6 @@
 use bevy::{
     prelude::{
-        Assets, Bundle, Commands, Component, Entity, Handle, Image, ResMut, Transform, UVec2, Vec2,
+        Assets, Commands, Component, Entity, Handle, Image, ResMut, UVec2, Vec2,
         Vec4,
     },
     render::{
@@ -10,6 +10,7 @@ use bevy::{
 };
 
 use crate::{
+    algorithm::pathfinding::PathTile,
     math::aabb::AabbBox2d,
     render::{chunk::RenderChunkStorage, texture::TilemapTextureDescriptor},
 };
@@ -36,6 +37,29 @@ pub enum TileType {
 pub enum TileFlip {
     Horizontal = 1u32 << 0,
     Vertical = 1u32 << 1,
+}
+
+#[derive(Clone)]
+pub struct TilemapTilesLookup {
+    pub(crate) size: UVec2,
+    pub(crate) tiles: Vec<Option<Entity>>,
+}
+
+impl TilemapTilesLookup {
+    pub fn new(size: UVec2) -> Self {
+        Self {
+            size,
+            tiles: vec![None; (size.x * size.y) as usize],
+        }
+    }
+
+    pub fn set(&mut self, grid_index: UVec2, tile: Option<Entity>) {
+        self.tiles[(grid_index.y * self.size.x + grid_index.x) as usize] = tile;
+    }
+
+    pub fn get(&self, grid_index: UVec2) -> Option<Entity> {
+        self.tiles[(grid_index.y * self.size.x + grid_index.x) as usize]
+    }
 }
 
 #[derive(Clone)]
@@ -126,7 +150,7 @@ pub struct TilemapBuilder {
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TileTexture>,
     pub(crate) filter_mode: FilterMode,
-    pub(crate) transform: Vec2,
+    pub(crate) translation: Vec2,
     pub(crate) z_order: f32,
     pub(crate) flip: u32,
     pub(crate) safety_check: bool,
@@ -148,7 +172,7 @@ impl TilemapBuilder {
             texture: None,
             render_chunk_size: 32,
             filter_mode: FilterMode::Nearest,
-            transform: Vec2::ZERO,
+            translation: Vec2::ZERO,
             z_order: 0.,
             flip: 0,
             safety_check: true,
@@ -175,7 +199,7 @@ impl TilemapBuilder {
 
     /// Override translation. Default is `Vec2::ZERO`.
     pub fn with_translation(&mut self, translation: Vec2) -> &mut Self {
-        self.transform = translation;
+        self.translation = translation;
         self
     }
 
@@ -190,18 +214,18 @@ impl TilemapBuilder {
         self
     }
 
-    /// Align the whole rendered tilemap to the center.
-    ///
-    /// It will override the `transform` you set.
-    pub fn with_center(&mut self, center: Vec2) -> &mut Self {
-        self.transform = Vec2::new(
-            center.x - self.tile_render_size.x / 2. * self.size.x as f32,
-            center.y - self.tile_render_size.y / 2. * self.size.y as f32,
-        );
-        self
-    }
+    // /// Align the whole rendered tilemap to the center.
+    // ///
+    // /// It will override the `transform` you set.
+    // pub fn with_center(&mut self, center: Vec2) -> &mut Self {
+    //     self.translation = Vec2::new(
+    //         center.x - self.tile_render_size.x / 2. * self.size.x as f32,
+    //         center.y - self.tile_render_size.y / 2. * self.size.y as f32,
+    //     );
+    //     self
+    // }
 
-    /// Flip the uv of tiles.
+    /// Flip the uv of tiles. Use `TileFlip::Horizontal | TileFlip::Vertical` to flip both.
     pub fn with_flip(&mut self, flip: TileFlip) -> &mut Self {
         self.flip |= flip as u32;
         self
@@ -217,7 +241,8 @@ impl TilemapBuilder {
     }
 
     /// Build the tilemap and spawn it into the world.
-    pub fn build(&self, commands: &mut Commands) {
+    /// You can modify the component and insert it back.
+    pub fn build(&self, commands: &mut Commands) -> (Entity, Tilemap) {
         if self.safety_check {
             let chunk_count =
                 RenderChunkStorage::calculate_render_chunk_count(self.size, self.render_chunk_size);
@@ -237,7 +262,7 @@ impl TilemapBuilder {
 
         let mut entity = commands.spawn_empty();
         let tilemap = Tilemap {
-            tiles: vec![None; self.size.x as usize * self.size.y as usize],
+            tiles: TilemapTilesLookup::new(self.size),
             id: entity.id(),
             tile_render_size: self.tile_render_size,
             tile_type: self.tile_type.clone(),
@@ -248,18 +273,14 @@ impl TilemapBuilder {
             filter_mode: self.filter_mode,
             flip: self.flip,
             aabb: AabbBox2d::from_tilemap_builder(self),
+            translation: self.translation,
         };
-        entity.insert((
-            WaitForTextureUsageChange,
-            TilemapBundle {
-                tilemap,
-                transform: Transform::from_translation(self.transform.extend(self.z_order)),
-            },
-        ));
+        entity.insert((WaitForTextureUsageChange, tilemap.clone()));
+        (entity.id(), tilemap)
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct Tilemap {
     pub(crate) id: Entity,
     pub(crate) tile_type: TileType,
@@ -269,9 +290,10 @@ pub struct Tilemap {
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TileTexture>,
     pub(crate) filter_mode: FilterMode,
-    pub(crate) tiles: Vec<Option<Entity>>,
+    pub(crate) tiles: TilemapTilesLookup,
     pub(crate) flip: u32,
     pub(crate) aabb: AabbBox2d,
+    pub(crate) translation: Vec2,
 }
 
 impl Tilemap {
@@ -285,7 +307,7 @@ impl Tilemap {
     }
 
     pub(crate) fn get_unchecked(&self, grid_index: UVec2) -> Option<Entity> {
-        self.tiles[grid_index.y as usize * self.size.x as usize + grid_index.x as usize]
+        self.tiles.get(grid_index)
     }
 
     /// Set a tile.
@@ -300,12 +322,11 @@ impl Tilemap {
     }
 
     pub(crate) fn set_unchecked(&mut self, commands: &mut Commands, tile_builder: TileBuilder) {
-        let index = (tile_builder.grid_index.y * self.size.x + tile_builder.grid_index.x) as usize;
-        if let Some(previous) = self.tiles[index] {
+        if let Some(previous) = self.tiles.get(tile_builder.grid_index) {
             commands.entity(previous).despawn();
         }
         let new_tile = tile_builder.build(commands, self);
-        self.tiles[index] = Some(new_tile);
+        self.tiles.set(tile_builder.grid_index, Some(new_tile));
     }
 
     /// Remove a tile.
@@ -318,9 +339,10 @@ impl Tilemap {
     }
 
     pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, grid_index: UVec2) {
-        let index = (grid_index.y * self.size.x + grid_index.x) as usize;
-        commands.entity(self.tiles[index].unwrap()).despawn();
-        self.tiles[index] = None;
+        commands
+            .entity(self.tiles.get(grid_index).unwrap())
+            .despawn();
+        self.tiles.set(grid_index, None);
     }
 
     /// Fill a rectangle area with tiles.
@@ -346,6 +368,80 @@ impl Tilemap {
                 builder.grid_index = UVec2::new(x, y);
                 self.set_unchecked(commands, builder.clone());
             }
+        }
+    }
+
+    /// Set path-finding data using a custom function.
+    /// Before fill path, you need to fill the tiles first.
+    /// Those empty indices will be ignored.
+    #[cfg(feature = "pathfinding")]
+    pub fn fill_path_rect_custom(
+        &mut self,
+        commands: &mut Commands,
+        origin: UVec2,
+        extent: UVec2,
+        path_tile: impl Fn(UVec2) -> PathTile,
+    ) {
+        let dst = origin + extent - UVec2::ONE;
+        assert!(
+            !(self.is_out_of_tilemap(origin) || self.is_out_of_tilemap(dst)),
+            "Part of the area is out of the tilemap! Max size: {:?}",
+            self.size
+        );
+
+        for y in origin.y..=dst.y {
+            for x in origin.x..=dst.x {
+                if let Some(tile) = self.get_unchecked(UVec2::new(x, y)) {
+                    commands.entity(tile).insert(path_tile(UVec2::new(x, y)));
+                }
+            }
+        }
+    }
+
+    /// Fill path-finding data using `PathTile`.
+    /// Before fill path, you need to fill the tiles first.
+    /// Those empty indices will be ignored.
+    #[cfg(feature = "pathfinding")]
+    pub fn fill_path_rect(
+        &mut self,
+        commands: &mut Commands,
+        origin: UVec2,
+        extent: UVec2,
+        path_tile: &PathTile,
+    ) {
+        let dst = origin + extent - UVec2::ONE;
+        assert!(
+            !(self.is_out_of_tilemap(origin) || self.is_out_of_tilemap(dst)),
+            "Part of the area is out of the tilemap! Max size: {:?}",
+            self.size
+        );
+
+        for y in origin.y..=dst.y {
+            for x in origin.x..=dst.x {
+                if let Some(tile) = self.get_unchecked(UVec2::new(x, y)) {
+                    commands.entity(tile).insert(path_tile.clone());
+                }
+            }
+        }
+    }
+
+    /// Get the id of the tilemap.
+    pub fn get_id(&self) -> Entity {
+        self.id
+    }
+
+    /// Get the world position of the center of a tile.
+    pub fn index_to_world(&self, index: UVec2) -> Vec2 {
+        let index = index.as_vec2();
+        match self.tile_type {
+            TileType::Square => Vec2 {
+                x: (index.x + 0.5) * self.tile_render_size.x + self.translation.x,
+                y: (index.y + 0.5) * self.tile_render_size.y + self.translation.y,
+            },
+            TileType::IsometricDiamond => Vec2 {
+                x: (index.x - index.y) / 2. * self.tile_render_size.x + self.translation.x,
+                y: (index.x + index.y + 1.) / 2. * self.tile_render_size.y + self.translation.y,
+            },
         }
     }
 
@@ -387,12 +483,6 @@ impl Tilemap {
             .entity(self.id)
             .remove::<WaitForTextureUsageChange>();
     }
-}
-
-#[derive(Bundle)]
-pub struct TilemapBundle {
-    pub tilemap: Tilemap,
-    pub transform: Transform,
 }
 
 #[derive(Component)]

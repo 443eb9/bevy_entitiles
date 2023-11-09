@@ -57,14 +57,14 @@ fn cull_square(
     let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
 
     let min_chunk_index = world_pos_to_chunk_square(
-        tilemap.transfrom,
+        tilemap.translation,
         tilemap.render_chunk_size,
         tilemap.tile_render_size,
         camera_aabb.min,
     )
     .floor_to_uvec();
     let max_chunk_index = world_pos_to_chunk_square(
-        tilemap.transfrom,
+        tilemap.translation,
         tilemap.render_chunk_size,
         tilemap.tile_render_size,
         camera_aabb.max,

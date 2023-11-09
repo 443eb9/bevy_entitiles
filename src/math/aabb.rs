@@ -24,8 +24,8 @@ impl AabbBox2d {
             TileType::Square => {
                 let chunk_render_size = tilemap.tile_render_size * tilemap.render_chunk_size as f32;
                 AabbBox2d {
-                    min: chunk_index.as_vec2() * chunk_render_size + tilemap.transfrom,
-                    max: (chunk_index + 1).as_vec2() * chunk_render_size + tilemap.transfrom,
+                    min: chunk_index.as_vec2() * chunk_render_size + tilemap.translation,
+                    max: (chunk_index + 1).as_vec2() * chunk_render_size + tilemap.translation,
                 }
             }
             TileType::IsometricDiamond => {
@@ -36,12 +36,12 @@ impl AabbBox2d {
 
                 AabbBox2d {
                     min: Vec2::new(
-                        center_x - chunk_render_size.x / 2. + tilemap.transfrom.x,
-                        center_y - chunk_render_size.y / 2. + tilemap.transfrom.y,
+                        center_x - chunk_render_size.x / 2. + tilemap.translation.x,
+                        center_y - chunk_render_size.y / 2. + tilemap.translation.y,
                     ),
                     max: Vec2::new(
-                        center_x + chunk_render_size.x / 2. + tilemap.transfrom.x,
-                        center_y + chunk_render_size.y / 2. + tilemap.transfrom.y,
+                        center_x + chunk_render_size.x / 2. + tilemap.translation.x,
+                        center_y + chunk_render_size.y / 2. + tilemap.translation.y,
                     ),
                 }
             }
@@ -53,8 +53,8 @@ impl AabbBox2d {
             TileType::Square => {
                 let tilemap_render_size = builder.size.as_vec2() * builder.tile_render_size;
                 AabbBox2d {
-                    min: (tilemap_render_size - tilemap_render_size) / 2. + builder.transform,
-                    max: (tilemap_render_size + tilemap_render_size) / 2. + builder.transform,
+                    min: (tilemap_render_size - tilemap_render_size) / 2. + builder.translation,
+                    max: (tilemap_render_size + tilemap_render_size) / 2. + builder.translation,
                 }
             }
             TileType::IsometricDiamond => {
@@ -64,12 +64,12 @@ impl AabbBox2d {
                 let center_y = tilemap_render_size.y / 2.;
                 AabbBox2d {
                     min: Vec2::new(
-                        center_x - tilemap_render_size.x / 2. + builder.transform.x,
-                        center_y - tilemap_render_size.y / 2. + builder.transform.y,
+                        center_x - tilemap_render_size.x / 2. + builder.translation.x,
+                        center_y - tilemap_render_size.y / 2. + builder.translation.y,
                     ),
                     max: Vec2::new(
-                        center_x + tilemap_render_size.x / 2. + builder.transform.x,
-                        center_y + tilemap_render_size.y / 2. + builder.transform.y,
+                        center_x + tilemap_render_size.x / 2. + builder.translation.x,
+                        center_y + tilemap_render_size.y / 2. + builder.translation.y,
                     ),
                 }
             }

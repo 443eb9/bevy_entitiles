@@ -1,10 +1,9 @@
 use std::time::Duration;
 
 use bevy::{
-    math::Vec3Swizzles,
     prelude::{
-        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query,
-        Startup, TextBundle, Transform, UVec2, Update, Vec2,
+        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query, Res, Startup,
+        TextBundle, UVec2, Update, Vec2,
     },
     text::{TextSection, TextStyle},
     time::common_conditions::on_fixed_timer,
@@ -16,7 +15,7 @@ use crate::{
     tilemap::Tilemap,
 };
 
-use self::common::{debug_info_display, DebugFpsText};
+use self::common::{debug_info_display, DebugFpsText, DebugResource};
 
 pub mod camera_movement;
 pub mod common;
@@ -33,11 +32,14 @@ impl Plugin for EntiTilesDebugPlugin {
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
             (
-                /*draw_tilemap_aabb,
-                draw_chunk_aabb,*/
+                draw_tilemap_aabb,
+                draw_chunk_aabb,
+                draw_path,
                 debug_info_display.run_if(on_fixed_timer(Duration::from_millis(100))),
             ),
         );
+
+        app.init_resource::<DebugResource>();
 
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
     }
@@ -67,8 +69,8 @@ pub fn debug_startup(mut commands: Commands) {
     ));
 }
 
-pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform)>) {
-    for (tilemap, transform) in tilemaps.iter() {
+pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
+    for tilemap in tilemaps.iter() {
         gizmos.rect_2d(
             tilemap.aabb.center(),
             0.,
@@ -78,8 +80,8 @@ pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transfo
     }
 }
 
-pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform)>) {
-    for (tilemap, tilemap_transform) in tilemaps.iter() {
+pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
+    for tilemap in tilemaps.iter() {
         let tilemap = ExtractedTilemap {
             id: tilemap.id,
             tile_type: tilemap.tile_type,
@@ -89,8 +91,7 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform
             render_chunk_size: tilemap.render_chunk_size,
             filter_mode: tilemap.filter_mode,
             texture: tilemap.texture.clone(),
-            transfrom: tilemap_transform.translation.xy(),
-            transform_matrix: tilemap_transform.compute_matrix(),
+            translation: tilemap.translation,
             flip: tilemap.flip,
             aabb: tilemap.aabb.clone(),
         };
@@ -109,6 +110,20 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<(&Tilemap, &Transform
                     Color::GREEN,
                 );
             }
+        }
+    }
+}
+
+pub fn draw_path(mut gizmos: Gizmos, debug_res: Res<DebugResource>, tilemaps: Query<&Tilemap>) {
+    if let Some(path) = &debug_res.path {
+        let tilemap = tilemaps.get(path.get_target_tilemap()).unwrap();
+    
+        for path in path.iter() {
+            gizmos.circle_2d(tilemap.index_to_world(*path), 10., Color::BLUE);
+        }
+    
+        for visited in debug_res.path_records.iter() {
+            gizmos.circle_2d(tilemap.index_to_world(visited.1.index), 7., Color::ORANGE);
         }
     }
 }

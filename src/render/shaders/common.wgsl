@@ -16,7 +16,7 @@ struct VertexOutput {
 }
 
 struct Tilemap {
-    transform: mat4x4<f32>,
+    translation: vec2<f32>,
     tile_render_size: vec2<f32>,
 }
 
