@@ -63,7 +63,12 @@ pub fn queue(
             }),
         });
 
-        for (entity, tilemap) in tilemaps_query.iter() {
+        let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
+        tilemaps.sort_by(|lhs,rhs| {
+            lhs.1.z_order.cmp(&rhs.1.z_order)
+        });
+
+        for (entity, tilemap) in tilemaps.iter() {
             let pipeline = tilemap_pipelines.specialize(
                 &pipeline_cache,
                 &entitile_pipeline,
@@ -119,7 +124,7 @@ pub fn queue(
 
                 transparent_phase.add(Transparent2d {
                     sort_key: FloatOrd(0.),
-                    entity,
+                    entity: *entity,
                     pipeline,
                     draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
                     batch_range: None,
@@ -127,7 +132,7 @@ pub fn queue(
             } else {
                 transparent_phase.add(Transparent2d {
                     sort_key: FloatOrd(0.),
-                    entity,
+                    entity: *entity,
                     pipeline,
                     draw_function: draw_functions
                         .read()

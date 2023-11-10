@@ -12,7 +12,7 @@ use bevy::{
 use crate::{
     math::aabb::AabbBox2d,
     render::{chunk::RenderChunkStorage, extract::ExtractedTilemap},
-    tilemap::Tilemap,
+    tilemap::Tilemap, algorithm::pathfinding::Path,
 };
 
 use self::common::{debug_info_display, DebugFpsText, DebugResource};
@@ -94,6 +94,7 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
             translation: tilemap.translation,
             flip: tilemap.flip,
             aabb: tilemap.aabb.clone(),
+            z_order: tilemap.z_order,
         };
         let count = RenderChunkStorage::calculate_render_chunk_count(
             tilemap.size,
@@ -114,16 +115,12 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
     }
 }
 
-pub fn draw_path(mut gizmos: Gizmos, debug_res: Res<DebugResource>, tilemaps: Query<&Tilemap>) {
-    if let Some(path) = &debug_res.path {
+pub fn draw_path(mut gizmos: Gizmos, path_query: Query<&Path>, tilemaps: Query<&Tilemap>) {
+    for path in path_query.iter() {
         let tilemap = tilemaps.get(path.get_target_tilemap()).unwrap();
     
-        for path in path.iter() {
-            gizmos.circle_2d(tilemap.index_to_world(*path), 10., Color::BLUE);
-        }
-    
-        for visited in debug_res.path_records.iter() {
-            gizmos.circle_2d(tilemap.index_to_world(visited.1.index), 7., Color::ORANGE);
+        for node in path.iter() {
+            gizmos.circle_2d(tilemap.index_to_world(*node), 10., Color::YELLOW_GREEN);
         }
     }
 }

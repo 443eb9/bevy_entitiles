@@ -260,10 +260,8 @@ pub fn pathfinding(
     mut finders: Query<(Entity, &Pathfinder)>,
     tilemaps_query: Query<&Tilemap>,
     tiles_query: Query<&PathTile>,
-    #[cfg(feature = "debug")]
-    mut debug_res: ResMut<DebugResource>,
 ) {
-    finders.iter_mut().for_each(|(finder_entity, finder)| {
+    finders.par_iter_mut().for_each_mut(|(finder_entity, finder)| {
         #[cfg(feature = "debug")]
         println!("pathfinding start! {} -> {}", finder.origin, finder.dest);
         let tilemap = &tilemaps_query.get(finder.tilemap).unwrap();
@@ -313,15 +311,11 @@ pub fn pathfinding(
                 }
 
                 #[cfg(feature = "debug")]
-                {
-                    println!(
-                        "pathfinding finished! after {} steps, length = {}",
-                        i,
-                        path.path.len()
-                    );
-                    debug_res.path = Some(path.clone());
-                    debug_res.path_records = path_records;
-                }
+                println!(
+                    "pathfinding finished! after {} steps, length = {}",
+                    i,
+                    path.path.len()
+                );
                 complete_pathfinding(&commands, finder_entity, Some(path));
                 return;
             }
