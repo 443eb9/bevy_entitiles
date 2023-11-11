@@ -29,28 +29,13 @@ bevy = { version = "0.11.3", default-features = false, features = [
     "bevy_ui",
     "default_font"
 ]}
-
-[dev-dependencies]
-rand = "0.8.5"
-bevy = { version = "0.11.3", default-features = false, features = [
-    "bevy_core_pipeline",
-    "bevy_render",
-    "bevy_asset",
-    "bevy_gizmos",
-    "bevy_ui",
-    "png",
-    "bevy_winit",
-    "bevy_text",
-    "bevy_sprite",
-    "default_font",
-    "trace_tracy",
-    "multi-threaded"
-]}
+rand = { version = "0.8.5", optional = true }
+rbtree = { version = "0.1.5", optional = true }
 
 [features]
 default = []
 debug = []
-pathfinding = []
+algorithm = ["dep:rand", "dep:rbtree"]
 
 [[example]]
 name = "test"
@@ -65,4 +50,9 @@ required-features = ["debug"]
 [[example]]
 name = "pathfinding"
 path = "examples/pathfinding.rs"
-required-features = ["debug", "pathfinding"]
+required-features = ["algorithm"]
+
+[[example]]
+name = "wave_function_collapse"
+path = "examples/wave_function_collapse.rs"
+required-features = ["algorithm"]
