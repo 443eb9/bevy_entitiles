@@ -40,21 +40,21 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         UVec2 { x: 0, y: 0 },
-        UVec2 { x: 20, y: 10 },
+        None,
         &TileBuilder::new(UVec2::ZERO, 0),
     );
 
     tilemap.fill_rect(
         &mut commands,
         UVec2 { x: 2, y: 2 },
-        UVec2 { x: 10, y: 7 },
+        Some(UVec2 { x: 10, y: 7 }),
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
     tilemap.fill_path_rect(
         &mut commands,
         UVec2 { x: 0, y: 0 },
-        UVec2 { x: 20, y: 10 },
+        Some(UVec2 { x: 20, y: 10 }),
         &PathTile { cost: 1 },
     );
 

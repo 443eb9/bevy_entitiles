@@ -28,6 +28,7 @@ pub struct ExtractedTilemap {
     pub translation: Vec2,
     pub flip: u32,
     pub aabb: AabbBox2d,
+    pub z_order: u32,
 }
 
 #[derive(Component, Debug)]
@@ -72,6 +73,7 @@ pub fn extract_tilemaps(
                 translation: tilemap.translation,
                 flip: tilemap.flip,
                 aabb: tilemap.aabb.clone(),
+                z_order: tilemap.z_order,
             },
         ));
     }

@@ -50,7 +50,7 @@ bevy = { version = "0.11.3", default-features = false, features = [
 [features]
 default = []
 debug = []
-pathfinding = []
+algorithm = []
 
 [[example]]
 name = "test"
@@ -65,4 +65,4 @@ required-features = ["debug"]
 [[example]]
 name = "pathfinding"
 path = "examples/pathfinding.rs"
-required-features = ["debug", "pathfinding"]
+required-features = ["debug", "algorithm"]
