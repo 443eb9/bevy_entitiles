@@ -1,11 +1,9 @@
-use std::mem::swap;
-
 use bevy::{
-    prelude::{Component, Entity, IVec2, ParallelCommands, Plugin, Query, ResMut, UVec2, Update},
+    prelude::{Component, Entity, IVec2, ParallelCommands, Plugin, Query, UVec2, Update},
     utils::{hashbrown::HashMap, HashSet},
 };
 
-use crate::{debug::common::DebugResource, math::extension::ManhattanDistance, tilemap::Tilemap};
+use crate::{math::extension::ManhattanDistance, tilemap::Tilemap};
 
 pub struct EntitilesPathfindingPlugin;
 
@@ -221,10 +219,7 @@ impl PathGrid {
         let node = self.index_to_path_node.get_mut(node).unwrap();
         node.heap_index = self.count;
         self.to_explore[self.count] = Some((node.weight(self.weights), node.index));
-        println!("scheduled: {:?}", self.to_explore[self.count]);
         self.shift_up(self.count);
-        self.print_info();
-        self.check();
     }
 
     pub fn pop_closest(&mut self) -> Option<PathNode> {
@@ -232,22 +227,23 @@ impl PathGrid {
             return None;
         }
 
-        let result = self.to_explore[1].unwrap();
-        self.to_explore[1] = self.to_explore[self.count];
+        let first = self.to_explore[1].unwrap();
+        let last = self.to_explore[self.count].unwrap();
+
         self.index_to_path_node
-            .get_mut(&self.to_explore[1].unwrap().1)
+            .get_mut(&last.1)
             .unwrap()
             .heap_index = 1;
+        
+        self.to_explore[1] = self.to_explore[self.count];
         self.to_explore[self.count] = None;
+
         self.count -= 1;
-        println!("popped: {:?}", result);
-        self.print_info();
+
         self.shift_down(1);
-        self.explored.insert(result.1);
-        let res = Some(self.index_to_path_node[&result.1]);
-        self.print_info();
-        self.check();
-        res
+        self.explored.insert(first.1);
+
+        Some(self.index_to_path_node[&first.1])
     }
 
     pub fn is_empty(&self) -> bool {
@@ -267,18 +263,15 @@ impl PathGrid {
         let Some(mut parent) = self.to_explore[index / 2] else {
             return;
         };
-        println!("try shift up: {:?} -> {:?}", this, parent);
 
         while parent.0 > this.0 {
             let (swapped_this, _) = self.swap_node(this.1, parent.1);
-            self.print_info();
 
             if swapped_this == 1 {
                 break;
             } else {
                 this = self.to_explore[swapped_this].unwrap();
                 parent = self.to_explore[swapped_this / 2].unwrap();
-                println!("try shift up: {:?} -> {:?}", this, parent);
             }
         }
     }
@@ -293,7 +286,6 @@ impl PathGrid {
         let mut child = {
             let left = self.to_explore[index * 2].unwrap();
             let right = self.to_explore[index * 2 + 1].unwrap();
-            println!("selecting: {:?} <-> {:?}", left, right);
             if left.0 <= right.0 {
                 left
             } else {
@@ -303,7 +295,6 @@ impl PathGrid {
 
         while child.0 < this.0 {
             let (swapped_this, _) = self.swap_node(this.1, child.1);
-            self.print_info();
 
             if swapped_this * 2 > self.count {
                 break;
@@ -311,8 +302,7 @@ impl PathGrid {
                 this = self.to_explore[swapped_this].unwrap();
                 child = {
                     let left = self.to_explore[swapped_this * 2].unwrap();
-                    if let Some(right) = self.to_explore[swapped_this * 2 + 1]{
-                        println!("selecting: {:?} <-> {:?}", left, right);
+                    if let Some(right) = self.to_explore[swapped_this * 2 + 1] {
                         if left.0 < right.0 {
                             left
                         } else {
@@ -329,70 +319,15 @@ impl PathGrid {
     /// Returns the heap_index after swap.
     /// (swapped_this_index, swapped_other_index)
     fn swap_node(&mut self, lhs_index: UVec2, rhs_index: UVec2) -> (usize, usize) {
-        println!(
-            "----------\nswapping: {} <-> {}----------",
-            lhs_index, rhs_index,
-        );
-        self.print_info();
+        let lhs_heap_index = self.get(lhs_index).unwrap().heap_index;
+        let rhs_heap_index = self.get(rhs_index).unwrap().heap_index;
 
-        let nodes = self
-            .index_to_path_node
-            .get_many_mut([&lhs_index, &rhs_index])
-            .unwrap();
+        self.to_explore.swap(lhs_heap_index, rhs_heap_index);
 
-        let tmp = nodes[0].heap_index;
-        nodes[0].heap_index = nodes[1].heap_index;
-        nodes[1].heap_index = tmp;
+        self.get_mut(lhs_index).unwrap().heap_index = rhs_heap_index;
+        self.get_mut(rhs_index).unwrap().heap_index = lhs_heap_index;
 
-        self.to_explore
-            .swap(nodes[0].heap_index, nodes[1].heap_index);
-
-        println!(
-            "swapped: {}({}) <-> {}({})",
-            nodes[0].index,
-            self.to_explore[nodes[0].heap_index].unwrap().0,
-            nodes[1].index,
-            self.to_explore[nodes[1].heap_index].unwrap().0
-        );
-
-        (nodes[0].heap_index, nodes[1].heap_index)
-    }
-
-    fn print_info(&self) {
-        println!(
-            "----------\nindex_to_path: {:?}\nto_explore: {:?}\n----------",
-            self.index_to_path_node
-                .iter()
-                .filter(|e| e.1.heap_index != 1)
-                .map(|e| (e.0, e.1.heap_index))
-                .collect::<Vec<_>>(),
-            self.to_explore
-        );
-    }
-
-    fn check(&self) {
-        for i in 2..=self.count {
-            let Some(this) = self.to_explore[i] else {
-                continue;
-            };
-            let parent = self.to_explore[i / 2].unwrap();
-            assert!(
-                parent.0 <= this.0,
-                "check failed! {:?} > {:?}",
-                parent,
-                this
-            );
-        }
-
-        for i in 1..self.count {
-            let Some(this) = self.to_explore[i] else {
-                continue;
-            };
-
-            assert_eq!(self.index_to_path_node[&this.1].heap_index, i)
-        }
-
-        println!("check passed √");
+        (rhs_heap_index, lhs_heap_index)
     }
 }
 
@@ -434,10 +369,7 @@ pub fn pathfinding(
                     break;
                 }
 
-                println!("cycle {}", step);
-
                 let mut current = path_grid.pop_closest().unwrap();
-                println!("current: {:?}", current);
 
                 if current.index == finder.dest {
                     let mut path = Path {
@@ -445,9 +377,7 @@ pub fn pathfinding(
                         current_step: 0,
                         target_map: finder.tilemap,
                     };
-                    println!("path found!");
                     while current.index != finder.origin {
-                        println!("tracing back: {:?} -> {:?}", current.index, current.parent);
                         path.path.push(current.index);
                         current = *path_grid.get(current.parent.unwrap()).unwrap();
                     }
@@ -486,10 +416,6 @@ pub fn pathfinding(
                         }
                     }
                 }
-
-                println!("to_explore: {:?}", path_grid.to_explore);
-                path_grid.check();
-                println!("==============================");
             }
 
             println!("stopped at {}", step);
@@ -501,7 +427,6 @@ pub fn complete_pathfinding(commands: &ParallelCommands, finder: Entity, path: O
     #[cfg(feature = "debug")]
     if path.is_none() {
         println!("path not found");
-        panic!();
     }
 
     commands.command_scope(|mut c| {
@@ -512,37 +437,4 @@ pub fn complete_pathfinding(commands: &ParallelCommands, finder: Entity, path: O
             e.insert(path);
         }
     });
-}
-
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_path_grid() {
-        // let finder = Pathfinder {
-        //     origin: UVec2::new(0, 0),
-        //     dest: UVec2::new(10, 10),
-        //     allow_diagonal: false,
-        //     tilemap: Entity::PLACEHOLDER,
-        //     custom_weight: None,
-        // };
-        // let origin = PathNode::new(UVec2::new(0, 0), 0, finder.dest, 1, 0);
-        // let mut grid = PathGrid::new(&finder, &origin);
-        // grid.neighbours(&origin, UVec2::new(15, 15));
-
-        // grid.schedule(&UVec2::new(2, 2));
-        // grid.schedule(&UVec2::new(4, 4));
-        // grid.schedule(&UVec2::new(3, 3));
-        // grid.schedule(&UVec2::new(1, 1));
-        // grid.schedule(&UVec2::new(5, 5));
-
-        // assert_eq!(grid.to_explore.len(), 64);
-        // assert_eq!(grid.count, 31);
-        // assert_eq!(grid.to_explore[1].unwrap().1, UVec2::new(0, 0));
-        // assert_eq!(grid.to_explore[2].unwrap().1, UVec2::new(1, 1));
-        // assert_eq!(grid.to_explore[3].unwrap().1, UVec2::new(2, 2));
-        // assert_eq!(grid.to_explore[4].unwrap().1, UVec2::new(3, 3));
-        // assert_eq!(grid.to_explore[5].unwrap().1, UVec2::new(4, 4));
-        // assert_eq!(grid.to_explore[6].unwrap().1, UVec2::new(5, 5));
-    }
 }

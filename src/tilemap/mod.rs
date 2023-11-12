@@ -9,8 +9,8 @@ use bevy::{
 };
 
 use crate::{
-    algorithm::{pathfinding::PathTile, wfc::WaveFunctionCollapser},
-    math::aabb::AabbBox2d,
+    algorithm::pathfinding::PathTile,
+    math::{aabb::AabbBox2d, FillArea},
     render::{chunk::RenderChunkStorage, texture::TilemapTextureDescriptor},
 };
 
@@ -332,15 +332,12 @@ impl Tilemap {
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
-        origin: UVec2,
-        extent: Option<UVec2>,
+        area: FillArea,
         tile_builder: &TileBuilder,
     ) {
-        let dst = self.fill_check(origin, extent);
-
         let mut builder = tile_builder.clone();
-        for y in origin.y..=dst.y {
-            for x in origin.x..=dst.x {
+        for y in area.origin.y..=area.dest.y {
+            for x in area.origin.x..=area.dest.x {
                 builder.grid_index = UVec2::new(x, y);
                 self.set_unchecked(commands, builder.clone());
             }
@@ -356,14 +353,11 @@ impl Tilemap {
     pub fn fill_path_rect_custom(
         &mut self,
         commands: &mut Commands,
-        origin: UVec2,
-        extent: Option<UVec2>,
+        area: FillArea,
         mut path_tile: impl FnMut(UVec2) -> PathTile,
     ) {
-        let dst = self.fill_check(origin, extent);
-
-        for y in origin.y..=dst.y {
-            for x in origin.x..=dst.x {
+        for y in area.origin.y..=area.dest.y {
+            for x in area.origin.x..=area.dest.x {
                 if let Some(tile) = self.get_unchecked(UVec2::new(x, y)) {
                     commands.entity(tile).insert(path_tile(UVec2::new(x, y)));
                 }
@@ -380,44 +374,16 @@ impl Tilemap {
     pub fn fill_path_rect(
         &mut self,
         commands: &mut Commands,
-        origin: UVec2,
-        extent: Option<UVec2>,
+        area: FillArea,
         path_tile: &PathTile,
     ) {
-        let dst = self.fill_check(origin, extent);
-
-        for y in origin.y..=dst.y {
-            for x in origin.x..=dst.x {
+        for y in area.origin.y..=area.dest.y {
+            for x in area.origin.x..=area.dest.x {
                 if let Some(tile) = self.get_unchecked(UVec2::new(x, y)) {
                     commands.entity(tile).insert(path_tile.clone());
                 }
             }
         }
-    }
-
-    pub fn fill_rect_wfc(
-        &mut self,
-        commands: &mut Commands,
-        origin: UVec2,
-        extent: Option<UVec2>,
-        collapser: &WaveFunctionCollapser,
-    ) {
-        let dst = self.fill_check(origin, extent);
-    }
-
-    fn fill_check(self: &Self, origin: UVec2, extent: Option<UVec2>) -> UVec2 {
-        let ext = extent.unwrap_or(self.size - origin);
-        let dst = origin + ext - UVec2::ONE;
-        if extent.is_some() {
-            assert!(
-                !(self.is_out_of_tilemap_uvec(origin) || self.is_out_of_tilemap_uvec(dst)),
-                "Part of the area is out of the tilemap! Max size: {:?}, input: {:?} -> {:?}",
-                self.size,
-                origin,
-                extent
-            );
-        }
-        dst
     }
 
     /// Get the id of the tilemap.

@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     prelude::{
-        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query, Res, Startup,
+        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query, Startup,
         TextBundle, UVec2, Update, Vec2,
     },
     text::{TextSection, TextStyle},

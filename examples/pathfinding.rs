@@ -6,11 +6,11 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::pathfinding::{PathTile, Pathfinder},
     debug::camera_movement::camera_control,
+    math::FillArea,
     render::texture::TilemapTextureDescriptor,
     tilemap::{TileBuilder, TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
-use rand::{prelude::Distribution, SeedableRng};
 
 fn main() {
     App::new()
@@ -40,26 +40,22 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        UVec2 { x: 0, y: 0 },
-        None,
+        FillArea::full(&tilemap),
         &TileBuilder::new(UVec2::ZERO, 0),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        UVec2 { x: 2, y: 2 },
-        Some(UVec2 { x: 10, y: 7 }),
+        FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
-    let mut random = rand::rngs::StdRng::seed_from_u64(10);
-    let dist = rand::distributions::Uniform::new(1u32, 11u32);
-
     tilemap.fill_path_rect_custom(
         &mut commands,
-        UVec2 { x: 0, y: 0 },
-        Some(UVec2 { x: 20, y: 10 }),
-        |_| PathTile { cost: dist.sample(&mut random) },
+        FillArea::full(&tilemap),
+        |_| PathTile {
+            cost: rand::random::<u32>() % 10,
+        },
     );
 
     commands.entity(tilemap_entity).insert(tilemap);
@@ -67,7 +63,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn_empty().insert(Pathfinder {
         origin: UVec2 { x: 0, y: 0 },
         dest: UVec2 { x: 10, y: 9 },
-        allow_diagonal: false,
+        allow_diagonal: true,
         tilemap: tilemap_entity,
         custom_weight: None,
         max_step: Some(200),
