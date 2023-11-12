@@ -358,7 +358,7 @@ impl Tilemap {
         commands: &mut Commands,
         origin: UVec2,
         extent: Option<UVec2>,
-        path_tile: impl Fn(UVec2) -> PathTile,
+        mut path_tile: impl FnMut(UVec2) -> PathTile,
     ) {
         let dst = self.fill_check(origin, extent);
 

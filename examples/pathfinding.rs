@@ -10,6 +10,7 @@ use bevy_entitiles::{
     tilemap::{TileBuilder, TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
+use rand::{prelude::Distribution, SeedableRng};
 
 fn main() {
     App::new()
@@ -51,20 +52,24 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
-    tilemap.fill_path_rect(
+    let mut random = rand::rngs::StdRng::seed_from_u64(10);
+    let dist = rand::distributions::Uniform::new(1u32, 11u32);
+
+    tilemap.fill_path_rect_custom(
         &mut commands,
         UVec2 { x: 0, y: 0 },
         Some(UVec2 { x: 20, y: 10 }),
-        &PathTile { cost: 1 },
+        |_| PathTile { cost: dist.sample(&mut random) },
     );
 
     commands.entity(tilemap_entity).insert(tilemap);
 
     commands.spawn_empty().insert(Pathfinder {
-        origin: UVec2 { x: 3, y: 3 },
+        origin: UVec2 { x: 0, y: 0 },
         dest: UVec2 { x: 10, y: 9 },
-        allow_diagonal: true,
+        allow_diagonal: false,
         tilemap: tilemap_entity,
         custom_weight: None,
+        max_step: Some(200),
     });
 }
