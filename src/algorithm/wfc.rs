@@ -1,12 +1,18 @@
 /// Direction order: up, right, left, down
-use std::fs::File;
+use std::fs::read_to_string;
 
-use bevy::prelude::{Commands, Component, Query, UVec2};
-use rand::{distributions::Uniform, prelude::Distribution, rngs::StdRng, Rng, SeedableRng};
-use ron::de::from_reader;
-use serde::Serialize;
+use bevy::{
+    prelude::{Commands, Component, ParallelCommands, Query, UVec2},
+    utils::HashSet,
+};
+use indexmap::IndexSet;
+use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
+use ron::de::from_bytes;
 
-use crate::{math::FillArea, tilemap::Tilemap};
+use crate::{
+    math::FillArea,
+    tilemap::{TileBuilder, Tilemap},
+};
 
 #[derive(Default, Clone, Copy)]
 pub enum WfcMode {
@@ -16,16 +22,7 @@ pub enum WfcMode {
 
 #[derive(Component)]
 pub struct WaveFunctionCollapser {
-    /// Defines what tiles can be placed next to each other using texture index.
-    ///
-    /// # Example
-    ///
-    /// `rule = [[...0100, ...0010, ...1001, ...1000], [...1000, ...0100, ...0101, ...0011]]`
-    ///
-    /// means tile with `texture_index = 0`'s left can be `2`, right can be `1`, up can be `0` or `3`, down can be `3`
-    ///
-    /// while tile with `texture_index = 1`'s left can be `3`, right can be `2`, up can be `2` or `0`, down can be `0` or `1`
-    pub rule: Vec<[u128; 4]>,
+    pub rule: Vec<[IndexSet<u16>; 4]>,
     pub mode: WfcMode,
     pub seed: Option<u64>,
     pub area: FillArea,
@@ -33,8 +30,7 @@ pub struct WaveFunctionCollapser {
 }
 
 impl WaveFunctionCollapser {
-    /// The order of the directions are: up, right, left, down. If you don't know what format the config should be,
-    /// plase check the comments for `rule` field in `WaveFunctionCollapser`.
+    /// The order of the directions should be: up, right, left, down.
     pub fn from_config(
         config_path: String,
         mode: WfcMode,
@@ -42,19 +38,21 @@ impl WaveFunctionCollapser {
         step_interval: Option<f32>,
         seed: Option<u64>,
     ) -> Self {
-        let rdr = File::open(config_path.clone())
-            .expect("Failed to load config file for wave function collapse");
-        let rule: Vec<[u128; 4]> = match from_reader(rdr) {
-            Ok(rule) => rule,
-            Err(_) => panic!(
-                "Failed to parse config file for wave function collapse: {}",
-                config_path
-            ),
-        };
+        let rule_vec: Vec<[Vec<u16>; 4]> =
+            from_bytes(read_to_string(config_path).unwrap().as_bytes()).unwrap();
 
-        if rule.len() > 128 {
-            panic!("The length of the rule is too long. We currently only support rules with length <= 128");
+        let mut rule: Vec<[IndexSet<u16>; 4]> = Vec::with_capacity(rule_vec.len());
+        for tex_idx in 0..rule_vec.len() {
+            let mut tex_rule: [IndexSet<u16>; 4] = Default::default();
+            for dir in 0..4 {
+                for idx in rule_vec[tex_idx][dir].iter() {
+                    tex_rule[dir].insert(*idx);
+                }
+            }
+            rule.push(tex_rule);
         }
+
+        println!("rule: {:?}", rule);
 
         Self {
             rule,
@@ -66,19 +64,19 @@ impl WaveFunctionCollapser {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 struct WfcTile {
     pub index: UVec2,
     pub collapsed: bool,
-    pub texture_index: Option<u8>,
+    pub texture_index: Option<u16>,
     pub heap_index: usize,
-    pub psbs: u128,
-    pub entropy: u8,
+    pub psbs: IndexSet<u16>,
+    pub entropy: u16,
 }
 
 struct WfcHistory {
     index: UVec2,
-    old_psbs: u128,
+    old_psbs: IndexSet<u16>,
 }
 
 struct WfcGrid {
@@ -86,32 +84,34 @@ struct WfcGrid {
     history: Vec<WfcHistory>,
     size: UVec2,
     grid: Vec<WfcTile>,
-    max_psb: u8,
+    max_psbs: u16,
     rng: StdRng,
-    rule: Vec<[u128; 4]>,
-    heap: Vec<(u8, UVec2)>,
+    rule: Vec<[IndexSet<u16>; 4]>,
+    heap: Vec<(u16, UVec2)>,
+    remaining: usize,
 }
 
 impl WfcGrid {
     pub fn from_collapser(collapser: &WaveFunctionCollapser) -> Self {
         let mut grid = Vec::with_capacity(collapser.area.size());
         let mut heap = Vec::with_capacity(collapser.area.size() + 1);
+        let max_psbs = collapser.rule.len() as u16;
         // a placeholder
         heap.push((0, UVec2::new(0, 0)));
         let mut heap_index = 1;
 
         for y in 0..collapser.area.extent.y {
             for x in 0..collapser.area.extent.x {
-                grid[(y * collapser.area.extent.x + x) as usize] = WfcTile {
+                grid.push(WfcTile {
                     heap_index,
                     index: UVec2 { x, y },
                     texture_index: None,
                     collapsed: false,
-                    psbs: !0u128,
-                    entropy: collapser.rule.len() as u8,
-                };
+                    psbs: (0..max_psbs).collect(),
+                    entropy: collapser.rule.len() as u16,
+                });
 
-                heap.push((collapser.rule.len() as u8, UVec2 { x, y }));
+                heap.push((collapser.rule.len() as u16, UVec2 { x, y }));
                 heap_index += 1;
             }
         }
@@ -121,13 +121,14 @@ impl WfcGrid {
             size: collapser.area.extent,
             history: vec![],
             mode: collapser.mode,
-            max_psb: collapser.rule.len() as u8,
+            max_psbs,
             rule: collapser.rule.clone(),
             rng: match collapser.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
                 None => StdRng::from_entropy(),
             },
             heap,
+            remaining: collapser.area.size(),
         }
     }
 
@@ -162,51 +163,75 @@ impl WfcGrid {
     }
 
     pub fn collapse(&mut self, index: UVec2) {
-        let Some(tile) = self.get_tile_mut(index) else {
+        let Some(tile) = self.get_tile(index) else {
             return;
         };
         if tile.collapsed {
             return;
         }
-        tile.collapsed = true;
-
-        // TODO collapse
-        match self.mode {
-            WfcMode::NonWeighted => {}
+        if tile.psbs.len() == 0 {
+            println!("start retrace because of: {}", index);
+            self.retrace();
+            return;
         }
 
-        let old_psbs = tile.psbs;
-        self.history.push(WfcHistory { index, old_psbs });
+        println!("collasping: {:?}", index);
+        self.print_grid();
 
-        self.spread(index);
+        let rd = match self.mode {
+            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, tile.entropy as usize)),
+        };
+
+        let tile = self.get_tile_mut(index).unwrap();
+        tile.texture_index = Some(tile.psbs[rd]);
+        tile.collapsed = true;
+
+        let old_psbs = tile.psbs.clone();
+        tile.psbs = IndexSet::from([tile.psbs[rd]]);
+        tile.entropy = 1;
+        let index = tile.index;
+        self.history.push(WfcHistory { index, old_psbs });
+        self.remaining -= 1;
+
+        self.spread_constraint(index);
     }
 
-    pub fn spread(&mut self, center: UVec2) {
+    pub fn spread_constraint(&mut self, center: UVec2) {
         let mut queue: Vec<UVec2> = vec![center];
+        let mut spreaded = HashSet::default();
 
         while !queue.is_empty() {
             let cur_ctr = queue.pop().unwrap();
-            let cur_tile = self.get_tile(cur_ctr).unwrap();
+            spreaded.insert(cur_ctr);
+            let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
 
-            let Some(texture_index) = cur_tile.texture_index else {
-                return;
-            };
+            if cur_tile.entropy == self.max_psbs || cur_tile.collapsed {
+                continue;
+            }
 
             let neighbours = self.neighbours(cur_ctr);
-            let mut psbs_cache = [0u128; 4];
+            let mut psbs_cache = vec![IndexSet::default(); 4];
 
+            // constrain
             for dir in 0..4 {
                 let Some(neighbour_tile) = self.get_tile(neighbours[dir]) else {
                     return;
                 };
-                if neighbour_tile.collapsed {
+                if neighbour_tile.collapsed || spreaded.contains(&neighbours[dir]) {
                     return;
                 }
-                psbs_cache[dir] = neighbour_tile.psbs & self.rule[texture_index as usize][3 - dir];
+                psbs_cache[dir] = neighbour_tile.psbs.clone();
+
+                for psb in cur_tile.psbs.iter() {
+                    psbs_cache[dir] = psbs_cache[dir]
+                        .intersection(&self.rule[*psb as usize][3 - dir])
+                        .map(|e| *e)
+                        .collect::<IndexSet<u16>>();
+                }
             }
 
             for dir in 0..4 {
-                self.get_tile_mut(neighbours[dir]).unwrap().psbs = psbs_cache[dir];
+                self.get_tile_mut(neighbours[dir]).unwrap().psbs = psbs_cache[dir].clone();
             }
 
             for neighbour in neighbours {
@@ -216,23 +241,20 @@ impl WfcGrid {
     }
 
     pub fn retrace(&mut self) {
-        // TODO retrace when collapse fails
+        for _ in 0..2 {
+            let hist = self.history.pop().unwrap();
+            self.get_tile_mut(hist.index).unwrap().psbs = hist.old_psbs;
+            self.update_entropy(hist.index);
+            self.remaining += 1;
+        }
     }
 
-    pub fn random_texture(&mut self, psbs: u128) -> u8 {
-        let range = Uniform::from(0..127);
-        let mut rd_l = range.sample(&mut self.rng);
-        let mut rd_r = rd_l;
-
-        loop {
-            if psbs & (1 << rd_l) != 0 {
-                return rd_l;
-            }
-            if psbs & (1 << rd_r) != 0 {
-                return rd_r;
-            }
-            rd_l -= 1;
-            rd_r += 1;
+    pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
+        println!("map collapsed: {:?}", self.grid);
+        for tile in self.grid.iter() {
+            let index = tile.index;
+            let texture_index = tile.texture_index.unwrap() as u32;
+            tilemap.set(commands, TileBuilder::new(index, texture_index));
         }
     }
 
@@ -251,11 +273,12 @@ impl WfcGrid {
         }
 
         let tile = self.get_tile_mut(index).unwrap();
-        tile.entropy = tile.psbs.count_ones() as u8;
+        tile.entropy = tile.psbs.len() as u16;
         let heap_index = tile.heap_index;
         let entropy = tile.entropy;
         self.heap[heap_index].0 = entropy;
         self.shift_up(heap_index);
+        self.shift_down(heap_index);
     }
 
     fn shift_up(&mut self, index: usize) {
@@ -287,11 +310,14 @@ impl WfcGrid {
         };
         let mut child = {
             let left = self.heap.get(index * 2).unwrap();
-            let right = self.heap.get(index * 2 + 1).unwrap();
-            if left.0 <= right.0 {
-                left
+            if let Some(right) = self.heap.get(index * 2 + 1) {
+                if left.0 < right.0 {
+                    left
+                } else {
+                    right
+                }
             } else {
-                right
+                left
             }
         };
 
@@ -331,16 +357,46 @@ impl WfcGrid {
 
         (rhs_heap_index, lhs_heap_index)
     }
+
+    fn print_grid(&self) {
+        let mut result = "================\n".to_string();
+        let mut counter = 0;
+
+        for i in 0..self.grid.len() {
+            result.push_str(&format!(
+                "{:?}({})",
+                self.grid[i].texture_index, self.grid[i].entropy
+            ));
+            counter += 1;
+            if counter == self.size.x {
+                result.push_str("\n");
+                counter = 0;
+            }
+        }
+
+        result.push_str("================");
+        println!("{}", result);
+    }
 }
 
 pub fn wave_function_collapse(
-    mut commands: Commands,
+    commands: ParallelCommands,
     mut collapser_query: Query<(&mut Tilemap, &WaveFunctionCollapser)>,
 ) {
     collapser_query
         .par_iter_mut()
-        .for_each_mut(|(tilemap, collapser)| {
+        .for_each_mut(|(mut tilemap, collapser)| {
             let mut wfc_grid = WfcGrid::from_collapser(&collapser);
+            wfc_grid.print_grid();
             wfc_grid.collapse(wfc_grid.pick_random());
+
+            while wfc_grid.remaining > 0 {
+                let min_tile = wfc_grid.pop_min();
+                wfc_grid.collapse(min_tile.index);
+            }
+
+            commands.command_scope(|mut c| {
+                wfc_grid.apply_map(&mut c, &mut tilemap);
+            })
         });
 }

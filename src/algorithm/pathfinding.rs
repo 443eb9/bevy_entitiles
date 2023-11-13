@@ -5,14 +5,6 @@ use bevy::{
 
 use crate::{math::extension::ManhattanDistance, tilemap::Tilemap};
 
-pub struct EntitilesPathfindingPlugin;
-
-impl Plugin for EntitilesPathfindingPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, pathfinding);
-    }
-}
-
 #[derive(Component, Clone, Copy)]
 pub struct PathTile {
     pub cost: u32,

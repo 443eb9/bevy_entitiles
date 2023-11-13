@@ -1,43 +1,14 @@
-// use rbtree::RBTree;
+use bevy::prelude::{Plugin, Update};
+
+use self::{pathfinding::pathfinding, wfc::wave_function_collapse};
 
 pub mod pathfinding;
 pub mod wfc;
 
-// pub(crate) struct MultiRbTree<K, V>
-// where
-//     K: Ord + Copy,
-// {
-//     pub tree: RBTree<K, Vec<V>>,
-// }
+pub struct EntitilesAlgorithmPlugin;
 
-// impl<K, V> MultiRbTree<K, V>
-// where
-//     K: Ord + Copy,
-// {
-//     pub fn new() -> Self {
-//         Self {
-//             tree: RBTree::new(),
-//         }
-//     }
-
-//     pub fn insert(&mut self, key: K, value: V) {
-//         if let Some(values) = self.tree.get_mut(&key) {
-//             values.push(value);
-//         } else {
-//             self.tree.insert(key, vec![value]);
-//         }
-//     }
-
-//     pub fn pop_first(&mut self) -> Option<(K, V)> {
-//         let (key, mut values) = self.tree.pop_first()?;
-//         let value = values.pop()?;
-//         if !values.is_empty() {
-//             self.tree.insert(key, values);
-//         }
-//         Some((key, value))
-//     }
-
-//     pub fn contains_key(&self, key: K) -> bool {
-//         self.tree.contains_key(&key)
-//     }
-// }
+impl Plugin for EntitilesAlgorithmPlugin {
+    fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_systems(Update, (pathfinding, wave_function_collapse));
+    }
+}
