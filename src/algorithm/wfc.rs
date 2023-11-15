@@ -2,6 +2,8 @@
 use std::fs::read_to_string;
 
 use bevy::{
+    ecs::entity::Entity,
+    math::IVec2,
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
@@ -52,8 +54,6 @@ impl WaveFunctionCollapser {
             rule.push(tex_rule);
         }
 
-        println!("rule: {:?}", rule);
-
         Self {
             rule,
             mode,
@@ -71,7 +71,6 @@ struct WfcTile {
     pub texture_index: Option<u16>,
     pub heap_index: usize,
     pub psbs: IndexSet<u16>,
-    pub entropy: u16,
 }
 
 struct WfcHistory {
@@ -108,7 +107,6 @@ impl WfcGrid {
                     texture_index: None,
                     collapsed: false,
                     psbs: (0..max_psbs).collect(),
-                    entropy: collapser.rule.len() as u16,
                 });
 
                 heap.push((collapser.rule.len() as u16, UVec2 { x, y }));
@@ -153,12 +151,17 @@ impl WfcGrid {
     }
 
     pub fn pop_min(&mut self) -> WfcTile {
-        let min = self.heap.pop().unwrap();
-        let min_tile = self.get_tile(min.1).unwrap().clone();
+        let min_tile = self.get_tile(self.heap[1].1).unwrap().clone();
+        self.remaining -= 1;
 
-        self.heap[1] = min;
-        self.get_tile_mut(self.heap[1].1).unwrap().heap_index = 1;
-        self.shift_down(1);
+        #[cfg(feature = "debug")]
+        println!("popped: {}, remaining={}", min_tile.index, self.remaining);
+        if self.remaining > 0 {
+            let max = self.heap.pop().unwrap();
+            self.heap[1] = max;
+            self.get_tile_mut(self.heap[1].1).unwrap().heap_index = 1;
+            self.shift_down(1);
+        }
         min_tile
     }
 
@@ -170,16 +173,20 @@ impl WfcGrid {
             return;
         }
         if tile.psbs.len() == 0 {
+            #[cfg(feature = "debug")]
             println!("start retrace because of: {}", index);
             self.retrace();
             return;
         }
 
-        println!("collasping: {:?}", index);
-        self.print_grid();
+        #[cfg(feature = "debug")]
+        {
+            println!("collasping: {:?}", index);
+            self.print_grid();
+        }
 
         let rd = match self.mode {
-            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, tile.entropy as usize)),
+            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, tile.psbs.len() as usize)),
         };
 
         let tile = self.get_tile_mut(index).unwrap();
@@ -188,10 +195,8 @@ impl WfcGrid {
 
         let old_psbs = tile.psbs.clone();
         tile.psbs = IndexSet::from([tile.psbs[rd]]);
-        tile.entropy = 1;
         let index = tile.index;
         self.history.push(WfcHistory { index, old_psbs });
-        self.remaining -= 1;
 
         self.spread_constraint(index);
     }
@@ -202,41 +207,54 @@ impl WfcGrid {
 
         while !queue.is_empty() {
             let cur_ctr = queue.pop().unwrap();
+            #[cfg(feature = "debug")]
+            println!("constraining: {}'s neighbour", cur_ctr);
             spreaded.insert(cur_ctr);
             let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
-
-            if cur_tile.entropy == self.max_psbs || cur_tile.collapsed {
-                continue;
-            }
 
             let neighbours = self.neighbours(cur_ctr);
             let mut psbs_cache = vec![IndexSet::default(); 4];
 
             // constrain
-            for dir in 0..4 {
-                let Some(neighbour_tile) = self.get_tile(neighbours[dir]) else {
-                    return;
-                };
+            for dir in 0..neighbours.len() {
+                let neighbour_tile = self.get_tile(neighbours[dir]).unwrap();
                 if neighbour_tile.collapsed || spreaded.contains(&neighbours[dir]) {
-                    return;
+                    #[cfg(feature = "debug")]
+                    println!("skipping neighbour: {:?}", neighbours[dir]);
+                    continue;
                 }
-                psbs_cache[dir] = neighbour_tile.psbs.clone();
+                #[cfg(feature = "debug")]
+                println!("constraining: {:?}", neighbours[dir]);
 
                 for psb in cur_tile.psbs.iter() {
                     psbs_cache[dir] = psbs_cache[dir]
-                        .intersection(&self.rule[*psb as usize][3 - dir])
+                        .union(&self.rule[*psb as usize][dir])
                         .map(|e| *e)
                         .collect::<IndexSet<u16>>();
                 }
+                psbs_cache[dir] = psbs_cache[dir]
+                    .intersection(&neighbour_tile.psbs)
+                    .map(|e| *e)
+                    .collect::<IndexSet<u16>>();
+                #[cfg(feature = "debug")]
+                println!(
+                    "{}'s psbs: {:?}, dir={})",
+                    neighbours[dir], psbs_cache[dir], dir
+                );
+                spreaded.insert(cur_ctr);
+                queue.push(neighbours[dir]);
             }
 
-            for dir in 0..4 {
-                self.get_tile_mut(neighbours[dir]).unwrap().psbs = psbs_cache[dir].clone();
+            for dir in 0..neighbours.len() {
+                let tile = self.get_tile_mut(neighbours[dir]).unwrap();
+                if !tile.collapsed && !spreaded.contains(&tile.index) {
+                    tile.psbs = psbs_cache[dir].clone();
+                    self.update_entropy(neighbours[dir]);
+                }
             }
 
-            for neighbour in neighbours {
-                self.update_entropy(neighbour);
-            }
+            #[cfg(feature = "debug")]
+            self.print_grid();
         }
     }
 
@@ -250,7 +268,6 @@ impl WfcGrid {
     }
 
     pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
-        println!("map collapsed: {:?}", self.grid);
         for tile in self.grid.iter() {
             let index = tile.index;
             let texture_index = tile.texture_index.unwrap() as u32;
@@ -258,13 +275,18 @@ impl WfcGrid {
         }
     }
 
-    pub fn neighbours(&mut self, index: UVec2) -> [UVec2; 4] {
-        [
-            UVec2::new(index.x, index.y + 1),
-            UVec2::new(index.x + 1, index.y),
-            UVec2::new(index.x - 1, index.y),
-            UVec2::new(index.x, index.y - 1),
+    pub fn neighbours(&mut self, index: UVec2) -> Vec<UVec2> {
+        let index = index.as_ivec2();
+        vec![
+            IVec2::new(index.x, index.y + 1),
+            IVec2::new(index.x + 1, index.y),
+            IVec2::new(index.x - 1, index.y),
+            IVec2::new(index.x, index.y - 1),
         ]
+        .iter()
+        .filter(|p| p.x >= 0 && p.y >= 0 && p.x < self.size.x as i32 && p.y < self.size.y as i32)
+        .map(|p| p.as_uvec2())
+        .collect::<Vec<_>>()
     }
 
     fn update_entropy(&mut self, index: UVec2) {
@@ -273,12 +295,9 @@ impl WfcGrid {
         }
 
         let tile = self.get_tile_mut(index).unwrap();
-        tile.entropy = tile.psbs.len() as u16;
         let heap_index = tile.heap_index;
-        let entropy = tile.entropy;
-        self.heap[heap_index].0 = entropy;
+        self.heap[heap_index].0 = tile.psbs.len() as u16;
         self.shift_up(heap_index);
-        self.shift_down(heap_index);
     }
 
     fn shift_up(&mut self, index: usize) {
@@ -359,13 +378,15 @@ impl WfcGrid {
     }
 
     fn print_grid(&self) {
-        let mut result = "================\n".to_string();
+        let mut result = "-------------------\n".to_string();
         let mut counter = 0;
 
-        for i in 0..self.grid.len() {
+        for t in self.grid.iter() {
             result.push_str(&format!(
-                "{:?}({})",
-                self.grid[i].texture_index, self.grid[i].entropy
+                "{:?}{}({:?})\t",
+                t.texture_index,
+                t.index,
+                self.get_tile(t.index).unwrap().psbs
             ));
             counter += 1;
             if counter == self.size.x {
@@ -374,29 +395,49 @@ impl WfcGrid {
             }
         }
 
-        result.push_str("================");
+        result.push_str("-------------------");
         println!("{}", result);
+    }
+
+    fn validate(&self) {
+        crate::debug::validate_heap(&self.heap, true);
+        for i in 1..self.heap.len() {
+            assert_eq!(
+                self.get_tile(self.heap[i].1).unwrap().heap_index,
+                i,
+                "heap index not match at: {}",
+                self.heap[i].1
+            );
+        }
     }
 }
 
 pub fn wave_function_collapse(
     commands: ParallelCommands,
-    mut collapser_query: Query<(&mut Tilemap, &WaveFunctionCollapser)>,
+    mut collapser_query: Query<(Entity, &mut Tilemap, &WaveFunctionCollapser)>,
 ) {
     collapser_query
         .par_iter_mut()
-        .for_each_mut(|(mut tilemap, collapser)| {
+        .for_each_mut(|(entity, mut tilemap, collapser)| {
             let mut wfc_grid = WfcGrid::from_collapser(&collapser);
-            wfc_grid.print_grid();
             wfc_grid.collapse(wfc_grid.pick_random());
 
             while wfc_grid.remaining > 0 {
+                #[cfg(feature = "debug")]
+                println!("=============================");
                 let min_tile = wfc_grid.pop_min();
                 wfc_grid.collapse(min_tile.index);
+                #[cfg(feature = "debug")]
+                {
+                    println!("cycle complete, start validating");
+                    wfc_grid.validate();
+                    println!("=============================");
+                }
             }
 
             commands.command_scope(|mut c| {
                 wfc_grid.apply_map(&mut c, &mut tilemap);
+                c.entity(entity).remove::<WaveFunctionCollapser>();
             })
         });
 }

@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Component, Entity, IVec2, ParallelCommands, Plugin, Query, UVec2, Update},
+    prelude::{Component, Entity, IVec2, ParallelCommands, Query, UVec2},
     utils::{hashbrown::HashMap, HashSet},
 };
 

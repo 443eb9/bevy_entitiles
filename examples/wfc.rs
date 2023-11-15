@@ -1,17 +1,18 @@
-use std::{fs::read_to_string, io::Read, path::Path};
-
 use bevy::{
+    asset::AssetServer,
+    ecs::system::Res,
     prelude::{App, Camera2dBundle, Commands, Startup, UVec2, Update, Vec2},
+    render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{
     algorithm::wfc::{WaveFunctionCollapser, WfcMode},
     debug::camera_movement::camera_control,
     math::FillArea,
+    render::texture::TilemapTextureDescriptor,
     tilemap::{TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
-use ron::de;
 
 fn main() {
     App::new()
@@ -21,13 +22,21 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let (tilemap_entity, tilemap) = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 5, y: 5 },
+        UVec2 { x: 6, y: 6 },
         Vec2 { x: 32., y: 32. },
+    )
+    .with_texture(
+        asset_server.load("test/test_wfc.png"),
+        TilemapTextureDescriptor {
+            tile_count: UVec2 { x: 3, y: 2 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     )
     .build(&mut commands);
 
@@ -38,6 +47,6 @@ fn setup(mut commands: Commands) {
             WfcMode::NonWeighted,
             FillArea::full(&tilemap),
             None,
-            Some(1),
+            None,
         ));
 }

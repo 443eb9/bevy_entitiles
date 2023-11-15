@@ -74,4 +74,4 @@ required-features = ["debug", "algorithm"]
 [[example]]
 name = "wfc"
 path = "examples/wfc.rs"
-required-features = ["debug", "algorithm"]
+required-features = ["algorithm"]
