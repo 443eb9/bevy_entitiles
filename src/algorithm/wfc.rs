@@ -74,8 +74,9 @@ struct WfcTile {
 }
 
 struct WfcHistory {
-    index: UVec2,
-    old_psbs: IndexSet<u16>,
+    grid: Vec<WfcTile>,
+    heap: Vec<(u16, UVec2)>,
+    remaining: usize,
 }
 
 struct WfcGrid {
@@ -185,6 +186,13 @@ impl WfcGrid {
             self.print_grid();
         }
 
+        let index = tile.index;
+        let hist = WfcHistory {
+            grid: self.grid.clone(),
+            remaining: self.remaining,
+            heap: self.heap.clone(),
+        };
+
         let rd = match self.mode {
             WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, tile.psbs.len() as usize)),
         };
@@ -193,10 +201,8 @@ impl WfcGrid {
         tile.texture_index = Some(tile.psbs[rd]);
         tile.collapsed = true;
 
-        let old_psbs = tile.psbs.clone();
         tile.psbs = IndexSet::from([tile.psbs[rd]]);
-        let index = tile.index;
-        self.history.push(WfcHistory { index, old_psbs });
+        self.history.push(hist);
 
         self.spread_constraint(index);
     }
@@ -259,11 +265,13 @@ impl WfcGrid {
     }
 
     pub fn retrace(&mut self) {
-        for _ in 0..2 {
-            let hist = self.history.pop().unwrap();
-            self.get_tile_mut(hist.index).unwrap().psbs = hist.old_psbs;
-            self.update_entropy(hist.index);
-            self.remaining += 1;
+        let hist = self.history.pop().unwrap();
+        self.grid = hist.grid;
+        self.remaining = hist.remaining;
+        #[cfg(feature = "debug")]
+        {
+            self.validate();
+            println!("retrace success");
         }
     }
 
