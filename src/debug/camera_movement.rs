@@ -19,7 +19,7 @@ pub fn camera_control(
     unsafe {
         // only accepts mouse or keyboard input
         if input_mouse.pressed(MouseButton::Left) {
-            for ev in event_move.iter() {
+            for ev in event_move.read() {
                 CAMERA_TARGET_POSITION +=
                     1. * projection.scale * ev.delta.extend(0.) * Vec3::new(-1., 1., 0.);
             }
@@ -58,7 +58,7 @@ pub fn camera_control(
                 .lerp(CAMERA_TARGET_POSITION, 20. * time.delta_seconds());
         }
 
-        for ev in event_wheel.iter() {
+        for ev in event_wheel.read() {
             CAMERA_TARGET_SCALE -= ev.y * 0.02;
             CAMERA_TARGET_SCALE = CAMERA_TARGET_SCALE.max(0.01);
         }

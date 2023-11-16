@@ -1,22 +1,23 @@
-# ✨Bevy EntiTiles 🎈
+# Bevy EntiTiles 🗺️
 
 A tilemap library for bevy. With many algorithms built in.
 
 This crate is still in need of **optimization and development**. ~~So don't use this in your formal projects.~~ Anyway, I think it's already capable to be a part of your project.
 
-Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first, as it is more comprehensive and mature.
+Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first. I took this crate as the reference and learnt the basis of bevy rendering.
 
-This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, so childish. )
+This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
-Notice that the following progress may be not up to date. Check the `README.md` in `dev` brach to get the newest progress!
+Notice that the following progress may **not up to date**. Check the `README.md` in `dev` brach to get the latest progress!
 
 ## Currently Working On
 
-- Migrate to 0.12
+- Optimize Frustum Culling
+- Optimize the data structure of wfc and pathfinding
 
 ## Future Goals
 
-- Wave Function Collapse ( Release & Optimization )
+- Wave Function Collapse ( Optimization )
 - Pathfinding ( Optimization )
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
@@ -29,16 +30,16 @@ Notice that the following progress may be not up to date. Check the `README.md` 
 
 ## Show Case
 
-Platform: 10600KF With 1000*1000 tiles
+Platform: 10600KF
 
 ### Frustum Culling
-
-Before -> After
 
 <div>
 	<img src="./docs/imgs/without_frustum_culling.png" width="300px"/>
 	<img src="./docs/imgs/with_frustum_culling.png" width="300px"/>
 </div>
+
+> *Bevy 0.11.3, crate 0.1.1, 1000x1000 tiles*
 
 ### Wave Function Collapse
 
@@ -48,7 +49,7 @@ In the following case, each tile has at least one corresponding color gap with i
 	<img src="./docs/imgs/wfc.png" width="500px">
 </div>
 
-Due to the lack of optimization and the straightforward implementation of this algorithm, its execution time increases rapidly as the map size grows. And the likelihood of failure also increases
+Due to the lack of optimization and the straightforward implementation of this algorithm, its execution time increases rapidly as the map size grows. And the likelihood of failure also increases.
 
 | Size  | Time(avg of 3 tests) |
 | ----- | -------------------- |
@@ -58,12 +59,12 @@ Due to the lack of optimization and the straightforward implementation of this a
 | 30x30 | 2280.121 s           |
 | 50x50 | 18838.542 s          |
 
-*None weighted, `retrace_strength` = 2*
+> *Bevy 0.11.3, crate 0.2.0, None weighted, `retrace_strength` = 2*
 
 ## Versions
 
 | Bevy ver | EntiTiles ver |
 | -------- | ------------- |
-| 0.12.x   | Working On    |
+| 0.12.x   | 0.2.x         |
 | 0.11.x   | 0.1.x         |
 

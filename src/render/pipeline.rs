@@ -154,13 +154,13 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             layout,
             push_constant_ranges: vec![],
             vertex: VertexState {
-                shader: TILEMAP_SHADER.typed(),
+                shader: TILEMAP_SHADER,
                 shader_defs: shader_defs.clone(),
                 entry_point: "tilemap_vertex".into(),
                 buffers: vec![vertex_layout],
             },
             fragment: Some(FragmentState {
-                shader: TILEMAP_SHADER.typed(),
+                shader: TILEMAP_SHADER,
                 shader_defs: shader_defs.clone(),
                 entry_point: "tilemap_fragment".into(),
                 targets: vec![Some(ColorTargetState {

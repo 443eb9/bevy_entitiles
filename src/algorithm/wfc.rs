@@ -8,7 +8,11 @@ use bevy::{
     utils::HashSet,
 };
 use indexmap::IndexSet;
-use rand::{distributions::Uniform, rngs::StdRng, Rng, SeedableRng};
+use rand::{
+    distributions::{Uniform, WeightedIndex},
+    rngs::StdRng,
+    Rng, SeedableRng,
+};
 use ron::de::from_bytes;
 
 use crate::{
@@ -16,26 +20,48 @@ use crate::{
     tilemap::{TileBuilder, Tilemap},
 };
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone)]
 pub enum WfcMode {
     #[default]
+    /// Randomly pick one from the possibilities.
     NonWeighted,
+    /// Pick one from the possibilities according to the weights.
+    Weighted(Vec<u8>),
+    /// This mode requires a function UVec2 -> u16,
+    /// which you can see in the `WaveFunctionCollapser::from_config` method
+    ///
+    /// You can use this to generate a map according to a noise function etc.
+    CustomSampler,
 }
 
+/// # Warning!
+/// This feature is still in preview. It may fail to generate a map and stuck in an infinite loop.
 #[derive(Component)]
-pub struct WaveFunctionCollapser {
+pub struct WfcRunner {
     pub rule: Vec<[IndexSet<u16>; 4]>,
     pub mode: WfcMode,
+    pub sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
     pub seed: Option<u64>,
     pub area: FillArea,
     pub step_interval: Option<f32>,
 }
 
-impl WaveFunctionCollapser {
-    /// The order of the directions should be: up, right, left, down.
+impl WfcRunner {
+    /// The order of the directions in config should be: up, right, left, down.
+    /// 
+    /// Don't input `weights_path` and `custom_sampler` at the same time.
+    /// 
+    /// Please make sure the length of the `weights` is the same as the length of the `rule`.
+    /// 
+    /// **Currently not implemented:**
+    /// `step_interval` is the interval between each step in miliseconds.
+    /// If you want to visualize the process, you can set this to some value.
+    /// 
+    /// `seed` is the seed of the random number generator. Leave it `None` if you want to use a random seed.
     pub fn from_config(
         config_path: String,
-        mode: WfcMode,
+        weights_path: Option<String>,
+        custom_sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
         area: FillArea,
         step_interval: Option<f32>,
         seed: Option<u64>,
@@ -43,6 +69,7 @@ impl WaveFunctionCollapser {
         let rule_vec: Vec<[Vec<u16>; 4]> =
             from_bytes(read_to_string(config_path).unwrap().as_bytes()).unwrap();
 
+        let mut mode = WfcMode::NonWeighted;
         let mut rule: Vec<[IndexSet<u16>; 4]> = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
             let mut tex_rule: [IndexSet<u16>; 4] = Default::default();
@@ -54,9 +81,33 @@ impl WaveFunctionCollapser {
             rule.push(tex_rule);
         }
 
+        if weights_path.is_some() && custom_sampler.is_some() {
+            panic!("You can only use one of the weights and custom_sampler at the same time!");
+        }
+
+        if let Some(weights_path) = weights_path {
+            let weights_vec: Vec<u8> =
+                from_bytes(read_to_string(weights_path).unwrap().as_bytes()).unwrap();
+            assert_eq!(
+                weights_vec.len(),
+                rule.len(),
+                "weights length not match! weights: {}, rules: {}",
+                weights_vec.len(),
+                rule.len()
+            );
+            mode = WfcMode::Weighted(weights_vec);
+        }
+
+        let mut sampler = None;
+        if let Some(_) = custom_sampler {
+            mode = WfcMode::CustomSampler;
+            sampler = custom_sampler;
+        }
+
         Self {
             rule,
             mode,
+            sampler,
             area,
             step_interval,
             seed,
@@ -84,16 +135,16 @@ struct WfcGrid {
     history: Vec<WfcHistory>,
     size: UVec2,
     grid: Vec<WfcTile>,
-    max_psbs: u16,
     rng: StdRng,
     rule: Vec<[IndexSet<u16>; 4]>,
     heap: Vec<(u16, UVec2)>,
     remaining: usize,
     retrace_strength: u32,
+    sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
 }
 
 impl WfcGrid {
-    pub fn from_collapser(collapser: &WaveFunctionCollapser) -> Self {
+    pub fn from_collapser(collapser: &mut WfcRunner) -> Self {
         let mut grid = Vec::with_capacity(collapser.area.size());
         let mut heap = Vec::with_capacity(collapser.area.size() + 1);
         let max_psbs = collapser.rule.len() as u16;
@@ -120,8 +171,7 @@ impl WfcGrid {
             grid,
             size: collapser.area.extent,
             history: vec![],
-            mode: collapser.mode,
-            max_psbs,
+            mode: collapser.mode.clone(),
             rule: collapser.rule.clone(),
             rng: match collapser.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
@@ -130,6 +180,7 @@ impl WfcGrid {
             heap,
             remaining: collapser.area.size(),
             retrace_strength: 1,
+            sampler: collapser.sampler.take(),
         }
     }
 
@@ -191,14 +242,21 @@ impl WfcGrid {
 
         let index = tile.index;
         let entropy = tile.psbs.len() as usize;
+
+        let rd = match &self.mode {
+            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, entropy)),
+            WfcMode::Weighted(w) => {
+                let weights = tile.psbs.iter().map(|p| w[*p as usize]).collect::<Vec<_>>();
+                self.rng.sample(WeightedIndex::new(weights).unwrap())
+            }
+            WfcMode::CustomSampler => self.sampler.as_ref().unwrap()(&tile.psbs, index) as usize,
+        };
+
         if entropy == 1 {
             self.retrace_strength *= 2;
         } else {
             self.retrace_strength = 1;
         }
-        let rd = match self.mode {
-            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, entropy)),
-        };
 
         let tile = self.get_tile_mut(index).unwrap();
         tile.texture_index = Some(tile.psbs[rd]);
@@ -404,6 +462,7 @@ impl WfcGrid {
         (rhs_heap_index, lhs_heap_index)
     }
 
+    #[cfg(feature = "debug_verbose")]
     fn print_grid(&self) {
         let mut result = "-------------------\n".to_string();
         let mut counter = 0;
@@ -426,6 +485,7 @@ impl WfcGrid {
         println!("{}", result);
     }
 
+    #[cfg(feature = "debug_verbose")]
     fn validate(&self) {
         crate::debug::validate_heap(&self.heap, true);
         for i in 1..self.heap.len() {
@@ -441,14 +501,14 @@ impl WfcGrid {
 
 pub fn wave_function_collapse(
     commands: ParallelCommands,
-    mut collapser_query: Query<(Entity, &mut Tilemap, &WaveFunctionCollapser)>,
+    mut collapser_query: Query<(Entity, &mut Tilemap, &mut WfcRunner)>,
 ) {
     collapser_query
         .par_iter_mut()
-        .for_each_mut(|(entity, mut tilemap, collapser)| {
+        .for_each(|(entity, mut tilemap, mut collapser)| {
             #[cfg(feature = "debug")]
             let start = std::time::SystemTime::now();
-            let mut wfc_grid = WfcGrid::from_collapser(&collapser);
+            let mut wfc_grid = WfcGrid::from_collapser(&mut collapser);
             wfc_grid.collapse(wfc_grid.pick_random());
 
             while wfc_grid.remaining > 0 {
@@ -471,7 +531,7 @@ pub fn wave_function_collapse(
 
             commands.command_scope(|mut c| {
                 wfc_grid.apply_map(&mut c, &mut tilemap);
-                c.entity(entity).remove::<WaveFunctionCollapser>();
+                c.entity(entity).remove::<WfcRunner>();
             })
         });
 }
