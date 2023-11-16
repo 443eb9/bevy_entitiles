@@ -17,7 +17,7 @@ impl Plugin for EntiTilesPlugin {
 
         #[cfg(feature = "debug")]
         app.add_plugins(debug::EntiTilesDebugPlugin);
-        #[cfg(feature = "pathfinding")]
-        app.add_plugins(algorithm::pathfinding::EntitilesPathfindingPlugin);
+        #[cfg(feature = "algorithm")]
+        app.add_plugins(algorithm::EntitilesAlgorithmPlugin);
     }
 }

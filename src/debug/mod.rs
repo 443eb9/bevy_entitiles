@@ -1,24 +1,18 @@
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 
 use bevy::{
-    prelude::{
-        default, Color, Commands, Gizmos, IntoSystemConfigs, Plugin, Query, Res, Startup,
-        TextBundle, UVec2, Update, Vec2,
-    },
+    prelude::{default, Color, Commands, IntoSystemConfigs, Plugin, Startup, TextBundle, Update},
     text::{TextSection, TextStyle},
     time::common_conditions::on_fixed_timer,
 };
 
-use crate::{
-    math::aabb::AabbBox2d,
-    render::{chunk::RenderChunkStorage, extract::ExtractedTilemap},
-    tilemap::Tilemap,
-};
+use crate::debug::drawing::{draw_chunk_aabb, draw_path, draw_tilemap_aabb};
 
 use self::common::{debug_info_display, DebugFpsText, DebugResource};
 
 pub mod camera_movement;
 pub mod common;
+pub mod drawing;
 
 /// A bunch of systems for debugging. Since they're not optimized, don't use them unless you're debugging.
 pub struct EntiTilesDebugPlugin;
@@ -69,61 +63,23 @@ pub fn debug_startup(mut commands: Commands) {
     ));
 }
 
-pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
-    for tilemap in tilemaps.iter() {
-        gizmos.rect_2d(
-            tilemap.aabb.center(),
-            0.,
-            Vec2::new(tilemap.aabb.width(), tilemap.aabb.height()),
-            Color::RED,
-        )
-    }
-}
+pub fn validate_heap<K: PartialOrd + Debug, V: Debug>(tree: &Vec<(K, V)>, asc: bool) {
+    for i in 1..tree.len() {
+        if let Some(other) = tree.get(i * 2) {
+            if asc {
+                assert!(tree[i].0 <= other.0, "validate failed at {:?} <= {:?}", tree[i], other);
+            } else {
+                assert!(tree[i].0 >= other.0, "validate failed at {:?} >= {:?}", tree[i], other);
+            }
+        }
 
-pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
-    for tilemap in tilemaps.iter() {
-        let tilemap = ExtractedTilemap {
-            id: tilemap.id,
-            tile_type: tilemap.tile_type,
-            size: tilemap.size,
-            tile_size: tilemap.tile_size,
-            tile_render_size: tilemap.tile_render_size,
-            render_chunk_size: tilemap.render_chunk_size,
-            filter_mode: tilemap.filter_mode,
-            texture: tilemap.texture.clone(),
-            translation: tilemap.translation,
-            flip: tilemap.flip,
-            aabb: tilemap.aabb.clone(),
-        };
-        let count = RenderChunkStorage::calculate_render_chunk_count(
-            tilemap.size,
-            tilemap.render_chunk_size,
-        );
-
-        for y in 0..count.y {
-            for x in 0..count.x {
-                let aabb = AabbBox2d::from_chunk(UVec2::new(x, y), &tilemap);
-                gizmos.rect_2d(
-                    aabb.center(),
-                    0.,
-                    Vec2::new(aabb.width(), aabb.height()),
-                    Color::GREEN,
-                );
+        if let Some(other) = tree.get(i * 2 + 1) {
+            if asc {
+                assert!(tree[i].0 <= other.0, "validate failed at {:?} <= {:?}", tree[i], other);
+            } else {
+                assert!(tree[i].0 >= other.0, "validate failed at {:?} >= {:?}", tree[i], other);
             }
         }
     }
-}
-
-pub fn draw_path(mut gizmos: Gizmos, debug_res: Res<DebugResource>, tilemaps: Query<&Tilemap>) {
-    if let Some(path) = &debug_res.path {
-        let tilemap = tilemaps.get(path.get_target_tilemap()).unwrap();
-    
-        for path in path.iter() {
-            gizmos.circle_2d(tilemap.index_to_world(*path), 10., Color::BLUE);
-        }
-    
-        for visited in debug_res.path_records.iter() {
-            gizmos.circle_2d(tilemap.index_to_world(visited.1.index), 7., Color::ORANGE);
-        }
-    }
+    println!("heap validated √");
 }

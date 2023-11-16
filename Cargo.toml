@@ -29,9 +29,14 @@ bevy = { version = "0.11.3", default-features = false, features = [
     "bevy_ui",
     "default_font"
 ]}
+ron = { version = "0.8.1", optional = true }
+rand = { version = "0.8.5", optional = true }
+noise = { version = "0.8.2", optional = true }
+serde = { version = "1.0.192", optional = true }
+indexmap = { version = "2.1.0", optional = true }
+timer = "0.2.0"
 
 [dev-dependencies]
-rand = "0.8.5"
 bevy = { version = "0.11.3", default-features = false, features = [
     "bevy_core_pipeline",
     "bevy_render",
@@ -50,7 +55,8 @@ bevy = { version = "0.11.3", default-features = false, features = [
 [features]
 default = []
 debug = []
-pathfinding = []
+debug_verbose = []
+algorithm = ["dep:rand", "dep:ron", "dep:noise", "dep:serde", "dep:indexmap"]
 
 [[example]]
 name = "test"
@@ -65,4 +71,9 @@ required-features = ["debug"]
 [[example]]
 name = "pathfinding"
 path = "examples/pathfinding.rs"
-required-features = ["debug", "pathfinding"]
+required-features = ["debug", "algorithm"]
+
+[[example]]
+name = "wfc"
+path = "examples/wfc.rs"
+required-features = ["algorithm"]

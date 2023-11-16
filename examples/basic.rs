@@ -1,12 +1,14 @@
 use bevy::{
-    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2, Update},
+    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Update, Vec2},
     render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{
+    debug::camera_movement::camera_control,
+    math::FillArea,
     render::texture::TilemapTextureDescriptor,
     tilemap::{TileBuilder, TileType, TilemapBuilder},
-    EntiTilesPlugin, debug::camera_movement::camera_control,
+    EntiTilesPlugin,
 };
 
 fn main() {
@@ -37,15 +39,13 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        UVec2 { x: 0, y: 0 },
-        UVec2 { x: 20, y: 10 },
+        FillArea::full(&tilemap),
         &TileBuilder::new(UVec2::ZERO, 0),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        UVec2 { x: 2, y: 2 },
-        UVec2 { x: 10, y: 7 },
+        FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
