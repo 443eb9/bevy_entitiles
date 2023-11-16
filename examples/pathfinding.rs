@@ -50,13 +50,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
-    tilemap.fill_path_rect_custom(
-        &mut commands,
-        FillArea::full(&tilemap),
-        |_| PathTile {
-            cost: rand::random::<u32>() % 10,
-        },
-    );
+    tilemap.fill_path_rect_custom(&mut commands, FillArea::full(&tilemap), |_| PathTile {
+        cost: rand::random::<u32>() % 10,
+    });
 
     commands.entity(tilemap_entity).insert(tilemap);
 

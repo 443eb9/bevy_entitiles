@@ -1,6 +1,6 @@
 [package]
 name = "bevy_entitiles"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
@@ -24,10 +24,6 @@ bevy = { version = "0.12.0", default-features = false, features = [
     "bevy_winit",
     "bevy_sprite",
     "multi-threaded",
-    "bevy_gizmos",
-    "bevy_text",
-    "bevy_ui",
-    "default_font"
 ]}
 ron = { version = "0.8.1", optional = true }
 rand = { version = "0.8.5", optional = true }
@@ -76,4 +72,4 @@ required-features = ["debug", "algorithm"]
 [[example]]
 name = "wfc"
 path = "examples/wfc.rs"
-required-features = ["algorithm"]
+required-features = ["debug", "algorithm"]

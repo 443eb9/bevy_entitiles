@@ -5,9 +5,12 @@ use bevy::{
     text::{TextSection, TextStyle}, time::common_conditions::on_real_timer,
 };
 
-use crate::debug::drawing::{draw_chunk_aabb, draw_path, draw_tilemap_aabb};
+use crate::debug::drawing::{draw_chunk_aabb, draw_tilemap_aabb};
 
-use self::common::{debug_info_display, DebugFpsText, DebugResource};
+#[cfg(feature = "algorithm")]
+use crate::debug::drawing::draw_path;
+
+use self::common::{debug_info_display, DebugFpsText};
 
 pub mod camera_movement;
 pub mod common;
@@ -27,12 +30,11 @@ impl Plugin for EntiTilesDebugPlugin {
             (
                 draw_tilemap_aabb,
                 draw_chunk_aabb,
+                #[cfg(feature = "algorithm")]
                 draw_path,
                 debug_info_display.run_if(on_real_timer(Duration::from_millis(100))),
             ),
         );
-
-        app.init_resource::<DebugResource>();
 
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
     }

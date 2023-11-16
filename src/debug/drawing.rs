@@ -6,11 +6,13 @@ use bevy::{
 };
 
 use crate::{
-    algorithm::pathfinding::Path,
     math::aabb::AabbBox2d,
     render::{chunk::RenderChunkStorage, extract::ExtractedTilemap},
     tilemap::Tilemap,
 };
+
+#[cfg(feature = "algorithm")]
+use crate::algorithm::pathfinding::Path;
 
 pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
     for tilemap in tilemaps.iter() {
@@ -58,6 +60,7 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
     }
 }
 
+#[cfg(feature = "algorithm")]
 pub fn draw_path(mut gizmos: Gizmos, path_query: Query<&Path>, tilemaps: Query<&Tilemap>) {
     for path in path_query.iter() {
         let tilemap = tilemaps.get(path.get_target_tilemap()).unwrap();

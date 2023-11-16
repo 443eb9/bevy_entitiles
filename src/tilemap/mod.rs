@@ -9,10 +9,12 @@ use bevy::{
 };
 
 use crate::{
-    algorithm::pathfinding::PathTile,
     math::{aabb::AabbBox2d, FillArea},
     render::{chunk::RenderChunkStorage, texture::TilemapTextureDescriptor},
 };
+
+#[cfg(feature = "algorithm")]
+use crate::algorithm::pathfinding::PathTile;
 
 pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
@@ -327,8 +329,6 @@ impl Tilemap {
     /// Fill a rectangle area with tiles.
     ///
     /// You don't need to assign the `grid_index` in the `tile_builder`.
-    ///
-    /// Leave `extent` to `None` to fill to the border.
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
@@ -347,8 +347,6 @@ impl Tilemap {
     /// Set path-finding data using a custom function.
     /// Before fill path, you need to fill the tiles first.
     /// Those empty indices will be ignored.
-    ///
-    /// Leave `extent` to `None` to fill to the border.
     #[cfg(feature = "algorithm")]
     pub fn fill_path_rect_custom(
         &mut self,
@@ -368,8 +366,6 @@ impl Tilemap {
     /// Fill path-finding data using `PathTile`.
     /// Before fill path, you need to fill the tiles first.
     /// Those empty indices will be ignored.
-    ///
-    /// Leave `extent` to `None` to fill to the border.
     #[cfg(feature = "algorithm")]
     pub fn fill_path_rect(
         &mut self,

@@ -28,7 +28,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let (tilemap_entity, tilemap) = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 10, y: 10 },
+        UVec2 { x: 5, y: 5 },
         Vec2 { x: 32., y: 32. },
     )
     .with_texture(

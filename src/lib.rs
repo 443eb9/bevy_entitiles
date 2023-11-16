@@ -1,7 +1,9 @@
 use bevy::prelude::{Plugin, Update};
 use render::{texture::set_texture_usage, EntiTilesRendererPlugin};
 
+#[cfg(feature = "algorithm")]
 pub mod algorithm;
+#[cfg(feature = "debug")]
 pub mod debug;
 pub mod math;
 pub mod render;

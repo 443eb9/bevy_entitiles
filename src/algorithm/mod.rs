@@ -1,7 +1,6 @@
 use bevy::prelude::{Plugin, Update};
 
 use self::{pathfinding::pathfinding, wfc::wave_function_collapse};
-
 pub mod pathfinding;
 pub mod wfc;
 

@@ -27,6 +27,7 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - Wang Tilling
 - Tilemap Mask
 - Frustum Culling ( Isometric Specific Optimization )
+- Physics ( With `bevy_rapier` and `bevy_xpbd` )
 
 ## Show Case
 
@@ -59,7 +60,7 @@ Due to the lack of optimization and the straightforward implementation of this a
 | 30x30 | 2280.121 s           |
 | 50x50 | 18838.542 s          |
 
-> *Bevy 0.11.3, crate 0.2.0, None weighted, `retrace_strength` = 2*
+> *Bevy 0.11.3, crate 0.2.0 (dev), None weighted, `retrace_strength` = 2*
 
 ## Versions
 

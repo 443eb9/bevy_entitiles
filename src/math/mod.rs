@@ -6,6 +6,7 @@ pub mod aabb;
 pub mod extension;
 pub mod tilemap;
 
+#[derive(Debug)]
 pub struct FillArea {
     pub(crate) origin: UVec2,
     pub(crate) extent: UVec2,
@@ -32,7 +33,7 @@ impl FillArea {
         Self {
             origin,
             extent,
-            dest: origin + extent,
+            dest: origin + extent - 1,
         }
     }
 
