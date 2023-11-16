@@ -6,13 +6,14 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::wfc::{WaveFunctionCollapser, WfcMode},
+    algorithm::wfc::WfcRunner,
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
     tilemap::{TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
+use indexmap::IndexSet;
 
 fn main() {
     App::new()
@@ -42,9 +43,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands
         .entity(tilemap_entity)
-        .insert(WaveFunctionCollapser::from_config(
-            "examples/wfc_config.ron".into(),
-            WfcMode::NonWeighted,
+        .insert(WfcRunner::from_config(
+            "examples/wfc_config.ron".to_string(),
+            None,
+            // just a simple example, you can use some noise function
+            Some(Box::new(|psbs: &IndexSet<u16>, index: UVec2| 0)),
             FillArea::full(&tilemap),
             None,
             None,

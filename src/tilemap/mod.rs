@@ -23,7 +23,7 @@ pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
 
 #[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 pub enum TileType {
-    /// The most basic shape. I don't think I need to explain it.
+    /// The most basic shape.
     #[default]
     Square,
     /// A diamond shape. It's like a square but rotated 45 degrees counterclockwise around the origin.
