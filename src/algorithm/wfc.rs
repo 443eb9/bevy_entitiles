@@ -445,7 +445,7 @@ pub fn wave_function_collapse(
 ) {
     collapser_query
         .par_iter_mut()
-        .for_each_mut(|(entity, mut tilemap, collapser)| {
+        .for_each(|(entity, mut tilemap, collapser)| {
             #[cfg(feature = "debug")]
             let start = std::time::SystemTime::now();
             let mut wfc_grid = WfcGrid::from_collapser(&collapser);

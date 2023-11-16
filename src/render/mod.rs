@@ -1,8 +1,7 @@
 use bevy::{
     asset::load_internal_asset,
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Entity, Handle, HandleUntyped, Image, IntoSystemConfigs, Plugin, Resource, Shader},
-    reflect::TypeUuid,
+    prelude::{Entity, Handle, Image, IntoSystemConfigs, Plugin, Resource, Shader},
     render::{
         render_phase::AddRenderCommand,
         render_resource::{BindGroup, SpecializedRenderPipelines},
@@ -29,11 +28,10 @@ pub mod queue;
 pub mod texture;
 pub mod uniform;
 
-const SQUARE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 4189641863548);
-const ISO_DIAMOND: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 65416516351);
-const COMMON: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 548635415641535);
-const TILEMAP_SHADER: HandleUntyped =
-    HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 151631653416315);
+const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
+const ISO_DIAMOND: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
+const COMMON: Handle<Shader> = Handle::weak_from_u128(1321023135616351);
+const TILEMAP_SHADER: Handle<Shader> = Handle::weak_from_u128(89646584153215);
 
 pub struct EntiTilesRendererPlugin;
 

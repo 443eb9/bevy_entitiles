@@ -5,13 +5,13 @@ use bevy::{
         render_asset::RenderAssets,
         render_phase::{DrawFunctions, RenderPhase},
         render_resource::{
-            BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, PipelineCache,
+            BindGroup, BindGroupEntry, BindingResource, PipelineCache,
             SpecializedRenderPipelines,
         },
         renderer::{RenderDevice, RenderQueue},
         view::ViewUniforms,
     },
-    utils::FloatOrd,
+    utils::{FloatOrd, nonmax::NonMaxU32},
 };
 
 use super::{
@@ -53,20 +53,18 @@ pub fn queue(
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TileViewBindGroup {
-            value: render_device.create_bind_group(&BindGroupDescriptor {
-                label: Some("tilemap_view_bind_group"),
-                layout: &entitile_pipeline.view_layout,
-                entries: &[BindGroupEntry {
+            value: render_device.create_bind_group(
+                "tilemap_view_bind_group",
+                &entitile_pipeline.view_layout,
+                &[BindGroupEntry {
                     binding: 0,
                     resource: view_binding.clone(),
                 }],
-            }),
+            ),
         });
 
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
-        tilemaps.sort_by(|lhs,rhs| {
-            lhs.1.z_order.cmp(&rhs.1.z_order)
-        });
+        tilemaps.sort_by(|lhs, rhs| lhs.1.z_order.cmp(&rhs.1.z_order));
 
         for (entity, tilemap) in tilemaps.iter() {
             let pipeline = tilemap_pipelines.specialize(
@@ -81,15 +79,14 @@ pub fn queue(
             );
 
             if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
-                let tilemap_uniform_bind_group =
-                    render_device.create_bind_group(&BindGroupDescriptor {
-                        label: Some("tilemap_data_bind_group"),
-                        layout: &entitile_pipeline.tilemap_uniform_layout,
-                        entries: &[BindGroupEntry {
-                            binding: 0,
-                            resource: tilemap_uniform_binding,
-                        }],
-                    });
+                let tilemap_uniform_bind_group = render_device.create_bind_group(
+                    Some("tilemap_data_bind_group"),
+                    &entitile_pipeline.tilemap_uniform_layout,
+                    &[BindGroupEntry {
+                        binding: 0,
+                        resource: tilemap_uniform_binding,
+                    }],
+                );
 
                 bind_groups
                     .tilemap_uniform_bind_group
@@ -103,10 +100,10 @@ pub fn queue(
                     continue;
                 };
 
-                let texture_bind_group = render_device.create_bind_group(&BindGroupDescriptor {
-                    label: Some("tilemap_texture_bind_group"),
-                    layout: &entitile_pipeline.texture_layout,
-                    entries: &[
+                let texture_bind_group = render_device.create_bind_group(
+                    Some("tilemap_texture_bind_group"),
+                    &entitile_pipeline.texture_layout,
+                    &[
                         BindGroupEntry {
                             binding: 0,
                             resource: BindingResource::TextureView(&texture_array.texture_view),
@@ -116,7 +113,7 @@ pub fn queue(
                             resource: BindingResource::Sampler(&texture_array.sampler),
                         },
                     ],
-                });
+                );
 
                 bind_groups
                     .tilemap_texture_arrays
@@ -127,7 +124,8 @@ pub fn queue(
                     entity: *entity,
                     pipeline,
                     draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
-                    batch_range: None,
+                    batch_range: 0..1,
+                    dynamic_offset: NonMaxU32::new(0),
                 });
             } else {
                 transparent_phase.add(Transparent2d {
@@ -138,7 +136,8 @@ pub fn queue(
                         .read()
                         .get_id::<DrawTilemapPureColor>()
                         .unwrap(),
-                    batch_range: None,
+                    batch_range: 0..1,
+                    dynamic_offset: NonMaxU32::new(0),
                 });
             }
         }

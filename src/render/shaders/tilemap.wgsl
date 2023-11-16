@@ -1,12 +1,12 @@
-#import bevy_entitiles::common VertexInput, VertexOutput, texture, texture_sampler, tilemap
-#import bevy_sprite::mesh2d_view_bindings view
+#import bevy_entitiles::common::{VertexInput, VertexOutput, texture, texture_sampler, tilemap}
+#import bevy_sprite::mesh2d_view_bindings::view
 
 #ifdef SQUARE
-    #import bevy_entitiles::square get_mesh_center
+    #import bevy_entitiles::square::get_mesh_center
 #endif
 
 #ifdef ISO_DIAMOND
-    #import bevy_entitiles::iso_diamond get_mesh_center
+    #import bevy_entitiles::iso_diamond::get_mesh_center
 #endif
 
 @vertex

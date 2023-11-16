@@ -48,7 +48,7 @@ In the following case, each tile has at least one corresponding color gap with i
 	<img src="./docs/imgs/wfc.png" width="500px">
 </div>
 
-Due to the lack of optimization and the straightforward implementation of this algorithm, its execution time increases rapidly as the map size grows. And the likelihood of failure also increases
+Due to the lack of optimization and the straightforward implementation of this algorithm, its execution time increases rapidly as the map size grows. And the likelihood of failure also increases.
 
 | Size  | Time(avg of 3 tests) |
 | ----- | -------------------- |
@@ -58,7 +58,7 @@ Due to the lack of optimization and the straightforward implementation of this a
 | 30x30 | 2280.121 s           |
 | 50x50 | 18838.542 s          |
 
-*None weighted, `retrace_strength` = 2*
+*Bevy 0.11.3, crate 0.2.0, None weighted, `retrace_strength` = 2*
 
 ## Versions
 

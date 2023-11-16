@@ -331,7 +331,7 @@ pub fn pathfinding(
 ) {
     finders
         .par_iter_mut()
-        .for_each_mut(|(finder_entity, finder)| {
+        .for_each(|(finder_entity, finder)| {
             #[cfg(feature = "debug")]
             println!("pathfinding start! {} -> {}", finder.origin, finder.dest);
             let tilemap = &tilemaps_query.get(finder.tilemap).unwrap();
