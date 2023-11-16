@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 
 use bevy::{
     prelude::{default, Color, Commands, IntoSystemConfigs, Plugin, Startup, TextBundle, Update},
@@ -63,23 +63,23 @@ pub fn debug_startup(mut commands: Commands) {
     ));
 }
 
-pub fn validate_heap<K: PartialOrd, V>(tree: &Vec<(K, V)>, asc: bool) {
+pub fn validate_heap<K: PartialOrd + Debug, V: Debug>(tree: &Vec<(K, V)>, asc: bool) {
     for i in 1..tree.len() {
         if let Some(other) = tree.get(i * 2) {
             if asc {
-                assert!(tree[i].0 <= other.0);
+                assert!(tree[i].0 <= other.0, "validate failed at {:?} <= {:?}", tree[i], other);
             } else {
-                assert!(tree[i].0 >= other.0);
+                assert!(tree[i].0 >= other.0, "validate failed at {:?} >= {:?}", tree[i], other);
             }
         }
 
         if let Some(other) = tree.get(i * 2 + 1) {
             if asc {
-                assert!(tree[i].0 <= other.0);
+                assert!(tree[i].0 <= other.0, "validate failed at {:?} <= {:?}", tree[i], other);
             } else {
-                assert!(tree[i].0 >= other.0);
+                assert!(tree[i].0 >= other.0, "validate failed at {:?} >= {:?}", tree[i], other);
             }
         }
     }
-    println!("check validated √");
+    println!("heap validated √");
 }

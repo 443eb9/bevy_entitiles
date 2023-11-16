@@ -89,6 +89,7 @@ struct WfcGrid {
     rule: Vec<[IndexSet<u16>; 4]>,
     heap: Vec<(u16, UVec2)>,
     remaining: usize,
+    retrace_strength: u32,
 }
 
 impl WfcGrid {
@@ -128,6 +129,7 @@ impl WfcGrid {
             },
             heap,
             remaining: collapser.area.size(),
+            retrace_strength: 1,
         }
     }
 
@@ -152,10 +154,17 @@ impl WfcGrid {
     }
 
     pub fn pop_min(&mut self) -> WfcTile {
+        let hist = WfcHistory {
+            grid: self.grid.clone(),
+            remaining: self.remaining,
+            heap: self.heap.clone(),
+        };
+        self.history.push(hist);
+
         let min_tile = self.get_tile(self.heap[1].1).unwrap().clone();
         self.remaining -= 1;
 
-        #[cfg(feature = "debug")]
+        #[cfg(feature = "debug_verbose")]
         println!("popped: {}, remaining={}", min_tile.index, self.remaining);
         if self.remaining > 0 {
             let max = self.heap.pop().unwrap();
@@ -173,28 +182,22 @@ impl WfcGrid {
         if tile.collapsed {
             return;
         }
-        if tile.psbs.len() == 0 {
-            #[cfg(feature = "debug")]
-            println!("start retrace because of: {}", index);
-            self.retrace();
-            return;
-        }
 
-        #[cfg(feature = "debug")]
+        #[cfg(feature = "debug_verbose")]
         {
             println!("collasping: {:?}", index);
             self.print_grid();
         }
 
         let index = tile.index;
-        let hist = WfcHistory {
-            grid: self.grid.clone(),
-            remaining: self.remaining,
-            heap: self.heap.clone(),
-        };
-
+        let entropy = tile.psbs.len() as usize;
+        if entropy == 1 {
+            self.retrace_strength *= 2;
+        } else {
+            self.retrace_strength = 1;
+        }
         let rd = match self.mode {
-            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, tile.psbs.len() as usize)),
+            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, entropy)),
         };
 
         let tile = self.get_tile_mut(index).unwrap();
@@ -202,7 +205,6 @@ impl WfcGrid {
         tile.collapsed = true;
 
         tile.psbs = IndexSet::from([tile.psbs[rd]]);
-        self.history.push(hist);
 
         self.spread_constraint(index);
     }
@@ -213,7 +215,7 @@ impl WfcGrid {
 
         while !queue.is_empty() {
             let cur_ctr = queue.pop().unwrap();
-            #[cfg(feature = "debug")]
+            #[cfg(feature = "debug_verbose")]
             println!("constraining: {}'s neighbour", cur_ctr);
             spreaded.insert(cur_ctr);
             let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
@@ -225,11 +227,11 @@ impl WfcGrid {
             for dir in 0..neighbours.len() {
                 let neighbour_tile = self.get_tile(neighbours[dir]).unwrap();
                 if neighbour_tile.collapsed || spreaded.contains(&neighbours[dir]) {
-                    #[cfg(feature = "debug")]
+                    #[cfg(feature = "debug_verbose")]
                     println!("skipping neighbour: {:?}", neighbours[dir]);
                     continue;
                 }
-                #[cfg(feature = "debug")]
+                #[cfg(feature = "debug_verbose")]
                 println!("constraining: {:?}", neighbours[dir]);
 
                 for psb in cur_tile.psbs.iter() {
@@ -242,11 +244,17 @@ impl WfcGrid {
                     .intersection(&neighbour_tile.psbs)
                     .map(|e| *e)
                     .collect::<IndexSet<u16>>();
-                #[cfg(feature = "debug")]
+                #[cfg(feature = "debug_verbose")]
                 println!(
                     "{}'s psbs: {:?}, dir={})",
                     neighbours[dir], psbs_cache[dir], dir
                 );
+                if psbs_cache[dir].len() == 0 {
+                    #[cfg(feature = "debug_verbose")]
+                    println!("start retrace because of: {}", neighbours[dir]);
+                    self.retrace();
+                    return;
+                }
                 spreaded.insert(cur_ctr);
                 queue.push(neighbours[dir]);
             }
@@ -259,16 +267,22 @@ impl WfcGrid {
                 }
             }
 
-            #[cfg(feature = "debug")]
-            self.print_grid();
+            // #[cfg(feature = "debug")]
+            // self.print_grid();
         }
     }
 
     pub fn retrace(&mut self) {
+        #[cfg(feature = "debug")]
+        println!("retrace with strength: {}", self.retrace_strength);
+        for _ in 0..self.retrace_strength - 1 {
+            self.history.pop();
+        }
         let hist = self.history.pop().unwrap();
         self.grid = hist.grid;
         self.remaining = hist.remaining;
-        #[cfg(feature = "debug")]
+        self.heap = hist.heap;
+        #[cfg(feature = "debug_verbose")]
         {
             self.validate();
             println!("retrace success");
@@ -276,6 +290,11 @@ impl WfcGrid {
     }
 
     pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
+        #[cfg(feature = "debug_verbose")]
+        {
+            println!("map collapsed!");
+            self.print_grid();
+        }
         for tile in self.grid.iter() {
             let index = tile.index;
             let texture_index = tile.texture_index.unwrap() as u32;
@@ -427,21 +446,28 @@ pub fn wave_function_collapse(
     collapser_query
         .par_iter_mut()
         .for_each_mut(|(entity, mut tilemap, collapser)| {
+            #[cfg(feature = "debug")]
+            let start = std::time::SystemTime::now();
             let mut wfc_grid = WfcGrid::from_collapser(&collapser);
             wfc_grid.collapse(wfc_grid.pick_random());
 
             while wfc_grid.remaining > 0 {
-                #[cfg(feature = "debug")]
+                #[cfg(feature = "debug_verbose")]
                 println!("=============================");
                 let min_tile = wfc_grid.pop_min();
                 wfc_grid.collapse(min_tile.index);
-                #[cfg(feature = "debug")]
+                #[cfg(feature = "debug_verbose")]
                 {
                     println!("cycle complete, start validating");
                     wfc_grid.validate();
                     println!("=============================");
                 }
+                #[cfg(feature = "debug")]
+                println!("remaining: {}", wfc_grid.remaining);
             }
+
+            #[cfg(feature = "debug")]
+            println!("wfc complete in: {:?}", start.elapsed().unwrap());
 
             commands.command_scope(|mut c| {
                 wfc_grid.apply_map(&mut c, &mut tilemap);
