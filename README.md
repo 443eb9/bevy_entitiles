@@ -77,7 +77,7 @@ Due to the lack of optimization and the straightforward implementation of this a
 | 30x30 | 2280.121                |
 | 50x50 | 18838.542               |
 
-> *Bevy 0.11.3, crate 0.2.0, None weighted, `retrace_strength` = 2*
+> *Bevy 0.11.3, crate 0.2.0, None weighted*
 
 ## Versions
 
