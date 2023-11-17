@@ -132,7 +132,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             vec![
                 // position
                 VertexFormat::Float32x3,
-                // grid_index
+                // index
                 VertexFormat::Float32x2,
                 // color
                 VertexFormat::Float32x4,
