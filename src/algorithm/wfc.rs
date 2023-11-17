@@ -38,14 +38,14 @@ pub enum WfcMode {
 /// This feature is still in preview. It may fail to generate a map and stuck in an infinite loop.
 #[derive(Component)]
 pub struct WfcRunner {
-    rule: Vec<[IndexSet<u16>; 4]>,
+    rule: Vec<[u128; 4]>,
     mode: WfcMode,
-    sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
+    sampler: Option<Box<dyn Fn(WfcTile) -> u8 + Send + Sync>>,
     seed: Option<u64>,
     area: FillArea,
     step_interval: Option<f32>,
     max_retrace_factor: u32,
-    max_retrace_time: u32,
+    max_retrace_count: u32,
     fallback: Option<Box<dyn Fn(Entity) + Send + Sync>>,
 }
 
@@ -64,7 +64,7 @@ impl WfcRunner {
     pub fn from_config(
         config_path: String,
         weights_path: Option<String>,
-        custom_sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
+        custom_sampler: Option<Box<dyn Fn(WfcTile) -> u8 + Send + Sync>>,
         area: FillArea,
         step_interval: Option<f32>,
         seed: Option<u64>,
@@ -73,12 +73,23 @@ impl WfcRunner {
             from_bytes(read_to_string(config_path).unwrap().as_bytes()).unwrap();
 
         let mut mode = WfcMode::NonWeighted;
-        let mut rule: Vec<[IndexSet<u16>; 4]> = Vec::with_capacity(rule_vec.len());
+        let mut rule_set: Vec<[IndexSet<u16>; 4]> = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
             let mut tex_rule: [IndexSet<u16>; 4] = Default::default();
             for dir in 0..4 {
                 for idx in rule_vec[tex_idx][dir].iter() {
                     tex_rule[dir].insert(*idx);
+                }
+            }
+            rule_set.push(tex_rule);
+        }
+
+        let mut rule: Vec<[u128; 4]> = Vec::with_capacity(rule_set.len());
+        for tex_idx in 0..rule_set.len() {
+            let mut tex_rule: [u128; 4] = Default::default();
+            for dir in 0..4 {
+                for idx in rule_set[tex_idx][dir].iter() {
+                    tex_rule[dir] |= 1 << idx;
                 }
             }
             rule.push(tex_rule);
@@ -93,10 +104,10 @@ impl WfcRunner {
                 from_bytes(read_to_string(weights_path).unwrap().as_bytes()).unwrap();
             assert_eq!(
                 weights_vec.len(),
-                rule.len(),
+                rule_set.len(),
                 "weights length not match! weights: {}, rules: {}",
                 weights_vec.len(),
-                rule.len()
+                rule_set.len()
             );
             mode = WfcMode::Weighted(weights_vec);
         }
@@ -114,8 +125,8 @@ impl WfcRunner {
             area,
             step_interval,
             seed,
-            max_retrace_factor: 8,
-            max_retrace_time: 200,
+            max_retrace_factor: 4,
+            max_retrace_count: 200,
             fallback: None,
         }
     }
@@ -124,10 +135,14 @@ impl WfcRunner {
     /// The higher those parameters are, the higher the probability of success is.
     /// But it will also dramatically increase the time cost.
     ///
-    /// Default: `max_retrace_factor` = 8, `max_retrace_time` = 200
-    pub fn with_retrace_settings(mut self, max_retrace_factor: u32, max_retrace_time: u32) -> Self {
+    /// Default: `max_retrace_factor` = 4, `max_retrace_time` = 200
+    pub fn with_retrace_settings(
+        mut self,
+        max_retrace_factor: u32,
+        max_retrace_count: u32,
+    ) -> Self {
         self.max_retrace_factor = max_retrace_factor;
-        self.max_retrace_time = max_retrace_time;
+        self.max_retrace_count = max_retrace_count;
         self
     }
 
@@ -139,17 +154,30 @@ impl WfcRunner {
 }
 
 #[derive(Debug, Clone)]
-struct WfcTile {
+pub struct WfcTile {
     pub index: UVec2,
     pub collapsed: bool,
-    pub texture_index: Option<u16>,
+    pub texture_index: Option<u8>,
     pub heap_index: usize,
-    pub psbs: IndexSet<u16>,
+    pub psbs: u128,
 }
 
+impl WfcTile {
+    pub fn get_vec_psbs(&self) -> Vec<u8> {
+        let mut result = Vec::with_capacity(self.psbs.count_ones() as usize);
+        for i in 0..128 {
+            if self.psbs & (1 << i) != 0 {
+                result.push(i as u8);
+            }
+        }
+        result
+    }
+}
+
+#[derive(Clone)]
 struct WfcHistory {
     grid: Vec<WfcTile>,
-    heap: Vec<(u16, UVec2)>,
+    heap: Vec<(u8, UVec2)>,
     remaining: usize,
 }
 
@@ -159,9 +187,9 @@ struct WfcGrid {
     size: UVec2,
     grid: Vec<WfcTile>,
     rng: StdRng,
-    rule: Vec<[IndexSet<u16>; 4]>,
-    sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
-    heap: Vec<(u16, UVec2)>,
+    rule: Vec<[u128; 4]>,
+    sampler: Option<Box<dyn Fn(WfcTile) -> u8 + Send + Sync>>,
+    heap: Vec<(u8, UVec2)>,
     remaining: usize,
     retrace_strength: u32,
     max_retrace_factor: u32,
@@ -186,10 +214,10 @@ impl WfcGrid {
                     index: UVec2 { x, y },
                     texture_index: None,
                     collapsed: false,
-                    psbs: (0..max_psbs).collect(),
+                    psbs: (!0) >> (128 - max_psbs),
                 });
 
-                heap.push((runner.rule.len() as u16, UVec2 { x, y }));
+                heap.push((runner.rule.len() as u8, UVec2 { x, y }));
                 heap_index += 1;
             }
         }
@@ -208,7 +236,7 @@ impl WfcGrid {
             remaining: runner.area.size(),
             retrace_strength: 1,
             max_retrace_factor: runner.max_retrace_factor,
-            max_retrace_time: runner.max_retrace_time,
+            max_retrace_time: runner.max_retrace_count,
             retraced_time: 0,
             sampler: runner.sampler.take(),
             fallback: runner.fallback.take(),
@@ -272,32 +300,26 @@ impl WfcGrid {
         }
 
         let index = tile.index;
-        let entropy = tile.psbs.len() as usize;
+        let entropy = tile.psbs.count_ones() as usize;
 
         let psb = match &self.mode {
-            WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, entropy)),
-            WfcMode::Weighted(w) => {
-                let weights = tile.psbs.iter().map(|p| w[*p as usize]).collect::<Vec<_>>();
-                self.rng.sample(WeightedIndex::new(weights).unwrap())
+            WfcMode::NonWeighted => {
+                let psb_vec = tile.get_vec_psbs();
+                psb_vec[self.rng.sample(Uniform::new(0, entropy))]
             }
-            WfcMode::CustomSampler => self.sampler.as_ref().unwrap()(&tile.psbs, index) as usize,
+            WfcMode::Weighted(w) => {
+                let psb_vec = tile.get_vec_psbs();
+                let weights = psb_vec.iter().map(|p| w[*p as usize]).collect::<Vec<_>>();
+                psb_vec[self.rng.sample(WeightedIndex::new(weights).unwrap())]
+            }
+            WfcMode::CustomSampler => self.sampler.as_ref().unwrap()(tile.clone()) as u8,
         };
 
-        self.retrace_strength *= self.rng.sample(Uniform::new(2, self.max_retrace_factor));
+        self.retrace_strength *= self.rng.sample(Uniform::new(1, self.max_retrace_factor));
 
-        let mode = self.mode.clone();
         let tile = self.get_tile_mut(index).unwrap();
-
-        // because of the existing of ownership,
-        // we can't map the indices to possibilities when mathing.
-        if mode == WfcMode::CustomSampler {
-            tile.texture_index = Some(psb as u16);
-            tile.psbs = IndexSet::from([psb as u16]);
-        } else {
-            tile.texture_index = Some(tile.psbs[psb]);
-            tile.psbs = IndexSet::from([tile.psbs[psb]]);
-        }
-
+        tile.texture_index = Some(psb);
+        tile.psbs = 1 << psb;
         tile.collapsed = true;
 
         self.spread_constraint(index);
@@ -315,7 +337,7 @@ impl WfcGrid {
             let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
 
             let neighbours = self.neighbours(cur_ctr);
-            let mut psbs_cache = vec![IndexSet::default(); 4];
+            let mut psbs_cache = vec![0; 4];
 
             // constrain
             for dir in 0..neighbours.len() {
@@ -328,22 +350,18 @@ impl WfcGrid {
                 #[cfg(feature = "debug_verbose")]
                 println!("constraining: {:?}", neighbours[dir]);
 
-                for psb in cur_tile.psbs.iter() {
-                    psbs_cache[dir] = psbs_cache[dir]
-                        .union(&self.rule[*psb as usize][dir])
-                        .map(|e| *e)
-                        .collect::<IndexSet<u16>>();
+                for i in 0..self.rule.len() {
+                    if cur_tile.psbs & (1 << i) != 0 {
+                        psbs_cache[dir] |= self.rule[i][dir];
+                    }
                 }
-                psbs_cache[dir] = psbs_cache[dir]
-                    .intersection(&neighbour_tile.psbs)
-                    .map(|e| *e)
-                    .collect::<IndexSet<u16>>();
+                psbs_cache[dir] &= neighbour_tile.psbs;
                 #[cfg(feature = "debug_verbose")]
                 println!(
                     "{}'s psbs: {:?}, dir={})",
                     neighbours[dir], psbs_cache[dir], dir
                 );
-                if psbs_cache[dir].len() == 0 {
+                if psbs_cache[dir].count_ones() == 0 {
                     #[cfg(feature = "debug_verbose")]
                     println!("start retrace because of: {}", neighbours[dir]);
                     self.retrace();
@@ -371,10 +389,18 @@ impl WfcGrid {
     pub fn retrace(&mut self) {
         #[cfg(feature = "debug")]
         println!("retrace with strength: {}", self.retrace_strength);
-        for _ in 0..self.retrace_strength - 1 {
-            self.history.pop();
-        }
-        let hist = self.history.pop().unwrap();
+        let hist = {
+            if self.history.len() > self.retrace_strength as usize {
+                for _ in 0..self.retrace_strength {
+                    self.history.pop();
+                }
+                self.history.pop().unwrap()
+            } else {
+                let h = self.history[0].clone();
+                self.history.clear();
+                h
+            }
+        };
         self.grid = hist.grid;
         self.remaining = hist.remaining;
         self.heap = hist.heap;
@@ -420,7 +446,7 @@ impl WfcGrid {
 
         let tile = self.get_tile_mut(index).unwrap();
         let heap_index = tile.heap_index;
-        self.heap[heap_index].0 = tile.psbs.len() as u16;
+        self.heap[heap_index].0 = tile.psbs.count_ones() as u8;
         self.shift_up(heap_index);
     }
 

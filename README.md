@@ -57,7 +57,7 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 | 500x500   | 295.67                  |
 | 1000x1000 | 1384.33                 |
 
-> *Bevy 0.12, crate 0.2.1 (dev), using `pathfinding` example*
+> *Bevy 0.12, crate 0.2.1, using `pathfinding` example*
 
 ### Wave Function Collapse
 
@@ -67,17 +67,17 @@ In the following case, each tile has at least one corresponding color gap with i
 	<img src="./docs/imgs/wfc.png" width="500px">
 </div>
 
-Due to the lack of optimization and the straightforward implementation of this algorithm, its execution time increases rapidly as the map size grows. And the likelihood of failure also increases.
+| Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |
+| ------- | ----------------------- | ----------------------- |
+| 10x10   | 33.312                  | 16.264 (3)              |
+| 20x20   | 490.950                 | 96.009 (3)              |
+| 30x30   | 2,280.121               | 335.697 (6)             |
+| 50x50   | 18,838.542              | 2,095.428 (8)           |
+| 100x100 | (Not measurable)        | 32,309.045 (16)         |
 
-| Size  | Time(avg of 3 tests) ms |
-| ----- | ----------------------- |
-| 5x5   | 3.92                    |
-| 10x10 | 33.312                  |
-| 20x20 | 490.950                 |
-| 30x30 | 2280.121                |
-| 50x50 | 18838.542               |
-
-> *Bevy 0.11.3, crate 0.2.0, None weighted*
+> *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted*
+> 
+> *Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses*
 
 ## Versions
 
@@ -85,4 +85,3 @@ Due to the lack of optimization and the straightforward implementation of this a
 | -------- | ------------- |
 | 0.12.x   | 0.2.x         |
 | 0.11.x   | 0.1.x         |
-
