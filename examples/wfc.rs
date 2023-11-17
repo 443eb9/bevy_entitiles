@@ -28,7 +28,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let (tilemap_entity, tilemap) = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 10, y: 10 },
+        UVec2 { x: 50, y: 50 },
         Vec2 { x: 32., y: 32. },
     )
     .with_texture(
@@ -41,15 +41,22 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     )
     .build(&mut commands);
 
-    commands
-        .entity(tilemap_entity)
-        .insert(WfcRunner::from_config(
+    // The following code is NOT reasonable. For their ridiculous parameters.
+    // I just want to show you the full functionality.
+    // Please adjust them before you run the program.
+    commands.entity(tilemap_entity).insert(
+        WfcRunner::from_config(
             "examples/wfc_config.ron".to_string(),
             None,
             // just a simple example, you can use some noise function
-            Some(Box::new(|psbs: &IndexSet<u16>, index: UVec2| 0)),
+            Some(Box::new(|psbs: &IndexSet<u16>, index: UVec2| {
+                psbs[rand::random::<usize>() % psbs.len()]
+            })),
             FillArea::full(&tilemap),
             None,
             None,
-        ));
+        )
+        .with_retrace_settings(8, 5)
+        .with_fallback(Box::new(|e| println!("Failed to generate: {:?}", e))),
+    );
 }

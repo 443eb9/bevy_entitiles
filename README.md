@@ -28,7 +28,7 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - Tilemap Mask
 - Frustum Culling ( Isometric Specific Optimization )
 
-## Show Case
+## Performance
 
 Platform: 10600KF
 
@@ -41,6 +41,24 @@ Platform: 10600KF
 
 > *Bevy 0.11.3, crate 0.1.1, 1000x1000 tiles*
 
+### Pathfinding
+
+The pathfinding algorithm is very fast.
+
+Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, we the supports asynchronized one. The algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
+
+<div>
+	<img src="./docs/imgs/pathfinding.png" width="500px">
+</div>
+
+| Size      | Time(avg of 3 tests) ms |
+| --------- | ----------------------- |
+| 100x100   | 12.00                   |
+| 500x500   | 295.67                  |
+| 1000x1000 | 1384.33                 |
+
+> *Bevy 0.12, crate 0.2.1 (dev), using `pathfinding` example*
+
 ### Wave Function Collapse
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles
@@ -51,13 +69,13 @@ In the following case, each tile has at least one corresponding color gap with i
 
 Due to the lack of optimization and the straightforward implementation of this algorithm, its execution time increases rapidly as the map size grows. And the likelihood of failure also increases.
 
-| Size  | Time(avg of 3 tests) |
-| ----- | -------------------- |
-| 5x5   | 3.92 ms              |
-| 10x10 | 33.312 ms            |
-| 20x20 | 490.950 ms           |
-| 30x30 | 2280.121 s           |
-| 50x50 | 18838.542 s          |
+| Size  | Time(avg of 3 tests) ms |
+| ----- | ----------------------- |
+| 5x5   | 3.92                    |
+| 10x10 | 33.312                  |
+| 20x20 | 490.950                 |
+| 30x30 | 2280.121                |
+| 50x50 | 18838.542               |
 
 > *Bevy 0.11.3, crate 0.2.0, None weighted, `retrace_strength` = 2*
 

@@ -25,7 +25,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::IsometricDiamond,
-        UVec2 { x: 20, y: 10 },
+        UVec2 { x: 500, y: 500 },
         Vec2 { x: 32.0, y: 16.0 },
     )
     .with_texture(
@@ -36,6 +36,8 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             filter_mode: FilterMode::Nearest,
         },
     )
+    .with_render_chunk_size(64)
+    .with_disabled_safety_check()
     .build(&mut commands);
 
     tilemap.fill_rect(
@@ -61,10 +63,10 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     commands.spawn_empty().insert(Pathfinder {
         origin: UVec2 { x: 0, y: 0 },
-        dest: UVec2 { x: 10, y: 9 },
-        allow_diagonal: true,
+        dest: UVec2 { x: 499, y: 499 },
+        allow_diagonal: false,
         tilemap: tilemap_entity,
         custom_weight: None,
-        max_step: Some(200),
+        max_step: None,
     });
 }

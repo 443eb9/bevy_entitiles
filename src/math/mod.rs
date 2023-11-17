@@ -32,7 +32,7 @@ impl FillArea {
         Self {
             origin,
             extent,
-            dest: origin + extent,
+            dest: origin + extent - 1,
         }
     }
 

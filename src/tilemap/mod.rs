@@ -228,8 +228,9 @@ impl TilemapBuilder {
             if chunk_count.x * chunk_count.y > 100 {
                 panic!(
                     "\n============================================\
-                    \nYou have too many chunks which may cause stack overflow. \
+                    \nYou have too many chunks which may cause performance issue. \
                     Max chunk count: 100, your chunk count: {}x{}={} \
+                    \nPlease decrease the map size or increase the render chunk size by calling with_render_chunk_size. \
                     \nCall `with_disabled_safety_check` if you really need to do this.\
                     \n============================================\n",
                     chunk_count.x,

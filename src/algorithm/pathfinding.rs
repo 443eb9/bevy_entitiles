@@ -1,12 +1,14 @@
 use bevy::{
     prelude::{Component, Entity, IVec2, ParallelCommands, Query, UVec2},
-    utils::{hashbrown::HashMap, HashSet},
+    utils::HashSet,
 };
 
 use crate::{
     math::extension::ManhattanDistance,
     tilemap::{algo_tilemap::PathTilemap, Tilemap},
 };
+
+use super::{HeapElement, LookupHeap};
 
 #[derive(Component, Clone, Copy)]
 pub struct PathTile {
@@ -31,12 +33,22 @@ pub struct Path {
 }
 
 impl Path {
-    pub fn step(&self) -> Option<UVec2> {
+    /// Step to next target. Or do nothing if already arrived.
+    pub fn step(&mut self) {
         if self.current_step >= self.path.len() {
-            None
-        } else {
-            Some(self.path[self.current_step])
+            return;
         }
+        self.current_step += 1;
+    }
+
+    /// Get the current target.
+    pub fn cur_target(&self) -> UVec2 {
+        self.path[self.current_step]
+    }
+
+    /// Return is arrived.
+    pub fn is_arrived(&self) -> bool {
+        self.current_step >= self.path.len()
     }
 
     pub fn get_target_tilemap(&self) -> Entity {
@@ -82,28 +94,37 @@ impl PathNode {
     }
 }
 
+impl HeapElement for PathNode {
+    #[inline]
+    fn set_index(&mut self, index: usize) {
+        self.heap_index = index
+    }
+
+    #[inline]
+    fn get_index(&self) -> usize {
+        self.heap_index
+    }
+}
+
 struct PathGrid {
     pub allow_diagonal: bool,
     pub dest: UVec2,
-    pub depth: usize,
-    pub count: usize,
     pub weights: (u32, u32),
-    pub index_to_path_node: HashMap<UVec2, PathNode>,
-    pub to_explore: Vec<Option<(u32, UVec2)>>,
+    pub lookup_heap: LookupHeap<u32, UVec2, PathNode>,
     pub explored: HashSet<UVec2>,
 }
 
 impl PathGrid {
     pub fn new(finder: &Pathfinder, root: &PathNode) -> Self {
         let weights = finder.custom_weight.unwrap_or((1, 1));
+        let mut lookup_heap: LookupHeap<u32, UVec2, PathNode> = LookupHeap::new();
+        lookup_heap.update_lookup(root.index, *root);
+        lookup_heap.insert_to_heap(root.weight(weights), root.index);
         PathGrid {
             allow_diagonal: finder.allow_diagonal,
             dest: finder.dest,
-            depth: 1,
-            count: 1,
             weights,
-            index_to_path_node: HashMap::from([(root.index, root.clone())]),
-            to_explore: Vec::from([None, Some((root.weight(weights), root.index)), None, None]),
+            lookup_heap,
             explored: HashSet::new(),
         }
     }
@@ -112,7 +133,7 @@ impl PathGrid {
         &mut self,
         node: &PathNode,
         tilemap: &Tilemap,
-        path_tiles_query: &Query<&PathTile>,
+        path_tilemap: &PathTilemap,
     ) -> Vec<UVec2> {
         let count = {
             if self.allow_diagonal {
@@ -138,7 +159,7 @@ impl PathGrid {
                     y: (node.index.y as i32 + dy),
                 };
                 if let Some(index) =
-                    self.get_or_register_new(index, self.dest, tilemap, path_tiles_query)
+                    self.get_or_register_new(index, self.dest, tilemap, path_tilemap)
                 {
                     result.push(index);
                 };
@@ -154,10 +175,7 @@ impl PathGrid {
 
     #[inline]
     pub fn is_scheduled(&self, index: UVec2) -> bool {
-        if let Some(Some(node)) = self
-            .to_explore
-            .get(self.index_to_path_node[&index].heap_index)
-        {
+        if let Some(node) = self.lookup_heap.heap_get(index) {
             node.1 == index
         } else {
             false
@@ -165,11 +183,11 @@ impl PathGrid {
     }
 
     pub fn get(&self, index: UVec2) -> Option<&PathNode> {
-        self.index_to_path_node.get(&index)
+        self.lookup_heap.map_get(&index)
     }
 
     pub fn get_mut(&mut self, index: UVec2) -> Option<&mut PathNode> {
-        self.index_to_path_node.get_mut(&index)
+        self.lookup_heap.map_get_mut(&index)
     }
 
     fn get_or_register_new(
@@ -177,7 +195,7 @@ impl PathGrid {
         index: IVec2,
         dest: UVec2,
         tilemap: &Tilemap,
-        path_tiles_query: &Query<&PathTile>,
+        path_tilemap: &PathTilemap,
     ) -> Option<UVec2> {
         if tilemap.is_out_of_tilemap_ivec(index) {
             return None;
@@ -189,137 +207,37 @@ impl PathGrid {
             return None;
         }
 
-        let Some(tile_entity) = tilemap.get(index) else {
+        let Some(tile) = path_tilemap.get_tile(index) else {
             return None;
         };
 
-        let Ok(tile) = path_tiles_query.get(tile_entity) else {
-            return None;
-        };
-
-        if !self.index_to_path_node.contains_key(&index) {
-            self.index_to_path_node
-                .insert(index, PathNode::new(index, 0, dest, 0, tile.cost));
+        if !self.lookup_heap.lookup_contains(&index) {
+            self.lookup_heap
+                .update_lookup(index, PathNode::new(index, 0, dest, 0, tile.cost));
         }
 
         Some(index)
     }
 
-    pub fn schedule(&mut self, node: &UVec2) {
-        if self.to_explore.len() == self.count + 1 {
-            self.expand();
-        }
-
-        self.count += 1;
-        let node = self.index_to_path_node.get_mut(node).unwrap();
-        node.heap_index = self.count;
-        self.to_explore[self.count] = Some((node.weight(self.weights), node.index));
-        self.shift_up(self.count);
+    pub fn schedule(&mut self, index: &UVec2) {
+        let node = self.lookup_heap.map_get(index).unwrap();
+        let key_heap = node.weight(self.weights);
+        let key_map = node.index;
+        self.lookup_heap.insert_to_heap(key_heap, key_map);
     }
 
     pub fn pop_closest(&mut self) -> Option<PathNode> {
-        if self.count == 0 {
-            return None;
+        if let Some(min) = self.lookup_heap.pop_min() {
+            self.explored.insert(min.index);
+            Some(min)
+        } else {
+            None
         }
-
-        let first = self.to_explore[1].unwrap();
-        let last = self.to_explore[self.count].unwrap();
-
-        self.index_to_path_node.get_mut(&last.1).unwrap().heap_index = 1;
-
-        self.to_explore[1] = self.to_explore[self.count];
-        self.to_explore[self.count] = None;
-
-        self.count -= 1;
-
-        self.shift_down(1);
-        self.explored.insert(first.1);
-
-        Some(self.index_to_path_node[&first.1])
     }
 
+    #[inline]
     pub fn is_empty(&self) -> bool {
-        self.count == 0
-    }
-
-    fn expand(&mut self) {
-        self.to_explore
-            .extend_from_slice(&vec![None; self.depth * 2]);
-        self.depth += 1;
-    }
-
-    fn shift_up(&mut self, index: usize) {
-        let Some(mut this) = self.to_explore[index] else {
-            return;
-        };
-        let Some(mut parent) = self.to_explore[index / 2] else {
-            return;
-        };
-
-        while parent.0 > this.0 {
-            let (swapped_this, _) = self.swap_node(this.1, parent.1);
-
-            if swapped_this == 1 {
-                break;
-            } else {
-                this = self.to_explore[swapped_this].unwrap();
-                parent = self.to_explore[swapped_this / 2].unwrap();
-            }
-        }
-    }
-
-    fn shift_down(&mut self, index: usize) {
-        if index * 2 >= self.count {
-            return;
-        };
-        let Some(mut this) = self.to_explore[index] else {
-            return;
-        };
-        let mut child = {
-            let left = self.to_explore[index * 2].unwrap();
-            let right = self.to_explore[index * 2 + 1].unwrap();
-            if left.0 <= right.0 {
-                left
-            } else {
-                right
-            }
-        };
-
-        while child.0 < this.0 {
-            let (swapped_this, _) = self.swap_node(this.1, child.1);
-
-            if swapped_this * 2 > self.count {
-                break;
-            } else {
-                this = self.to_explore[swapped_this].unwrap();
-                child = {
-                    let left = self.to_explore[swapped_this * 2].unwrap();
-                    if let Some(right) = self.to_explore[swapped_this * 2 + 1] {
-                        if left.0 < right.0 {
-                            left
-                        } else {
-                            right
-                        }
-                    } else {
-                        left
-                    }
-                };
-            }
-        }
-    }
-
-    /// Returns the heap_index after swap.
-    /// (swapped_this_index, swapped_other_index)
-    fn swap_node(&mut self, lhs_index: UVec2, rhs_index: UVec2) -> (usize, usize) {
-        let lhs_heap_index = self.get(lhs_index).unwrap().heap_index;
-        let rhs_heap_index = self.get(rhs_index).unwrap().heap_index;
-
-        self.to_explore.swap(lhs_heap_index, rhs_heap_index);
-
-        self.get_mut(lhs_index).unwrap().heap_index = rhs_heap_index;
-        self.get_mut(rhs_index).unwrap().heap_index = lhs_heap_index;
-
-        (rhs_heap_index, lhs_heap_index)
+        self.lookup_heap.is_empty()
     }
 }
 
@@ -330,15 +248,13 @@ pub fn pathfinding(
 ) {
     finders.par_iter_mut().for_each(|(finder_entity, finder)| {
         #[cfg(feature = "debug")]
-        println!("pathfinding start! {} -> {}", finder.origin, finder.dest);
+        let start = std::time::SystemTime::now();
         let (tilemap, path_tilemap) = &tilemaps_query.get(finder.tilemap).unwrap();
 
         // check if origin or dest doesn't exists
         if tilemap.is_out_of_tilemap_uvec(finder.origin)
             || tilemap.is_out_of_tilemap_uvec(finder.dest)
         {
-            #[cfg(feature = "debug")]
-            println!("out of tilemap");
             complete_pathfinding(&commands, finder_entity, None);
             return;
         };
@@ -372,20 +288,16 @@ pub fn pathfinding(
                 }
 
                 #[cfg(feature = "debug")]
-                println!(
-                    "pathfinding finished! after {} steps, length = {}",
-                    step,
-                    path.path.len()
-                );
+                println!("pathfound: {} ms", start.elapsed().unwrap().as_millis());
                 complete_pathfinding(&commands, finder_entity, Some(path));
                 return;
             }
 
             let neighbours = {
                 if finder.allow_diagonal {
-                    path_grid.neighbours(&current, tilemap, &path_tiles_query)
+                    path_grid.neighbours(&current, tilemap, &path_tilemap)
                 } else {
-                    path_grid.neighbours(&current, tilemap, &path_tiles_query)
+                    path_grid.neighbours(&current, tilemap, &path_tilemap)
                 }
             };
 
@@ -407,7 +319,6 @@ pub fn pathfinding(
             }
         }
 
-        println!("stopped at {}", step);
         complete_pathfinding(&commands, finder_entity, None);
     });
 }

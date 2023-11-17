@@ -497,7 +497,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_entitiles"
-version = "0.1.1"
+version = "0.2.1"
 dependencies = [
  "bevy",
  "indexmap 2.1.0",

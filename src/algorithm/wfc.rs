@@ -20,7 +20,7 @@ use crate::{
     tilemap::{TileBuilder, Tilemap},
 };
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, PartialEq, Eq)]
 pub enum WfcMode {
     #[default]
     /// Randomly pick one from the possibilities.
@@ -38,25 +38,28 @@ pub enum WfcMode {
 /// This feature is still in preview. It may fail to generate a map and stuck in an infinite loop.
 #[derive(Component)]
 pub struct WfcRunner {
-    pub rule: Vec<[IndexSet<u16>; 4]>,
-    pub mode: WfcMode,
-    pub sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
-    pub seed: Option<u64>,
-    pub area: FillArea,
-    pub step_interval: Option<f32>,
+    rule: Vec<[IndexSet<u16>; 4]>,
+    mode: WfcMode,
+    sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
+    seed: Option<u64>,
+    area: FillArea,
+    step_interval: Option<f32>,
+    max_retrace_factor: u32,
+    max_retrace_time: u32,
+    fallback: Option<Box<dyn Fn(Entity) + Send + Sync>>,
 }
 
 impl WfcRunner {
     /// The order of the directions in config should be: up, right, left, down.
-    /// 
+    ///
     /// Don't input `weights_path` and `custom_sampler` at the same time.
-    /// 
+    ///
     /// Please make sure the length of the `weights` is the same as the length of the `rule`.
-    /// 
+    ///
     /// **Currently not implemented:**
     /// `step_interval` is the interval between each step in miliseconds.
     /// If you want to visualize the process, you can set this to some value.
-    /// 
+    ///
     /// `seed` is the seed of the random number generator. Leave it `None` if you want to use a random seed.
     pub fn from_config(
         config_path: String,
@@ -111,7 +114,27 @@ impl WfcRunner {
             area,
             step_interval,
             seed,
+            max_retrace_factor: 8,
+            max_retrace_time: 200,
+            fallback: None,
         }
+    }
+
+    /// Set the retrace settings. This will affect the **probability of success**.
+    /// The higher those parameters are, the higher the probability of success is.
+    /// But it will also dramatically increase the time cost.
+    ///
+    /// Default: `max_retrace_factor` = 8, `max_retrace_time` = 200
+    pub fn with_retrace_settings(mut self, max_retrace_factor: u32, max_retrace_time: u32) -> Self {
+        self.max_retrace_factor = max_retrace_factor;
+        self.max_retrace_time = max_retrace_time;
+        self
+    }
+
+    /// Set the fallback function. This function will be called when the algorithm failed to generate a map.
+    pub fn with_fallback(mut self, fallback: Box<dyn Fn(Entity) + Send + Sync>) -> Self {
+        self.fallback = Some(fallback);
+        self
     }
 }
 
@@ -137,23 +160,27 @@ struct WfcGrid {
     grid: Vec<WfcTile>,
     rng: StdRng,
     rule: Vec<[IndexSet<u16>; 4]>,
+    sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
     heap: Vec<(u16, UVec2)>,
     remaining: usize,
     retrace_strength: u32,
-    sampler: Option<Box<dyn Fn(&IndexSet<u16>, UVec2) -> u16 + Send + Sync>>,
+    max_retrace_factor: u32,
+    max_retrace_time: u32,
+    retraced_time: u32,
+    fallback: Option<Box<dyn Fn(Entity) + Send + Sync>>,
 }
 
 impl WfcGrid {
-    pub fn from_collapser(collapser: &mut WfcRunner) -> Self {
-        let mut grid = Vec::with_capacity(collapser.area.size());
-        let mut heap = Vec::with_capacity(collapser.area.size() + 1);
-        let max_psbs = collapser.rule.len() as u16;
+    pub fn from_runner(runner: &mut WfcRunner) -> Self {
+        let mut grid = Vec::with_capacity(runner.area.size());
+        let mut heap = Vec::with_capacity(runner.area.size() + 1);
+        let max_psbs = runner.rule.len() as u16;
         // a placeholder
         heap.push((0, UVec2::new(0, 0)));
         let mut heap_index = 1;
 
-        for y in 0..collapser.area.extent.y {
-            for x in 0..collapser.area.extent.x {
+        for y in 0..runner.area.extent.y {
+            for x in 0..runner.area.extent.x {
                 grid.push(WfcTile {
                     heap_index,
                     index: UVec2 { x, y },
@@ -162,25 +189,29 @@ impl WfcGrid {
                     psbs: (0..max_psbs).collect(),
                 });
 
-                heap.push((collapser.rule.len() as u16, UVec2 { x, y }));
+                heap.push((runner.rule.len() as u16, UVec2 { x, y }));
                 heap_index += 1;
             }
         }
 
         WfcGrid {
             grid,
-            size: collapser.area.extent,
+            size: runner.area.extent,
             history: vec![],
-            mode: collapser.mode.clone(),
-            rule: collapser.rule.clone(),
-            rng: match collapser.seed {
+            mode: runner.mode.clone(),
+            rule: runner.rule.clone(),
+            rng: match runner.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
                 None => StdRng::from_entropy(),
             },
             heap,
-            remaining: collapser.area.size(),
+            remaining: runner.area.size(),
             retrace_strength: 1,
-            sampler: collapser.sampler.take(),
+            max_retrace_factor: runner.max_retrace_factor,
+            max_retrace_time: runner.max_retrace_time,
+            retraced_time: 0,
+            sampler: runner.sampler.take(),
+            fallback: runner.fallback.take(),
         }
     }
 
@@ -243,7 +274,7 @@ impl WfcGrid {
         let index = tile.index;
         let entropy = tile.psbs.len() as usize;
 
-        let rd = match &self.mode {
+        let psb = match &self.mode {
             WfcMode::NonWeighted => self.rng.sample(Uniform::new(0, entropy)),
             WfcMode::Weighted(w) => {
                 let weights = tile.psbs.iter().map(|p| w[*p as usize]).collect::<Vec<_>>();
@@ -252,17 +283,22 @@ impl WfcGrid {
             WfcMode::CustomSampler => self.sampler.as_ref().unwrap()(&tile.psbs, index) as usize,
         };
 
-        if entropy == 1 {
-            self.retrace_strength *= 2;
+        self.retrace_strength *= self.rng.sample(Uniform::new(2, self.max_retrace_factor));
+
+        let mode = self.mode.clone();
+        let tile = self.get_tile_mut(index).unwrap();
+
+        // because of the existing of ownership,
+        // we can't map the indices to possibilities when mathing.
+        if mode == WfcMode::CustomSampler {
+            tile.texture_index = Some(psb as u16);
+            tile.psbs = IndexSet::from([psb as u16]);
         } else {
-            self.retrace_strength = 1;
+            tile.texture_index = Some(tile.psbs[psb]);
+            tile.psbs = IndexSet::from([tile.psbs[psb]]);
         }
 
-        let tile = self.get_tile_mut(index).unwrap();
-        tile.texture_index = Some(tile.psbs[rd]);
         tile.collapsed = true;
-
-        tile.psbs = IndexSet::from([tile.psbs[rd]]);
 
         self.spread_constraint(index);
     }
@@ -328,6 +364,8 @@ impl WfcGrid {
             // #[cfg(feature = "debug")]
             // self.print_grid();
         }
+
+        self.retrace_strength = 1;
     }
 
     pub fn retrace(&mut self) {
@@ -340,6 +378,7 @@ impl WfcGrid {
         self.grid = hist.grid;
         self.remaining = hist.remaining;
         self.heap = hist.heap;
+        self.retraced_time += 1;
         #[cfg(feature = "debug_verbose")]
         {
             self.validate();
@@ -508,10 +547,10 @@ pub fn wave_function_collapse(
         .for_each(|(entity, mut tilemap, mut collapser)| {
             #[cfg(feature = "debug")]
             let start = std::time::SystemTime::now();
-            let mut wfc_grid = WfcGrid::from_collapser(&mut collapser);
+            let mut wfc_grid = WfcGrid::from_runner(&mut collapser);
             wfc_grid.collapse(wfc_grid.pick_random());
 
-            while wfc_grid.remaining > 0 {
+            while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
                 #[cfg(feature = "debug_verbose")]
                 println!("=============================");
                 let min_tile = wfc_grid.pop_min();
@@ -530,7 +569,11 @@ pub fn wave_function_collapse(
             println!("wfc complete in: {:?}", start.elapsed().unwrap());
 
             commands.command_scope(|mut c| {
-                wfc_grid.apply_map(&mut c, &mut tilemap);
+                if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
+                    wfc_grid.apply_map(&mut c, &mut tilemap);
+                } else if let Some(fallback) = wfc_grid.fallback {
+                    fallback(entity);
+                }
                 c.entity(entity).remove::<WfcRunner>();
             })
         });
