@@ -21,5 +21,7 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(debug::EntiTilesDebugPlugin);
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntitilesAlgorithmPlugin);
+        #[cfg(any(feature = "physics_rapier", feature = "physics_xpbd"))]
+        app.add_plugins(tilemap::physics::TilemapPhysicsPlugin);
     }
 }

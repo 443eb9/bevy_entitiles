@@ -25,6 +25,10 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - Tilemap Mask
 - Frustum Culling ( Isometric Specific Optimization )
 
+## Known Issues Currently Unresolved
+
+- The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's the reason why I didn't switch to `LookupHeap` )
+
 ## Performance
 
 Platform: 10600KF
@@ -61,7 +65,7 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles
 
 <div>
-	<img src="./docs/imgs/wfc.png" width="500px">
+	<video src="./docs/vids/wfc.mp4" controls="controls" width="500"></video>
 </div>
 
 | Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |

@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{extension::ManhattanDistance, tilemap},
+    math::extension::ManhattanDistance,
     tilemap::{algo_tilemap::PathTilemap, Tilemap},
 };
 
@@ -236,7 +236,7 @@ impl PathGrid {
     }
 
     pub fn pop_closest(&mut self) -> Option<PathNode> {
-        if let Some(min) = self.lookup_heap.pop_min() {
+        if let Some(min) = self.lookup_heap.pop() {
             self.explored.insert(min.index);
             Some(min)
         } else {

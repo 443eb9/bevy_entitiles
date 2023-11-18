@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Changed, Commands, Or, Query, Res, ResMut, Without},
+    prelude::{Commands, Query, Res, ResMut, Without},
     render::renderer::{RenderDevice, RenderQueue},
     time::Time,
 };

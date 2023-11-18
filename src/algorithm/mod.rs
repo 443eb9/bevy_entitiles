@@ -7,7 +7,7 @@ use bevy::{
 
 use self::{
     pathfinding::{pathfinding, pathfinding_async},
-    wfc::wave_function_collapse,
+    wfc::{wave_function_collapse, wave_function_collapse_async},
 };
 
 pub mod pathfinding;
@@ -19,7 +19,12 @@ impl Plugin for EntitilesAlgorithmPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(
             Update,
-            (pathfinding, pathfinding_async, wave_function_collapse),
+            (
+                pathfinding,
+                pathfinding_async,
+                wave_function_collapse,
+                wave_function_collapse_async,
+            ),
         );
     }
 }
@@ -57,7 +62,7 @@ where
         }
     }
 
-    pub fn pop_min(&mut self) -> Option<V> {
+    pub fn pop(&mut self) -> Option<V> {
         if self.count == 0 {
             return None;
         }

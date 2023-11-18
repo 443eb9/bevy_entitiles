@@ -32,6 +32,8 @@ bevy = { version = "0.12.0", default-features = false, features = [
 ron = { version = "0.8.1", optional = true }
 rand = { version = "0.8.5", optional = true }
 serde = { version = "1.0.192", optional = true }
+bevy_xpbd_2d = { version = "0.3.2", optional = true }
+bevy_rapier2d = { version = "0.23.0", optional = true }
 
 [dev-dependencies]
 bevy = { version = "0.12.0", default-features = false, features = [
@@ -53,6 +55,8 @@ bevy = { version = "0.12.0", default-features = false, features = [
 default = []
 debug = []
 debug_verbose = []
+physics_xpbd = ["dep:bevy_xpbd_2d"]
+physics_rapier = ["dep:bevy_rapier2d"]
 algorithm = ["dep:rand", "dep:ron", "dep:serde"]
 
 [[example]]
@@ -74,3 +78,13 @@ required-features = ["debug", "algorithm"]
 name = "wfc"
 path = "examples/wfc.rs"
 required-features = ["debug", "algorithm"]
+
+[[example]]
+name = "physics_xpbd"
+path = "examples/physics_xpbd.rs"
+required-features = ["debug", "physics_xpbd"]
+
+[[example]]
+name = "physics_rapier"
+path = "examples/physics_rapier.rs"
+required-features = ["debug", "physics_rapier"]

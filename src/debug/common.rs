@@ -1,11 +1,8 @@
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
-    prelude::{Component, Query, Res, Resource, With, UVec2},
-    text::Text, utils::HashMap,
+    prelude::{Component, Query, Res, With},
+    text::Text,
 };
-
-#[cfg(feature = "algorithm")]
-use crate::algorithm::pathfinding::{Path, PathNode};
 
 #[derive(Component)]
 pub struct DebugFpsText;

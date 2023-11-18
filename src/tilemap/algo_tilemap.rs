@@ -10,6 +10,9 @@ use super::Tilemap;
 
 #[derive(Component)]
 pub struct PathTilemap {
+    #[allow(unused)]
+    // TODO: do something with this.
+    // I mean I have no idea what to do with this so far.
     pub(crate) tilemap: Entity,
     pub(crate) tiles: HashMap<UVec2, PathTile>,
 }
