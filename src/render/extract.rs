@@ -35,7 +35,7 @@ pub struct ExtractedTilemap {
 pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
-    pub grid_index: UVec2,
+    pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
 }
@@ -92,7 +92,7 @@ pub fn extract_tiles(
             ExtractedTile {
                 render_chunk_index: tile.render_chunk_index,
                 tilemap: tile.tilemap_id,
-                grid_index: tile.grid_index,
+                index: tile.index,
                 texture_index: tile.texture_index,
                 color: tile.color,
             },

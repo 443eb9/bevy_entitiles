@@ -64,21 +64,28 @@ pub fn debug_startup(mut commands: Commands) {
     ));
 }
 
-pub fn validate_heap<K: PartialOrd + Debug, V: Debug>(tree: &Vec<(K, V)>, asc: bool) {
+pub fn validate_heap<K: PartialOrd + Debug, V: Debug>(tree: &Vec<Option<(K, V)>>, asc: bool) {
     for i in 1..tree.len() {
-        if let Some(other) = tree.get(i * 2) {
-            if asc {
-                assert!(tree[i].0 <= other.0, "validate failed at {:?} <= {:?}", tree[i], other);
-            } else {
-                assert!(tree[i].0 >= other.0, "validate failed at {:?} >= {:?}", tree[i], other);
+        if let Some((k1, _)) = &tree[i] {
+            let left = i * 2;
+            let right = i * 2 + 1;
+            if left < tree.len() {
+                if let Some((k2, _)) = &tree[left] {
+                    if asc {
+                        assert!(k1 <= k2, "heap validation failed at index {}", i);
+                    } else {
+                        assert!(k1 >= k2, "heap validation failed at index {}", i);
+                    }
+                }
             }
-        }
-
-        if let Some(other) = tree.get(i * 2 + 1) {
-            if asc {
-                assert!(tree[i].0 <= other.0, "validate failed at {:?} <= {:?}", tree[i], other);
-            } else {
-                assert!(tree[i].0 >= other.0, "validate failed at {:?} >= {:?}", tree[i], other);
+            if right < tree.len() {
+                if let Some((k2, _)) = &tree[right] {
+                    if asc {
+                        assert!(k1 <= k2, "heap validation failed at index {}", i);
+                    } else {
+                        assert!(k1 >= k2, "heap validation failed at index {}", i);
+                    }
+                }
             }
         }
     }

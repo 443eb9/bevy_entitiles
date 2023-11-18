@@ -4,11 +4,11 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::pathfinding::{PathTile, Pathfinder},
+    algorithm::pathfinding::{AsyncPathfinder, PathTile, Pathfinder},
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
-    tilemap::{TileBuilder, TileType, TilemapBuilder},
+    tilemap::{algo_tilemap::PathTilemap, TileBuilder, TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
 
@@ -25,7 +25,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::IsometricDiamond,
-        UVec2 { x: 20, y: 10 },
+        UVec2 { x: 500, y: 500 },
         Vec2 { x: 32.0, y: 16.0 },
     )
     .with_texture(
@@ -36,6 +36,8 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             filter_mode: FilterMode::Nearest,
         },
     )
+    .with_render_chunk_size(64)
+    .with_disabled_safety_check()
     .build(&mut commands);
 
     tilemap.fill_rect(
@@ -50,18 +52,27 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
-    tilemap.fill_path_rect_custom(&mut commands, FillArea::full(&tilemap), |_| PathTile {
+    let mut path_tilemap = PathTilemap::new(tilemap_entity);
+    path_tilemap.fill_path_rect_custom(&tilemap, FillArea::full(&tilemap), |_| PathTile {
         cost: rand::random::<u32>() % 10,
     });
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands
+        .entity(tilemap_entity)
+        .insert((tilemap, path_tilemap));
 
-    commands.spawn_empty().insert(Pathfinder {
-        origin: UVec2 { x: 0, y: 0 },
-        dest: UVec2 { x: 10, y: 9 },
-        allow_diagonal: true,
-        tilemap: tilemap_entity,
-        custom_weight: None,
-        max_step: Some(200),
-    });
+    commands.spawn_empty().insert((
+        Pathfinder {
+            origin: UVec2 { x: 0, y: 0 },
+            dest: UVec2 { x: 499, y: 499 },
+            allow_diagonal: false,
+            tilemap: tilemap_entity,
+            custom_weight: None,
+            max_step: None,
+        },
+        // remove the AsyncPathfinder if you want to synchronize the pathfinding
+        AsyncPathfinder {
+            max_step_per_frame: 300,
+        },
+    ));
 }

@@ -14,9 +14,9 @@ use crate::{
 };
 
 #[cfg(feature = "algorithm")]
-use crate::algorithm::pathfinding::PathTile;
+pub mod algo_tilemap;
 
-pub const TILEMAP_MESH_ATTR_GRID_INDEX: MeshVertexAttribute =
+pub const TILEMAP_MESH_ATTR_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
 pub const TILEMAP_MESH_ATTR_TEXTURE_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("TextureIndex", 186541653135, VertexFormat::Uint32);
@@ -62,16 +62,16 @@ impl TileTexture {
 
 #[derive(Clone, Copy)]
 pub struct TileBuilder {
-    grid_index: UVec2,
+    index: UVec2,
     texture_index: u32,
     color: Vec4,
 }
 
 impl TileBuilder {
     /// Create a new tile builder.
-    pub fn new(grid_index: UVec2, texture_index: u32) -> Self {
+    pub fn new(index: UVec2, texture_index: u32) -> Self {
         Self {
-            grid_index,
+            index,
             texture_index,
             color: Vec4::ONE,
         }
@@ -89,7 +89,7 @@ impl TileBuilder {
     ///
     /// Use `Tilemap::set` instead.
     pub fn build(&self, commands: &mut Commands, tilemap: &Tilemap) -> Entity {
-        let render_chunk_index_2d = self.grid_index / tilemap.render_chunk_size;
+        let render_chunk_index_2d = self.index / tilemap.render_chunk_size;
         let render_chunk_index = {
             if tilemap.size.x % tilemap.render_chunk_size == 0 {
                 render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size)
@@ -103,7 +103,7 @@ impl TileBuilder {
             .spawn(Tile {
                 render_chunk_index,
                 tilemap_id: tilemap.id,
-                grid_index: self.grid_index,
+                index: self.index,
                 texture_index: self.texture_index,
                 color: self.color,
             })
@@ -115,7 +115,7 @@ impl TileBuilder {
 pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
-    pub grid_index: UVec2,
+    pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
 }
@@ -228,8 +228,9 @@ impl TilemapBuilder {
             if chunk_count.x * chunk_count.y > 100 {
                 panic!(
                     "\n============================================\
-                    \nYou have too many chunks which may cause stack overflow. \
+                    \nYou have too many chunks which may cause performance issue. \
                     Max chunk count: 100, your chunk count: {}x{}={} \
+                    \nPlease decrease the map size or increase the render chunk size by calling with_render_chunk_size. \
                     \nCall `with_disabled_safety_check` if you really need to do this.\
                     \n============================================\n",
                     chunk_count.x,
@@ -279,23 +280,23 @@ pub struct Tilemap {
 
 impl Tilemap {
     /// Get a tile.
-    pub fn get(&self, grid_index: UVec2) -> Option<Entity> {
-        if self.is_out_of_tilemap_uvec(grid_index) {
+    pub fn get(&self, index: UVec2) -> Option<Entity> {
+        if self.is_out_of_tilemap_uvec(index) {
             return None;
         }
 
-        self.get_unchecked(grid_index)
+        self.get_unchecked(index)
     }
 
-    pub(crate) fn get_unchecked(&self, grid_index: UVec2) -> Option<Entity> {
-        self.tiles[(grid_index.y * self.size.x + grid_index.x) as usize]
+    pub(crate) fn get_unchecked(&self, index: UVec2) -> Option<Entity> {
+        self.tiles[(index.y * self.size.x + index.x) as usize]
     }
 
     /// Set a tile.
     ///
     /// Overwrites the tile if it already exists.
     pub fn set(&mut self, commands: &mut Commands, tile_builder: TileBuilder) {
-        if self.is_out_of_tilemap_uvec(tile_builder.grid_index) {
+        if self.is_out_of_tilemap_uvec(tile_builder.index) {
             return;
         }
 
@@ -303,7 +304,7 @@ impl Tilemap {
     }
 
     pub(crate) fn set_unchecked(&mut self, commands: &mut Commands, tile_builder: TileBuilder) {
-        let index = (tile_builder.grid_index.y * self.size.x + tile_builder.grid_index.x) as usize;
+        let index = (tile_builder.index.y * self.size.x + tile_builder.index.x) as usize;
         if let Some(previous) = self.tiles[index] {
             commands.entity(previous).despawn();
         }
@@ -312,23 +313,23 @@ impl Tilemap {
     }
 
     /// Remove a tile.
-    pub fn remove(&mut self, commands: &mut Commands, grid_index: UVec2) {
-        if self.is_out_of_tilemap_uvec(grid_index) || self.get(grid_index).is_none() {
+    pub fn remove(&mut self, commands: &mut Commands, index: UVec2) {
+        if self.is_out_of_tilemap_uvec(index) || self.get(index).is_none() {
             return;
         }
 
-        self.remove_unchecked(commands, grid_index);
+        self.remove_unchecked(commands, index);
     }
 
-    pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, grid_index: UVec2) {
-        let index = (grid_index.y * self.size.x + grid_index.x) as usize;
+    pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, index: UVec2) {
+        let index = (index.y * self.size.x + index.x) as usize;
         commands.entity(self.tiles[index].unwrap()).despawn();
         self.tiles[index] = None;
     }
 
     /// Fill a rectangle area with tiles.
     ///
-    /// You don't need to assign the `grid_index` in the `tile_builder`.
+    /// You don't need to assign the `index` in the `tile_builder`.
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
@@ -338,46 +339,8 @@ impl Tilemap {
         let mut builder = tile_builder.clone();
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                builder.grid_index = UVec2::new(x, y);
+                builder.index = UVec2::new(x, y);
                 self.set_unchecked(commands, builder.clone());
-            }
-        }
-    }
-
-    /// Set path-finding data using a custom function.
-    /// Before fill path, you need to fill the tiles first.
-    /// Those empty indices will be ignored.
-    #[cfg(feature = "algorithm")]
-    pub fn fill_path_rect_custom(
-        &mut self,
-        commands: &mut Commands,
-        area: FillArea,
-        mut path_tile: impl FnMut(UVec2) -> PathTile,
-    ) {
-        for y in area.origin.y..=area.dest.y {
-            for x in area.origin.x..=area.dest.x {
-                if let Some(tile) = self.get_unchecked(UVec2::new(x, y)) {
-                    commands.entity(tile).insert(path_tile(UVec2::new(x, y)));
-                }
-            }
-        }
-    }
-
-    /// Fill path-finding data using `PathTile`.
-    /// Before fill path, you need to fill the tiles first.
-    /// Those empty indices will be ignored.
-    #[cfg(feature = "algorithm")]
-    pub fn fill_path_rect(
-        &mut self,
-        commands: &mut Commands,
-        area: FillArea,
-        path_tile: &PathTile,
-    ) {
-        for y in area.origin.y..=area.dest.y {
-            for x in area.origin.x..=area.dest.x {
-                if let Some(tile) = self.get_unchecked(UVec2::new(x, y)) {
-                    commands.entity(tile).insert(path_tile.clone());
-                }
             }
         }
     }
@@ -402,15 +365,15 @@ impl Tilemap {
         }
     }
 
-    pub fn is_out_of_tilemap_uvec(&self, grid_index: UVec2) -> bool {
-        grid_index.x >= self.size.x || grid_index.y >= self.size.y
+    pub fn is_out_of_tilemap_uvec(&self, index: UVec2) -> bool {
+        index.x >= self.size.x || index.y >= self.size.y
     }
 
-    pub fn is_out_of_tilemap_ivec(&self, grid_index: IVec2) -> bool {
-        grid_index.x < 0
-            || grid_index.y < 0
-            || grid_index.x >= self.size.x as i32
-            || grid_index.y >= self.size.y as i32
+    pub fn is_out_of_tilemap_ivec(&self, index: IVec2) -> bool {
+        index.x < 0
+            || index.y < 0
+            || index.x >= self.size.x as i32
+            || index.y >= self.size.y as i32
     }
 
     /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.

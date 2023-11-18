@@ -3,7 +3,7 @@
 struct VertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec3<f32>,
-    @location(1) grid_index: vec2<f32>,
+    @location(1) index: vec2<f32>,
     @location(2) color: vec4<f32>,
     @location(3) texture_index: u32,
 }

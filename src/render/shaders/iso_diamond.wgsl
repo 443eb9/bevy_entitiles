@@ -4,7 +4,7 @@
 
 fn get_mesh_center(input: VertexInput) -> vec2<f32> {
     return vec2<f32>(
-        (input.grid_index.x - input.grid_index.y - 1.) / 2. * tilemap.tile_render_size.x,
-        (input.grid_index.x + input.grid_index.y) / 2. * tilemap.tile_render_size.y
+        (input.index.x - input.index.y - 1.) / 2. * tilemap.tile_render_size.x,
+        (input.index.x + input.index.y) / 2. * tilemap.tile_render_size.y
     );
 }
