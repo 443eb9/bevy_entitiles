@@ -13,7 +13,7 @@ use bevy_entitiles::{
     tilemap::{TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
-use rand::Rng;
+use rand::{distributions::Uniform, Rng};
 
 fn main() {
     App::new()
@@ -41,25 +41,26 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     )
     .build(&mut commands);
 
-    // The following code is NOT reasonable for every project.
+    // The following code is NOT suitable for every project.
     // I just want to show you the full functionality.
     // Please adjust them before you run the program.
     commands.entity(tilemap_entity).insert(
         WfcRunner::from_config(
             "examples/wfc_config.ron".to_string(),
-            None,
-            // If you want to make custom_sampler work, replace the None with the commented code below.
-            None,
-            // just a simple example, you can use some noise function
-            // Some(Box::new(|tile| {
-            //     let psbs = tile.get_vec_psbs();
-            //     psbs[rand::thread_rng().sample(rand::distributions::Uniform::from(0..psbs.len()))]
-            // })),
             FillArea::full(&tilemap),
             None,
             None,
         )
-        .with_retrace_settings(8, 10000)
-        .with_fallback(Box::new(|e| println!("Failed to generate: {:?}", e))),
+        // just a simple example, you can use some noise function
+        .with_custom_sampler(Box::new(|tile, rng| {
+            let psbs = tile.get_psbs_vec();
+            psbs[rng.sample(Uniform::new(0, psbs.len()))]
+        }))
+        // use weights OR custom_sampler
+        // .with_weights("examples/wfc_weights.ron".to_string())
+        .with_retrace_settings(None, Some(10000))
+        .with_fallback(Box::new(|_, e, _, _| {
+            println!("Failed to generate: {:?}", e)
+        })),
     );
 }

@@ -4,7 +4,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::pathfinding::{PathTile, Pathfinder},
+    algorithm::pathfinding::{AsyncPathfinder, PathTile, Pathfinder},
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
@@ -61,12 +61,18 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         .entity(tilemap_entity)
         .insert((tilemap, path_tilemap));
 
-    commands.spawn_empty().insert(Pathfinder {
-        origin: UVec2 { x: 0, y: 0 },
-        dest: UVec2 { x: 499, y: 499 },
-        allow_diagonal: false,
-        tilemap: tilemap_entity,
-        custom_weight: None,
-        max_step: None,
-    });
+    commands.spawn_empty().insert((
+        Pathfinder {
+            origin: UVec2 { x: 0, y: 0 },
+            dest: UVec2 { x: 499, y: 499 },
+            allow_diagonal: false,
+            tilemap: tilemap_entity,
+            custom_weight: None,
+            max_step: None,
+        },
+        // remove the AsyncPathfinder if you want to synchronize the pathfinding
+        AsyncPathfinder {
+            max_step_per_frame: 300,
+        },
+    ));
 }

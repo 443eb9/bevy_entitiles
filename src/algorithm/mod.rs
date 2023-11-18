@@ -5,7 +5,10 @@ use bevy::{
     utils::HashMap,
 };
 
-use self::{pathfinding::pathfinding, wfc::wave_function_collapse};
+use self::{
+    pathfinding::{pathfinding, pathfinding_async},
+    wfc::wave_function_collapse,
+};
 
 pub mod pathfinding;
 pub mod wfc;
@@ -14,7 +17,10 @@ pub struct EntitilesAlgorithmPlugin;
 
 impl Plugin for EntitilesAlgorithmPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, (pathfinding, wave_function_collapse));
+        app.add_systems(
+            Update,
+            (pathfinding, pathfinding_async, wave_function_collapse),
+        );
     }
 }
 
@@ -23,6 +29,7 @@ pub trait HeapElement {
     fn get_index(&self) -> usize;
 }
 
+#[derive(Debug, Clone)]
 pub struct LookupHeap<KHeap, KMap, V>
 where
     KHeap: Ord + Copy + Debug,
@@ -79,7 +86,8 @@ where
 
         None
     }
-    pub fn insert_to_heap(&mut self, key_heap: KHeap, key_map: KMap) {
+
+    pub fn insert_heap(&mut self, key_heap: KHeap, key_map: KMap) {
         if self.heap.len() == self.count + 1 {
             self.expand();
         }

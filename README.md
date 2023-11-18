@@ -2,8 +2,6 @@
 
 A tilemap library for bevy. With many algorithms built in.
 
-This crate is still in need of **optimization and development**. ~~So don't use this in your formal projects.~~ Anyway, I think it's already capable to be a part of your project.
-
 Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first. I took this crate as the reference and learnt the basis of bevy rendering.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
@@ -13,12 +11,11 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 ## Currently Working On
 
 - Optimize Frustum Culling
-- Optimize the data structure of wfc and pathfinding
 
 ## Future Goals
 
 - Wave Function Collapse ( Optimization )
-- Pathfinding ( Optimization )
+- ~~Pathfinding~~ ( Finished )
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
 - Tilemap Serializing
@@ -75,9 +72,7 @@ In the following case, each tile has at least one corresponding color gap with i
 | 50x50   | 18,838.542              | 2,095.428 (8)           |
 | 100x100 | (Not measurable)        | 32,309.045 (16)         |
 
-> *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted*
-> 
-> *Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses*
+> *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted; Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses*
 
 ## Versions
 

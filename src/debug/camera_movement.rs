@@ -55,7 +55,7 @@ pub fn camera_control(
         {
             transform.translation = transform
                 .translation
-                .lerp(CAMERA_TARGET_POSITION, 20. * time.delta_seconds());
+                .lerp(CAMERA_TARGET_POSITION, 40. * time.delta_seconds());
         }
 
         for ev in event_wheel.read() {

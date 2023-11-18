@@ -1,10 +1,11 @@
 use bevy::{
+    ecs::query::Without,
     prelude::{Component, Entity, IVec2, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
 
 use crate::{
-    math::extension::ManhattanDistance,
+    math::{extension::ManhattanDistance, tilemap},
     tilemap::{algo_tilemap::PathTilemap, Tilemap},
 };
 
@@ -23,6 +24,11 @@ pub struct Pathfinder {
     pub tilemap: Entity,
     pub custom_weight: Option<(u32, u32)>,
     pub max_step: Option<u32>,
+}
+
+#[derive(Component)]
+pub struct AsyncPathfinder {
+    pub max_step_per_frame: u32,
 }
 
 #[derive(Component, Clone)]
@@ -106,12 +112,14 @@ impl HeapElement for PathNode {
     }
 }
 
-struct PathGrid {
+#[derive(Component)]
+pub struct PathGrid {
     pub allow_diagonal: bool,
     pub dest: UVec2,
     pub weights: (u32, u32),
     pub lookup_heap: LookupHeap<u32, UVec2, PathNode>,
     pub explored: HashSet<UVec2>,
+    pub steps: u32,
 }
 
 impl PathGrid {
@@ -119,13 +127,14 @@ impl PathGrid {
         let weights = finder.custom_weight.unwrap_or((1, 1));
         let mut lookup_heap: LookupHeap<u32, UVec2, PathNode> = LookupHeap::new();
         lookup_heap.update_lookup(root.index, *root);
-        lookup_heap.insert_to_heap(root.weight(weights), root.index);
+        lookup_heap.insert_heap(root.weight(weights), root.index);
         PathGrid {
             allow_diagonal: finder.allow_diagonal,
             dest: finder.dest,
             weights,
             lookup_heap,
             explored: HashSet::new(),
+            steps: 0,
         }
     }
 
@@ -223,7 +232,7 @@ impl PathGrid {
         let node = self.lookup_heap.map_get(index).unwrap();
         let key_heap = node.weight(self.weights);
         let key_map = node.index;
-        self.lookup_heap.insert_to_heap(key_heap, key_map);
+        self.lookup_heap.insert_heap(key_heap, key_map);
     }
 
     pub fn pop_closest(&mut self) -> Option<PathNode> {
@@ -243,7 +252,7 @@ impl PathGrid {
 
 pub fn pathfinding(
     commands: ParallelCommands,
-    mut finders: Query<(Entity, &Pathfinder)>,
+    mut finders: Query<(Entity, &Pathfinder), Without<AsyncPathfinder>>,
     tilemaps_query: Query<(&Tilemap, &PathTilemap)>,
 ) {
     finders.par_iter_mut().for_each(|(finder_entity, finder)| {
@@ -265,62 +274,66 @@ pub fn pathfinding(
         // the others only store the index
         let origin_node = PathNode::new(finder.origin, 0, finder.dest, 1, 0);
         let mut path_grid = PathGrid::new(finder, &origin_node);
-
-        let mut step = 0;
-
-        while !path_grid.is_empty() {
-            step += 1;
-            if step > finder.max_step.unwrap_or(u32::MAX) {
-                break;
-            }
-
-            let mut current = path_grid.pop_closest().unwrap();
-
-            if current.index == finder.dest {
-                let mut path = Path {
-                    path: vec![],
-                    current_step: 0,
-                    target_map: finder.tilemap,
-                };
-                while current.index != finder.origin {
-                    path.path.push(current.index);
-                    current = *path_grid.get(current.parent.unwrap()).unwrap();
-                }
-
-                #[cfg(feature = "debug")]
-                println!("pathfound: {} ms", start.elapsed().unwrap().as_millis());
-                complete_pathfinding(&commands, finder_entity, Some(path));
-                return;
-            }
-
-            let neighbours = {
-                if finder.allow_diagonal {
-                    path_grid.neighbours(&current, tilemap, &path_tilemap)
-                } else {
-                    path_grid.neighbours(&current, tilemap, &path_tilemap)
-                }
-            };
-
-            // explore neighbours
-            for neighbour in neighbours {
-                let already_scheduled = path_grid.is_scheduled(neighbour);
-                let neighbour_node = path_grid.get_mut(neighbour).unwrap();
-
-                // if isn't on schedule or find a better path
-                if !already_scheduled || current.g_cost < neighbour_node.g_cost {
-                    // update the new node
-                    neighbour_node.g_cost = current.g_cost + neighbour_node.cost_to_pass;
-                    neighbour_node.parent = Some(current.index);
-
-                    if !already_scheduled {
-                        path_grid.schedule(&neighbour);
-                    }
-                }
-            }
-        }
-
-        complete_pathfinding(&commands, finder_entity, None);
+        find_path(
+            &commands,
+            &mut path_grid,
+            finder_entity,
+            finder,
+            tilemap,
+            path_tilemap,
+            None,
+        );
+        #[cfg(feature = "debug")]
+        println!("pathfound: {} ms", start.elapsed().unwrap().as_millis());
     });
+}
+
+pub fn pathfinding_async(
+    commands: ParallelCommands,
+    mut finders: Query<(Entity, &Pathfinder, &AsyncPathfinder, Option<&mut PathGrid>)>,
+    tilemaps_query: Query<(&Tilemap, &PathTilemap)>,
+) {
+    finders
+        .par_iter_mut()
+        .for_each(|(finder_entity, finder, async_finder, path_grid)| {
+            let (tilemap, path_tilemap) = tilemaps_query.get(finder.tilemap).unwrap();
+
+            if let Some(mut grid) = path_grid {
+                find_path(
+                    &commands,
+                    &mut grid,
+                    finder_entity,
+                    finder,
+                    tilemap,
+                    path_tilemap,
+                    Some(async_finder),
+                );
+            } else {
+                // check if origin or dest doesn't exists
+                if tilemap.is_out_of_tilemap_uvec(finder.origin)
+                    || tilemap.is_out_of_tilemap_uvec(finder.dest)
+                {
+                    complete_pathfinding(&commands, finder_entity, None);
+                    return;
+                };
+                let mut path_grid =
+                    PathGrid::new(finder, &PathNode::new(finder.origin, 0, finder.dest, 1, 0));
+
+                find_path(
+                    &commands,
+                    &mut path_grid,
+                    finder_entity,
+                    finder,
+                    tilemap,
+                    path_tilemap,
+                    Some(async_finder),
+                );
+
+                commands.command_scope(|mut c| {
+                    c.entity(finder_entity).insert(path_grid);
+                });
+            };
+        });
 }
 
 pub fn complete_pathfinding(commands: &ParallelCommands, finder: Entity, path: Option<Path>) {
@@ -332,9 +345,86 @@ pub fn complete_pathfinding(commands: &ParallelCommands, finder: Entity, path: O
     commands.command_scope(|mut c| {
         let mut e = c.entity(finder);
         e.remove::<Pathfinder>();
+        e.remove::<AsyncPathfinder>();
 
         if let Some(path) = path {
             e.insert(path);
         }
     });
+}
+
+fn find_path(
+    commands: &ParallelCommands,
+    path_grid: &mut PathGrid,
+    finder_entity: Entity,
+    finder: &Pathfinder,
+    tilemap: &Tilemap,
+    path_tilemap: &PathTilemap,
+    async_finder: Option<&AsyncPathfinder>,
+) {
+    let mut frame_step = 0;
+    let max_frame_step = {
+        if let Some(async_finder) = async_finder {
+            async_finder.max_step_per_frame
+        } else {
+            u32::MAX
+        }
+    };
+
+    while !path_grid.is_empty() {
+        path_grid.steps += 1;
+        frame_step += 1;
+        if path_grid.steps > finder.max_step.unwrap_or(u32::MAX) {
+            break;
+        }
+        if frame_step >= max_frame_step {
+            #[cfg(feature = "debug_verbose")]
+            println!("reached max step per frame: {}", frame_step);
+            return;
+        }
+
+        let mut current = path_grid.pop_closest().unwrap();
+
+        if current.index == finder.dest {
+            let mut path = Path {
+                path: vec![],
+                current_step: 0,
+                target_map: finder.tilemap,
+            };
+            while current.index != finder.origin {
+                path.path.push(current.index);
+                current = *path_grid.get(current.parent.unwrap()).unwrap();
+            }
+
+            complete_pathfinding(&commands, finder_entity, Some(path));
+            return;
+        }
+
+        let neighbours = {
+            if finder.allow_diagonal {
+                path_grid.neighbours(&current, tilemap, &path_tilemap)
+            } else {
+                path_grid.neighbours(&current, tilemap, &path_tilemap)
+            }
+        };
+
+        // explore neighbours
+        for neighbour in neighbours {
+            let already_scheduled = path_grid.is_scheduled(neighbour);
+            let neighbour_node = path_grid.get_mut(neighbour).unwrap();
+
+            // if isn't on schedule or find a better path
+            if !already_scheduled || current.g_cost < neighbour_node.g_cost {
+                // update the new node
+                neighbour_node.g_cost = current.g_cost + neighbour_node.cost_to_pass;
+                neighbour_node.parent = Some(current.index);
+
+                if !already_scheduled {
+                    path_grid.schedule(&neighbour);
+                }
+            }
+        }
+    }
+
+    complete_pathfinding(&commands, finder_entity, None);
 }
