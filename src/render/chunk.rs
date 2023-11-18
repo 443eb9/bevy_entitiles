@@ -1,17 +1,18 @@
 use bevy::{
-    prelude::{Changed, Entity, Mesh, Or, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4, Without},
+    prelude::{Entity, Mesh, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4, Without},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
     },
+    time::Time,
     utils::HashMap,
 };
 
 use crate::{
     math::aabb::AabbBox2d,
     tilemap::{
-        TileTexture, TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
+        TileAnimation, TileTexture, TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
         TILEMAP_MESH_ATTR_TEXTURE_INDEX,
     },
 };
@@ -21,11 +22,12 @@ use super::{
     extract::{ExtractedTile, ExtractedTilemap},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct TileData {
     pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
+    pub anim: Option<TileAnimation>,
 }
 
 #[derive(Clone)]
@@ -60,7 +62,7 @@ impl TilemapRenderChunk {
     }
 
     /// Update the raw mesh for GPU processing.
-    pub fn update_mesh(&mut self, render_device: &Res<RenderDevice>) {
+    pub fn update_mesh(&mut self, render_device: &Res<RenderDevice>, time: &Res<Time>) {
         if !self.dirty_mesh {
             return;
         }
@@ -77,8 +79,7 @@ impl TilemapRenderChunk {
             if let Some(tile) = tile_data {
                 positions.extend_from_slice(&[Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO]);
 
-                let index_float =
-                    Vec2::new(tile.index.x as f32, tile.index.y as f32);
+                let index_float = Vec2::new(tile.index.x as f32, tile.index.y as f32);
                 grid_indices.extend_from_slice(&[
                     index_float,
                     index_float,
@@ -86,12 +87,18 @@ impl TilemapRenderChunk {
                     index_float,
                 ]);
 
-                texture_indices.extend_from_slice(&[
-                    tile.texture_index,
-                    tile.texture_index,
-                    tile.texture_index,
-                    tile.texture_index,
-                ]);
+                let tex_idx = if let Some(anim) = &tile.anim {
+                    let passed_frames = (time.elapsed_seconds() * anim.fps) as usize;
+                    if anim.is_loop {
+                        anim.sequence[passed_frames % anim.sequence.len()]
+                    } else {
+                        anim.sequence[passed_frames.min(anim.sequence.len() - 1)]
+                    }
+                } else {
+                    tile.texture_index
+                };
+
+                texture_indices.extend_from_slice(&[tex_idx, tex_idx, tex_idx, tex_idx]);
 
                 vertex_indices.extend_from_slice(&[
                     v_index,
@@ -158,6 +165,7 @@ impl TilemapRenderChunk {
             index: tile.index,
             texture_index: tile.texture_index,
             color: tile.color,
+            anim: tile.anim.clone(),
         });
         self.dirty_mesh = true;
     }
@@ -183,11 +191,12 @@ impl RenderChunkStorage {
         &mut self,
         tilemap: &ExtractedTilemap,
         render_device: &Res<RenderDevice>,
+        time: &Res<Time>,
     ) {
         if let Some(chunks) = self.value.get_mut(&tilemap.id) {
             for chunk in chunks.1.iter_mut() {
                 if let Some(c) = chunk {
-                    c.update_mesh(render_device);
+                    c.update_mesh(render_device, time);
                 }
             }
         }
@@ -197,7 +206,7 @@ impl RenderChunkStorage {
     pub fn add_tiles_with_query(
         &mut self,
         tilemaps_query: &Query<&ExtractedTilemap, Without<Visible>>,
-        changed_tiles_query: &Query<&ExtractedTile, Or<(Changed<ExtractedTile>,)>>,
+        changed_tiles_query: &Query<&mut ExtractedTile>,
     ) {
         for tile in changed_tiles_query.iter() {
             let tilemap = tilemaps_query.get(tile.tilemap).unwrap();
@@ -211,20 +220,15 @@ impl RenderChunkStorage {
 
             let chunk = {
                 if chunks.1[tile.render_chunk_index].is_none() {
-                    chunks.1[tile.render_chunk_index] = Some(TilemapRenderChunk::from_index(
-                        tile.index,
-                        tilemap,
-                    ));
+                    chunks.1[tile.render_chunk_index] =
+                        Some(TilemapRenderChunk::from_index(tile.index, tilemap));
                 }
                 chunks.1.get_mut(tile.render_chunk_index).unwrap()
             };
 
             let c = {
                 if chunk.is_none() {
-                    chunk.replace(TilemapRenderChunk::from_index(
-                        tile.index,
-                        tilemap,
-                    ));
+                    chunk.replace(TilemapRenderChunk::from_index(tile.index, tilemap));
                 };
                 chunk.as_mut().unwrap()
             };

@@ -17,17 +17,17 @@ impl FillArea {
     /// Define a new fill area.
     ///
     /// Leave `extent` as `None` to fill from the origin to the edge.
-    pub fn new(origin: UVec2, extent: Option<UVec2>, tilemap_size: &Tilemap) -> Self {
+    pub fn new(origin: UVec2, extent: Option<UVec2>, tilemap: &Tilemap) -> Self {
         let extent = match extent {
             Some(extent) => {
-                if tilemap_size.is_out_of_tilemap_uvec(origin + extent) {
+                if tilemap.is_out_of_tilemap_uvec(origin + extent) {
                     panic!("Part of the fill area is out of the tilemap");
                 };
                 extent
             }
             None => UVec2 {
-                x: tilemap_size.size.x - origin.x,
-                y: tilemap_size.size.y - origin.y,
+                x: tilemap.size.x - origin.x,
+                y: tilemap.size.y - origin.y,
             },
         };
         Self {

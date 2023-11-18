@@ -1,8 +1,8 @@
 use bevy::{
     math::Vec3Swizzles,
     prelude::{
-        Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query,
-        ResMut, Transform, UVec2, Vec2, Vec4,
+        Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, ResMut,
+        Transform, UVec2, Vec2, Vec4,
     },
     render::{render_resource::FilterMode, Extract},
     window::Window,
@@ -10,7 +10,7 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::{Tile, TileTexture, TileType, Tilemap},
+    tilemap::{Tile, TileAnimation, TileTexture, TileType, Tilemap},
 };
 
 use super::texture::TilemapTextureArrayStorage;
@@ -31,13 +31,14 @@ pub struct ExtractedTilemap {
     pub z_order: u32,
 }
 
-#[derive(Component, Debug)]
+#[derive(Component)]
 pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
+    pub anim: Option<TileAnimation>,
 }
 
 #[derive(Component)]
@@ -83,10 +84,17 @@ pub fn extract_tilemaps(
 
 pub fn extract_tiles(
     mut commands: Commands,
-    changed_tiles_query: Extract<Query<(Entity, &Tile), Or<(Changed<Tile>,)>>>,
+    changed_tiles_query: Extract<
+        Query<(Entity, &Tile, Option<&TileAnimation>), Or<(Changed<Tile>, &TileAnimation)>>,
+    >,
 ) {
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = Vec::new();
-    for (entity, tile) in changed_tiles_query.iter() {
+    for (entity, tile, anim) in changed_tiles_query.iter() {
+        let anim = if let Some(a) = anim {
+            Some(a.clone())
+        } else {
+            None
+        };
         extracted_tiles.push((
             entity,
             ExtractedTile {
@@ -95,6 +103,7 @@ pub fn extract_tiles(
                 index: tile.index,
                 texture_index: tile.texture_index,
                 color: tile.color,
+                anim,
             },
         ));
     }

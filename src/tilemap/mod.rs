@@ -40,6 +40,13 @@ pub enum TileFlip {
     Vertical = 1u32 << 1,
 }
 
+#[derive(Component, Clone)]
+pub struct TileAnimation {
+    pub sequence: Vec<u32>,
+    pub fps: f32,
+    pub is_loop: bool,
+}
+
 #[derive(Clone)]
 pub struct TileTexture {
     texture: Handle<Image>,
@@ -60,10 +67,11 @@ impl TileTexture {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct TileBuilder {
     index: UVec2,
     texture_index: u32,
+    anim: Option<TileAnimation>,
     color: Vec4,
 }
 
@@ -73,6 +81,7 @@ impl TileBuilder {
         Self {
             index,
             texture_index,
+            anim: None,
             color: Vec4::ONE,
         }
     }
@@ -82,12 +91,17 @@ impl TileBuilder {
         self
     }
 
+    pub fn with_animation(&mut self, anim: TileAnimation) -> &mut Self {
+        self.anim = Some(anim);
+        self
+    }
+
     /// Build the tile and spawn it.
     ///
     /// # Note
     /// DO NOT call this method manually unless you really need to.
     ///
-    /// Use `Tilemap::set` instead.
+    /// Use `Tilemap::set` or `Tilemap::fill_xxx` instead.
     pub fn build(&self, commands: &mut Commands, tilemap: &Tilemap) -> Entity {
         let render_chunk_index_2d = self.index / tilemap.render_chunk_size;
         let render_chunk_index = {
@@ -99,19 +113,22 @@ impl TileBuilder {
                     + render_chunk_index_2d.x
             }
         } as usize;
-        commands
-            .spawn(Tile {
-                render_chunk_index,
-                tilemap_id: tilemap.id,
-                index: self.index,
-                texture_index: self.texture_index,
-                color: self.color,
-            })
-            .id()
+        let mut tile = commands.spawn_empty();
+        tile.insert(Tile {
+            render_chunk_index,
+            tilemap_id: tilemap.id,
+            index: self.index,
+            texture_index: self.texture_index,
+            color: self.color,
+        });
+        if let Some(anim) = &self.anim {
+            tile.insert(anim.clone());
+        }
+        tile.id()
     }
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone)]
 pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
@@ -370,10 +387,7 @@ impl Tilemap {
     }
 
     pub fn is_out_of_tilemap_ivec(&self, index: IVec2) -> bool {
-        index.x < 0
-            || index.y < 0
-            || index.x >= self.size.x as i32
-            || index.y >= self.size.y as i32
+        index.x < 0 || index.y < 0 || index.x >= self.size.x as i32 || index.y >= self.size.y as i32
     }
 
     /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.

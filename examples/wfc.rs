@@ -58,7 +58,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         }))
         // use weights OR custom_sampler
         // .with_weights("examples/wfc_weights.ron".to_string())
-        .with_retrace_settings(None, Some(10000))
+        .with_retrace_settings(Some(4), Some(10000))
         .with_fallback(Box::new(|_, e, _, _| {
             println!("Failed to generate: {:?}", e)
         })),

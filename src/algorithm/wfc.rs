@@ -7,7 +7,6 @@ use bevy::{
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
-use indexmap::IndexSet;
 use rand::{
     distributions::{Uniform, WeightedIndex},
     rngs::StdRng,
@@ -72,12 +71,12 @@ impl WfcRunner {
         let rule_vec: Vec<[Vec<u16>; 4]> =
             from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
 
-        let mut rule_set: Vec<[IndexSet<u16>; 4]> = Vec::with_capacity(rule_vec.len());
+        let mut rule_set: Vec<[Vec<u16>; 4]> = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
-            let mut tex_rule: [IndexSet<u16>; 4] = Default::default();
+            let mut tex_rule: [Vec<u16>; 4] = Default::default();
             for dir in 0..4 {
                 for idx in rule_vec[tex_idx][dir].iter() {
-                    tex_rule[dir].insert(*idx);
+                    tex_rule[dir].push(*idx);
                 }
             }
             rule_set.push(tex_rule);

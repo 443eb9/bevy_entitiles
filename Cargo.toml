@@ -31,9 +31,7 @@ bevy = { version = "0.12.0", default-features = false, features = [
 ]}
 ron = { version = "0.8.1", optional = true }
 rand = { version = "0.8.5", optional = true }
-noise = { version = "0.8.2", optional = true }
 serde = { version = "1.0.192", optional = true }
-indexmap = { version = "2.1.0", optional = true }
 
 [dev-dependencies]
 bevy = { version = "0.12.0", default-features = false, features = [
@@ -55,16 +53,16 @@ bevy = { version = "0.12.0", default-features = false, features = [
 default = []
 debug = []
 debug_verbose = []
-algorithm = ["dep:rand", "dep:ron", "dep:noise", "dep:serde", "dep:indexmap"]
-
-[[example]]
-name = "test"
-path = "examples/test.rs"
-required-features = ["debug"]
+algorithm = ["dep:rand", "dep:ron", "dep:serde"]
 
 [[example]]
 name = "basic"
 path = "examples/basic.rs"
+required-features = ["debug"]
+
+[[example]]
+name = "animation"
+path = "examples/animation.rs"
 required-features = ["debug"]
 
 [[example]]
@@ -75,4 +73,4 @@ required-features = ["debug", "algorithm"]
 [[example]]
 name = "wfc"
 path = "examples/wfc.rs"
-required-features = ["algorithm"]
+required-features = ["debug", "algorithm"]
