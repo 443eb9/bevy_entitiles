@@ -15,10 +15,6 @@ use crate::{
 
 #[cfg(feature = "algorithm")]
 pub mod algo_tilemap;
-#[cfg(feature = "physics_xpbd")]
-pub mod physics_xpbd;
-#[cfg(feature = "physics_rapier")]
-pub mod physics_rapier;
 #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
 pub mod physics;
 

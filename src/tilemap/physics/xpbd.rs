@@ -12,9 +12,12 @@ use bevy_xpbd_2d::{
     resources::Gravity,
 };
 
-use crate::math::FillArea;
+use crate::{
+    math::FillArea,
+    tilemap::{Tile, TileType, Tilemap},
+};
 
-use super::{physics::TileCollision, Tile, TileType, Tilemap};
+use super::TileCollision;
 
 pub struct PhysicsXpbdTilemapPlugin;
 

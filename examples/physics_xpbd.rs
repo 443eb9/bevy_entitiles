@@ -16,7 +16,6 @@ use bevy::{
         render_resource::FilterMode,
     },
     sprite::{ColorMaterial, ColorMesh2dBundle},
-    time::Time,
     transform::components::Transform,
     DefaultPlugins,
 };
@@ -27,7 +26,7 @@ use bevy_entitiles::{
     tilemap::{physics::TileCollision, TileBuilder, TileType, TilemapBuilder},
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::components::{Collider, RigidBody};
+use bevy_xpbd_2d::components::{Collider, RigidBody, LinearVelocity};
 
 fn main() {
     App::new()
@@ -121,6 +120,7 @@ fn setup(
         },
         Collider::ball(15.),
         RigidBody::Dynamic,
+        LinearVelocity::ZERO,
         Character,
     ));
 }
@@ -136,22 +136,26 @@ pub struct Character;
 
 pub fn character_move(
     input: Res<Input<KeyCode>>,
-    mut query: Query<&mut Transform, With<Character>>,
-    time: Res<Time>,
+    mut query: Query<&mut LinearVelocity, With<Character>>,
 ) {
-    let step = 30. * time.delta_seconds();
-    for mut trans in query.iter_mut() {
-        if input.pressed(KeyCode::Up) {
-            trans.translation.y += step;
-        }
-        if input.pressed(KeyCode::Down) {
-            trans.translation.y -= step;
-        }
-        if input.pressed(KeyCode::Left) {
-            trans.translation.x -= step;
-        }
-        if input.pressed(KeyCode::Right) {
-            trans.translation.x += step;
+    let mut dir = Vec2::ZERO;
+    if input.pressed(KeyCode::Up) {
+        dir += Vec2::Y;
+    }
+    if input.pressed(KeyCode::Down) {
+        dir -= Vec2::Y;
+    }
+    if input.pressed(KeyCode::Left) {
+        dir -= Vec2::X;
+    }
+    if input.pressed(KeyCode::Right) {
+        dir += Vec2::X;
+    }
+    for mut vel in query.iter_mut() {
+        if dir == Vec2::ZERO {
+            vel.0 = Vec2::ZERO;
+        } else {
+            vel.0 = dir.normalize() * 30.;
         }
     }
 }

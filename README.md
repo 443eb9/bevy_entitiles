@@ -10,20 +10,22 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Currently Working On
 
-- Optimize Frustum Culling
+- SSAO & Volumetric Clouds / Fog
 
 ## Future Goals
 
 - Wave Function Collapse ( Optimization )
-- ~~Pathfinding~~ ( Finished )
+- ~~Pathfinding~~
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
 - Tilemap Serializing
+- Chunk Unloading
 - SSAO
 - Volumetric Clouds / Fog
 - Wang Tilling
 - Tilemap Mask
 - Frustum Culling ( Isometric Specific Optimization )
+- ~~Physics~~
 
 ## Known Issues Currently Unresolved
 

@@ -14,9 +14,12 @@ use bevy_rapier2d::{
     render::RapierDebugRenderPlugin,
 };
 
-use crate::math::FillArea;
+use crate::{
+    math::FillArea,
+    tilemap::{Tile, TileType, Tilemap},
+};
 
-use super::{physics::TileCollision, Tile, TileType, Tilemap};
+use super::TileCollision;
 
 pub struct PhysicsRapierTilemapPlugin;
 
@@ -93,7 +96,9 @@ impl Tilemap {
         }
 
         if let Some(coe) = friction {
-            commands.entity(tile_entity).insert(Friction::coefficient(coe));
+            commands
+                .entity(tile_entity)
+                .insert(Friction::coefficient(coe));
         }
     }
 }
