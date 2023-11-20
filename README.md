@@ -26,10 +26,14 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - Tilemap Mask
 - Frustum Culling ( Isometric Specific Optimization )
 - ~~Physics~~
+- Lighting
+- Dynamic Shadow
+- Layered Tilemap
 
-## Known Issues Currently Unresolved
+## Known Issues
 
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's the reason why I didn't switch to `LookupHeap` )
+- Trigger collider for `bevy_rapier` still causes collision. (Fix in `0.2.2`)
 
 ## Performance
 
@@ -64,10 +68,12 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 
 ### Wave Function Collapse
 
-In the following case, each tile has at least one corresponding color gap with its neighboring tiles
+In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
+
+Video at `docs/vids/wfc.mp4`
 
 <div>
-	<video src="./docs/vids/wfc.mp4" controls="controls" width="500"></video>
+	<img src="./docs/imgs/wfc.png" width="500px">
 </div>
 
 | Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |

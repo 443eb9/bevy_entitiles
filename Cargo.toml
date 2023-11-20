@@ -4,9 +4,6 @@ version = "0.2.1"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
-exclude = [
-    "test/*"
-]
 description = "A tilemap library for bevy. With many algorithms built in."
 
 [profile.dev]
@@ -34,6 +31,7 @@ rand = { version = "0.8.5", optional = true }
 serde = { version = "1.0.192", optional = true }
 bevy_xpbd_2d = { version = "0.3.2", optional = true }
 bevy_rapier2d = { version = "0.23.0", optional = true }
+bevy_mod_debugdump = { version = "0.9.0", optional = true }
 
 [dev-dependencies]
 bevy = { version = "0.12.0", default-features = false, features = [
@@ -53,11 +51,12 @@ bevy = { version = "0.12.0", default-features = false, features = [
 
 [features]
 default = []
-debug = []
-debug_verbose = []
+debug = ["dep:bevy_mod_debugdump"]
+debug_verbose = ["debug"]
 physics_xpbd = ["dep:bevy_xpbd_2d"]
 physics_rapier = ["dep:bevy_rapier2d"]
 algorithm = ["dep:rand", "dep:ron", "dep:serde"]
+post_processing = []
 
 [[example]]
 name = "basic"
@@ -88,3 +87,8 @@ required-features = ["debug", "physics_xpbd"]
 name = "physics_rapier"
 path = "examples/physics_rapier.rs"
 required-features = ["debug", "physics_rapier"]
+
+[[example]]
+name ="clouds_and_fog"
+path = "examples/clouds_and_fog.rs"
+required-features = ["debug", "post_processing"]

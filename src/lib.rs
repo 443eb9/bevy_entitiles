@@ -6,6 +6,8 @@ pub mod algorithm;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod math;
+#[cfg(feature = "post_processing")]
+pub mod post_processing;
 pub mod render;
 pub mod tilemap;
 
@@ -23,5 +25,7 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(algorithm::EntitilesAlgorithmPlugin);
         #[cfg(any(feature = "physics_rapier", feature = "physics_xpbd"))]
         app.add_plugins(tilemap::physics::TilemapPhysicsPlugin);
+        #[cfg(feature = "post_processing")]
+        app.add_plugins(post_processing::EntiTilesPostProcessingPlugin);
     }
 }

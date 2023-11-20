@@ -130,7 +130,7 @@ fn setup(
 
 fn collision_events(mut collision: EventReader<TileCollision>) {
     for c in collision.read() {
-        println!("Collision: {:?}", c.tile_snapshot);
+        println!("Collision: {:?}", c);
     }
 }
 

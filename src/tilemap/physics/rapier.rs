@@ -7,9 +7,8 @@ use bevy::{
     math::{UVec2, Vec2},
 };
 use bevy_rapier2d::{
-    dynamics::RigidBody,
-    geometry::{Collider, Friction},
-    pipeline::ContactForceEvent,
+    geometry::{ActiveEvents, Collider, Friction, Sensor},
+    pipeline::CollisionEvent,
     plugin::{NoUserData, RapierPhysicsPlugin},
     render::RapierDebugRenderPlugin,
 };
@@ -19,7 +18,7 @@ use crate::{
     tilemap::{Tile, TileType, Tilemap},
 };
 
-use super::TileCollision;
+use super::{get_collision, TileCollision};
 
 pub struct PhysicsRapierTilemapPlugin;
 
@@ -40,11 +39,11 @@ impl Tilemap {
         commands: &mut Commands,
         area: FillArea,
         friction: Option<f32>,
-        has_rigid_body: bool,
+        is_trigger: bool,
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set_physics_tile_rapier(commands, UVec2 { x, y }, friction, has_rigid_body);
+                self.set_physics_tile_rapier(commands, UVec2 { x, y }, friction, is_trigger);
             }
         }
     }
@@ -55,7 +54,7 @@ impl Tilemap {
         commands: &mut Commands,
         index: UVec2,
         friction: Option<f32>,
-        has_rigid_body: bool,
+        is_trigger: bool,
     ) {
         let Some(tile_entity) = self.get(index) else {
             return;
@@ -66,33 +65,29 @@ impl Tilemap {
         let translation = self.index_to_world(index);
 
         let collider = match self.tile_type {
-            TileType::Square => Collider::convex_decomposition(
-                &[
-                    (Vec2::new(-x / 2., -y / 2.) + translation).into(),
-                    (Vec2::new(-x / 2., y / 2.) + translation).into(),
-                    (Vec2::new(x / 2., y / 2.) + translation).into(),
-                    (Vec2::new(x / 2., -y / 2.) + translation).into(),
-                ],
-                &[[0, 1], [1, 2], [2, 3], [3, 0]],
-            ),
-            TileType::IsometricDiamond => Collider::convex_decomposition(
-                &[
-                    (Vec2::new(-x / 2., 0.) + translation).into(),
-                    (Vec2::new(0., y / 2.) + translation).into(),
-                    (Vec2::new(x / 2., 0.) + translation).into(),
-                    (Vec2::new(0., -y / 2.) + translation).into(),
-                ],
-                &[[0, 1], [1, 2], [2, 3], [3, 0]],
-            ),
-        };
+            TileType::Square => Collider::convex_hull(&[
+                (Vec2::new(-x / 2., -y / 2.) + translation).into(),
+                (Vec2::new(-x / 2., y / 2.) + translation).into(),
+                (Vec2::new(x / 2., y / 2.) + translation).into(),
+                (Vec2::new(x / 2., -y / 2.) + translation).into(),
+            ]),
+            TileType::IsometricDiamond => Collider::convex_hull(&[
+                (Vec2::new(-x / 2., 0.) + translation).into(),
+                (Vec2::new(0., y / 2.) + translation).into(),
+                (Vec2::new(x / 2., 0.) + translation).into(),
+                (Vec2::new(0., -y / 2.) + translation).into(),
+            ]),
+        }
+        .unwrap();
 
-        if has_rigid_body {
-            commands.entity(tile_entity).insert(collider);
+        if is_trigger {
+            commands
+                .entity(tile_entity)
+                .insert((collider, Sensor, ActiveEvents::COLLISION_EVENTS));
         } else {
             commands
                 .entity(tile_entity)
-                .insert(collider)
-                .insert(RigidBody::Fixed);
+                .insert((collider, ActiveEvents::COLLISION_EVENTS));
         }
 
         if let Some(coe) = friction {
@@ -104,32 +99,24 @@ impl Tilemap {
 }
 
 pub fn collision_handler(
-    mut collision: EventReader<ContactForceEvent>,
+    mut collision: EventReader<CollisionEvent>,
     mut tile_collision: EventWriter<TileCollision>,
     tiles_query: Query<&Tile>,
 ) {
     let mut colls = Vec::with_capacity(collision.len());
     for c in collision.read() {
-        let tile;
-        let tile_entity;
-        let collider_entity;
-        if let Ok(t) = tiles_query.get(c.collider1) {
-            tile = t;
-            tile_entity = c.collider1;
-            collider_entity = c.collider2;
-        } else if let Ok(t) = tiles_query.get(c.collider2) {
-            tile = t;
-            tile_entity = c.collider2;
-            collider_entity = c.collider1;
-        } else {
-            continue;
+        match c {
+            CollisionEvent::Started(e1, e2, _) => {
+                if let Some(data) = get_collision(*e1, *e2, &tiles_query) {
+                    colls.push(TileCollision::Started(data));
+                }
+            }
+            CollisionEvent::Stopped(e1, e2, _) => {
+                if let Some(data) = get_collision(*e1, *e2, &tiles_query) {
+                    colls.push(TileCollision::Stopped(data));
+                }
+            }
         }
-        colls.push(TileCollision {
-            tile_index: tile.index,
-            tile_entity,
-            tile_snapshot: tile.clone(),
-            collider_entity,
-        });
     }
     tile_collision.send_batch(colls);
 }

@@ -128,7 +128,7 @@ impl AabbBox2d {
     }
 
     #[inline]
-    pub fn is_intersected_with(&self, other: &AabbBox2d) -> bool {
+    pub fn is_intersected(&self, other: &AabbBox2d) -> bool {
         self.min.x < other.max.x
             && self.max.x > other.min.x
             && self.min.y < other.max.y

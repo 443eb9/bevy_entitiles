@@ -15,7 +15,7 @@ use super::{
 };
 
 #[derive(Component)]
-pub struct Visible;
+pub struct VisibleTilemap;
 
 pub fn cull(
     visible_tilemaps: Query<&ExtractedTilemap>,
@@ -90,7 +90,7 @@ fn cull_isometric_diamond(
 
     for chunk in chunks.iter_mut() {
         if let Some(c) = chunk {
-            if c.aabb.is_intersected_with(camera_aabb) {
+            if c.aabb.is_intersected(camera_aabb) {
                 c.visible = true;
             }
         }

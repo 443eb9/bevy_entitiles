@@ -18,7 +18,7 @@ use crate::{
 };
 
 use super::{
-    culling::Visible,
+    culling::VisibleTilemap,
     extract::{ExtractedTile, ExtractedTilemap},
 };
 
@@ -205,7 +205,7 @@ impl RenderChunkStorage {
     /// Add tiles to the storage from a query.
     pub fn add_tiles_with_query(
         &mut self,
-        tilemaps_query: &Query<&ExtractedTilemap, Without<Visible>>,
+        tilemaps_query: &Query<&ExtractedTilemap, Without<VisibleTilemap>>,
         changed_tiles_query: &Query<&mut ExtractedTile>,
     ) {
         for tile in changed_tiles_query.iter() {

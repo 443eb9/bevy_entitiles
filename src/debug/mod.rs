@@ -2,8 +2,10 @@ use std::{fmt::Debug, time::Duration};
 
 use bevy::{
     prelude::{default, Color, Commands, IntoSystemConfigs, Plugin, Startup, TextBundle, Update},
-    text::{TextSection, TextStyle}, time::common_conditions::on_real_timer,
+    text::{TextSection, TextStyle},
+    time::common_conditions::on_real_timer,
 };
+use bevy_mod_debugdump::print_render_graph;
 
 use crate::debug::drawing::{draw_chunk_aabb, draw_tilemap_aabb};
 
@@ -37,6 +39,10 @@ impl Plugin for EntiTilesDebugPlugin {
         );
 
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
+    }
+
+    fn finish(&self, _app: &mut bevy::prelude::App) {
+        print_render_graph(_app);
     }
 }
 

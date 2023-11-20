@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use super::{
-    culling::Visible,
+    culling::VisibleTilemap,
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTextureArrayStorage,
     uniform::TilemapUniformsStorage,
@@ -16,7 +16,7 @@ pub fn prepare(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    extracted_tilemaps: Query<&ExtractedTilemap, Without<Visible>>,
+    extracted_tilemaps: Query<&ExtractedTilemap, Without<VisibleTilemap>>,
     extracted_tiles: Query<&mut ExtractedTile>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
