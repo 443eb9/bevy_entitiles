@@ -1,26 +1,23 @@
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Commands, Component, Entity, Image, Msaa, Query, Res, ResMut},
+    prelude::{Commands, Component, Entity, Msaa, Query, Res, ResMut},
     render::{
-        render_asset::RenderAssets,
         render_phase::{DrawFunctions, RenderPhase},
         render_resource::{
-            BindGroup, BindGroupEntry, BindingResource, PipelineCache,
-            SpecializedRenderPipelines,
+            BindGroup, BindGroupEntry, BindingResource, PipelineCache, SpecializedRenderPipelines,
         },
-        renderer::{RenderDevice, RenderQueue},
+        renderer::RenderDevice,
         view::ViewUniforms,
     },
-    utils::{FloatOrd, nonmax::NonMaxU32},
+    utils::{nonmax::NonMaxU32, FloatOrd},
 };
 
 use super::{
     draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
-    texture::TilemapTextureArrayStorage,
     uniform::TilemapUniformsStorage,
-    TilemapBindGroups,
+    TilemapBindGroups, texture::TilemapTexturesStorage,
 };
 
 #[derive(Component)]
@@ -38,18 +35,14 @@ pub fn queue(
     entitile_pipeline: Res<EntiTilesPipeline>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
     mut bind_groups: ResMut<TilemapBindGroups>,
-    render_images: Res<RenderAssets<Image>>,
-    mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
+    textures_storage: Res<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     tilemap_uniform_strorage: Res<TilemapUniformsStorage>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
     };
-
-    tilemap_texture_array_storage.queue_textures(&render_device, &render_queue, &render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TileViewBindGroup {
@@ -93,10 +86,8 @@ pub fn queue(
                     .insert(tilemap.id, tilemap_uniform_bind_group);
             }
 
-            if let Some(texture) = tilemap.texture.clone() {
-                let Some(texture_array) =
-                    tilemap_texture_array_storage.get_texture_array(texture.get_handle())
-                else {
+            if let Some(tile_texture) = tilemap.texture.clone() {
+                let Some(texture) = textures_storage.get(tile_texture.get_handle()) else {
                     continue;
                 };
 
@@ -106,18 +97,18 @@ pub fn queue(
                     &[
                         BindGroupEntry {
                             binding: 0,
-                            resource: BindingResource::TextureView(&texture_array.texture_view),
+                            resource: BindingResource::TextureView(&texture.texture_view),
                         },
                         BindGroupEntry {
                             binding: 1,
-                            resource: BindingResource::Sampler(&texture_array.sampler),
+                            resource: BindingResource::Sampler(&texture.sampler),
                         },
                     ],
                 );
 
                 bind_groups
-                    .colored_texture_arrays
-                    .insert(texture.clone_weak(), texture_bind_group);
+                    .colored_textures
+                    .insert(tile_texture.clone_weak(), texture_bind_group);
 
                 transparent_phase.add(Transparent2d {
                     sort_key: FloatOrd(0.),

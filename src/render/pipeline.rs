@@ -8,7 +8,7 @@ use bevy::{
             BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType,
             ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
             PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
-            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedComputePipeline,
+            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType,
             SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
             VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
@@ -74,14 +74,14 @@ impl FromWorld for EntiTilesPipeline {
 
         let colored_texture_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("tilemap_texture_layout"),
+                label: Some("colored_texture_layout"),
                 entries: &[
                     BindGroupLayoutEntry {
                         binding: 0,
                         visibility: ShaderStages::FRAGMENT,
                         ty: BindingType::Texture {
                             sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2Array,
+                            view_dimension: TextureViewDimension::D2,
                             multisampled: false,
                         },
                         count: None,
@@ -162,8 +162,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 VertexFormat::Float32x2,
                 // color
                 VertexFormat::Float32x4,
-                // texture_index
-                VertexFormat::Uint32,
+                // uv
+                VertexFormat::Float32x2,
             ],
         );
 

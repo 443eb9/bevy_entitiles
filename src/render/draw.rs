@@ -21,7 +21,7 @@ pub type DrawTilemap = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
     SetTilemapDataBindGroup<1>,
-    SetTileTextureBindGroup<2>,
+    SetTilemapTextureBindGroup<2>,
     DrawTileMesh,
 );
 
@@ -116,8 +116,8 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I>
     }
 }
 
-pub struct SetTileTextureBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I> {
+pub struct SetTilemapTextureBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapTextureBindGroup<I> {
     type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
@@ -137,7 +137,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
                 I,
                 bind_groups
                     .into_inner()
-                    .colored_texture_arrays
+                    .colored_textures
                     .get(texture.get_handle())
                     .unwrap(),
                 &[],

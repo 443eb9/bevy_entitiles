@@ -32,11 +32,10 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     )
     .with_texture(
         assets_server.load("test/test_square.png"),
-        TilemapTextureDescriptor {
-            tile_count: UVec2 { x: 2, y: 2 },
-            tile_size: UVec2 { x: 16, y: 16 },
-            filter_mode: FilterMode::Nearest,
-        },
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 2, y: 2 },
+            FilterMode::Nearest,
+        ),
     )
     .build(&mut commands);
 

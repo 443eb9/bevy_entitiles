@@ -11,15 +11,13 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::{
-        tile::{TileAnimation, TileTexture, TileType},
-        TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_TEXTURE_INDEX,
-    },
+    tilemap::tile::{TileAnimation, TilemapTexture, TileType},
 };
 
 use super::{
     culling::VisibleTilemap,
     extract::{ExtractedTile, ExtractedTilemap},
+    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_UV,
 };
 
 #[derive(Clone)]
@@ -37,7 +35,7 @@ pub struct TilemapRenderChunk {
     pub dirty_mesh: bool,
     pub tile_type: TileType,
     pub size: u32,
-    pub texture: Option<TileTexture>,
+    pub texture: Option<TilemapTexture>,
     pub tiles: Vec<Option<TileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
@@ -66,11 +64,19 @@ impl TilemapRenderChunk {
         if !self.dirty_mesh {
             return;
         }
+        let tile_uvs = {
+            if let Some(texture) = &self.texture {
+                &texture.desc.tiles_uv
+            } else {
+                return;
+            }
+        };
 
         let mut v_index = 0;
         let len = self.tiles.len();
+
         let mut positions = Vec::with_capacity(len * 4);
-        let mut texture_indices = Vec::with_capacity(len * 4);
+        let mut uvs = Vec::with_capacity(len * 4);
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
@@ -96,9 +102,14 @@ impl TilemapRenderChunk {
                     }
                 } else {
                     tile.texture_index
-                };
+                } as usize;
 
-                texture_indices.extend_from_slice(&[tex_idx, tex_idx, tex_idx, tex_idx]);
+                uvs.extend_from_slice(&[
+                    tile_uvs[tex_idx].top_left(),
+                    tile_uvs[tex_idx].btm_left(),
+                    tile_uvs[tex_idx].btm_right(),
+                    tile_uvs[tex_idx].top_right(),
+                ]);
 
                 vertex_indices.extend_from_slice(&[
                     v_index,
@@ -119,8 +130,7 @@ impl TilemapRenderChunk {
             .insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         self.mesh
             .insert_attribute(TILEMAP_MESH_ATTR_INDEX, grid_indices);
-        self.mesh
-            .insert_attribute(TILEMAP_MESH_ATTR_TEXTURE_INDEX, texture_indices);
+        self.mesh.insert_attribute(TILEMAP_MESH_ATTR_UV, uvs);
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
         self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
 

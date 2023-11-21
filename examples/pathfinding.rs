@@ -30,11 +30,10 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     )
     .with_texture(
         assets_server.load("test/test_isometric.png"),
-        TilemapTextureDescriptor {
-            tile_count: UVec2 { x: 1, y: 2 },
-            tile_size: UVec2 { x: 32, y: 16 },
-            filter_mode: FilterMode::Nearest,
-        },
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 1, y: 2 },
+            FilterMode::Nearest,
+        ),
     )
     .with_render_chunk_size(64)
     .with_disabled_safety_check()

@@ -1,7 +1,7 @@
 use bevy::{
-    ecs::system::Resource,
-    prelude::{Assets, Commands, Component, Entity, Handle, IVec2, Image, ResMut, UVec2, Vec2},
-    render::{render_resource::{FilterMode, TextureUsages}, render_phase::PhaseItem},
+    ecs::component::Component,
+    prelude::{Assets, Commands, Entity, Handle, IVec2, Image, ResMut, UVec2, Vec2},
+    render::render_resource::{FilterMode, TextureUsages},
 };
 
 use crate::{
@@ -9,15 +9,14 @@ use crate::{
     render::{chunk::RenderChunkStorage, texture::TilemapTextureDescriptor},
 };
 
-use super::tile::{TileBuilder, TileFlip, TileTexture, TileType};
+use super::tile::{TileBuilder, TileFlip, TileType, TilemapTexture};
 
 pub struct TilemapBuilder {
     pub(crate) tile_type: TileType,
     pub(crate) size: UVec2,
-    pub(crate) tile_size: UVec2,
     pub(crate) tile_render_size: Vec2,
     pub(crate) render_chunk_size: u32,
-    pub(crate) texture: Option<TileTexture>,
+    pub(crate) texture: Option<TilemapTexture>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) translation: Vec2,
     pub(crate) z_order: u32,
@@ -36,7 +35,6 @@ impl TilemapBuilder {
         Self {
             tile_type: ty,
             size,
-            tile_size: UVec2::ZERO,
             tile_render_size,
             texture: None,
             render_chunk_size: 32,
@@ -79,8 +77,7 @@ impl TilemapBuilder {
         texture: Handle<Image>,
         desc: TilemapTextureDescriptor,
     ) -> &mut Self {
-        self.texture = Some(TileTexture { texture, desc });
-        self.tile_size = desc.tile_size;
+        self.texture = Some(TilemapTexture { texture, desc });
         self
     }
 
@@ -101,10 +98,7 @@ impl TilemapBuilder {
 
     /// Build the tilemap and spawn it into the world.
     /// You can modify the component and insert it back.
-    pub fn build(
-        &self,
-        commands: &mut Commands,
-    ) -> (Entity, Tilemap) {
+    pub fn build(&self, commands: &mut Commands) -> (Entity, Tilemap) {
         if self.safety_check {
             let chunk_count =
                 RenderChunkStorage::calculate_render_chunk_count(self.size, self.render_chunk_size);
@@ -130,7 +124,6 @@ impl TilemapBuilder {
             tile_render_size: self.tile_render_size,
             tile_type: self.tile_type.clone(),
             size: self.size,
-            tile_size: self.tile_size,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture.clone(),
             filter_mode: self.filter_mode,
@@ -149,10 +142,9 @@ pub struct Tilemap {
     pub(crate) id: Entity,
     pub(crate) tile_type: TileType,
     pub(crate) size: UVec2,
-    pub(crate) tile_size: UVec2,
     pub(crate) tile_render_size: Vec2,
     pub(crate) render_chunk_size: u32,
-    pub(crate) texture: Option<TileTexture>,
+    pub(crate) texture: Option<TilemapTexture>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) flip: u32,

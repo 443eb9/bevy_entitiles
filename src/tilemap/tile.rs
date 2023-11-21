@@ -29,12 +29,12 @@ pub struct TileAnimation {
 }
 
 #[derive(Clone)]
-pub struct TileTexture {
+pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
 }
 
-impl TileTexture {
+impl TilemapTexture {
     pub fn clone_weak(&self) -> Handle<Image> {
         self.texture.clone_weak()
     }

@@ -1,5 +1,5 @@
-use bevy::prelude::{Plugin, Update};
-use render::{texture::set_texture_usage, EntiTilesRendererPlugin};
+use bevy::{app::Update, prelude::Plugin};
+use render::{texture, EntiTilesRendererPlugin};
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
@@ -15,7 +15,7 @@ pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, set_texture_usage);
+        app.add_systems(Update, texture::set_texture_usage);
 
         app.add_plugins(EntiTilesRendererPlugin);
 
