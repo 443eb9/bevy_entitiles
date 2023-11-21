@@ -8,9 +8,9 @@ use bevy::{
             BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType,
             ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
             PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
-            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedRenderPipeline,
-            TextureFormat, TextureSampleType, TextureViewDimension, VertexBufferLayout,
-            VertexFormat, VertexState, VertexStepMode,
+            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedComputePipeline,
+            SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
+            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
@@ -18,7 +18,7 @@ use bevy::{
     },
 };
 
-use crate::tilemap::TileType;
+use crate::tilemap::tile::TileType;
 
 use super::{uniform::TilemapUniform, TILEMAP_SHADER};
 
@@ -26,7 +26,8 @@ use super::{uniform::TilemapUniform, TILEMAP_SHADER};
 pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
     pub tilemap_uniform_layout: BindGroupLayout,
-    pub texture_layout: BindGroupLayout,
+    pub colored_texture_layout: BindGroupLayout,
+    pub height_texture_layout: BindGroupLayout,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -71,32 +72,57 @@ impl FromWorld for EntiTilesPipeline {
                 }],
             });
 
-        let texture_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("tilemap_texture_layout"),
-            entries: &[
-                BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Texture {
-                        sample_type: TextureSampleType::Float { filterable: true },
-                        view_dimension: TextureViewDimension::D2Array,
-                        multisampled: false,
+        let colored_texture_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("tilemap_texture_layout"),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: true },
+                            view_dimension: TextureViewDimension::D2Array,
+                            multisampled: false,
+                        },
+                        count: None,
                     },
-                    count: None,
-                },
-                BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+
+        let height_texture_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("height_texture_layout"),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: true },
+                            view_dimension: TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::COMPUTE,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
 
         EntiTilesPipeline {
             view_layout,
             tilemap_uniform_layout,
-            texture_layout,
+            colored_texture_layout,
+            height_texture_layout,
         }
     }
 }
@@ -145,8 +171,17 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             self.view_layout.clone(),
             self.tilemap_uniform_layout.clone(),
         ];
+
         if !key.is_pure_color {
-            layout.push(self.texture_layout.clone());
+            layout.push(self.colored_texture_layout.clone());
+        }
+
+        #[cfg(feature = "post_processing")]
+        {
+            layout.push(self.height_texture_layout.clone());
+
+            shader_defs.push("POST_PROCESSING".into());
+            shader_defs.push("RENDER_STAGE".into());
         }
 
         RenderPipelineDescriptor {

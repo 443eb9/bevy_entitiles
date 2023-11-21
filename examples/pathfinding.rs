@@ -8,7 +8,7 @@ use bevy_entitiles::{
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
-    tilemap::{algo_tilemap::PathTilemap, TileBuilder, TileType, TilemapBuilder},
+    tilemap::{algorithm::path::PathTilemap, map::TilemapBuilder, tile::{TileType, TileBuilder}},
     EntiTilesPlugin,
 };
 

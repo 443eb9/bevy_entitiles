@@ -77,7 +77,7 @@ impl Plugin for EntiTilesRendererPlugin {
             .init_resource::<TilemapTextureArrayStorage>()
             .init_resource::<TilemapUniformsStorage>()
             .init_resource::<EntiTilesPipeline>()
-            .init_resource::<BindGroups>()
+            .init_resource::<TilemapBindGroups>()
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
 
         render_app.add_render_command::<Transparent2d, DrawTilemap>();
@@ -86,7 +86,7 @@ impl Plugin for EntiTilesRendererPlugin {
 }
 
 #[derive(Resource, Default)]
-pub struct BindGroups {
+pub struct TilemapBindGroups {
     pub tilemap_uniform_bind_group: HashMap<Entity, BindGroup>,
-    pub tilemap_texture_arrays: HashMap<Handle<Image>, BindGroup>,
+    pub colored_texture_arrays: HashMap<Handle<Image>, BindGroup>,
 }

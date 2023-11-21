@@ -22,7 +22,7 @@ use bevy_entitiles::{
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
-    tilemap::{physics::TileCollision, TileBuilder, TileType, TilemapBuilder},
+    tilemap::{physics::TileCollision, map::TilemapBuilder, tile::{TileType, TileBuilder}},
     EntiTilesPlugin,
 };
 use bevy_rapier2d::{

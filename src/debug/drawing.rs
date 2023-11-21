@@ -8,7 +8,7 @@ use bevy::{
 use crate::{
     math::aabb::AabbBox2d,
     render::{chunk::RenderChunkStorage, extract::ExtractedTilemap},
-    tilemap::Tilemap,
+    tilemap::map::Tilemap,
 };
 
 #[cfg(feature = "algorithm")]

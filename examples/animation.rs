@@ -11,7 +11,10 @@ use bevy_entitiles::{
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
-    tilemap::{TileAnimation, TileBuilder, TileType, TilemapBuilder},
+    tilemap::{
+        map::TilemapBuilder,
+        tile::{TileAnimation, TileBuilder, TileType},
+    },
     EntiTilesPlugin,
 };
 

@@ -20,7 +20,7 @@ use super::{
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     texture::TilemapTextureArrayStorage,
     uniform::TilemapUniformsStorage,
-    BindGroups,
+    TilemapBindGroups,
 };
 
 #[derive(Component)]
@@ -39,7 +39,7 @@ pub fn queue(
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    mut bind_groups: ResMut<BindGroups>,
+    mut bind_groups: ResMut<TilemapBindGroups>,
     render_images: Res<RenderAssets<Image>>,
     mut tilemap_texture_array_storage: ResMut<TilemapTextureArrayStorage>,
     msaa: Res<Msaa>,
@@ -102,7 +102,7 @@ pub fn queue(
 
                 let texture_bind_group = render_device.create_bind_group(
                     Some("tilemap_texture_bind_group"),
-                    &entitile_pipeline.texture_layout,
+                    &entitile_pipeline.colored_texture_layout,
                     &[
                         BindGroupEntry {
                             binding: 0,
@@ -116,7 +116,7 @@ pub fn queue(
                 );
 
                 bind_groups
-                    .tilemap_texture_arrays
+                    .colored_texture_arrays
                     .insert(texture.clone_weak(), texture_bind_group);
 
                 transparent_phase.add(Transparent2d {

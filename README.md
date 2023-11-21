@@ -28,7 +28,6 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - ~~Physics~~
 - Lighting
 - Dynamic Shadow
-- Layered Tilemap
 
 ## Known Issues
 

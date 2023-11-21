@@ -12,8 +12,8 @@ use bevy::{
 use crate::{
     math::aabb::AabbBox2d,
     tilemap::{
-        TileAnimation, TileTexture, TileType, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
-        TILEMAP_MESH_ATTR_TEXTURE_INDEX,
+        tile::{TileAnimation, TileTexture, TileType},
+        TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_TEXTURE_INDEX,
     },
 };
 

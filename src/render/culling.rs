@@ -1,12 +1,8 @@
 use bevy::prelude::{Component, Query, ResMut};
 
 use crate::{
-    math::{
-        aabb::AabbBox2d,
-        extension::Vec2ToUVec2,
-        tilemap::world_pos_to_chunk_square,
-    },
-    tilemap::TileType,
+    math::{aabb::AabbBox2d, extension::Vec2ToUVec2, tilemap::world_pos_to_chunk_square},
+    tilemap::tile::TileType,
 };
 
 use super::{

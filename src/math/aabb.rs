@@ -1,8 +1,7 @@
 use bevy::prelude::{UVec2, Vec2};
 
 use crate::{
-    render::extract::{ExtractedTilemap, ExtractedView},
-    tilemap::{TileType, TilemapBuilder},
+    render::extract::{ExtractedTilemap, ExtractedView}, tilemap::{tile::TileType, map::TilemapBuilder},
 };
 
 #[derive(Clone, Copy, Default, Debug)]

@@ -14,7 +14,7 @@ use super::{
     extract::ExtractedTilemap,
     queue::TileViewBindGroup,
     uniform::{DynamicUniformComponent, TilemapUniform},
-    BindGroups,
+    TilemapBindGroups,
 };
 
 pub type DrawTilemap = (
@@ -86,7 +86,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I>
 
 pub struct SetTilemapDataBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I> {
-    type Param = SRes<BindGroups>;
+    type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
 
@@ -118,7 +118,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I>
 
 pub struct SetTileTextureBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I> {
-    type Param = SRes<BindGroups>;
+    type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
 
@@ -137,7 +137,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTileTextureBindGroup<I>
                 I,
                 bind_groups
                     .into_inner()
-                    .tilemap_texture_arrays
+                    .colored_texture_arrays
                     .get(texture.get_handle())
                     .unwrap(),
                 &[],

@@ -6,7 +6,7 @@ use bevy::{
 
 use crate::{
     math::extension::ManhattanDistance,
-    tilemap::{algo_tilemap::PathTilemap, Tilemap},
+    tilemap::{algorithm::path::PathTilemap, map::Tilemap},
 };
 
 use super::{HeapElement, LookupHeap};

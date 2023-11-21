@@ -4,7 +4,7 @@ use bevy::{
     math::UVec2,
 };
 
-use super::Tile;
+use crate::tilemap::tile::Tile;
 
 #[cfg(feature = "physics_rapier")]
 pub mod rapier;

@@ -13,7 +13,10 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use crate::tilemap::{TileTexture, Tilemap, WaitForTextureUsageChange};
+use crate::tilemap::{
+    map::{Tilemap, WaitForTextureUsageChange},
+    tile::TileTexture,
+};
 
 #[derive(Resource, Default)]
 pub struct TilemapTextureArrayStorage {
@@ -23,7 +26,7 @@ pub struct TilemapTextureArrayStorage {
     textures_to_queue: HashSet<Handle<Image>>,
 }
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct TilemapTextureDescriptor {
     pub tile_count: UVec2,
     pub tile_size: UVec2,

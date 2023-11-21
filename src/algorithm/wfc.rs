@@ -16,7 +16,7 @@ use ron::de::from_bytes;
 
 use crate::{
     math::FillArea,
-    tilemap::{TileBuilder, Tilemap},
+    tilemap::{map::Tilemap, tile::TileBuilder},
 };
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
@@ -63,6 +63,8 @@ impl WfcRunner {
     pub fn from_config(rule_path: String, area: FillArea, seed: Option<u64>) -> Self {
         let rule_vec: Vec<[Vec<u16>; 4]> =
             from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
+        
+        assert!(rule_vec.len() <= 128, "We only support 128 textures for now");
 
         let mut rule_set: Vec<[Vec<u16>; 4]> = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {

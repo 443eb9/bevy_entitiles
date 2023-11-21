@@ -23,10 +23,14 @@ use bevy_entitiles::{
     debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
-    tilemap::{physics::TileCollision, TileBuilder, TileType, TilemapBuilder},
+    tilemap::{
+        map::TilemapBuilder,
+        physics::TileCollision,
+        tile::{TileBuilder, TileType},
+    },
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::components::{Collider, RigidBody, LinearVelocity};
+use bevy_xpbd_2d::components::{Collider, LinearVelocity, RigidBody};
 
 fn main() {
     App::new()

@@ -17,7 +17,10 @@ use bevy_xpbd_2d::{
 
 use crate::{
     math::FillArea,
-    tilemap::{Tile, TileType, Tilemap},
+    tilemap::{
+        map::Tilemap,
+        tile::{Tile, TileType},
+    },
 };
 
 use super::{get_collision, TileCollision};

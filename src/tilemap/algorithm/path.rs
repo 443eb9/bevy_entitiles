@@ -6,7 +6,7 @@ use bevy::{
 
 use crate::{algorithm::pathfinding::PathTile, math::FillArea};
 
-use super::Tilemap;
+use crate::tilemap::map::Tilemap;
 
 #[derive(Component)]
 pub struct PathTilemap {

@@ -1,6 +1,6 @@
 use bevy::prelude::UVec2;
 
-use crate::tilemap::Tilemap;
+use crate::tilemap::map::Tilemap;
 
 pub mod aabb;
 pub mod extension;

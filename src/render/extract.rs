@@ -9,8 +9,7 @@ use bevy::{
 };
 
 use crate::{
-    math::aabb::AabbBox2d,
-    tilemap::{Tile, TileAnimation, TileTexture, TileType, Tilemap},
+    math::aabb::AabbBox2d, tilemap::{tile::{TileAnimation, Tile, TileType, TileTexture}, map::Tilemap},
 };
 
 use super::texture::TilemapTextureArrayStorage;
