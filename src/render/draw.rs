@@ -21,7 +21,18 @@ pub type DrawTilemap = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
     SetTilemapDataBindGroup<1>,
-    SetTilemapTextureBindGroup<2>,
+    SetTilemapcolorTextureBindGroup<2>,
+    DrawTileMesh,
+);
+
+#[cfg(feature = "post_processing")]
+pub type DrawTilemapPostProcessing = (
+    SetPipeline,
+    SetTilemapViewBindGroup<0>,
+    SetTilemapDataBindGroup<1>,
+    SetTilemapcolorTextureBindGroup<2>,
+    crate::post_processing::stages::SetTilemapHeightTextureBindGroup<3>,
+    crate::post_processing::stages::SetScreenHeightTextureBindGroup<4>,
     DrawTileMesh,
 );
 
@@ -116,8 +127,8 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I>
     }
 }
 
-pub struct SetTilemapTextureBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapTextureBindGroup<I> {
+pub struct SetTilemapcolorTextureBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapcolorTextureBindGroup<I> {
     type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
@@ -128,17 +139,17 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapTextureBindGroup
     fn render<'w>(
         _item: &Transparent2d,
         _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
-        tilemaps: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
+        tilemap: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
         bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
         pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(texture) = &tilemaps.texture {
+        if let Some(texture) = &tilemap.texture {
             pass.set_bind_group(
                 I,
                 bind_groups
                     .into_inner()
-                    .colored_textures
-                    .get(texture.get_handle())
+                    .color_textures
+                    .get(texture.handle())
                     .unwrap(),
                 &[],
             );

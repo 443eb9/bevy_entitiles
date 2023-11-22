@@ -6,9 +6,11 @@ use bevy::{
 use bevy_entitiles::{
     debug::camera_movement::camera_control,
     math::FillArea,
+    post_processing::{mist::FogData, PostProcessingView},
     render::texture::TilemapTextureDescriptor,
     tilemap::{
         map::TilemapBuilder,
+        post_processing::height::HeightTilemap,
         tile::{TileBuilder, TileType},
     },
     EntiTilesPlugin,
@@ -19,11 +21,12 @@ fn main() {
         .add_plugins((DefaultPlugins, EntiTilesPlugin))
         .add_systems(Startup, setup)
         .add_systems(Update, camera_control)
+        .insert_resource(FogData { min: 0., max: 5. })
         .run();
 }
 
 fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), PostProcessingView));
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::Square,
@@ -32,10 +35,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     )
     .with_texture(
         assets_server.load("test/test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 2, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 2, y: 2 }, FilterMode::Nearest),
     )
     .build(&mut commands);
 
@@ -51,5 +51,10 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &TileBuilder::new(UVec2::ZERO, 1),
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    let height_tilemap =
+        HeightTilemap::new(assets_server.load("test/height_texture.png"), &tilemap);
+
+    commands
+        .entity(tilemap_entity)
+        .insert((tilemap, height_tilemap));
 }

@@ -14,10 +14,11 @@ use bevy::{
 
 use super::{
     draw::{DrawTilemap, DrawTilemapPureColor},
-    extract::ExtractedTilemap,
+    extract::{ExtractedHeightTilemap, ExtractedTilemap},
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
+    texture::TilemapTexturesStorage,
     uniform::TilemapUniformsStorage,
-    TilemapBindGroups, texture::TilemapTexturesStorage,
+    TilemapBindGroups,
 };
 
 #[derive(Component)]
@@ -28,10 +29,10 @@ pub struct TileViewBindGroup {
 pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
-    tilemaps_query: Query<(Entity, &ExtractedTilemap)>,
+    tilemaps_query: Query<(Entity, &ExtractedTilemap, Option<&ExtractedHeightTilemap>)>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    mut tilemap_pipelines: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
+    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
     entitile_pipeline: Res<EntiTilesPipeline>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
@@ -39,6 +40,12 @@ pub fn queue(
     textures_storage: Res<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     tilemap_uniform_strorage: Res<TilemapUniformsStorage>,
+    #[cfg(feature = "post_processing")] mut post_processing_bind_groups: ResMut<
+        crate::post_processing::PostProcessingBindGroups,
+    >,
+    #[cfg(feature = "post_processing")] post_processing_textures: Res<
+        crate::post_processing::PostProcessingTextures,
+    >,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -57,20 +64,12 @@ pub fn queue(
         });
 
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
-        tilemaps.sort_by(|lhs, rhs| lhs.1.z_order.cmp(&rhs.1.z_order));
+        tilemaps.sort_by(|lhs, rhs| rhs.1.z_order.cmp(&lhs.1.z_order));
 
-        for (entity, tilemap) in tilemaps.iter() {
-            let pipeline = tilemap_pipelines.specialize(
-                &pipeline_cache,
-                &entitile_pipeline,
-                EntiTilesPipelineKey {
-                    msaa: msaa.samples(),
-                    map_type: tilemap.tile_type,
-                    flip: tilemap.flip,
-                    is_pure_color: tilemap.texture.is_none(),
-                },
-            );
+        let mut is_pure_color = true;
+        let mut is_height_tilemap = false;
 
+        for (entity, tilemap, height_tilemap) in tilemaps_query.iter() {
             if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
                 let tilemap_uniform_bind_group = render_device.create_bind_group(
                     Some("tilemap_data_bind_group"),
@@ -87,46 +86,137 @@ pub fn queue(
             }
 
             if let Some(tile_texture) = tilemap.texture.clone() {
-                let Some(texture) = textures_storage.get(tile_texture.get_handle()) else {
+                let Some(texture) = textures_storage.get(tile_texture.handle()) else {
                     continue;
                 };
 
-                let texture_bind_group = render_device.create_bind_group(
-                    Some("tilemap_texture_bind_group"),
-                    &entitile_pipeline.colored_texture_layout,
-                    &[
-                        BindGroupEntry {
-                            binding: 0,
-                            resource: BindingResource::TextureView(&texture.texture_view),
-                        },
-                        BindGroupEntry {
-                            binding: 1,
-                            resource: BindingResource::Sampler(&texture.sampler),
-                        },
-                    ],
-                );
+                if !bind_groups
+                    .color_textures
+                    .contains_key(tile_texture.handle())
+                {
+                    let bind_group = render_device.create_bind_group(
+                        Some("color_texture_bind_group"),
+                        &entitile_pipeline.color_texture_layout,
+                        &[
+                            BindGroupEntry {
+                                binding: 0,
+                                resource: BindingResource::TextureView(&texture.texture_view),
+                            },
+                            BindGroupEntry {
+                                binding: 1,
+                                resource: BindingResource::Sampler(&texture.sampler),
+                            },
+                        ],
+                    );
 
-                bind_groups
-                    .colored_textures
-                    .insert(tile_texture.clone_weak(), texture_bind_group);
+                    bind_groups
+                        .color_textures
+                        .insert(tile_texture.clone_weak(), bind_group);
+                }
 
+                is_pure_color = false;
+            }
+
+            #[cfg(feature = "post_processing")]
+            if let Some(height_tilemap) = height_tilemap {
+                let height_texture = &height_tilemap.height_texture;
+                if let Some(texture) = textures_storage.get(height_texture.handle()) {
+                    if !post_processing_bind_groups
+                        .height_texture_bind_groups
+                        .contains_key(height_texture.handle())
+                    {
+                        let bind_group = render_device.create_bind_group(
+                            Some("height_texture_bind_group"),
+                            &entitile_pipeline.color_texture_layout,
+                            &[
+                                BindGroupEntry {
+                                    binding: 0,
+                                    resource: BindingResource::TextureView(&texture.texture_view),
+                                },
+                                BindGroupEntry {
+                                    binding: 1,
+                                    resource: BindingResource::Sampler(&texture.sampler),
+                                },
+                            ],
+                        );
+
+                        post_processing_bind_groups
+                            .height_texture_bind_groups
+                            .insert(height_texture.clone_weak(), bind_group);
+                    }
+                }
+
+                if post_processing_bind_groups
+                    .screen_height_texture_bind_group
+                    .is_none()
+                {
+                    post_processing_bind_groups.screen_height_texture_bind_group = Some(
+                        render_device.create_bind_group(
+                            Some("screen_height_texture_bind_group"),
+                            &entitile_pipeline.screen_height_texture_layout,
+                            &[BindGroupEntry {
+                                binding: 0,
+                                resource: BindingResource::TextureView(
+                                    &post_processing_textures
+                                        .screen_height_gpu_image
+                                        .as_ref()
+                                        .unwrap()
+                                        .texture_view,
+                                ),
+                            }],
+                        ),
+                    );
+                }
+
+                is_height_tilemap = true;
+            }
+
+            let pipeline = sp_entitiles_pipeline.specialize(
+                &pipeline_cache,
+                &entitile_pipeline,
+                EntiTilesPipelineKey {
+                    msaa: msaa.samples(),
+                    map_type: tilemap.tile_type,
+                    flip: tilemap.flip,
+                    is_pure_color,
+                    is_height_tilemap,
+                },
+            );
+
+            if is_pure_color {
                 transparent_phase.add(Transparent2d {
                     sort_key: FloatOrd(0.),
-                    entity: *entity,
-                    pipeline,
-                    draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
-                    batch_range: 0..1,
-                    dynamic_offset: NonMaxU32::new(0),
-                });
-            } else {
-                transparent_phase.add(Transparent2d {
-                    sort_key: FloatOrd(0.),
-                    entity: *entity,
+                    entity,
                     pipeline,
                     draw_function: draw_functions
                         .read()
                         .get_id::<DrawTilemapPureColor>()
                         .unwrap(),
+                    batch_range: 0..1,
+                    dynamic_offset: NonMaxU32::new(0),
+                });
+            } else {
+                #[cfg(feature = "post_processing")]
+                if is_height_tilemap {
+                    transparent_phase.add(Transparent2d {
+                        sort_key: FloatOrd(0.),
+                        entity,
+                        pipeline,
+                        draw_function: draw_functions
+                            .read()
+                            .get_id::<super::draw::DrawTilemapPostProcessing>()
+                            .unwrap(),
+                        batch_range: 0..1,
+                        dynamic_offset: NonMaxU32::new(0),
+                    });
+                    return;
+                }
+
+                transparent_phase.add(Transparent2d {
+                    sort_key: FloatOrd(0.),
+                    entity,
+                    pipeline,
+                    draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
                     batch_range: 0..1,
                     dynamic_offset: NonMaxU32::new(0),
                 });

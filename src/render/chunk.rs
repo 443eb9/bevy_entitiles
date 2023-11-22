@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Entity, Mesh, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4, Without},
+    prelude::{Entity, Mesh, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
@@ -15,7 +15,6 @@ use crate::{
 };
 
 use super::{
-    culling::VisibleTilemap,
     extract::{ExtractedTile, ExtractedTilemap},
     TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_UV,
 };
@@ -215,7 +214,7 @@ impl RenderChunkStorage {
     /// Add tiles to the storage from a query.
     pub fn add_tiles_with_query(
         &mut self,
-        tilemaps_query: &Query<&ExtractedTilemap, Without<VisibleTilemap>>,
+        tilemaps_query: &Query<&ExtractedTilemap>,
         changed_tiles_query: &Query<&mut ExtractedTile>,
     ) {
         for tile in changed_tiles_query.iter() {

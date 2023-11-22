@@ -5,15 +5,15 @@ use crate::tilemap::{map::Tilemap, tile::TilemapTexture};
 /// This tilemap will be used when rendering volumetric clouds/fog or SSAO.
 #[derive(Component)]
 pub struct HeightTilemap {
-    pub(crate) height_map: TilemapTexture,
+    pub(crate) height_texture: TilemapTexture,
 }
 
 impl HeightTilemap {
-    pub fn new(height_map: Handle<Image>, tilemap: &Tilemap) -> Self {
+    pub fn new(height_texture: Handle<Image>, tilemap: &Tilemap) -> Self {
         if let Some(tex) = &tilemap.texture {
             Self {
-                height_map: TilemapTexture {
-                    texture: height_map,
+                height_texture: TilemapTexture {
+                    texture: height_texture,
                     desc: tex.desc.clone(),
                 },
             }

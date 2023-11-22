@@ -5,7 +5,6 @@ use bevy::{
     text::{TextSection, TextStyle},
     time::common_conditions::on_real_timer,
 };
-use bevy_mod_debugdump::print_render_graph;
 
 use crate::debug::drawing::{draw_chunk_aabb, draw_tilemap_aabb};
 
@@ -42,7 +41,7 @@ impl Plugin for EntiTilesDebugPlugin {
     }
 
     fn finish(&self, _app: &mut bevy::prelude::App) {
-        print_render_graph(_app);
+        // print_render_graph(_app);
     }
 }
 

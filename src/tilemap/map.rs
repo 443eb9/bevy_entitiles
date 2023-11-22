@@ -47,7 +47,7 @@ impl TilemapBuilder {
     }
 
     /// Override z order. Default is 10.
-    /// The higher the value of z_order, the earlier it is rendered.
+    /// The higher the value of z_order, the less likely to be covered.
     pub fn with_z_order(&mut self, z_order: u32) -> &mut Self {
         self.z_order = z_order;
         self

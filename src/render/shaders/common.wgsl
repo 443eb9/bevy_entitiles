@@ -24,8 +24,8 @@ var<uniform> tilemap: Tilemap;
 
 #ifndef PURE_COLOR
 @group(2) @binding(0)
-var texture: texture_2d<f32>;
+var color_texture: texture_2d<f32>;
 
 @group(2) @binding(1)
-var texture_sampler: sampler;
+var color_texture_sampler: sampler;
 #endif

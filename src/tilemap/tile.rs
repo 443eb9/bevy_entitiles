@@ -28,7 +28,7 @@ pub struct TileAnimation {
     pub is_loop: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
@@ -39,11 +39,11 @@ impl TilemapTexture {
         self.texture.clone_weak()
     }
 
-    pub fn get_desc(&self) -> &TilemapTextureDescriptor {
+    pub fn desc(&self) -> &TilemapTextureDescriptor {
         &self.desc
     }
 
-    pub fn get_handle(&self) -> &Handle<Image> {
+    pub fn handle(&self) -> &Handle<Image> {
         &self.texture
     }
 }

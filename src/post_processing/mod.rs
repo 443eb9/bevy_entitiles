@@ -1,24 +1,31 @@
 use bevy::{
     app::Plugin,
     asset::{load_internal_asset, Handle},
-    core_pipeline::core_2d::{self, CORE_2D},
     ecs::{
         component::Component,
-        system::{Res, ResMut},
+        schedule::IntoSystemConfigs,
+        system::Resource,
     },
     render::{
-        render_graph::{RenderGraphApp, ViewNodeRunner},
-        render_resource::{BindGroup, BindGroupEntry, Shader},
-        renderer::RenderDevice,
-        RenderApp,
+        render_resource::{
+            BindGroup, CachedRenderPipelineId, FilterMode, Sampler,
+            Shader,
+        },
+        texture::{GpuImage, Image},
+        ExtractSchedule, Render, RenderApp, RenderSet,
     },
+    utils::HashMap,
 };
 
-use crate::render::pipeline::EntiTilesPipeline;
-
-use self::mist::MistNode;
+use crate::post_processing::{
+        mist::MistPlugin,
+        stages::{
+            extract_height_maps, prepare_post_processing, prepare_post_processing_textures,
+        },
+    };
 
 pub mod mist;
+pub mod stages;
 
 pub const MIST_SHADER: Handle<Shader> = Handle::weak_from_u128(583415345213345153241);
 
@@ -27,29 +34,54 @@ pub struct EntiTilesPostProcessingPlugin;
 impl Plugin for EntiTilesPostProcessingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         load_internal_asset!(app, MIST_SHADER, "mist/mist.wgsl", Shader::from_wgsl);
+        app.add_plugins(MistPlugin);
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
-            .add_render_graph_node::<ViewNodeRunner<MistNode>>(CORE_2D, MistNode::NAME)
-            .add_render_graph_edges(
-                CORE_2D,
-                &[
-                    core_2d::graph::node::MAIN_PASS,
-                    MistNode::NAME,
-                    core_2d::graph::node::BLOOM,
-                ],
+            .add_systems(ExtractSchedule, extract_height_maps)
+            .add_systems(
+                Render,
+                (
+                    prepare_post_processing,
+                    prepare_post_processing_textures,
+                )
+                    .in_set(RenderSet::Prepare),
             );
+
+        render_app
+            .init_resource::<PostProcessingTextures>()
+            .init_resource::<PostProcessingSettings>()
+            .init_resource::<PostProcessingBindGroups>();
     }
+}
+
+#[derive(Resource, Default)]
+pub struct PostProcessingSettings {
+    pub filter_mode: FilterMode,
 }
 
 #[derive(Component)]
 pub struct PostProcessingView;
 
-pub struct PostProcessBindGroups {
+#[derive(Resource, Default)]
+pub struct PostProcessingBindGroups {
+    /// All the height textures
+    pub height_texture_bind_groups: HashMap<Handle<Image>, BindGroup>,
     /// A texture contains the height data
-    pub height_texture_bind_group: BindGroup,
+    pub screen_height_texture_bind_group: Option<BindGroup>,
     /// The rendered screen texture
-    pub screen_texture_bind_group: BindGroup,
+    pub screen_color_texture_bind_group: Option<BindGroup>,
+    pub fog_uniform_bind_group: Option<BindGroup>,
 }
 
-fn queue(mut render_device: ResMut<RenderDevice>, pipeline: Res<EntiTilesPipeline>) {}
+#[derive(Resource, Default)]
+pub struct PostProcessingTextures {
+    pub screen_color_texture_sampler: Option<Sampler>,
+    pub screen_height_texture: Handle<Image>,
+    pub screen_height_gpu_image: Option<GpuImage>,
+}
+
+#[derive(Resource, Default)]
+pub struct SpecializedPostProcessingPipelines {
+    pub mist_pipeline: Option<CachedRenderPipelineId>,
+}

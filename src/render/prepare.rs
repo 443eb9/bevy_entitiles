@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{Commands, Query, Res, ResMut, Without},
+    prelude::{Commands, Query, Res, ResMut},
     render::{
         render_asset::RenderAssets,
         render_resource::{AddressMode, SamplerDescriptor},
@@ -10,7 +10,6 @@ use bevy::{
 };
 
 use super::{
-    culling::VisibleTilemap,
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTexturesStorage,
     uniform::TilemapUniformsStorage,
@@ -21,7 +20,7 @@ pub fn prepare(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    extracted_tilemaps: Query<&ExtractedTilemap, Without<VisibleTilemap>>,
+    extracted_tilemaps: Query<&ExtractedTilemap>,
     extracted_tiles: Query<&mut ExtractedTile>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     mut tilemap_uniforms_storage: ResMut<TilemapUniformsStorage>,
@@ -46,9 +45,9 @@ pub fn prepare(
 
             textures_storage.insert(
                 tex.clone_weak(),
-                render_images.get(tex.get_handle()).unwrap().clone(),
+                render_images.get(tex.handle()).unwrap().clone(),
                 render_device.create_sampler(&SamplerDescriptor {
-                    label: Some("tilemap_texture_sampler"),
+                    label: Some("tilemap_color_texture_sampler"),
                     address_mode_u: AddressMode::ClampToEdge,
                     address_mode_v: AddressMode::ClampToEdge,
                     address_mode_w: AddressMode::ClampToEdge,

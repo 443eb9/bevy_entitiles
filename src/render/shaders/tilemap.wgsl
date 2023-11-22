@@ -1,4 +1,4 @@
-#import bevy_entitiles::common::{VertexInput, VertexOutput, texture, texture_sampler, tilemap}
+#import bevy_entitiles::common::{VertexInput, VertexOutput, color_texture, color_texture_sampler, tilemap}
 #import bevy_sprite::mesh2d_view_bindings::view
 
 #ifdef SQUARE
@@ -42,7 +42,12 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
     let color = input.color;
 #else
-    let color = textureSample(texture, texture_sampler, input.uv);
+    let color = textureSample(color_texture, color_texture_sampler, input.uv);
 #endif
+
+#ifdef POST_PROCESSING
+    bevy_entitiles::height_texture::sample_height(input, view.viewport.zw);
+#endif
+
     return color * input.color;
 }

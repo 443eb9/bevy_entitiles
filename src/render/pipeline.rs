@@ -8,8 +8,8 @@ use bevy::{
             BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType,
             ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
             PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
-            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType,
-            SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
+            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedRenderPipeline,
+            StorageTextureAccess, TextureFormat, TextureSampleType, TextureViewDimension,
             VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
         renderer::RenderDevice,
@@ -26,8 +26,9 @@ use super::{uniform::TilemapUniform, TILEMAP_SHADER};
 pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
     pub tilemap_uniform_layout: BindGroupLayout,
-    pub colored_texture_layout: BindGroupLayout,
+    pub color_texture_layout: BindGroupLayout,
     pub height_texture_layout: BindGroupLayout,
+    pub screen_height_texture_layout: BindGroupLayout,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -36,6 +37,7 @@ pub struct EntiTilesPipelineKey {
     pub map_type: TileType,
     pub flip: u32,
     pub is_pure_color: bool,
+    pub is_height_tilemap: bool,
 }
 
 impl FromWorld for EntiTilesPipeline {
@@ -72,9 +74,9 @@ impl FromWorld for EntiTilesPipeline {
                 }],
             });
 
-        let colored_texture_layout =
+        let color_texture_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("colored_texture_layout"),
+                label: Some("color_texture_layout"),
                 entries: &[
                     BindGroupLayoutEntry {
                         binding: 0,
@@ -101,7 +103,7 @@ impl FromWorld for EntiTilesPipeline {
                 entries: &[
                     BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: ShaderStages::COMPUTE,
+                        visibility: ShaderStages::FRAGMENT,
                         ty: BindingType::Texture {
                             sample_type: TextureSampleType::Float { filterable: true },
                             view_dimension: TextureViewDimension::D2,
@@ -111,18 +113,34 @@ impl FromWorld for EntiTilesPipeline {
                     },
                     BindGroupLayoutEntry {
                         binding: 1,
-                        visibility: ShaderStages::COMPUTE,
+                        visibility: ShaderStages::FRAGMENT,
                         ty: BindingType::Sampler(SamplerBindingType::Filtering),
                         count: None,
                     },
                 ],
             });
 
+        let screen_height_texture_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("screen_height_texture_layout"),
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::StorageTexture {
+                        access: StorageTextureAccess::ReadWrite,
+                        format: TextureFormat::Rgba8Unorm,
+                        view_dimension: TextureViewDimension::D2,
+                    },
+                    count: None,
+                }],
+            });
+
         EntiTilesPipeline {
             view_layout,
             tilemap_uniform_layout,
-            colored_texture_layout,
+            color_texture_layout,
             height_texture_layout,
+            screen_height_texture_layout,
         }
     }
 }
@@ -168,20 +186,25 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         );
 
         let mut layout = vec![
+            // group(0)
             self.view_layout.clone(),
+            // group(1)
             self.tilemap_uniform_layout.clone(),
         ];
 
         if !key.is_pure_color {
-            layout.push(self.colored_texture_layout.clone());
+            // group(2)
+            layout.push(self.color_texture_layout.clone());
         }
 
         #[cfg(feature = "post_processing")]
-        {
+        if key.is_height_tilemap {
+            // group(3)
             layout.push(self.height_texture_layout.clone());
+            // group(4)
+            layout.push(self.screen_height_texture_layout.clone());
 
             shader_defs.push("POST_PROCESSING".into());
-            shader_defs.push("RENDER_STAGE".into());
         }
 
         RenderPipelineDescriptor {
