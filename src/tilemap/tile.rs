@@ -54,6 +54,8 @@ pub struct TileBuilder {
     pub(crate) texture_index: u32,
     pub(crate) anim: Option<TileAnimation>,
     pub(crate) color: Vec4,
+    #[cfg(feature = "post_processing")]
+    pub(crate) height: u8,
 }
 
 impl TileBuilder {
@@ -64,16 +66,35 @@ impl TileBuilder {
             texture_index,
             anim: None,
             color: Vec4::ONE,
+            #[cfg(feature = "post_processing")]
+            height: 0,
         }
     }
 
-    pub fn with_color(&mut self, color: Vec4) -> &mut Self {
+    pub fn from_texture_index(texture_index: u32) -> Self {
+        Self {
+            index: UVec2::ZERO,
+            texture_index,
+            anim: None,
+            color: Vec4::ONE,
+            #[cfg(feature = "post_processing")]
+            height: 0,
+        }
+    }
+
+    pub fn with_color(mut self, color: Vec4) -> Self {
         self.color = color;
         self
     }
 
-    pub fn with_animation(&mut self, anim: TileAnimation) -> &mut Self {
+    pub fn with_animation(mut self, anim: TileAnimation) -> Self {
         self.anim = Some(anim);
+        self
+    }
+
+    #[cfg(feature = "post_processing")]
+    pub fn with_height(mut self, height: u8) -> Self {
+        self.height = height;
         self
     }
 
@@ -101,6 +122,8 @@ impl TileBuilder {
             index: self.index,
             texture_index: self.texture_index,
             color: self.color,
+            #[cfg(feature = "post_processing")]
+            height: self.height,
         });
         if let Some(anim) = &self.anim {
             tile.insert(anim.clone());
@@ -116,4 +139,6 @@ pub struct Tile {
     pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
+    #[cfg(feature = "post_processing")]
+    pub height: u8,
 }

@@ -6,10 +6,9 @@ use bevy::{
     time::common_conditions::on_real_timer,
 };
 
-use crate::debug::drawing::{draw_chunk_aabb, draw_tilemap_aabb};
+use drawing::{draw_chunk_aabb, draw_tilemap_aabb};
 
-#[cfg(feature = "algorithm")]
-use crate::debug::drawing::draw_path;
+use crate::helpers::camera_movement::camera_control;
 
 use self::common::{debug_info_display, DebugFpsText};
 
@@ -31,8 +30,9 @@ impl Plugin for EntiTilesDebugPlugin {
             (
                 draw_tilemap_aabb,
                 draw_chunk_aabb,
+                camera_control,
                 #[cfg(feature = "algorithm")]
-                draw_path,
+                drawing::draw_path,
                 debug_info_display.run_if(on_real_timer(Duration::from_millis(100))),
             ),
         );

@@ -3,11 +3,15 @@ use bevy::{
     core_pipeline::core_2d::{self, Transparent2d, CORE_2D},
     ecs::{
         entity::Entity,
+        reflect::ReflectResource,
         schedule::IntoSystemConfigs,
         system::{Commands, Query, Res, ResMut, Resource},
         world::FromWorld,
     },
+    math::Vec2,
+    reflect::Reflect,
     render::{
+        globals::{GlobalsBuffer, GlobalsUniform},
         render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner},
         render_phase::AddRenderCommand,
         render_resource::{
@@ -16,7 +20,7 @@ use bevy::{
             SpecializedRenderPipelines,
         },
         renderer::{RenderDevice, RenderQueue},
-        view::ViewTarget,
+        view::{ViewTarget, ViewUniforms},
         Extract, ExtractSchedule, Render, RenderApp, RenderSet,
     },
 };
@@ -25,7 +29,10 @@ use crate::{post_processing::PostProcessingTextures, render::draw::DrawTilemapPo
 
 use self::pipeline::{MistPipeline, MistPipelineKey};
 
-use super::{PostProcessingBindGroups, PostProcessingView, SpecializedPostProcessingPipelines};
+use super::{
+    NoiseData, PostProcessingBindGroups, PostProcessingSettings, PostProcessingView,
+    SpecializedPostProcessingPipelines,
+};
 
 pub mod pipeline;
 
@@ -33,11 +40,9 @@ pub struct MistPlugin;
 
 impl Plugin for MistPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
+        app.init_resource::<FogData>();
+
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
-        render_app
-            .add_systems(ExtractSchedule, extract)
-            .add_systems(Render, prepare.in_set(RenderSet::Prepare))
-            .add_systems(Render, queue.in_set(RenderSet::Queue));
 
         render_app.init_resource::<MistUniformsStorage>();
 
@@ -57,16 +62,42 @@ impl Plugin for MistPlugin {
     fn finish(&self, _app: &mut bevy::prelude::App) {
         let render_app = _app.sub_app_mut(RenderApp);
         render_app
+            .add_systems(ExtractSchedule, extract)
+            .add_systems(Render, prepare.in_set(RenderSet::Prepare))
+            .add_systems(Render, queue.in_set(RenderSet::Queue));
+
+        render_app
             .init_resource::<SpecializedPostProcessingPipelines>()
             .init_resource::<MistPipeline>()
             .init_resource::<SpecializedRenderPipelines<MistPipeline>>();
     }
 }
 
-#[derive(Resource, Default, Clone, Copy, ShaderType)]
+#[derive(Resource, Clone, Copy, ShaderType)]
 pub struct FogData {
     pub min: f32,
     pub max: f32,
+    pub octaves: u32,
+    pub lacunarity: f32,
+    pub gain: f32,
+    pub scale: f32,
+    pub multiplier: f32,
+    pub speed: f32,
+}
+
+impl Default for FogData {
+    fn default() -> Self {
+        Self {
+            min: Default::default(),
+            max: Default::default(),
+            octaves: 5,
+            lacunarity: 0.5,
+            gain: 1.,
+            scale: 0.05,
+            multiplier: 0.8,
+            speed: 1.,
+        }
+    }
 }
 
 #[derive(Resource, Default)]
@@ -140,16 +171,21 @@ impl ViewNode for MistNode {
 
         let pipeline_cache = world.resource::<PipelineCache>();
         pass.set_render_pipeline(pipeline_cache.get_render_pipeline(pipeline_id).unwrap());
-        pass.set_bind_group(0, &screen_color_texture_bind_group, &[]);
         pass.set_bind_group(
-            1,
+            0,
+            bind_groups.uniforms_bind_group.as_ref().unwrap(),
+            &[],
+        );
+        pass.set_bind_group(1, &screen_color_texture_bind_group, &[]);
+        pass.set_bind_group(
+            2,
             bind_groups
                 .screen_height_texture_bind_group
                 .as_ref()
                 .unwrap(),
             &[],
         );
-        pass.set_bind_group(2, bind_groups.fog_uniform_bind_group.as_ref().unwrap(), &[]);
+        pass.set_bind_group(3, bind_groups.fog_uniform_bind_group.as_ref().unwrap(), &[]);
         pass.draw(0..3, 0..1);
 
         Ok(())
@@ -159,6 +195,7 @@ impl ViewNode for MistNode {
 pub fn extract(
     mut commands: Commands,
     fog: Extract<Res<FogData>>,
+    settings: Extract<Res<PostProcessingSettings>>,
     views_query: Extract<Query<(Entity, &PostProcessingView)>>,
 ) {
     let mut views = vec![];
@@ -167,6 +204,7 @@ pub fn extract(
     }
     commands.insert_or_spawn_batch(views);
     commands.insert_resource(**fog);
+    commands.insert_resource(**settings);
 }
 
 pub fn prepare(
@@ -189,11 +227,17 @@ pub fn queue(
     pipeline_cache: Res<PipelineCache>,
     mut pipelines: ResMut<SpecializedPostProcessingPipelines>,
     render_device: Res<RenderDevice>,
+    settings: Res<PostProcessingSettings>,
+    globals_uniform: Res<GlobalsBuffer>,
+    view_uniform: Res<ViewUniforms>,
 ) {
     pipelines.mist_pipeline = Some(sp_mist_pipeline.specialize(
         &pipeline_cache,
         &mist_pipeline,
-        MistPipelineKey { fog: true },
+        MistPipelineKey {
+            fog: true,
+            height_force_display: settings.height_force_display,
+        },
     ));
 
     if let Some(binding) = uniform_storage.fog_buffer.binding() {
@@ -205,5 +249,27 @@ pub fn queue(
                 resource: binding,
             }],
         ));
+    }
+
+    if bind_groups.uniforms_bind_group.is_none() {
+        if let (Some(globals_bindings), Some(view_bindings)) = (
+            globals_uniform.buffer.binding(),
+            view_uniform.uniforms.binding(),
+        ) {
+            bind_groups.uniforms_bind_group = Some(render_device.create_bind_group(
+                "globals_uniform_bind_group",
+                &mist_pipeline.uniforms_layout,
+                &[
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: globals_bindings,
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: view_bindings,
+                    },
+                ],
+            ));
+        }
     }
 }

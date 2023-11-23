@@ -2,6 +2,7 @@ use bevy::{
     core_pipeline::core_2d::Transparent2d,
     ecs::{
         entity::Entity,
+        query::{Changed, Or},
         system::{
             lifetimeless::{Read, SRes},
             Commands, Query, Res, ResMut,
@@ -12,10 +13,9 @@ use bevy::{
         render_asset::RenderAssets,
         render_phase::{RenderCommand, RenderCommandResult},
         render_resource::{
-            AddressMode, BindGroupEntry, BindingResource,
-            Extent3d, FilterMode, SamplerDescriptor, TextureAspect, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
-            TextureViewDimension,
+            AddressMode, BindGroupEntry, BindingResource, Extent3d, FilterMode, SamplerDescriptor,
+            TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            TextureViewDescriptor, TextureViewDimension,
         },
         renderer::RenderDevice,
         texture::{GpuImage, Image},
@@ -29,49 +29,13 @@ use crate::{
         extract::ExtractedHeightTilemap, pipeline::EntiTilesPipeline,
         texture::TilemapTexturesStorage,
     },
-    tilemap::post_processing::height::HeightTilemap,
+    tilemap::{
+        post_processing::height::HeightTilemap,
+        tile::{Tile, TileAnimation},
+    },
 };
 
 use super::{PostProcessingBindGroups, PostProcessingSettings, PostProcessingTextures};
-
-pub fn reset_height_texture(
-    render_device: Res<RenderDevice>,
-    mut textures: ResMut<PostProcessingTextures>,
-    mut bind_groups: ResMut<PostProcessingBindGroups>,
-    pipeline: Res<EntiTilesPipeline>,
-) {
-    let mut gpu_image = textures.screen_height_gpu_image.take().unwrap();
-    gpu_image.texture = render_device.create_texture(&TextureDescriptor {
-        label: Some("screen_height_texture"),
-        size: gpu_image.texture.size(),
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: TextureDimension::D2,
-        format: TextureFormat::Rgba8Unorm,
-        usage: TextureUsages::STORAGE_BINDING,
-        view_formats: &[],
-    });
-
-    gpu_image.texture_view = gpu_image.texture.create_view(&TextureViewDescriptor {
-        label: Some("screen_height_texture_view"),
-        format: Some(TextureFormat::Rgba8Unorm),
-        dimension: Some(TextureViewDimension::D2),
-        aspect: TextureAspect::All,
-        base_mip_level: 0,
-        base_array_layer: 0,
-        array_layer_count: None,
-        mip_level_count: None,
-    });
-
-    bind_groups.screen_height_texture_bind_group = Some(render_device.create_bind_group(
-        Some("screen_height_texture_bind_group"),
-        &pipeline.screen_height_texture_layout,
-        &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&gpu_image.texture_view),
-        }],
-    ));
-}
 
 pub fn extract_height_maps(
     mut commands: Commands,
@@ -207,6 +171,35 @@ pub fn prepare_post_processing_textures(
         }));
 }
 
+pub struct SetGlobalsUniformBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetGlobalsUniformBindGroup<I> {
+    type Param = SRes<PostProcessingBindGroups>;
+
+    type ViewWorldQuery = ();
+
+    type ItemWorldQuery = ();
+
+    fn render<'w>(
+        _item: &Transparent2d,
+        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
+        _entity: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        pass.set_bind_group(
+            I,
+            bind_groups
+                .into_inner()
+                .uniforms_bind_group
+                .as_ref()
+                .unwrap(),
+            &[],
+        );
+
+        RenderCommandResult::Success
+    }
+}
+
 pub struct SetTilemapHeightTextureBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapHeightTextureBindGroup<I> {
     type Param = SRes<PostProcessingBindGroups>;
@@ -260,6 +253,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetScreenHeightTextureBind
                 .unwrap(),
             &[],
         );
+
         RenderCommandResult::Success
     }
 }

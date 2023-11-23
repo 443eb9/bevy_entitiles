@@ -3,3 +3,5 @@
 
 # What's Fixed:
 - The color of tilemap textures do not really affects the real color.
+- Tilemaps cover the other objects. (`FloatOrd`)
+- `FillArea` will cause panic when the destination is at the edge.

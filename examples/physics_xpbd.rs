@@ -20,7 +20,6 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
     tilemap::{
@@ -31,12 +30,15 @@ use bevy_entitiles::{
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::components::{Collider, LinearVelocity, RigidBody};
+use helpers::EntiTilesDebugPlugin;
+
+mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, (camera_control, collision_events))
+        .add_systems(Update, collision_events)
         .add_systems(FixedUpdate, character_move)
         .run();
 }
@@ -55,11 +57,8 @@ fn setup(
         Vec2 { x: 64.0, y: 32.0 },
     )
     .with_texture(
-        assets_server.load("test/test_isometric.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 1, y: 2 },
-            FilterMode::Nearest,
-        ),
+        assets_server.load("test_isometric.png"),
+        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 1, y: 2 }, FilterMode::Nearest),
     )
     .build(&mut commands);
 
@@ -87,11 +86,8 @@ fn setup(
     )
     .with_translation(Vec2 { x: 500., y: -100. })
     .with_texture(
-        assets_server.load("test/test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 2, y: 2 },
-            FilterMode::Nearest,
-        ),
+        assets_server.load("test_square.png"),
+        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 2, y: 2 }, FilterMode::Nearest),
     )
     .build(&mut commands);
 

@@ -12,6 +12,9 @@
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
+#ifdef POST_PROCESSING
+    output.height = input.position.z;
+#endif
     let mesh_center = get_mesh_center(input);
 
     var translations = array<vec2<f32>, 4>(

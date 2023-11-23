@@ -44,6 +44,8 @@ pub struct ExtractedTile {
     pub texture_index: u32,
     pub color: Vec4,
     pub anim: Option<TileAnimation>,
+    #[cfg(feature = "post_processing")]
+    pub height: u8,
 }
 
 #[derive(Component)]
@@ -103,6 +105,8 @@ pub fn extract_tiles(
                 texture_index: tile.texture_index,
                 color: tile.color,
                 anim,
+                #[cfg(feature = "post_processing")]
+                height: tile.height,
             },
         ));
     }

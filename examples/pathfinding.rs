@@ -1,22 +1,23 @@
 use bevy::{
-    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Update, Vec2},
+    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{
     algorithm::pathfinding::{AsyncPathfinder, PathTile, Pathfinder},
-    debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
     tilemap::{algorithm::path::PathTilemap, map::TilemapBuilder, tile::{TileType, TileBuilder}},
     EntiTilesPlugin,
 };
+use helpers::EntiTilesDebugPlugin;
+
+mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, camera_control)
         .run();
 }
 
@@ -29,7 +30,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         Vec2 { x: 32.0, y: 16.0 },
     )
     .with_texture(
-        assets_server.load("test/test_isometric.png"),
+        assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor::from_full_grid(
             UVec2 { x: 1, y: 2 },
             FilterMode::Nearest,

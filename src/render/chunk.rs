@@ -11,7 +11,7 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::tile::{TileAnimation, TilemapTexture, TileType},
+    tilemap::tile::{TileAnimation, TileType, TilemapTexture},
 };
 
 use super::{
@@ -25,6 +25,8 @@ pub struct TileData {
     pub texture_index: u32,
     pub color: Vec4,
     pub anim: Option<TileAnimation>,
+    #[cfg(feature = "post_processing")]
+    pub height: u8,
 }
 
 #[derive(Clone)]
@@ -82,7 +84,15 @@ impl TilemapRenderChunk {
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
-                positions.extend_from_slice(&[Vec3::ZERO, Vec3::ZERO, Vec3::ZERO, Vec3::ZERO]);
+                #[cfg(not(feature = "post_processing"))]
+                let pos = Vec3::ZERO;
+                #[cfg(feature = "post_processing")]
+                let pos = Vec3 {
+                    x: 0.,
+                    y: 0.,
+                    z: tile.height as f32 / 255.,
+                };
+                positions.extend_from_slice(&[pos, pos, pos, pos]);
 
                 let index_float = Vec2::new(tile.index.x as f32, tile.index.y as f32);
                 grid_indices.extend_from_slice(&[
@@ -175,6 +185,8 @@ impl TilemapRenderChunk {
             texture_index: tile.texture_index,
             color: tile.color,
             anim: tile.anim.clone(),
+            #[cfg(feature = "post_processing")]
+            height: tile.height,
         });
         self.dirty_mesh = true;
     }

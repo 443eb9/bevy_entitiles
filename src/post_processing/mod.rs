@@ -1,28 +1,23 @@
 use bevy::{
     app::Plugin,
     asset::{load_internal_asset, Handle},
-    ecs::{
-        component::Component,
-        schedule::IntoSystemConfigs,
-        system::Resource,
-    },
+    ecs::{component::Component, schedule::IntoSystemConfigs, system::Resource},
+    math::Vec2,
     render::{
         render_resource::{
-            BindGroup, CachedRenderPipelineId, FilterMode, Sampler,
-            Shader,
+            BindGroup, CachedRenderPipelineId, FilterMode, Sampler, Shader, ShaderType,
         },
         texture::{GpuImage, Image},
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
     utils::HashMap,
 };
+use noisy_bevy::NoisyShaderPlugin;
 
 use crate::post_processing::{
-        mist::MistPlugin,
-        stages::{
-            extract_height_maps, prepare_post_processing, prepare_post_processing_textures,
-        },
-    };
+    mist::MistPlugin,
+    stages::{extract_height_maps, prepare_post_processing, prepare_post_processing_textures},
+};
 
 pub mod mist;
 pub mod stages;
@@ -34,17 +29,14 @@ pub struct EntiTilesPostProcessingPlugin;
 impl Plugin for EntiTilesPostProcessingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         load_internal_asset!(app, MIST_SHADER, "mist/mist.wgsl", Shader::from_wgsl);
-        app.add_plugins(MistPlugin);
+        app.add_plugins((MistPlugin, NoisyShaderPlugin));
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
             .add_systems(ExtractSchedule, extract_height_maps)
             .add_systems(
                 Render,
-                (
-                    prepare_post_processing,
-                    prepare_post_processing_textures,
-                )
+                (prepare_post_processing, prepare_post_processing_textures)
                     .in_set(RenderSet::Prepare),
             );
 
@@ -55,9 +47,10 @@ impl Plugin for EntiTilesPostProcessingPlugin {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Clone, Copy)]
 pub struct PostProcessingSettings {
     pub filter_mode: FilterMode,
+    pub height_force_display: bool,
 }
 
 #[derive(Component)]
@@ -72,6 +65,7 @@ pub struct PostProcessingBindGroups {
     /// The rendered screen texture
     pub screen_color_texture_bind_group: Option<BindGroup>,
     pub fog_uniform_bind_group: Option<BindGroup>,
+    pub uniforms_bind_group: Option<BindGroup>,
 }
 
 #[derive(Resource, Default)]
@@ -84,4 +78,13 @@ pub struct PostProcessingTextures {
 #[derive(Resource, Default)]
 pub struct SpecializedPostProcessingPipelines {
     pub mist_pipeline: Option<CachedRenderPipelineId>,
+}
+
+#[derive(ShaderType, Default, Clone, Copy)]
+pub struct NoiseData {
+    pub octaves: u32,
+    pub lacunarity: f32,
+    pub gain: f32,
+    pub scale: f32,
+    pub offset: Vec2,
 }

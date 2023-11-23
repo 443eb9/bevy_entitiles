@@ -183,44 +183,33 @@ pub fn queue(
                 },
             );
 
-            if is_pure_color {
-                transparent_phase.add(Transparent2d {
-                    sort_key: FloatOrd(0.),
-                    entity,
-                    pipeline,
-                    draw_function: draw_functions
+            let mut draw_function = {
+                if is_pure_color {
+                    draw_functions
                         .read()
                         .get_id::<DrawTilemapPureColor>()
-                        .unwrap(),
-                    batch_range: 0..1,
-                    dynamic_offset: NonMaxU32::new(0),
-                });
-            } else {
-                #[cfg(feature = "post_processing")]
-                if is_height_tilemap {
-                    transparent_phase.add(Transparent2d {
-                        sort_key: FloatOrd(0.),
-                        entity,
-                        pipeline,
-                        draw_function: draw_functions
-                            .read()
-                            .get_id::<super::draw::DrawTilemapPostProcessing>()
-                            .unwrap(),
-                        batch_range: 0..1,
-                        dynamic_offset: NonMaxU32::new(0),
-                    });
-                    return;
+                        .unwrap()
+                } else {
+                    draw_functions.read().get_id::<DrawTilemap>().unwrap()
                 }
+            };
 
-                transparent_phase.add(Transparent2d {
-                    sort_key: FloatOrd(0.),
-                    entity,
-                    pipeline,
-                    draw_function: draw_functions.read().get_id::<DrawTilemap>().unwrap(),
-                    batch_range: 0..1,
-                    dynamic_offset: NonMaxU32::new(0),
-                });
+            #[cfg(feature = "post_processing")]
+            if is_height_tilemap {
+                draw_function = draw_functions
+                    .read()
+                    .get_id::<super::draw::DrawTilemapPostProcessing>()
+                    .unwrap()
             }
+
+            transparent_phase.add(Transparent2d {
+                sort_key: FloatOrd(-10.),
+                entity,
+                pipeline,
+                draw_function,
+                batch_range: 0..1,
+                dynamic_offset: NonMaxU32::new(0),
+            });
         }
     }
 }

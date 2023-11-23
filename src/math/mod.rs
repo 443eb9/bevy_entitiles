@@ -20,7 +20,7 @@ impl FillArea {
     pub fn new(origin: UVec2, extent: Option<UVec2>, tilemap: &Tilemap) -> Self {
         let extent = match extent {
             Some(extent) => {
-                if tilemap.is_out_of_tilemap_uvec(origin + extent) {
+                if tilemap.is_out_of_tilemap_uvec(origin + extent - 1) {
                     panic!("Part of the fill area is out of the tilemap");
                 };
                 extent

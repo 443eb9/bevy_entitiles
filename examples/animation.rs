@@ -1,5 +1,5 @@
 use bevy::{
-    app::{App, Startup, Update},
+    app::{App, Startup},
     asset::AssetServer,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::system::{Commands, Res},
@@ -8,7 +8,6 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::camera_movement::camera_control,
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
     tilemap::{
@@ -17,12 +16,14 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
+use helpers::EntiTilesDebugPlugin;
+
+mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, camera_control)
         .run();
 }
 
@@ -35,11 +36,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Vec2 { x: 32., y: 32. },
     )
     .with_texture(
-        asset_server.load("test/test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 2, y: 2 },
-            FilterMode::Nearest,
-        ),
+        asset_server.load("test_square.png"),
+        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 2, y: 2 }, FilterMode::Nearest),
     )
     .build(&mut commands);
 

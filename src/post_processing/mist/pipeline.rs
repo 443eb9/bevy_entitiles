@@ -4,15 +4,17 @@ use bevy::{
     core_pipeline::fullscreen_vertex_shader::fullscreen_shader_vertex_state,
     ecs::{system::Resource, world::FromWorld},
     render::{
+        globals::GlobalsUniform,
         render_resource::{
             BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
             BlendState, BufferBindingType, ColorTargetState, ColorWrites, FragmentState,
             MultisampleState, PrimitiveState, RenderPipelineDescriptor, SamplerBindingType,
-            ShaderStages, SpecializedRenderPipeline, StorageTextureAccess, TextureFormat,
-            TextureSampleType, TextureViewDimension,
+            ShaderStages, ShaderType, SpecializedRenderPipeline, StorageTextureAccess,
+            TextureFormat, TextureSampleType, TextureViewDimension,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
+        view::ViewUniform,
     },
 };
 
@@ -23,11 +25,13 @@ use super::FogData;
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct MistPipelineKey {
     pub fog: bool,
+    pub height_force_display: bool,
 }
 
 #[derive(Resource)]
 pub struct MistPipeline {
     pub fog_uniform_layout: BindGroupLayout,
+    pub uniforms_layout: BindGroupLayout,
     pub screen_color_texture_layout: BindGroupLayout,
     pub screen_height_texture_layout: BindGroupLayout,
 }
@@ -39,17 +43,43 @@ impl FromWorld for MistPipeline {
         let fog_uniform_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 label: Some("fog_uniform_layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: NonZeroU64::new(size_of::<FogData>() as u64),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: NonZeroU64::new(size_of::<FogData>() as u64),
+                        },
+                        count: None,
                     },
-                    count: None,
-                }],
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(ViewUniform::min_size()),
+                        },
+                        count: None,
+                    },
+                ],
             });
+
+        let uniforms_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+            label: Some("uniforms_layout"),
+            entries: &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: NonZeroU64::new(size_of::<GlobalsUniform>() as u64),
+                },
+                count: None,
+            }],
+        });
 
         let screen_color_texture_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
@@ -92,6 +122,7 @@ impl FromWorld for MistPipeline {
 
         Self {
             fog_uniform_layout,
+            uniforms_layout,
             screen_color_texture_layout,
             screen_height_texture_layout,
         }
@@ -107,16 +138,22 @@ impl SpecializedRenderPipeline for MistPipeline {
     ) -> bevy::render::render_resource::RenderPipelineDescriptor {
         let mut layout = vec![
             // group(0)
-            self.screen_color_texture_layout.clone(),
+            self.uniforms_layout.clone(),
             // group(1)
+            self.screen_color_texture_layout.clone(),
+            // group(2)
             self.screen_height_texture_layout.clone(),
         ];
         let mut shader_defs = vec![];
 
         if key.fog {
-            // group(2)
+            // group(3)
             layout.push(self.fog_uniform_layout.clone());
             shader_defs.push("FOG".into());
+        }
+
+        if key.height_force_display {
+            shader_defs.push("HEIGHT_FORCE_DISPLAY".into());
         }
 
         RenderPipelineDescriptor {

@@ -220,6 +220,29 @@ impl Tilemap {
         }
     }
 
+    /// Fill a rectangle area with tiles returned by `tile_builder`.
+    ///
+    /// Set `relative_index` to true if your function takes index relative to the area origin.
+    pub fn fill_rect_custom(
+        &mut self,
+        commands: &mut Commands,
+        area: FillArea,
+        mut tile_builder: impl FnMut(UVec2) -> TileBuilder,
+        relative_index: bool,
+    ) {
+        for y in area.origin.y..=area.dest.y {
+            for x in area.origin.x..=area.dest.x {
+                let mut builder = tile_builder(if relative_index {
+                    UVec2::new(x, y) - area.origin
+                } else {
+                    UVec2::new(x, y)
+                });
+                builder.index = UVec2::new(x, y);
+                self.set_unchecked(commands, builder);
+            }
+        }
+    }
+
     /// Get the id of the tilemap.
     pub fn get_id(&self) -> Entity {
         self.id

@@ -3,8 +3,6 @@ use render::{texture, EntiTilesRendererPlugin};
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
-#[cfg(feature = "debug")]
-pub mod debug;
 pub mod math;
 #[cfg(feature = "post_processing")]
 pub mod post_processing;
@@ -19,8 +17,6 @@ impl Plugin for EntiTilesPlugin {
 
         app.add_plugins(EntiTilesRendererPlugin);
 
-        #[cfg(feature = "debug")]
-        app.add_plugins(debug::EntiTilesDebugPlugin);
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntitilesAlgorithmPlugin);
         #[cfg(any(feature = "physics_rapier", feature = "physics_xpbd"))]
