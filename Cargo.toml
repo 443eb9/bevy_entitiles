@@ -48,7 +48,7 @@ bevy = { version = "0.12.0", default-features = false, features = [
     "trace_tracy",
     "multi-threaded",
 ] }
-bevy-inspector-egui = "0.21.0"
+bevy_mod_outline = "0.6.0"
 bevy_mod_debugdump = "0.9.0"
 
 [features]
@@ -60,6 +60,7 @@ physics_xpbd = ["dep:bevy_xpbd_2d"]
 physics_rapier = ["dep:bevy_rapier2d"]
 algorithm = ["dep:rand", "dep:ron", "dep:serde"]
 post_processing = ["dep:noisy_bevy"]
+anchor = []
 
 [[example]]
 name = "basic"
@@ -95,3 +96,8 @@ required-features = ["physics_rapier"]
 name = "clouds_and_fog"
 path = "examples/clouds_and_fog.rs"
 required-features = ["post_processing"]
+
+[[example]]
+name = "non_uniform"
+path = "examples/non_uniform.rs"
+required-features = ["debug"]

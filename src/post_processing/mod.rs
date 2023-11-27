@@ -5,7 +5,8 @@ use bevy::{
     math::Vec2,
     render::{
         render_resource::{
-            BindGroup, CachedRenderPipelineId, FilterMode, Sampler, Shader, ShaderType,
+            BindGroup, CachedRenderPipelineId, DynamicUniformBuffer, FilterMode, Sampler, Shader,
+            ShaderType,
         },
         texture::{GpuImage, Image},
         ExtractSchedule, Render, RenderApp, RenderSet,
@@ -17,33 +18,47 @@ use noisy_bevy::NoisyShaderPlugin;
 use crate::post_processing::{
     mist::MistPlugin,
     stages::{extract_height_maps, prepare_post_processing, prepare_post_processing_textures},
+    uniform::{
+        bind_uniforms, extract_uniforms, prepare_uniforms, PostProcessingUniform,
+        PostProcessingUniforms,
+    },
 };
 
 pub mod mist;
 pub mod stages;
+pub mod uniform;
 
 pub const MIST_SHADER: Handle<Shader> = Handle::weak_from_u128(583415345213345153241);
+pub const VALUE_NOISE: Handle<Shader> = Handle::weak_from_u128(6385485463854646854856);
 
 pub struct EntiTilesPostProcessingPlugin;
 
 impl Plugin for EntiTilesPostProcessingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         load_internal_asset!(app, MIST_SHADER, "mist/mist.wgsl", Shader::from_wgsl);
+        load_internal_asset!(app, VALUE_NOISE, "../shaders/value_noise.wgsl", Shader::from_wgsl);
         app.add_plugins((MistPlugin, NoisyShaderPlugin));
 
         let render_app = app.sub_app_mut(RenderApp);
         render_app
-            .add_systems(ExtractSchedule, extract_height_maps)
+            .add_systems(ExtractSchedule, (extract_height_maps, extract_uniforms))
             .add_systems(
                 Render,
-                (prepare_post_processing, prepare_post_processing_textures)
+                (
+                    prepare_post_processing,
+                    prepare_post_processing_textures,
+                    prepare_uniforms,
+                )
                     .in_set(RenderSet::Prepare),
-            );
+            )
+            .add_systems(Render, bind_uniforms.in_set(RenderSet::Queue));
 
         render_app
             .init_resource::<PostProcessingTextures>()
             .init_resource::<PostProcessingSettings>()
-            .init_resource::<PostProcessingBindGroups>();
+            .init_resource::<PostProcessingBindGroups>()
+            .init_resource::<PostProcessingUniforms>()
+            .init_resource::<PostProcessingUniform>();
     }
 }
 
@@ -87,4 +102,6 @@ pub struct NoiseData {
     pub gain: f32,
     pub scale: f32,
     pub offset: Vec2,
+    pub multiplier: f32,
+    pub speed: f32,
 }

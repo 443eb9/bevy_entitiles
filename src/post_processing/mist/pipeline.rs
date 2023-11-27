@@ -18,7 +18,7 @@ use bevy::{
     },
 };
 
-use crate::post_processing::MIST_SHADER;
+use crate::post_processing::{uniform::PostProcessingUniform, MIST_SHADER};
 
 use super::FogData;
 
@@ -43,28 +43,16 @@ impl FromWorld for MistPipeline {
         let fog_uniform_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 label: Some("fog_uniform_layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: NonZeroU64::new(size_of::<FogData>() as u64),
-                        },
-                        count: None,
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: Some(FogData::min_size()),
                     },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(ViewUniform::min_size()),
-                        },
-                        count: None,
-                    },
-                ],
+                    count: None,
+                }],
             });
 
         let uniforms_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
@@ -75,7 +63,7 @@ impl FromWorld for MistPipeline {
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: false,
-                    min_binding_size: NonZeroU64::new(size_of::<GlobalsUniform>() as u64),
+                    min_binding_size: Some(PostProcessingUniform::min_size()),
                 },
                 count: None,
             }],

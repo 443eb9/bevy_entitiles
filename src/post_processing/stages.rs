@@ -2,13 +2,13 @@ use bevy::{
     core_pipeline::core_2d::Transparent2d,
     ecs::{
         entity::Entity,
-        query::{Changed, Or},
+        query::{Changed, Or, With},
         system::{
             lifetimeless::{Read, SRes},
             Commands, Query, Res, ResMut,
         },
     },
-    math::Vec2,
+    math::{Vec2, Vec3Swizzles},
     render::{
         render_asset::RenderAssets,
         render_phase::{RenderCommand, RenderCommandResult},
@@ -17,11 +17,13 @@ use bevy::{
             TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
             TextureViewDescriptor, TextureViewDimension,
         },
-        renderer::RenderDevice,
+        renderer::{RenderDevice, RenderQueue},
         texture::{GpuImage, Image},
         view::ExtractedWindows,
         Extract,
     },
+    time::Time,
+    transform::components::Transform,
 };
 
 use crate::{
@@ -35,7 +37,9 @@ use crate::{
     },
 };
 
-use super::{PostProcessingBindGroups, PostProcessingSettings, PostProcessingTextures};
+use super::{
+    PostProcessingBindGroups, PostProcessingSettings, PostProcessingTextures,
+};
 
 pub fn extract_height_maps(
     mut commands: Commands,
@@ -171,8 +175,8 @@ pub fn prepare_post_processing_textures(
         }));
 }
 
-pub struct SetGlobalsUniformBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetGlobalsUniformBindGroup<I> {
+pub struct SetPostProcessingUniformBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetPostProcessingUniformBindGroup<I> {
     type Param = SRes<PostProcessingBindGroups>;
 
     type ViewWorldQuery = ();

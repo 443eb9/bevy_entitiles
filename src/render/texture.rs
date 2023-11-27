@@ -6,7 +6,10 @@ use bevy::{
     },
     math::Vec2,
     prelude::{Image, UVec2},
-    render::{render_resource::{FilterMode, Sampler}, texture::GpuImage},
+    render::{
+        render_resource::{FilterMode, Sampler},
+        texture::GpuImage,
+    },
     utils::HashMap,
 };
 
@@ -14,8 +17,9 @@ use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct TileUV {
-    pub min: Vec2,
-    pub max: Vec2,
+    pub(crate) min: Vec2,
+    pub(crate) max: Vec2,
+    pub(crate) aspect: Vec2,
 }
 
 impl TileUV {
@@ -46,6 +50,33 @@ impl TileUV {
     }
 }
 
+pub struct TileUVBuilder {
+    pub image_size: UVec2,
+    pub tiles: Vec<(UVec2, UVec2)>,
+}
+
+impl TileUVBuilder {
+    /// Build the UVs to be used in a non-uniform texture atlas.
+    /// Use `TilemapTextureDescriptor::from_full_grid` for uniform texture atlases.
+    pub fn build(&self) -> Vec<TileUV> {
+        let mut uvs = Vec::with_capacity(self.tiles.len());
+        let size = self.image_size.as_vec2();
+        for t in self.tiles.iter() {
+            let min = t.0.as_vec2();
+            let max = t.1.as_vec2();
+            uvs.push(TileUV {
+                min: min / size,
+                max: max / size,
+                aspect: Vec2 {
+                    x: max.x - min.x,
+                    y: max.y - min.y,
+                },
+            });
+        }
+        uvs
+    }
+}
+
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
     textures: HashMap<Handle<Image>, GpuImage>,
@@ -73,8 +104,10 @@ pub struct TilemapTextureDescriptor {
 }
 
 impl TilemapTextureDescriptor {
-    /// Creates a new descriptor from a full grid of tiles. The texture should be filled with tiles.
+    /// Creates a new uniform descriptor from a full grid of tiles. The texture should be filled with tiles.
     /// Just like the one in the example.
+    ///
+    /// Use `TileUVBuilder` to create a non-uniform descriptor.
     pub fn from_full_grid(tile_count: UVec2, filter_mode: FilterMode) -> Self {
         let mut tiles_uv = Vec::with_capacity((tile_count.x * tile_count.y) as usize);
         let unit_uv = 1. / tile_count.as_vec2();
@@ -90,6 +123,7 @@ impl TilemapTextureDescriptor {
                         x: unit_uv.x * (x + 1) as f32,
                         y: unit_uv.y * (y + 1) as f32,
                     },
+                    aspect: Vec2 { x: 1., y: 1. },
                 });
             }
         }

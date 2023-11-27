@@ -46,25 +46,26 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::IsometricDiamond,
         UVec2 { x: 20, y: 10 },
-        Vec2 { x: 32.0, y: 32.0 },
+        Vec2 { x: 32., y: 16. },
     )
     .with_texture(
         assets_server.load("test_nonuniform.png"),
         TilemapTextureDescriptor {
             tiles_uv: TileUVBuilder {
-                image_size: UVec2 { x: 32, y: 32 },
+                image_size: UVec2 { x: 64, y: 80 },
                 tiles: vec![
-                    (UVec2 { x: 0, y: 0 }, UVec2 { x: 16, y: 16 }),
-                    (UVec2 { x: 16, y: 4 }, UVec2 { x: 32, y: 16 }),
-                    (UVec2 { x: 0, y: 16 }, UVec2 { x: 16, y: 30 }),
-                    (UVec2 { x: 16, y: 16 }, UVec2 { x: 28, y: 30 }),
+                    (UVec2 { x: 0, y: 0 }, UVec2 { x: 32, y: 32 }),
+                    (UVec2 { x: 32, y: 8 }, UVec2 { x: 64, y: 32 }),
+                    (UVec2 { x: 0, y: 32 }, UVec2 { x: 32, y: 59 }),
+                    (UVec2 { x: 32, y: 32 }, UVec2 { x: 52, y: 69 }),
+                    (UVec2 { x: 0, y: 64 }, UVec2 { x: 32, y: 80 }),
                 ],
             }
             .build(),
             filter_mode: FilterMode::Nearest,
         },
     )
-    .with_tile_grid_size(Vec2 { x: 32., y: 16. })
+    // .with_tile_grid_size(Vec2 { x: 32., y: 16. })
     .with_anchor(Vec2 { x: 0.5, y: 0. })
     .with_render_chunk_size(4)
     .build(&mut commands);
@@ -72,7 +73,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0),
+        &TileBuilder::new(UVec2::ZERO, 4),
     );
 
     tilemap.fill_rect(
@@ -88,6 +89,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     tilemap.set(&mut commands, &TileBuilder::new(UVec2 { x: 5, y: 5 }, 3));
+    tilemap.set(&mut commands, &TileBuilder::new(UVec2 { x: 2, y: 6 }, 0));
 
     commands.entity(tilemap_entity).insert(tilemap);
 }

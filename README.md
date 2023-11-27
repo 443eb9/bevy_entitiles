@@ -14,7 +14,7 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Future Goals
 
-- Wave Function Collapse ( Optimization )
+- Wave Function Collapse ( Optimization; Collapse map parts )
 - ~~Pathfinding~~
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
@@ -27,7 +27,8 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - Frustum Culling ( Isometric Specific Optimization )
 - ~~Physics~~
 - Lighting
-- Dynamic Shadow
+- Realtime Shadow
+- Tilemap Editor
 
 ## Known Issues
 
@@ -84,6 +85,10 @@ Video at `docs/vids/wfc.mp4`
 | 100x100 | (Not measurable)        | 32,309.045 (16)         |
 
 > *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted; Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses*
+
+## Special Thanks
+
+SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
 
 ## Versions
 

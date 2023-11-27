@@ -203,7 +203,7 @@ pub fn queue(
             }
 
             transparent_phase.add(Transparent2d {
-                sort_key: FloatOrd(-10.),
+                sort_key: FloatOrd(tilemap.z_order as f32),
                 entity,
                 pipeline,
                 draw_function,

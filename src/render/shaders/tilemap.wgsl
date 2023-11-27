@@ -12,20 +12,18 @@
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-#ifdef POST_PROCESSING
-    output.height = input.position.z;
-#endif
     let mesh_center = get_mesh_center(input);
 
     var translations = array<vec2<f32>, 4>(
         vec2<f32>(0., 0.),
-        vec2<f32>(0., 1.),
-        vec2<f32>(1., 1.),
-        vec2<f32>(1., 0.),
+        vec2<f32>(0., input.aspect.y),
+        vec2<f32>(input.aspect.x, input.aspect.y),
+        vec2<f32>(input.aspect.x, 0.),
     );
 
-    var position_model = vec2<f32>(mesh_center + translations[input.v_index % 4u] * tilemap.tile_render_size);
-    var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
+    let translation = translations[input.v_index % 4u] - tilemap.anchor * input.aspect;
+    var position_model = vec2<f32>(mesh_center + translation * tilemap.tile_render_scale);
+    var position_world = vec4<f32>(tilemap.translation + position_model, mesh_center.y, 1.);
 
     output.position = view.view_proj * position_world;
     output.color = input.color;
@@ -36,6 +34,10 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 #endif
 #ifdef FLIP_V
     output.uv.y = 1. - output.uv.y;
+#endif
+
+#ifdef POST_PROCESSING
+    output.height = input.position.z;
 #endif
     return output;
 }

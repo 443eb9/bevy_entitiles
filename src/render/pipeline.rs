@@ -66,9 +66,7 @@ impl FromWorld for EntiTilesPipeline {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: true,
-                        min_binding_size: Some(
-                            NonZeroU64::new(size_of::<TilemapUniform>() as u64).unwrap(),
-                        ),
+                        min_binding_size: Some(TilemapUniform::min_size()),
                     },
                     count: None,
                 }],
@@ -181,6 +179,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 // color
                 VertexFormat::Float32x4,
                 // uv
+                VertexFormat::Float32x2,
+                // aspect
                 VertexFormat::Float32x2,
             ],
         );

@@ -464,7 +464,7 @@ impl WfcGrid {
         for tile in self.grid.iter() {
             let index = tile.index;
             let texture_index = tile.texture_index.unwrap() as u32;
-            tilemap.set(commands, TileBuilder::new(index, texture_index));
+            tilemap.set(commands, &TileBuilder::new(index, texture_index));
         }
     }
 
@@ -667,7 +667,7 @@ pub fn wave_function_collapse_async(
 
                     if let Some(idx) =  grid.get_tile(min_tile.index).unwrap().texture_index {
                         commands.command_scope(|mut c|{
-                            tilemap.set(&mut c, TileBuilder::new(min_tile.index, idx as u32));
+                            tilemap.set(&mut c, &TileBuilder::new(min_tile.index, idx as u32));
                         })
                     }
                 } else {

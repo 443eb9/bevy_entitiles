@@ -6,6 +6,7 @@ struct VertexInput {
     @location(1) index: vec2<f32>,
     @location(2) color: vec4<f32>,
     @location(3) uv: vec2<f32>,
+    @location(4) aspect: vec2<f32>,
 }
 
 struct VertexOutput {
@@ -17,7 +18,9 @@ struct VertexOutput {
 
 struct Tilemap {
     translation: vec2<f32>,
-    tile_render_size: vec2<f32>,
+    tile_render_scale: vec2<f32>,
+    tile_grid_size: vec2<f32>,
+    anchor: vec2<f32>,
 }
 
 @group(1) @binding(0)

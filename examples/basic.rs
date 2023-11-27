@@ -29,11 +29,12 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
-        Vec2 { x: 32.0, y: 32.0 },
+        Vec2 { x: 16.0, y: 16.0 },
     )
-    .with_texture(
+    .with_uniform_texture(
         assets_server.load("test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 2, y: 2 }, FilterMode::Nearest),
+        UVec2 { x: 2, y: 2 },
+        FilterMode::Nearest,
     )
     .build(&mut commands);
 

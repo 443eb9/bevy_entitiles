@@ -9,7 +9,7 @@ use bevy::{
         world::FromWorld,
     },
     math::Vec2,
-    reflect::Reflect,
+    reflect::{Reflect, self},
     render::{
         globals::{GlobalsBuffer, GlobalsUniform},
         render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner},
@@ -74,30 +74,37 @@ impl Plugin for MistPlugin {
 }
 
 #[derive(Resource, Clone, Copy, ShaderType)]
-pub struct FogData {
-    pub min: f32,
-    pub max: f32,
+pub struct FogLayer {
     pub octaves: u32,
     pub lacunarity: f32,
     pub gain: f32,
     pub scale: f32,
     pub multiplier: f32,
     pub speed: f32,
+    pub offset: Vec2,
 }
 
-impl Default for FogData {
+impl Default for FogLayer {
     fn default() -> Self {
         Self {
-            min: Default::default(),
-            max: Default::default(),
-            octaves: 5,
-            lacunarity: 0.5,
-            gain: 1.,
-            scale: 0.05,
-            multiplier: 0.8,
-            speed: 1.,
+            lacunarity: 2.,
+            multiplier: 0.15,
+            speed: 0.3,
+            scale: 0.01,
+            octaves: 4,
+            gain: 0.4,
+            offset: Vec2::ZERO,
         }
     }
+}
+
+#[derive(Resource, Default, Clone, Copy, ShaderType)]
+pub struct FogData {
+    pub layers: [FogLayer; 4],
+    pub layer_count: u32,
+    pub min: f32,
+    pub max: f32,
+    pub intensity: f32,
 }
 
 #[derive(Resource, Default)]
@@ -171,11 +178,7 @@ impl ViewNode for MistNode {
 
         let pipeline_cache = world.resource::<PipelineCache>();
         pass.set_render_pipeline(pipeline_cache.get_render_pipeline(pipeline_id).unwrap());
-        pass.set_bind_group(
-            0,
-            bind_groups.uniforms_bind_group.as_ref().unwrap(),
-            &[],
-        );
+        pass.set_bind_group(0, bind_groups.uniforms_bind_group.as_ref().unwrap(), &[]);
         pass.set_bind_group(1, &screen_color_texture_bind_group, &[]);
         pass.set_bind_group(
             2,
@@ -228,8 +231,6 @@ pub fn queue(
     mut pipelines: ResMut<SpecializedPostProcessingPipelines>,
     render_device: Res<RenderDevice>,
     settings: Res<PostProcessingSettings>,
-    globals_uniform: Res<GlobalsBuffer>,
-    view_uniform: Res<ViewUniforms>,
 ) {
     pipelines.mist_pipeline = Some(sp_mist_pipeline.specialize(
         &pipeline_cache,
@@ -249,27 +250,5 @@ pub fn queue(
                 resource: binding,
             }],
         ));
-    }
-
-    if bind_groups.uniforms_bind_group.is_none() {
-        if let (Some(globals_bindings), Some(view_bindings)) = (
-            globals_uniform.buffer.binding(),
-            view_uniform.uniforms.binding(),
-        ) {
-            bind_groups.uniforms_bind_group = Some(render_device.create_bind_group(
-                "globals_uniform_bind_group",
-                &mist_pipeline.uniforms_layout,
-                &[
-                    BindGroupEntry {
-                        binding: 0,
-                        resource: globals_bindings,
-                    },
-                    BindGroupEntry {
-                        binding: 1,
-                        resource: view_bindings,
-                    },
-                ],
-            ));
-        }
     }
 }

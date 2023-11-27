@@ -37,7 +37,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         ),
     )
     .with_render_chunk_size(64)
-    .with_disabled_safety_check()
     .build(&mut commands);
 
     tilemap.fill_rect(

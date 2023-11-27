@@ -20,7 +20,9 @@ where
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
     pub transform: Vec2,
-    pub tile_size: Vec2,
+    pub tile_render_scale: Vec2,
+    pub tile_grid_size: Vec2,
+    pub anchor: Vec2,
 }
 
 #[derive(Resource, Default)]
@@ -37,7 +39,9 @@ impl TilemapUniformsStorage {
     ) -> DynamicUniformComponent<TilemapUniform> {
         let component = TilemapUniform {
             transform: tilemap.translation,
-            tile_size: tilemap.tile_render_size,
+            tile_grid_size: tilemap.tile_grid_size,
+            tile_render_scale: tilemap.tile_render_scale,
+            anchor: tilemap.anchor,
         };
 
         let index = self.buffer.push(component);

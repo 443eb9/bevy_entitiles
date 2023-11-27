@@ -3,5 +3,5 @@
 #import bevy_entitiles::common::{VertexInput, tilemap}
 
 fn get_mesh_center(input: VertexInput) -> vec2<f32> {
-    return input.index * tilemap.tile_render_size;
+    return input.index * tilemap.tile_grid_size;
 }

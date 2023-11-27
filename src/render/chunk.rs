@@ -16,7 +16,8 @@ use crate::{
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
-    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_UV,
+    TILEMAP_MESH_ATTR_ASPECT, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
+    TILEMAP_MESH_ATTR_UV,
 };
 
 #[derive(Clone)]
@@ -81,19 +82,10 @@ impl TilemapRenderChunk {
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
+        let mut aspect = Vec::with_capacity(len * 4);
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
-                #[cfg(not(feature = "post_processing"))]
-                let pos = Vec3::ZERO;
-                #[cfg(feature = "post_processing")]
-                let pos = Vec3 {
-                    x: 0.,
-                    y: 0.,
-                    z: tile.height as f32 / 255.,
-                };
-                positions.extend_from_slice(&[pos, pos, pos, pos]);
-
                 let index_float = Vec2::new(tile.index.x as f32, tile.index.y as f32);
                 grid_indices.extend_from_slice(&[
                     index_float,
@@ -113,12 +105,19 @@ impl TilemapRenderChunk {
                     tile.texture_index
                 } as usize;
 
-                uvs.extend_from_slice(&[
+                let pos_2d = [
                     tile_uvs[tex_idx].top_left(),
                     tile_uvs[tex_idx].btm_left(),
                     tile_uvs[tex_idx].btm_right(),
                     tile_uvs[tex_idx].top_right(),
-                ]);
+                ];
+                uvs.extend_from_slice(&pos_2d);
+
+                let pos = Vec3::ZERO;
+                #[cfg(feature = "post_processing")]
+                pos.extend(tile.height as f32 / 255.);
+                
+                positions.extend_from_slice(&[pos, pos, pos, pos]);
 
                 vertex_indices.extend_from_slice(&[
                     v_index,
@@ -132,6 +131,9 @@ impl TilemapRenderChunk {
                 v_index += 4;
 
                 color.extend_from_slice(&[tile.color, tile.color, tile.color, tile.color]);
+
+                let asp = tile_uvs[tex_idx].aspect;
+                aspect.extend_from_slice(&[asp, asp, asp, asp]);
             }
         }
 
@@ -141,6 +143,7 @@ impl TilemapRenderChunk {
             .insert_attribute(TILEMAP_MESH_ATTR_INDEX, grid_indices);
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_UV, uvs);
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
+        self.mesh.insert_attribute(TILEMAP_MESH_ATTR_ASPECT, aspect);
         self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
 
         let mesh_vert_count = self.mesh.count_vertices() as u32;
@@ -180,6 +183,10 @@ impl TilemapRenderChunk {
     /// Set a tile in the chunk. Overwrites the previous tile.
     pub fn set_tile(&mut self, index: UVec2, tile: &ExtractedTile) {
         let index = (index.y * self.size + index.x) as usize;
+
+        // TODO fix this. this allows the tile sort by y axis. But this approach is not good.
+        let index = self.tiles.len() - index - 1;
+
         self.tiles[index] = Some(TileData {
             index: tile.index,
             texture_index: tile.texture_index,

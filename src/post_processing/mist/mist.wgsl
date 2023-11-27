@@ -1,23 +1,14 @@
 #import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
-#import noisy_bevy::fbm_simplex_3d
-#import bevy_render::{globals::Globals, view::View}
+#import bevy_entitiles::value_noise::{fbm_3d, fbm_2d}
 
-struct FogData {
-    min: f32,
-    max: f32,
-    octaves: u32,
-    lacunarity: f32,
-    gain: f32,
-    scale: f32,
-    multiplier: f32,
-    speed: f32,
+struct PostProcessingUniforms {
+    time: f32,
+    camera_pos: vec2<f32>,
+    camera_scale: f32,
 }
 
 @group(0) @binding(0)
-var<uniform> globals: Globals;
-
-@group(0) @binding(1)
-var<uniform> view: View;
+var<uniform> uniforms: PostProcessingUniforms;
 
 @group(1) @binding(0)
 var screen_color_texture: texture_2d<f32>;
@@ -29,47 +20,67 @@ var screen_color_texture_sampler: sampler;
 var screen_height_texture: texture_storage_2d<rgba8unorm, read_write>;
 
 #ifdef FOG
-@group(3) @binding(0) 
+struct FogLayer {
+    octaves: u32,
+    lacunarity: f32,
+    gain: f32,
+    scale: f32,
+    multiplier: f32,
+    speed: f32,
+    offset: vec2<f32>,
+}
+
+struct FogData {
+    layers: array<FogLayer, 4>,
+    layer_count: u32,
+    min: f32,
+    max: f32,
+    intensity: f32,
+}
+
+@group(3) @binding(0)
 var<uniform> mist_uniform: FogData;
 #endif
-
-fn clouds() {
-
-}
 
 fn round_to_int(uv: vec2<f32>) -> vec2<i32> {
     return vec2<i32>(uv + vec2<f32>(0.5, 0.5));
 }
 
+fn map_height(height: vec2<f32>) -> f32 {
+    return height.x * 0.2 + height.y;
+}
+
 @fragment
 fn mist(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    let uv = round_to_int(in.position.xy);
+    let uv = vec2<i32>(in.position.xy);
     let height = textureLoad(screen_height_texture, uv).xy;
+    let real_height = map_height(height);
     textureStore(screen_height_texture, uv, vec4<f32>(0., 0., 0., 0.));
     var color = textureSampleLevel(screen_color_texture, screen_color_texture_sampler, in.uv, 0.);
 
-#ifdef HEIGHT_FORCE_DISPLAY
-    if height.x + height.y < 0.001 {
+    if real_height < 0.001 {
         return color;
     }
-    return vec4<f32>(height * 10., 0., 1.);
-#else
+
+#ifdef HEIGHT_FORCE_DISPLAY
+    color = vec4<f32>(height * 10., 0., 1.);
+#endif
 
 #ifdef FOG
-    let n_pos = vec3<f32>(in.position.xy * mist_uniform.scale, globals.time * mist_uniform.speed) + view.world_position;
-    let noise = saturate(fbm_simplex_3d(n_pos, i32(mist_uniform.octaves), mist_uniform.lacunarity, mist_uniform.gain) * mist_uniform.multiplier);
-    // let h = height.x + height.y;
-    // if h > mist_uniform.min && h < mist_uniform.max {
-    //     let fog = (h - mist_uniform.min) / (mist_uniform.max - mist_uniform.min);
-    //     color = mix(color, vec4<f32>(0., 0., 0., 1.), fog * noise);
-    // }
+    let cam_offset = vec2<f32>(-uniforms.camera_pos.x, uniforms.camera_pos.y);
+    let layers = &mist_uniform.layers;
+    var fog = vec4<f32>(0., 0., 0., 0.);
+    let weight = saturate(real_height - mist_uniform.min) / (mist_uniform.max - mist_uniform.min);
+    
+    if weight > 0.01 {
+        for (var i = 0u; i < mist_uniform.layer_count; i++) {
+            let n_pos = vec3<f32>((in.position.xy - cam_offset / uniforms.camera_scale) * (*layers)[i].scale + (*layers)[i].offset, uniforms.time * (*layers)[i].speed);
+            fog += saturate(fbm_3d(n_pos, i32((*layers)[i].octaves), (*layers)[i].lacunarity, (*layers)[i].gain) * (*layers)[i].multiplier);
+        }
 
-    color += vec4<f32>(noise);
-
-    // color += vec4<f32>(fog * noise);
-    // return vec4<f32>(noise);
+        color += fog * weight * mist_uniform.intensity;
+    }
 #endif
 
     return color;
-#endif
 }

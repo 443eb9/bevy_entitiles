@@ -35,7 +35,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         asset_server.load("test_wfc.png"),
         TilemapTextureDescriptor::from_full_grid(UVec2 { x: 3, y: 2 }, FilterMode::Nearest),
     )
-    .with_disabled_safety_check()
     .build(&mut commands);
 
     // The following code is NOT suitable for every project.

@@ -4,11 +4,11 @@ use bevy::prelude::Vec2;
 pub fn world_pos_to_chunk_square(
     tilemap_pos: Vec2,
     tilemap_render_chunk_size: u32,
-    tilemap_tile_render_size: Vec2,
+    tilemap_tile_render_scale: Vec2,
     world_pos: Vec2,
 ) -> Vec2 {
     let rel_pos = world_pos - tilemap_pos;
-    let crs = tilemap_tile_render_size * tilemap_render_chunk_size as f32;
+    let crs = tilemap_tile_render_scale * tilemap_render_chunk_size as f32;
     rel_pos.div_euclid(crs)
 }
 
@@ -16,11 +16,11 @@ pub fn world_pos_to_chunk_square(
 pub fn world_pos_to_chunk_iso_diamond(
     tilemap_pos: Vec2,
     tilemap_render_chunk_size: u32,
-    tilemap_tile_render_size: Vec2,
+    tilemap_tile_render_scale: Vec2,
     world_pos: Vec2,
 ) -> Vec2 {
     let rel_pos = world_pos - tilemap_pos;
-    let crs = tilemap_tile_render_size * tilemap_render_chunk_size as f32;
+    let crs = tilemap_tile_render_scale * tilemap_render_chunk_size as f32;
     let h = crs.x * crs.y;
 
     Vec2::new(
