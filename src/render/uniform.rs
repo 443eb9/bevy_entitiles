@@ -3,7 +3,7 @@ use bevy::{
     render::{
         render_resource::{BindingResource, DynamicUniformBuffer, ShaderType},
         renderer::{RenderDevice, RenderQueue},
-    },
+    }, math::UVec2,
 };
 
 use super::extract::ExtractedTilemap;
@@ -19,10 +19,12 @@ where
 
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
-    pub transform: Vec2,
+    pub translation: Vec2,
+    pub tile_render_size: Vec2,
     pub tile_render_scale: Vec2,
     pub tile_grid_size: Vec2,
     pub anchor: Vec2,
+    pub texture_size: Vec2,
 }
 
 #[derive(Resource, Default)]
@@ -37,11 +39,28 @@ impl TilemapUniformsStorage {
         &mut self,
         tilemap: &ExtractedTilemap,
     ) -> DynamicUniformComponent<TilemapUniform> {
+        let (texture_size, tile_render_size) = if let Some(texture) = &tilemap.texture {
+            let desc = texture.desc();
+            if desc.is_uniform {
+                // if uniform, all the tiles are the same size as the first one.
+                (desc.size.as_vec2(), desc.tiles_uv[0].render_size())
+            } else {
+                // if not, we need to use the tile_render_size data in vertex input.
+                // so the UVec2::ZERO is just a placeholder.
+                (desc.size.as_vec2(), Vec2::ZERO)
+            }
+        } else {
+            // pure color mode
+            (Vec2::ZERO, Vec2::ZERO)
+        };
+
         let component = TilemapUniform {
-            transform: tilemap.translation,
+            translation: tilemap.translation,
+            tile_render_size,
             tile_grid_size: tilemap.tile_grid_size,
             tile_render_scale: tilemap.tile_render_scale,
             anchor: tilemap.anchor,
+            texture_size,
         };
 
         let index = self.buffer.push(component);

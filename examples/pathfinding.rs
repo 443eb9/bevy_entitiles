@@ -7,7 +7,11 @@ use bevy_entitiles::{
     algorithm::pathfinding::{AsyncPathfinder, PathTile, Pathfinder},
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
-    tilemap::{algorithm::path::PathTilemap, map::TilemapBuilder, tile::{TileType, TileBuilder}},
+    tilemap::{
+        algorithm::path::PathTilemap,
+        map::TilemapBuilder,
+        tile::{TileBuilder, TileType},
+    },
     EntiTilesPlugin,
 };
 use helpers::EntiTilesDebugPlugin;
@@ -32,6 +36,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     .with_texture(
         assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 32, y: 32 },
             UVec2 { x: 1, y: 2 },
             FilterMode::Nearest,
         ),
@@ -42,13 +47,13 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0),
+        &TileBuilder::new(0),
     );
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
-        &TileBuilder::new(UVec2::ZERO, 1),
+        &TileBuilder::new(1),
     );
 
     let mut path_tilemap = PathTilemap::new(tilemap_entity);

@@ -37,14 +37,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     )
     .with_texture(
         asset_server.load("test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 2, y: 2 }, FilterMode::Nearest),
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 32, y: 32 },
+            UVec2 { x: 2, y: 2 },
+            FilterMode::Nearest,
+        ),
     )
     .build(&mut commands);
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0).with_animation(TileAnimation {
+        &TileBuilder::new(0).with_animation(TileAnimation {
             sequence: vec![0, 1, 2, 3],
             fps: 5.,
             is_loop: true,
@@ -54,7 +58,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0).with_animation(TileAnimation {
+        &TileBuilder::new(0).with_animation(TileAnimation {
             sequence: vec![0, 1, 2, 3],
             fps: 2.,
             is_loop: true,
@@ -64,7 +68,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0).with_animation(TileAnimation {
+        &TileBuilder::new(0).with_animation(TileAnimation {
             sequence: vec![0, 1, 2, 3],
             fps: 1.,
             is_loop: false,

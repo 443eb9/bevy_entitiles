@@ -42,36 +42,18 @@ pub fn cull(
     }
 }
 
+// TODO optimize
 fn cull_square(
     camera_aabb: &AabbBox2d,
     tilemap: &ExtractedTilemap,
     render_chunk_storage: &mut ResMut<RenderChunkStorage>,
 ) {
-    let Some(storage_size) = render_chunk_storage.get_storage_size(tilemap.id) else {
-        return;
-    };
     let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
 
-    let min_chunk_index = world_pos_to_chunk_square(
-        tilemap.translation,
-        tilemap.render_chunk_size,
-        tilemap.tile_render_scale,
-        camera_aabb.min,
-    )
-    .floor_to_uvec();
-    let max_chunk_index = world_pos_to_chunk_square(
-        tilemap.translation,
-        tilemap.render_chunk_size,
-        tilemap.tile_render_scale,
-        camera_aabb.max,
-    )
-    .ceil_to_uvec();
-
-    for index_y in min_chunk_index.y..max_chunk_index.y {
-        for index_x in min_chunk_index.x..max_chunk_index.x {
-            if let Some(Some(chunk)) = chunks.get_mut((index_y * storage_size.x + index_x) as usize)
-            {
-                chunk.visible = true;
+    for chunk in chunks.iter_mut() {
+        if let Some(c) = chunk {
+            if c.aabb.is_intersected(camera_aabb) {
+                c.visible = true;
             }
         }
     }

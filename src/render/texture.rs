@@ -15,11 +15,12 @@ use bevy::{
 
 use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
 
+/// Notice that the UVs are not the one you might think.
+/// They are pixel coordinates instead of normalized coordinates.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TileUV {
     pub(crate) min: Vec2,
     pub(crate) max: Vec2,
-    pub(crate) aspect: Vec2,
 }
 
 impl TileUV {
@@ -31,16 +32,16 @@ impl TileUV {
     #[inline]
     pub fn btm_right(&self) -> Vec2 {
         Vec2 {
-            x: self.max.x,
-            y: self.min.y,
+            x: self.max.x as f32,
+            y: self.min.y as f32,
         }
     }
 
     #[inline]
     pub fn top_left(&self) -> Vec2 {
         Vec2 {
-            x: self.min.x,
-            y: self.max.y,
+            x: self.min.x as f32,
+            y: self.max.y as f32,
         }
     }
 
@@ -48,32 +49,20 @@ impl TileUV {
     pub fn top_right(&self) -> Vec2 {
         self.max
     }
+
+    #[inline]
+    pub fn render_size(&self) -> Vec2 {
+        self.max - self.min
+    }
 }
 
-pub struct TileUVBuilder {
-    pub image_size: UVec2,
-    pub tiles: Vec<(UVec2, UVec2)>,
-}
-
-impl TileUVBuilder {
-    /// Build the UVs to be used in a non-uniform texture atlas.
-    /// Use `TilemapTextureDescriptor::from_full_grid` for uniform texture atlases.
-    pub fn build(&self) -> Vec<TileUV> {
-        let mut uvs = Vec::with_capacity(self.tiles.len());
-        let size = self.image_size.as_vec2();
-        for t in self.tiles.iter() {
-            let min = t.0.as_vec2();
-            let max = t.1.as_vec2();
-            uvs.push(TileUV {
-                min: min / size,
-                max: max / size,
-                aspect: Vec2 {
-                    x: max.x - min.x,
-                    y: max.y - min.y,
-                },
-            });
+impl From<(UVec2, UVec2)> for TileUV {
+    #[inline]
+    fn from(value: (UVec2, UVec2)) -> Self {
+        Self {
+            min: value.0.as_vec2(),
+            max: value.1.as_vec2(),
         }
-        uvs
     }
 }
 
@@ -99,8 +88,11 @@ impl TilemapTexturesStorage {
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct TilemapTextureDescriptor {
+    pub size: UVec2,
     pub tiles_uv: Vec<TileUV>,
     pub filter_mode: FilterMode,
+    /// Be honest please :)
+    pub is_uniform: bool,
 }
 
 impl TilemapTextureDescriptor {
@@ -108,9 +100,15 @@ impl TilemapTextureDescriptor {
     /// Just like the one in the example.
     ///
     /// Use `TileUVBuilder` to create a non-uniform descriptor.
-    pub fn from_full_grid(tile_count: UVec2, filter_mode: FilterMode) -> Self {
+    pub fn from_full_grid(size: UVec2, tile_count: UVec2, filter_mode: FilterMode) -> Self {
+        assert_eq!(
+            (size % tile_count),
+            UVec2::ZERO,
+            "The texture size must be a multiple of the tile count."
+        );
+
         let mut tiles_uv = Vec::with_capacity((tile_count.x * tile_count.y) as usize);
-        let unit_uv = 1. / tile_count.as_vec2();
+        let unit_uv = (size / tile_count).as_vec2();
 
         for y in 0..tile_count.y {
             for x in 0..tile_count.x {
@@ -123,14 +121,15 @@ impl TilemapTextureDescriptor {
                         x: unit_uv.x * (x + 1) as f32,
                         y: unit_uv.y * (y + 1) as f32,
                     },
-                    aspect: Vec2 { x: 1., y: 1. },
                 });
             }
         }
 
         Self {
+            size,
             tiles_uv,
             filter_mode,
+            is_uniform: true,
         }
     }
 }

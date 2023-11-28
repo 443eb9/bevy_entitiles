@@ -59,14 +59,18 @@ fn setup(
     )
     .with_texture(
         assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 1, y: 2 }, FilterMode::Nearest),
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 32, y: 32 },
+            UVec2 { x: 1, y: 2 },
+            FilterMode::Nearest,
+        ),
     )
     .build(&mut commands);
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0),
+        &TileBuilder::new(0),
     );
 
     tilemap.set_physics_tile_rapier(&mut commands, UVec2 { x: 19, y: 9 }, None, true);
@@ -88,14 +92,18 @@ fn setup(
     .with_translation(Vec2 { x: 500., y: -100. })
     .with_texture(
         assets_server.load("test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(UVec2 { x: 2, y: 2 }, FilterMode::Nearest),
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 32, y: 32 },
+            UVec2 { x: 2, y: 2 },
+            FilterMode::Nearest,
+        ),
     )
     .build(&mut commands);
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0),
+        &TileBuilder::new(0),
     );
 
     tilemap.set_physics_tile_rapier(&mut commands, UVec2 { x: 19, y: 9 }, None, true);

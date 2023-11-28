@@ -63,8 +63,11 @@ impl WfcRunner {
     pub fn from_config(rule_path: String, area: FillArea, seed: Option<u64>) -> Self {
         let rule_vec: Vec<[Vec<u16>; 4]> =
             from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
-        
-        assert!(rule_vec.len() <= 128, "We only support 128 textures for now");
+
+        assert!(
+            rule_vec.len() <= 128,
+            "We only support 128 textures for now"
+        );
 
         let mut rule_set: Vec<[Vec<u16>; 4]> = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
@@ -464,7 +467,7 @@ impl WfcGrid {
         for tile in self.grid.iter() {
             let index = tile.index;
             let texture_index = tile.texture_index.unwrap() as u32;
-            tilemap.set(commands, &TileBuilder::new(index, texture_index));
+            tilemap.set(commands, index, &TileBuilder::new(texture_index));
         }
     }
 
@@ -658,16 +661,17 @@ pub fn wave_function_collapse_async(
         Option<&mut WfcGrid>,
     )>,
 ) {
-    runner_query.par_iter_mut().for_each(
-        |(entity, mut tilemap, mut runner, _, wfc_grid)| {
+    runner_query
+        .par_iter_mut()
+        .for_each(|(entity, mut tilemap, mut runner, _, wfc_grid)| {
             if let Some(mut grid) = wfc_grid {
                 if grid.remaining > 0 && grid.retraced_time < grid.max_retrace_time {
                     let min_tile = grid.pop_min();
                     grid.collapse(min_tile.index);
 
-                    if let Some(idx) =  grid.get_tile(min_tile.index).unwrap().texture_index {
-                        commands.command_scope(|mut c|{
-                            tilemap.set(&mut c, &TileBuilder::new(min_tile.index, idx as u32));
+                    if let Some(idx) = grid.get_tile(min_tile.index).unwrap().texture_index {
+                        commands.command_scope(|mut c| {
+                            tilemap.set(&mut c, min_tile.index, &TileBuilder::new(idx as u32));
                         })
                     }
                 } else {
@@ -689,6 +693,5 @@ pub fn wave_function_collapse_async(
                     c.entity(entity).insert(grid);
                 });
             }
-        },
-    );
+        });
 }

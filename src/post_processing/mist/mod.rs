@@ -8,8 +8,8 @@ use bevy::{
         system::{Commands, Query, Res, ResMut, Resource},
         world::FromWorld,
     },
-    math::Vec2,
-    reflect::{Reflect, self},
+    math::{Vec2, Vec3, Vec4},
+    reflect::{self, Reflect},
     render::{
         globals::{GlobalsBuffer, GlobalsUniform},
         render_graph::{RenderGraphApp, ViewNode, ViewNodeRunner},
@@ -40,7 +40,8 @@ pub struct MistPlugin;
 
 impl Plugin for MistPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<FogData>();
+        app.init_resource::<FogData>()
+            .init_resource::<PostProcessingSettings>();
 
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 
@@ -105,6 +106,7 @@ pub struct FogData {
     pub min: f32,
     pub max: f32,
     pub intensity: f32,
+    pub color: Vec3,
 }
 
 #[derive(Resource, Default)]

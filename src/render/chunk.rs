@@ -16,7 +16,7 @@ use crate::{
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
-    TILEMAP_MESH_ATTR_ASPECT, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
+    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_RD_SIZE,
     TILEMAP_MESH_ATTR_UV,
 };
 
@@ -66,9 +66,9 @@ impl TilemapRenderChunk {
         if !self.dirty_mesh {
             return;
         }
-        let tile_uvs = {
+        let (tile_uvs, is_uniform) = {
             if let Some(texture) = &self.texture {
-                &texture.desc.tiles_uv
+                (&texture.desc.tiles_uv, texture.desc.is_uniform)
             } else {
                 return;
             }
@@ -82,7 +82,10 @@ impl TilemapRenderChunk {
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
-        let mut aspect = Vec::with_capacity(len * 4);
+        let mut tile_render_size = Vec::new();
+        if !is_uniform {
+            tile_render_size = Vec::with_capacity(len * 4);
+        }
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
@@ -113,10 +116,15 @@ impl TilemapRenderChunk {
                 ];
                 uvs.extend_from_slice(&pos_2d);
 
+                if !is_uniform {
+                    let size = tile_uvs[tex_idx].render_size();
+                    tile_render_size.extend_from_slice(&[size, size, size, size]);
+                }
+
                 let pos = Vec3::ZERO;
                 #[cfg(feature = "post_processing")]
                 pos.extend(tile.height as f32 / 255.);
-                
+
                 positions.extend_from_slice(&[pos, pos, pos, pos]);
 
                 vertex_indices.extend_from_slice(&[
@@ -131,9 +139,6 @@ impl TilemapRenderChunk {
                 v_index += 4;
 
                 color.extend_from_slice(&[tile.color, tile.color, tile.color, tile.color]);
-
-                let asp = tile_uvs[tex_idx].aspect;
-                aspect.extend_from_slice(&[asp, asp, asp, asp]);
             }
         }
 
@@ -143,7 +148,10 @@ impl TilemapRenderChunk {
             .insert_attribute(TILEMAP_MESH_ATTR_INDEX, grid_indices);
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_UV, uvs);
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
-        self.mesh.insert_attribute(TILEMAP_MESH_ATTR_ASPECT, aspect);
+        if !is_uniform {
+            self.mesh
+                .insert_attribute(TILEMAP_MESH_ATTR_RD_SIZE, tile_render_size);
+        }
         self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
 
         let mesh_vert_count = self.mesh.count_vertices() as u32;

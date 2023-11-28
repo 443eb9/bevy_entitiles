@@ -23,7 +23,6 @@ pub struct TilemapBuilder {
     pub(crate) translation: Vec2,
     pub(crate) z_order: u32,
     pub(crate) flip: u32,
-    pub(crate) is_uniform: bool,
 }
 
 impl TilemapBuilder {
@@ -41,62 +40,46 @@ impl TilemapBuilder {
             translation: Vec2::ZERO,
             z_order: 10,
             flip: 0,
-            is_uniform: true,
         }
     }
 
     /// Override z order. Default is 10.
     /// The higher the value of z_order, the less likely to be covered.
-    pub fn with_z_order(mut self, z_order: u32) -> Self {
+    pub fn with_z_order(&mut self, z_order: u32) -> &mut Self {
         self.z_order = z_order;
         self
     }
 
     /// Override render chunk size. Default is 32.
-    pub fn with_render_chunk_size(mut self, size: u32) -> Self {
+    pub fn with_render_chunk_size(&mut self, size: u32) -> &mut Self {
         self.render_chunk_size = size;
         self
     }
 
     /// Override filter mode. Default is nearest.
-    pub fn with_filter_mode(mut self, filter_mode: FilterMode) -> Self {
+    pub fn with_filter_mode(&mut self, filter_mode: FilterMode) -> &mut Self {
         self.filter_mode = filter_mode;
         self
     }
 
     /// Override translation. Default is `Vec2::ZERO`.
-    pub fn with_translation(mut self, translation: Vec2) -> Self {
+    pub fn with_translation(&mut self, translation: Vec2) -> &mut Self {
         self.translation = translation;
         self
     }
 
-    pub fn with_uniform_texture(
-        mut self,
-        texture: Handle<Image>,
-        count: UVec2,
-        filter_mode: FilterMode,
-    ) -> Self {
-        self.texture = Some(TilemapTexture {
-            texture,
-            desc: TilemapTextureDescriptor::from_full_grid(count, filter_mode),
-        });
-        self.is_uniform = true;
-        self
-    }
-
     /// Assign a texture to the tilemap.
-    pub fn with_non_uniform_texture(
-        mut self,
-        texture_size: UVec2,
+    pub fn with_texture(
+        &mut self,
         texture: Handle<Image>,
         desc: TilemapTextureDescriptor,
-    ) -> Self {
+    ) -> &mut Self {
         self.texture = Some(TilemapTexture { texture, desc });
         self
     }
 
     /// Flip the uv of tiles. Use `TileFlip::Horizontal | TileFlip::Vertical` to flip both.
-    pub fn with_flip(mut self, flip: TileFlip) -> Self {
+    pub fn with_flip(&mut self, flip: TileFlip) -> &mut Self {
         self.flip |= flip as u32;
         self
     }
@@ -104,7 +87,7 @@ impl TilemapBuilder {
     /// Override the anchor of the tile. Default is `Vec2::ZERO`.
     ///
     /// This can be useful when rendering `non_uniform` tilemaps. ( See the example )
-    pub fn with_anchor(mut self, anchor: Vec2) -> Self {
+    pub fn with_anchor(&mut self, anchor: Vec2) -> &mut Self {
         assert!(
             anchor.x >= 0. && anchor.x <= 1. && anchor.y >= 0. && anchor.y <= 1.,
             "Anchor must be in range [0, 1]"
@@ -113,8 +96,8 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override the tile render scale. Default is `Vec2::ONE`.
-    pub fn with_tile_render_scale(mut self, tile_render_scale: Vec2) -> Self {
+    /// Override the tile render scale. Default is `Vec2::ONE` which means the render size is equal to the pixel size.
+    pub fn with_tile_render_scale(&mut self, tile_render_scale: Vec2) -> &mut Self {
         self.tile_render_scale = tile_render_scale;
         self
     }
@@ -179,21 +162,26 @@ impl Tilemap {
     /// Set a tile.
     ///
     /// Overwrites the tile if it already exists.
-    pub fn set(&mut self, commands: &mut Commands, tile_builder: &TileBuilder) {
-        if self.is_out_of_tilemap_uvec(tile_builder.index) {
+    pub fn set(&mut self, commands: &mut Commands, index: UVec2, tile_builder: &TileBuilder) {
+        if self.is_out_of_tilemap_uvec(index) {
             return;
         }
 
-        self.set_unchecked(commands, tile_builder);
+        self.set_unchecked(commands, index, tile_builder);
     }
 
-    pub(crate) fn set_unchecked(&mut self, commands: &mut Commands, tile_builder: &TileBuilder) {
-        let index = (tile_builder.index.y * self.size.x + tile_builder.index.x) as usize;
-        if let Some(previous) = self.tiles[index] {
+    pub(crate) fn set_unchecked(
+        &mut self,
+        commands: &mut Commands,
+        index: UVec2,
+        tile_builder: &TileBuilder,
+    ) {
+        let linear_index = (index.y * self.size.x + index.x) as usize;
+        if let Some(previous) = self.tiles[linear_index] {
             commands.entity(previous).despawn();
         }
-        let new_tile = tile_builder.build(commands, self);
-        self.tiles[index] = Some(new_tile);
+        let new_tile = tile_builder.build(commands, index, self);
+        self.tiles[linear_index] = Some(new_tile);
     }
 
     /// Remove a tile.
@@ -212,8 +200,6 @@ impl Tilemap {
     }
 
     /// Fill a rectangle area with tiles.
-    ///
-    /// You don't need to assign the `index` in the `tile_builder`.
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
@@ -223,8 +209,7 @@ impl Tilemap {
         let mut builder = tile_builder.clone();
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                builder.index = UVec2::new(x, y);
-                self.set_unchecked(commands, &builder);
+                self.set_unchecked(commands, UVec2 { x, y }, &builder);
             }
         }
     }
@@ -246,8 +231,21 @@ impl Tilemap {
                 } else {
                     UVec2::new(x, y)
                 });
-                builder.index = UVec2::new(x, y);
-                self.set_unchecked(commands, &builder);
+                self.set_unchecked(commands, UVec2 { x, y }, &builder);
+            }
+        }
+    }
+
+    /// This is a method for debugging.
+    /// You can check if the uvs of tiles are correct.
+    ///
+    /// Fill the tilemap with tiles from the atlas in a row.
+    /// Notice that the method **won't** check if the tilemap is wide enough.
+    #[cfg(feature = "debug")]
+    pub fn fill_atlas(&mut self, commands: &mut Commands) {
+        if let Some(texture) = &self.texture {
+            for x in 0..texture.desc.tiles_uv.len() as u32 {
+                self.set_unchecked(commands, UVec2 { x, y: 0 }, &TileBuilder::new(x));
             }
         }
     }

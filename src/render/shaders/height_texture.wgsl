@@ -13,5 +13,5 @@ var screen_height_texture: texture_storage_2d<rgba8unorm, read_write>;
 
 fn sample_height(input: VertexOutput, screen_size: vec2<f32>) {
     let color = textureSample(height_texture, height_texture_sampler, input.uv).r;
-    textureStore(screen_height_texture, vec2<i32>(input.position.xy), vec4<f32>(color, input.height, 0., 1.));
+    textureStore(screen_height_texture, vec2<i32>(input.position.xy), vec4<f32>(color, input.height / 255., 0., 1.));
 }

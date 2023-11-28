@@ -68,6 +68,7 @@ pub fn queue(
 
         let mut is_pure_color = true;
         let mut is_height_tilemap = false;
+        let mut is_uniform = false;
 
         for (entity, tilemap, height_tilemap) in tilemaps_query.iter() {
             if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
@@ -85,14 +86,14 @@ pub fn queue(
                     .insert(tilemap.id, tilemap_uniform_bind_group);
             }
 
-            if let Some(tile_texture) = tilemap.texture.clone() {
-                let Some(texture) = textures_storage.get(tile_texture.handle()) else {
+            if let Some(tilemap_texture) = &tilemap.texture {
+                let Some(texture) = textures_storage.get(tilemap_texture.handle()) else {
                     continue;
                 };
 
                 if !bind_groups
                     .color_textures
-                    .contains_key(tile_texture.handle())
+                    .contains_key(tilemap_texture.handle())
                 {
                     let bind_group = render_device.create_bind_group(
                         Some("color_texture_bind_group"),
@@ -111,10 +112,14 @@ pub fn queue(
 
                     bind_groups
                         .color_textures
-                        .insert(tile_texture.clone_weak(), bind_group);
+                        .insert(tilemap_texture.clone_weak(), bind_group);
                 }
 
                 is_pure_color = false;
+                is_uniform = tilemap_texture.desc().is_uniform;
+            } else {
+                is_pure_color = true;
+                is_uniform = true;
             }
 
             #[cfg(feature = "post_processing")]
@@ -180,6 +185,7 @@ pub fn queue(
                     flip: tilemap.flip,
                     is_pure_color,
                     is_height_tilemap,
+                    is_uniform,
                 },
             );
 

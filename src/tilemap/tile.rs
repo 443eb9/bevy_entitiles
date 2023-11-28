@@ -50,7 +50,6 @@ impl TilemapTexture {
 
 #[derive(Clone)]
 pub struct TileBuilder {
-    pub(crate) index: UVec2,
     pub(crate) texture_index: u32,
     pub(crate) anim: Option<TileAnimation>,
     pub(crate) color: Vec4,
@@ -60,9 +59,8 @@ pub struct TileBuilder {
 
 impl TileBuilder {
     /// Create a new tile builder.
-    pub fn new(index: UVec2, texture_index: u32) -> Self {
+    pub fn new(texture_index: u32) -> Self {
         Self {
-            index,
             texture_index,
             anim: None,
             color: Vec4::ONE,
@@ -73,7 +71,6 @@ impl TileBuilder {
 
     pub fn from_texture_index(texture_index: u32) -> Self {
         Self {
-            index: UVec2::ZERO,
             texture_index,
             anim: None,
             color: Vec4::ONE,
@@ -104,8 +101,8 @@ impl TileBuilder {
     /// DO NOT call this method manually unless you really need to.
     ///
     /// Use `Tilemap::set` or `Tilemap::fill_xxx` instead.
-    pub fn build(&self, commands: &mut Commands, tilemap: &Tilemap) -> Entity {
-        let render_chunk_index_2d = self.index / tilemap.render_chunk_size;
+    pub fn build(&self, commands: &mut Commands, index: UVec2, tilemap: &Tilemap) -> Entity {
+        let render_chunk_index_2d = index / tilemap.render_chunk_size;
         let render_chunk_index = {
             if tilemap.size.x % tilemap.render_chunk_size == 0 {
                 render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size)
@@ -119,7 +116,7 @@ impl TileBuilder {
         tile.insert(Tile {
             render_chunk_index,
             tilemap_id: tilemap.id,
-            index: self.index,
+            index,
             texture_index: self.texture_index,
             color: self.color,
             #[cfg(feature = "post_processing")]

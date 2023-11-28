@@ -31,23 +31,26 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16.0, y: 16.0 },
     )
-    .with_uniform_texture(
+    .with_texture(
         assets_server.load("test_square.png"),
-        UVec2 { x: 2, y: 2 },
-        FilterMode::Nearest,
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 32, y: 32 },
+            UVec2 { x: 2, y: 2 },
+            FilterMode::Nearest,
+        ),
     )
     .build(&mut commands);
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(UVec2::ZERO, 0),
+        &TileBuilder::new(0),
     );
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
-        &TileBuilder::new(UVec2::ZERO, 1),
+        &TileBuilder::new(1),
     );
 
     commands.entity(tilemap_entity).insert(tilemap);

@@ -48,7 +48,6 @@ bevy = { version = "0.12.0", default-features = false, features = [
     "trace_tracy",
     "multi-threaded",
 ] }
-bevy_mod_outline = "0.6.0"
 bevy_mod_debugdump = "0.9.0"
 
 [features]
@@ -60,7 +59,6 @@ physics_xpbd = ["dep:bevy_xpbd_2d"]
 physics_rapier = ["dep:bevy_rapier2d"]
 algorithm = ["dep:rand", "dep:ron", "dep:serde"]
 post_processing = ["dep:noisy_bevy"]
-anchor = []
 
 [[example]]
 name = "basic"
@@ -93,8 +91,8 @@ path = "examples/physics_rapier.rs"
 required-features = ["physics_rapier"]
 
 [[example]]
-name = "clouds_and_fog"
-path = "examples/clouds_and_fog.rs"
+name = "fog"
+path = "examples/fog.rs"
 required-features = ["post_processing"]
 
 [[example]]

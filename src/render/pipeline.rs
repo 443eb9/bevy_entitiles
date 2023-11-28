@@ -38,6 +38,7 @@ pub struct EntiTilesPipelineKey {
     pub flip: u32,
     pub is_pure_color: bool,
     pub is_height_tilemap: bool,
+    pub is_uniform: bool,
 }
 
 impl FromWorld for EntiTilesPipeline {
@@ -169,20 +170,26 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             shader_defs.push("PURE_COLOR".into());
         }
 
+        let mut vtx_fmt = vec![
+            // position
+            VertexFormat::Float32x3,
+            // index
+            VertexFormat::Float32x2,
+            // color
+            VertexFormat::Float32x4,
+            // uv
+            VertexFormat::Float32x2,
+        ];
+
+        if !key.is_uniform {
+            // tile_render_size
+            vtx_fmt.push(VertexFormat::Float32x2);
+            shader_defs.push("NON_UNIFORM".into());
+        }
+
         let vertex_layout = VertexBufferLayout::from_vertex_formats(
             VertexStepMode::Vertex,
-            vec![
-                // position
-                VertexFormat::Float32x3,
-                // index
-                VertexFormat::Float32x2,
-                // color
-                VertexFormat::Float32x4,
-                // uv
-                VertexFormat::Float32x2,
-                // aspect
-                VertexFormat::Float32x2,
-            ],
+            vtx_fmt
         );
 
         let mut layout = vec![
@@ -223,18 +230,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 entry_point: "tilemap_fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
-                    blend: Some(BlendState {
-                        color: BlendComponent {
-                            src_factor: BlendFactor::SrcAlpha,
-                            dst_factor: BlendFactor::OneMinusSrcAlpha,
-                            operation: BlendOperation::Add,
-                        },
-                        alpha: BlendComponent {
-                            src_factor: BlendFactor::SrcAlpha,
-                            dst_factor: BlendFactor::OneMinusSrcAlpha,
-                            operation: BlendOperation::Add,
-                        },
-                    }),
+                    blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
             }),

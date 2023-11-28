@@ -6,6 +6,7 @@ use bevy::{
     time::common_conditions::on_real_timer,
 };
 
+#[cfg(feature = "debug")]
 use drawing::{draw_chunk_aabb, draw_tilemap_aabb};
 
 use crate::helpers::camera_movement::camera_control;
@@ -14,6 +15,7 @@ use self::common::{debug_info_display, DebugFpsText};
 
 pub mod camera_movement;
 pub mod common;
+#[cfg(feature = "debug")]
 pub mod drawing;
 
 /// A bunch of systems for debugging. Since they're not optimized, don't use them unless you're debugging.
@@ -28,7 +30,9 @@ impl Plugin for EntiTilesDebugPlugin {
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
             (
+                #[cfg(feature = "debug")]
                 draw_tilemap_aabb,
+                #[cfg(feature = "debug")]
                 draw_chunk_aabb,
                 camera_control,
                 #[cfg(feature = "algorithm")]
