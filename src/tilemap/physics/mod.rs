@@ -11,9 +11,9 @@ pub mod rapier;
 #[cfg(feature = "physics_xpbd")]
 pub mod xpbd;
 
-pub struct TilemapPhysicsPlugin;
+pub struct EntitilesPhysicsPlugin;
 
-impl Plugin for TilemapPhysicsPlugin {
+impl Plugin for EntitilesPhysicsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_event::<TileCollision>();
 

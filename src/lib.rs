@@ -7,6 +7,8 @@ pub mod algorithm;
 pub mod debug;
 pub mod math;
 pub mod render;
+#[cfg(feature = "serializing")]
+pub mod serializing;
 pub mod tilemap;
 
 pub struct EntiTilesPlugin;
@@ -20,6 +22,8 @@ impl Plugin for EntiTilesPlugin {
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntitilesAlgorithmPlugin);
         #[cfg(any(feature = "physics_rapier", feature = "physics_xpbd"))]
-        app.add_plugins(tilemap::physics::TilemapPhysicsPlugin);
+        app.add_plugins(tilemap::physics::EntitilesPhysicsPlugin);
+        #[cfg(feature = "serializing")]
+        app.add_plugins(serializing::EntitilesSerializingPlugin);
     }
 }

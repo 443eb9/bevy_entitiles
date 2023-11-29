@@ -5,6 +5,7 @@ use crate::render::texture::TilemapTextureDescriptor;
 use super::map::Tilemap;
 
 #[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TileType {
     /// The most basic shape.
     #[default]

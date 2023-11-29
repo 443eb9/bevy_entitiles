@@ -36,6 +36,17 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's the reason why I didn't switch to `LookupHeap` )
 - Trigger collider for `bevy_rapier` still causes collision. (Fix in `0.2.2`)
 
+## Features
+
+| Flag             | Funtionality                                                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `algorithm`      | Implementation of algorithms                                                                                            |
+| `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.                                 |
+| `debug-verbose`  | Show verbose process of functions. This feature is only useful when debug algorithms. But it's useless for most of you. |
+| `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                                            |
+| `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc.                    |
+| `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                                          |
+
 ## Performance
 
 Platform: 10600KF

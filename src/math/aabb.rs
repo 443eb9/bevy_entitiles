@@ -6,6 +6,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Default, Debug)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AabbBox2d {
     pub min: Vec2,
     pub max: Vec2,

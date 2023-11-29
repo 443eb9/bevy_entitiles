@@ -18,9 +18,10 @@ use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
 /// Notice that the UVs are not the one you might think.
 /// They are pixel coordinates instead of normalized coordinates.
 #[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileUV {
-    pub(crate) min: Vec2,
-    pub(crate) max: Vec2,
+    pub min: Vec2,
+    pub max: Vec2,
 }
 
 impl TileUV {
