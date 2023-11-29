@@ -1,7 +1,7 @@
 use bevy::prelude::{Component, Query, ResMut};
 
 use crate::{
-    math::{aabb::AabbBox2d, extension::Vec2ToUVec2, tilemap::world_pos_to_chunk_square},
+    math::aabb::AabbBox2d,
     tilemap::tile::TileType,
 };
 

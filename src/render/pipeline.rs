@@ -1,11 +1,8 @@
-use std::{mem::size_of, num::NonZeroU64};
-
 use bevy::{
     prelude::{FromWorld, Resource},
     render::{
         render_resource::{
-            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
-            BlendComponent, BlendFactor, BlendOperation, BlendState, BufferBindingType,
+            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType,
             ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
             PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
             SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedRenderPipeline,

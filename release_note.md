@@ -9,5 +9,5 @@
 - `FillArea` will cause panic when the destination is at the edge.
 
 # What's Next:
-- Wave Function Collapse support for map chunks. Comparing to collapse single tiles, manually create chunks and collapse using them seems more common.
+- Wave Function Collapse support for map patterns. Comparing to collapse single tiles, manually create chunks and collapse using them seems more common.
 - So the tilemap serilization will be implemented as well.

@@ -6,7 +6,7 @@ use bevy::{
 
 use crate::{
     math::{aabb::AabbBox2d, FillArea},
-    render::{chunk::RenderChunkStorage, texture::TilemapTextureDescriptor},
+    render::texture::TilemapTextureDescriptor,
 };
 
 use super::tile::{TileBuilder, TileFlip, TileType, TilemapTexture};
@@ -206,7 +206,7 @@ impl Tilemap {
         area: FillArea,
         tile_builder: &TileBuilder,
     ) {
-        let mut builder = tile_builder.clone();
+        let builder = tile_builder.clone();
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 self.set_unchecked(commands, UVec2 { x, y }, &builder);
@@ -226,7 +226,7 @@ impl Tilemap {
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                let mut builder = tile_builder(if relative_index {
+                let builder = tile_builder(if relative_index {
                     UVec2::new(x, y) - area.origin
                 } else {
                     UVec2::new(x, y)

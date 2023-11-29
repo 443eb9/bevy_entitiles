@@ -1,3 +1,8 @@
+/*
+ * NOTICE!
+ * This feature was delayed! and this example cannot work!!!!
+ */
+
 use bevy::{
     app::Update,
     asset::Assets,
@@ -35,7 +40,7 @@ fn main() {
         .add_systems(Startup, setup)
         .insert_resource(PostProcessingSettings {
             filter_mode: FilterMode::Nearest,
-            height_force_display: false,
+            height_force_display: true,
         })
         .insert_resource(FogData {
             layers: [

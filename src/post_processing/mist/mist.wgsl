@@ -53,37 +53,34 @@ fn map_height(height: vec2<f32>) -> f32 {
 
 @fragment
 fn mist(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    let uv = vec2<i32>(in.position.xy);
+    let uv = round_to_int(in.position.xy);
     let height = textureLoad(screen_height_texture, uv).xy;
-    let real_height = map_height(height);
     textureStore(screen_height_texture, uv, vec4<f32>(0., 0., 0., 0.));
     var color = textureSampleLevel(screen_color_texture, screen_color_texture_sampler, in.uv, 0.);
-
-    if real_height < 0.000001 {
-        return color;
-    }
 
 #ifdef HEIGHT_FORCE_DISPLAY
     return vec4<f32>(height, 0., 1.);
 #else
 
-#ifdef FOG
-    let cam_offset = vec2<f32>(-uniforms.camera_pos.x, uniforms.camera_pos.y);
-    let layers = &mist_uniform.layers;
-    var fog = vec4<f32>(0., 0., 0., 0.);
-    // let weight = saturate(real_height - mist_uniform.min) / (mist_uniform.max - mist_uniform.min);
-    let weight = 1.;
-    
-    if weight > 0.01 {
-        for (var i = 0u; i < mist_uniform.layer_count; i++) {
-            let n_pos = vec3<f32>((in.position.xy - cam_offset / uniforms.camera_scale) * (*layers)[i].scale + (*layers)[i].offset, uniforms.time * (*layers)[i].speed);
-            fog += saturate(fbm_3d(n_pos, i32((*layers)[i].octaves), (*layers)[i].lacunarity, (*layers)[i].gain) * (*layers)[i].multiplier);
-        }
+    // if real_height < 0.000001 {
+    //     return color;
+    // }
 
-        var fog_col = vec4<f32>(fog * weight * mist_uniform.intensity);
-        color += vec4<f32>(fog_col.rgb * mist_uniform.color, fog_col.a);
-        color = vec4<f32>(1.);
-    }
+#ifdef FOG
+    // let cam_offset = vec2<f32>(-uniforms.camera_pos.x, uniforms.camera_pos.y);
+    // let layers = &mist_uniform.layers;
+    // var fog = vec4<f32>(0., 0., 0., 0.);
+    // let weight = saturate(real_height - mist_uniform.min) / (mist_uniform.max - mist_uniform.min);
+    
+    // if weight > 0.01 {
+    //     for (var i = 0u; i < mist_uniform.layer_count; i++) {
+    //         let n_pos = vec3<f32>((in.position.xy - cam_offset / uniforms.camera_scale) * (*layers)[i].scale + (*layers)[i].offset, uniforms.time * (*layers)[i].speed);
+    //         fog += saturate(fbm_3d(n_pos, i32((*layers)[i].octaves), (*layers)[i].lacunarity, (*layers)[i].gain) * (*layers)[i].multiplier);
+    //     }
+
+    //     var fog_col = vec4<f32>(fog * weight * mist_uniform.intensity);
+    //     color += vec4<f32>(fog_col.rgb * mist_uniform.color, fog_col.a);
+    // }
 #endif
 
     return color;

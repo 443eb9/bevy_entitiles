@@ -14,9 +14,9 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     let mesh_center = get_mesh_origin(input);
 #ifdef NON_UNIFORM
-    let tile_render_size = input.tile_render_size ;
+    let tile_render_size = input.tile_render_size;
 #else
-    let tile_render_size = tilemap.tile_render_size ;
+    let tile_render_size = tilemap.tile_render_size;
 #endif
 
     var translations = array<vec2<f32>, 4>(
@@ -56,7 +56,7 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
 #endif
 
 #ifdef POST_PROCESSING
-    bevy_entitiles::height_texture::sample_height(input, view.viewport.zw);
+    bevy_entitiles::height_texture::sample_height(input);
 #endif
 
     return color * input.color;

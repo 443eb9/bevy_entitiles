@@ -3,7 +3,7 @@ use bevy::{
     render::{
         render_resource::{BindingResource, DynamicUniformBuffer, ShaderType},
         renderer::{RenderDevice, RenderQueue},
-    }, math::UVec2,
+    },
 };
 
 use super::extract::ExtractedTilemap;

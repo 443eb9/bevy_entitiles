@@ -2,33 +2,34 @@
 
 A tilemap library for bevy. With many algorithms built in.
 
-Strongly recommend that you take a look at the [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) library first. I took this crate as the reference and learnt the basis of bevy rendering.
-
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
 Notice that the following progress may **not up to date**. Check the `README.md` in `dev` brach to get the latest progress!
 
 ## Currently Working On
 
-- SSAO & Volumetric Clouds / Fog
+- Tilemap Serializing
 
 ## Future Goals
 
-- Wave Function Collapse ( Optimization; Collapse map parts )
+- Wave Function Collapse ( Optimization; Collapse map patterns )
 - ~~Pathfinding~~
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
 - Tilemap Serializing
 - Chunk Unloading
-- SSAO
-- Volumetric Clouds / Fog
 - Wang Tilling
 - Tilemap Mask
 - Frustum Culling ( Isometric Specific Optimization )
 - ~~Physics~~
-- Lighting
-- Realtime Shadow
 - Tilemap Editor
+
+## Delayed
+
+- SSAO ( Personal ability )
+- Volumetric Clouds / Fog ( Personal ability )
+- Lighting ( Personal ability )
+- Realtime Shadow ( Personal ability )
 
 ## Known Issues
 
@@ -88,7 +89,9 @@ Video at `docs/vids/wfc.mp4`
 
 ## Special Thanks
 
-SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
+- SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
+
+- [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap). I took this crate as the reference and learnt the basis of bevy rendering.
 
 ## Versions
 

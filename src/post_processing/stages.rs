@@ -149,6 +149,8 @@ pub fn prepare_post_processing_textures(
         array_layer_count: None,
     });
 
+    println!("prepare");
+
     textures.screen_height_gpu_image = Some(GpuImage {
         texture_format: texture.format(),
         mip_level_count: texture.mip_level_count(),
