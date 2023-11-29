@@ -58,7 +58,6 @@ debug_verbose = ["debug"]
 physics_xpbd = ["dep:bevy_xpbd_2d"]
 physics_rapier = ["dep:bevy_rapier2d"]
 algorithm = ["dep:rand", "dep:ron", "dep:serde"]
-# post_processing = ["dep:noisy_bevy"]
 
 [[example]]
 name = "basic"
@@ -89,11 +88,6 @@ required-features = ["physics_xpbd"]
 name = "physics_rapier"
 path = "examples/physics_rapier.rs"
 required-features = ["physics_rapier"]
-
-# [[example]]
-# name = "fog"
-# path = "examples/fog.rs"
-# required-features = ["post_processing"]
 
 [[example]]
 name = "non_uniform"

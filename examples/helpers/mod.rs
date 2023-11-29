@@ -35,7 +35,7 @@ impl Plugin for EntiTilesDebugPlugin {
                 #[cfg(feature = "debug")]
                 draw_chunk_aabb,
                 camera_control,
-                #[cfg(feature = "algorithm")]
+                #[cfg(all(feature = "algorithm", feature = "debug"))]
                 drawing::draw_path,
                 debug_info_display.run_if(on_real_timer(Duration::from_millis(100))),
             ),

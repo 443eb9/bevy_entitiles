@@ -1,4 +1,4 @@
-#import bevy_entitiles::common::{VertexInput, VertexOutput, color_texture, color_texture_sampler, tilemap}
+#import bevy_entitiles::common::{VertexInput, VertexOutput, tilemap}
 #import bevy_sprite::mesh2d_view_bindings::view
 
 #ifdef SQUARE
@@ -14,9 +14,9 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     let mesh_center = get_mesh_origin(input);
 #ifdef NON_UNIFORM
-    let tile_render_size = input.tile_render_size;
+    let tile_render_size = input.tile_render_size * tilemap.tile_render_scale;
 #else
-    let tile_render_size = tilemap.tile_render_size;
+    let tile_render_size = tilemap.tile_render_size * tilemap.tile_render_scale;
 #endif
 
     var translations = array<vec2<f32>, 4>(
@@ -28,7 +28,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 
     let translation = translations[input.v_index % 4u] - tilemap.anchor * tile_render_size;
     var position_model = vec2<f32>(mesh_center + translation);
-    var position_world = vec4<f32>(tilemap.translation + position_model, mesh_center.y, 1.);
+    var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
 
     output.position = view.view_proj * position_world;
     output.color = input.color;
@@ -41,9 +41,6 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.uv.y = 1. - output.uv.y;
 #endif
 
-#ifdef POST_PROCESSING
-    output.height = input.position.z;
-#endif
     return output;
 }
 
@@ -52,11 +49,9 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
     let color = vec4<f32>(1., 1., 1., 1.);
 #else
-    let color = textureSample(color_texture, color_texture_sampler, input.uv);
-#endif
-
-#ifdef POST_PROCESSING
-    bevy_entitiles::height_texture::sample_height(input);
+    let color = textureSample(bevy_entitiles::common::color_texture,
+                              bevy_entitiles::common::color_texture_sampler,
+                              input.uv);
 #endif
 
     return color * input.color;

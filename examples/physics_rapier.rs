@@ -32,7 +32,7 @@ use bevy_rapier2d::{
     dynamics::{GravityScale, RigidBody, Velocity},
     geometry::{ActiveEvents, Collider},
 };
-use helpers::EntiTilesDebugPlugin;
+use helpers::{drawing::draw_axis, EntiTilesDebugPlugin};
 
 mod helpers;
 
@@ -40,7 +40,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, (collision_events, character_move))
+        .add_systems(Update, (collision_events, character_move, draw_axis))
         .run();
 }
 
@@ -55,7 +55,7 @@ fn setup(
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::IsometricDiamond,
         UVec2 { x: 20, y: 10 },
-        Vec2 { x: 64.0, y: 32.0 },
+        Vec2 { x: 32., y: 16. },
     )
     .with_texture(
         assets_server.load("test_isometric.png"),
@@ -87,7 +87,7 @@ fn setup(
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
-        Vec2 { x: 32.0, y: 32.0 },
+        Vec2 { x: 16., y: 16. },
     )
     .with_translation(Vec2 { x: 500., y: -100. })
     .with_texture(

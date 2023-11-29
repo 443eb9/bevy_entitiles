@@ -15,7 +15,7 @@ pub struct TilemapBuilder {
     pub(crate) tile_type: TileType,
     pub(crate) size: UVec2,
     pub(crate) tile_render_scale: Vec2,
-    pub(crate) tile_grid_size: Vec2,
+    pub(crate) tile_slot_size: Vec2,
     pub(crate) anchor: Vec2,
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
@@ -27,13 +27,13 @@ pub struct TilemapBuilder {
 
 impl TilemapBuilder {
     /// Create a new tilemap builder.
-    pub fn new(ty: TileType, size: UVec2, tile_grid_size: Vec2) -> Self {
+    pub fn new(ty: TileType, size: UVec2, tile_slot_size: Vec2) -> Self {
         Self {
             tile_type: ty,
             size,
             tile_render_scale: Vec2::ONE,
-            tile_grid_size,
-            anchor: Vec2::ZERO,
+            tile_slot_size: tile_slot_size,
+            anchor: Vec2 { x: 0.5, y: 0. },
             texture: None,
             render_chunk_size: 32,
             filter_mode: FilterMode::Nearest,
@@ -84,7 +84,7 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override the anchor of the tile. Default is `Vec2::ZERO`.
+    /// Override the anchor of the tile. Default is `[0.5, 0.]`.
     ///
     /// This can be useful when rendering `non_uniform` tilemaps. ( See the example )
     pub fn with_anchor(&mut self, anchor: Vec2) -> &mut Self {
@@ -113,7 +113,7 @@ impl TilemapBuilder {
             tile_type: self.tile_type,
             size: self.size,
             render_chunk_size: self.render_chunk_size,
-            tile_grid_size: self.tile_grid_size,
+            tile_slot_size: self.tile_slot_size,
             anchor: self.anchor,
             texture: self.texture.clone(),
             filter_mode: self.filter_mode,
@@ -133,7 +133,7 @@ pub struct Tilemap {
     pub(crate) tile_type: TileType,
     pub(crate) size: UVec2,
     pub(crate) tile_render_scale: Vec2,
-    pub(crate) tile_grid_size: Vec2,
+    pub(crate) tile_slot_size: Vec2,
     pub(crate) anchor: Vec2,
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
@@ -250,30 +250,35 @@ impl Tilemap {
         }
     }
 
+    #[inline]
     /// Get the id of the tilemap.
-    pub fn get_id(&self) -> Entity {
+    pub fn id(&self) -> Entity {
         self.id
     }
 
-    /// Get the world position of the center of a tile.
+    /// Get the world position of the center of a slot.
     pub fn index_to_world(&self, index: UVec2) -> Vec2 {
         let index = index.as_vec2();
         match self.tile_type {
             TileType::Square => Vec2 {
-                x: (index.x + 0.5) * self.tile_render_scale.x + self.translation.x,
-                y: (index.y + 0.5) * self.tile_render_scale.y + self.translation.y,
+                x: (index.x + 0.5 - self.anchor.x) * self.tile_slot_size.x + self.translation.x,
+                y: (index.y + 0.5 - self.anchor.y) * self.tile_slot_size.y + self.translation.y,
             },
             TileType::IsometricDiamond => Vec2 {
-                x: (index.x - index.y) / 2. * self.tile_render_scale.x + self.translation.x,
-                y: (index.x + index.y + 1.) / 2. * self.tile_render_scale.y + self.translation.y,
+                x: ((index.x - index.y + 1.) / 2. - self.anchor.x) * self.tile_slot_size.x
+                    + self.translation.x,
+                y: ((index.x + index.y + 1.) / 2. - self.anchor.y) * self.tile_slot_size.y
+                    + self.translation.y,
             },
         }
     }
 
+    #[inline]
     pub fn is_out_of_tilemap_uvec(&self, index: UVec2) -> bool {
         index.x >= self.size.x || index.y >= self.size.y
     }
 
+    #[inline]
     pub fn is_out_of_tilemap_ivec(&self, index: IVec2) -> bool {
         index.x < 0 || index.y < 0 || index.x >= self.size.x as i32 || index.y >= self.size.y as i32
     }

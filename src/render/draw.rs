@@ -25,17 +25,6 @@ pub type DrawTilemap = (
     DrawTileMesh,
 );
 
-#[cfg(feature = "post_processing")]
-pub type DrawTilemapPostProcessing = (
-    SetPipeline,
-    SetTilemapViewBindGroup<0>,
-    SetTilemapDataBindGroup<1>,
-    SetTilemapcolorTextureBindGroup<2>,
-    crate::post_processing::stages::SetTilemapHeightTextureBindGroup<3>,
-    crate::post_processing::stages::SetScreenHeightTextureBindGroup<4>,
-    DrawTileMesh,
-);
-
 pub type DrawTilemapPureColor = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,

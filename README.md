@@ -20,7 +20,7 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - Chunk Unloading
 - Wang Tilling
 - Tilemap Mask
-- Frustum Culling ( Isometric Specific Optimization )
+- Frustum Culling ( Optimization )
 - ~~Physics~~
 - Tilemap Editor
 

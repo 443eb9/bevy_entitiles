@@ -29,7 +29,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let (tilemap_entity, tilemap) = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 50, y: 50 },
-        Vec2 { x: 32., y: 32. },
+        Vec2 { x: 16., y: 16. },
     )
     .with_texture(
         asset_server.load("test_wfc.png"),

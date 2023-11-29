@@ -14,7 +14,7 @@ use bevy::{
 
 use super::{
     draw::{DrawTilemap, DrawTilemapPureColor},
-    extract::{ExtractedHeightTilemap, ExtractedTilemap},
+    extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     texture::TilemapTexturesStorage,
     uniform::TilemapUniformsStorage,
@@ -29,7 +29,7 @@ pub struct TileViewBindGroup {
 pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
-    tilemaps_query: Query<(Entity, &ExtractedTilemap, Option<&ExtractedHeightTilemap>)>,
+    tilemaps_query: Query<(Entity, &ExtractedTilemap)>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
@@ -40,12 +40,6 @@ pub fn queue(
     textures_storage: Res<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     tilemap_uniform_strorage: Res<TilemapUniformsStorage>,
-    #[cfg(feature = "post_processing")] mut post_processing_bind_groups: ResMut<
-        crate::post_processing::PostProcessingBindGroups,
-    >,
-    #[cfg(feature = "post_processing")] post_processing_textures: Res<
-        crate::post_processing::PostProcessingTextures,
-    >,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -66,11 +60,10 @@ pub fn queue(
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
         tilemaps.sort_by(|lhs, rhs| rhs.1.z_order.cmp(&lhs.1.z_order));
 
-        let mut is_pure_color = true;
-        let mut is_height_tilemap = false;
-        let mut is_uniform = false;
+        let mut is_pure_color;
+        let mut is_uniform;
 
-        for (entity, tilemap, height_tilemap) in tilemaps_query.iter() {
+        for (entity, tilemap) in tilemaps_query.iter() {
             if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
                 let tilemap_uniform_bind_group = render_device.create_bind_group(
                     Some("tilemap_data_bind_group"),
@@ -122,60 +115,6 @@ pub fn queue(
                 is_uniform = true;
             }
 
-            #[cfg(feature = "post_processing")]
-            if let Some(height_tilemap) = height_tilemap {
-                let height_texture = &height_tilemap.height_texture;
-                if let Some(texture) = textures_storage.get(height_texture.handle()) {
-                    if !post_processing_bind_groups
-                        .height_texture_bind_groups
-                        .contains_key(height_texture.handle())
-                    {
-                        let bind_group = render_device.create_bind_group(
-                            Some("height_texture_bind_group"),
-                            &entitile_pipeline.color_texture_layout,
-                            &[
-                                BindGroupEntry {
-                                    binding: 0,
-                                    resource: BindingResource::TextureView(&texture.texture_view),
-                                },
-                                BindGroupEntry {
-                                    binding: 1,
-                                    resource: BindingResource::Sampler(&texture.sampler),
-                                },
-                            ],
-                        );
-
-                        post_processing_bind_groups
-                            .height_texture_bind_groups
-                            .insert(height_texture.clone_weak(), bind_group);
-                    }
-                }
-
-                if post_processing_bind_groups
-                    .screen_height_texture_bind_group
-                    .is_none()
-                {
-                    post_processing_bind_groups.screen_height_texture_bind_group = Some(
-                        render_device.create_bind_group(
-                            Some("screen_height_texture_bind_group"),
-                            &entitile_pipeline.screen_height_texture_layout,
-                            &[BindGroupEntry {
-                                binding: 0,
-                                resource: BindingResource::TextureView(
-                                    &post_processing_textures
-                                        .screen_height_gpu_image
-                                        .as_ref()
-                                        .unwrap()
-                                        .texture_view,
-                                ),
-                            }],
-                        ),
-                    );
-                }
-
-                is_height_tilemap = true;
-            }
-
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
                 &entitile_pipeline,
@@ -184,12 +123,11 @@ pub fn queue(
                     map_type: tilemap.tile_type,
                     flip: tilemap.flip,
                     is_pure_color,
-                    is_height_tilemap,
                     is_uniform,
                 },
             );
 
-            let mut draw_function = {
+            let draw_function = {
                 if is_pure_color {
                     draw_functions
                         .read()
@@ -199,14 +137,6 @@ pub fn queue(
                     draw_functions.read().get_id::<DrawTilemap>().unwrap()
                 }
             };
-
-            #[cfg(feature = "post_processing")]
-            if is_height_tilemap {
-                draw_function = draw_functions
-                    .read()
-                    .get_id::<super::draw::DrawTilemapPostProcessing>()
-                    .unwrap()
-            }
 
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.z_order as f32),

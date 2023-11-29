@@ -22,7 +22,7 @@ pub struct TilemapUniform {
     pub translation: Vec2,
     pub tile_render_size: Vec2,
     pub tile_render_scale: Vec2,
-    pub tile_grid_size: Vec2,
+    pub tile_slot_size: Vec2,
     pub anchor: Vec2,
     pub texture_size: Vec2,
 }
@@ -57,7 +57,7 @@ impl TilemapUniformsStorage {
         let component = TilemapUniform {
             translation: tilemap.translation,
             tile_render_size,
-            tile_grid_size: tilemap.tile_grid_size,
+            tile_slot_size: tilemap.tile_slot_size,
             tile_render_scale: tilemap.tile_render_scale,
             anchor: tilemap.anchor,
             texture_size,

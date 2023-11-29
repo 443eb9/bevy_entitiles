@@ -2,11 +2,11 @@ use bevy::{
     prelude::{FromWorld, Resource},
     render::{
         render_resource::{
-            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BlendState, BufferBindingType,
-            ColorTargetState, ColorWrites, Face, FragmentState, FrontFace, MultisampleState,
-            PolygonMode, PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor,
-            SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType, SpecializedRenderPipeline,
-            StorageTextureAccess, TextureFormat, TextureSampleType, TextureViewDimension,
+            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
+            BlendState, BufferBindingType, ColorTargetState, ColorWrites, Face, FragmentState,
+            FrontFace, MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
+            RenderPipelineDescriptor, SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType,
+            SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
             VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
         renderer::RenderDevice,
@@ -24,8 +24,6 @@ pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
     pub tilemap_uniform_layout: BindGroupLayout,
     pub color_texture_layout: BindGroupLayout,
-    pub height_texture_layout: BindGroupLayout,
-    pub screen_height_texture_layout: BindGroupLayout,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -34,7 +32,6 @@ pub struct EntiTilesPipelineKey {
     pub map_type: TileType,
     pub flip: u32,
     pub is_pure_color: bool,
-    pub is_height_tilemap: bool,
     pub is_uniform: bool,
 }
 
@@ -93,50 +90,10 @@ impl FromWorld for EntiTilesPipeline {
                 ],
             });
 
-        let height_texture_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("height_texture_layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Texture {
-                            sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
-
-        let screen_height_texture_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("screen_height_texture_layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::StorageTexture {
-                        access: StorageTextureAccess::ReadWrite,
-                        format: TextureFormat::Rgba8Unorm,
-                        view_dimension: TextureViewDimension::D2,
-                    },
-                    count: None,
-                }],
-            });
-
         EntiTilesPipeline {
             view_layout,
             tilemap_uniform_layout,
             color_texture_layout,
-            height_texture_layout,
-            screen_height_texture_layout,
         }
     }
 }
@@ -184,10 +141,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             shader_defs.push("NON_UNIFORM".into());
         }
 
-        let vertex_layout = VertexBufferLayout::from_vertex_formats(
-            VertexStepMode::Vertex,
-            vtx_fmt
-        );
+        let vertex_layout =
+            VertexBufferLayout::from_vertex_formats(VertexStepMode::Vertex, vtx_fmt);
 
         let mut layout = vec![
             // group(0)
@@ -199,16 +154,6 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         if !key.is_pure_color {
             // group(2)
             layout.push(self.color_texture_layout.clone());
-        }
-
-        #[cfg(feature = "post_processing")]
-        if key.is_height_tilemap {
-            // group(3)
-            layout.push(self.height_texture_layout.clone());
-            // group(4)
-            layout.push(self.screen_height_texture_layout.clone());
-
-            shader_defs.push("POST_PROCESSING".into());
         }
 
         RenderPipelineDescriptor {

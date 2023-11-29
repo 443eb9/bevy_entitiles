@@ -8,7 +8,7 @@ use bevy::{
 use bevy_entitiles::{
     debug::PubTilemap,
     math::aabb::AabbBox2d,
-    render::{chunk::RenderChunkStorage, extract::ExtractedTilemap},
+    render::chunk::RenderChunkStorage,
     tilemap::map::Tilemap,
 };
 

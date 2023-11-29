@@ -33,7 +33,6 @@ const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
 const ISO_DIAMOND: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
 const COMMON: Handle<Shader> = Handle::weak_from_u128(1321023135616351);
 const TILEMAP_SHADER: Handle<Shader> = Handle::weak_from_u128(89646584153215);
-const HEIGHT_TEXTURE: Handle<Shader> = Handle::weak_from_u128(4523154334152156345);
 
 pub const TILEMAP_MESH_ATTR_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
@@ -63,13 +62,6 @@ impl Plugin for EntiTilesRendererPlugin {
             _app,
             TILEMAP_SHADER,
             "shaders/tilemap.wgsl",
-            Shader::from_wgsl
-        );
-
-        load_internal_asset!(
-            _app,
-            HEIGHT_TEXTURE,
-            "shaders/height_texture.wgsl",
             Shader::from_wgsl
         );
 

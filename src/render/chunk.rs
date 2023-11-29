@@ -26,8 +26,6 @@ pub struct TileData {
     pub texture_index: u32,
     pub color: Vec4,
     pub anim: Option<TileAnimation>,
-    #[cfg(feature = "post_processing")]
-    pub height: u8,
 }
 
 #[derive(Clone)]
@@ -122,9 +120,6 @@ impl TilemapRenderChunk {
                 }
 
                 let pos = Vec3::ZERO;
-                #[cfg(feature = "post_processing")]
-                pos.extend(tile.height as f32 / 255.);
-
                 positions.extend_from_slice(&[pos, pos, pos, pos]);
 
                 vertex_indices.extend_from_slice(&[
@@ -200,8 +195,6 @@ impl TilemapRenderChunk {
             texture_index: tile.texture_index,
             color: tile.color,
             anim: tile.anim.clone(),
-            #[cfg(feature = "post_processing")]
-            height: tile.height,
         });
         self.dirty_mesh = true;
     }

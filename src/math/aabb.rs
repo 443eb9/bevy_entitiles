@@ -20,59 +20,65 @@ impl AabbBox2d {
     }
 
     pub fn from_chunk(chunk_index: UVec2, tilemap: &ExtractedTilemap) -> Self {
+        let anchor_offset = tilemap.anchor * tilemap.tile_slot_size;
+
         match tilemap.tile_type {
             TileType::Square => {
-                let chunk_render_size = tilemap.tile_grid_size * tilemap.render_chunk_size as f32;
+                let chunk_render_size = tilemap.tile_slot_size * tilemap.render_chunk_size as f32;
                 AabbBox2d {
-                    min: chunk_index.as_vec2() * chunk_render_size + tilemap.translation,
-                    max: (chunk_index + 1).as_vec2() * chunk_render_size + tilemap.translation,
+                    min: chunk_index.as_vec2() * chunk_render_size + tilemap.translation
+                        - anchor_offset,
+                    max: (chunk_index + 1).as_vec2() * chunk_render_size + tilemap.translation
+                        - anchor_offset,
                 }
             }
             TileType::IsometricDiamond => {
                 let chunk_index = chunk_index.as_vec2();
-                let chunk_render_size = tilemap.render_chunk_size as f32 * tilemap.tile_grid_size;
-                let center_x = (chunk_index.x - chunk_index.y) / 2. * chunk_render_size.x;
-                let center_y = (chunk_index.x + chunk_index.y + 1.) / 2. * chunk_render_size.y;
+                let half_chunk_render_size =
+                    tilemap.render_chunk_size as f32 * tilemap.tile_slot_size / 2.;
+                let center_x = (chunk_index.x - chunk_index.y) * half_chunk_render_size.x;
+                let center_y = (chunk_index.x + chunk_index.y + 1.) * half_chunk_render_size.y;
+                let center = Vec2 {
+                    x: center_x,
+                    y: center_y,
+                } + tilemap.translation
+                    - anchor_offset;
 
                 AabbBox2d {
-                    min: Vec2::new(
-                        center_x - chunk_render_size.x / 2. + tilemap.translation.x,
-                        center_y - chunk_render_size.y / 2. + tilemap.translation.y,
-                    ),
-                    max: Vec2::new(
-                        center_x + chunk_render_size.x / 2. + tilemap.translation.x,
-                        center_y + chunk_render_size.y / 2. + tilemap.translation.y,
-                    ),
+                    min: center - half_chunk_render_size,
+                    max: center + half_chunk_render_size,
                 }
             }
         }
     }
 
     pub fn from_tilemap_builder(builder: &TilemapBuilder) -> AabbBox2d {
+        let anchor_offset = builder.anchor * builder.tile_slot_size;
+
         match builder.tile_type {
             TileType::Square => {
-                let tilemap_render_size = builder.size.as_vec2() * builder.tile_grid_size;
+                let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
                 AabbBox2d {
-                    min: (tilemap_render_size - tilemap_render_size) / 2. + builder.translation,
-                    max: (tilemap_render_size + tilemap_render_size) / 2. + builder.translation,
+                    min: (tilemap_render_size - tilemap_render_size) / 2. + builder.translation
+                        - anchor_offset,
+                    max: (tilemap_render_size + tilemap_render_size) / 2. + builder.translation
+                        - anchor_offset,
                 }
             }
             TileType::IsometricDiamond => {
-                let size = builder.size.as_vec2();
-                let tilemap_render_size = (size.x + size.y) / 2. * builder.tile_grid_size;
-                let center_x = (size.x - size.y + builder.anchor.x) * builder.tile_grid_size.x / 4.;
-                let center_y =
-                    tilemap_render_size.y / 2. + builder.anchor.y * builder.tile_grid_size.y;
+                let half_size = builder.size.as_vec2() / 2.;
+                let tilemap_render_size = (half_size.x + half_size.y) * builder.tile_slot_size;
+                let center_x = (half_size.x - half_size.y) * builder.tile_slot_size.x / 2.;
+                let center_y = tilemap_render_size.y / 2.;
+                let center = Vec2 {
+                    x: center_x,
+                    y: center_y,
+                } + builder.translation
+                    - anchor_offset;
 
                 AabbBox2d {
-                    min: Vec2::new(
-                        center_x - tilemap_render_size.x / 2. + builder.translation.x,
-                        center_y - tilemap_render_size.y / 2. + builder.translation.y,
-                    ),
-                    max: Vec2::new(
-                        center_x + tilemap_render_size.x / 2. + builder.translation.x,
-                        center_y + tilemap_render_size.y / 2. + builder.translation.y,
-                    ),
+                    min: center - tilemap_render_size / 2.,
+                    max: center + tilemap_render_size / 2.,
                 }
             }
         }
@@ -82,14 +88,14 @@ impl AabbBox2d {
         let half_width = camera.width * camera.scale;
         let half_height = camera.height * camera.scale;
         AabbBox2d {
-            min: Vec2::new(
-                camera.transform.x - half_width,
-                camera.transform.y - half_height,
-            ),
-            max: Vec2::new(
-                camera.transform.x + half_width,
-                camera.transform.y + half_height,
-            ),
+            min: Vec2 {
+                x: camera.transform.x - half_width,
+                y: camera.transform.y - half_height,
+            },
+            max: Vec2 {
+                x: camera.transform.x + half_width,
+                y: camera.transform.y + half_height,
+            },
         }
     }
 

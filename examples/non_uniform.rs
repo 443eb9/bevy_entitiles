@@ -1,17 +1,11 @@
 use bevy::{
-    app::Update,
-    asset::Assets,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::{
-        mesh::{shape, Mesh},
-        render_resource::FilterMode,
-    },
-    sprite::{ColorMaterial, ColorMesh2dBundle},
+    render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{
     math::FillArea,
-    render::texture::{TileUV, TilemapTextureDescriptor},
+    render::texture::TilemapTextureDescriptor,
     tilemap::{
         map::TilemapBuilder,
         tile::{TileBuilder, TileType},

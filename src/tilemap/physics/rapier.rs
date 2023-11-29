@@ -63,8 +63,8 @@ impl Tilemap {
             return;
         };
 
-        let x = self.tile_render_scale.x;
-        let y = self.tile_render_scale.y;
+        let x = self.tile_slot_size.x;
+        let y = self.tile_slot_size.y;
         let translation = self.index_to_world(index);
 
         let collider = match self.tile_type {

@@ -22,7 +22,7 @@ pub struct ExtractedTilemap {
     pub tile_type: TileType,
     pub size: UVec2,
     pub tile_render_scale: Vec2,
-    pub tile_grid_size: Vec2,
+    pub tile_slot_size: Vec2,
     pub anchor: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
@@ -34,11 +34,6 @@ pub struct ExtractedTilemap {
 }
 
 #[derive(Component)]
-pub struct ExtractedHeightTilemap {
-    pub height_texture: TilemapTexture,
-}
-
-#[derive(Component)]
 pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
@@ -46,8 +41,6 @@ pub struct ExtractedTile {
     pub texture_index: u32,
     pub color: Vec4,
     pub anim: Option<TileAnimation>,
-    #[cfg(feature = "post_processing")]
-    pub height: u8,
 }
 
 #[derive(Component)]
@@ -71,7 +64,7 @@ pub fn extract_tilemaps(
                 tile_type: tilemap.tile_type,
                 size: tilemap.size,
                 tile_render_scale: tilemap.tile_render_scale,
-                tile_grid_size: tilemap.tile_grid_size,
+                tile_slot_size: tilemap.tile_slot_size,
                 render_chunk_size: tilemap.render_chunk_size,
                 anchor: tilemap.anchor,
                 filter_mode: tilemap.filter_mode,
@@ -109,8 +102,6 @@ pub fn extract_tiles(
                 texture_index: tile.texture_index,
                 color: tile.color,
                 anim,
-                #[cfg(feature = "post_processing")]
-                height: tile.height,
             },
         ));
     }
