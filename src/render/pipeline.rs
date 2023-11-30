@@ -120,10 +120,6 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             shader_defs.push("FLIP_V".into());
         }
 
-        if key.is_pure_color {
-            shader_defs.push("PURE_COLOR".into());
-        }
-
         let mut vtx_fmt = vec![
             // position
             VertexFormat::Float32x3,
@@ -131,9 +127,14 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             VertexFormat::Float32x2,
             // color
             VertexFormat::Float32x4,
-            // uv
-            VertexFormat::Float32x2,
         ];
+
+        if !key.is_pure_color {
+            // uv
+            vtx_fmt.push(VertexFormat::Float32x2);
+        } else {
+            shader_defs.push("PURE_COLOR".into());
+        }
 
         if !key.is_uniform {
             // tile_render_size

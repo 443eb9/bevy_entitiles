@@ -1,7 +1,6 @@
 use bevy::{
     ecs::entity::Entity,
     math::{UVec2, Vec2},
-    render::render_resource::FilterMode,
 };
 
 use crate::{
@@ -22,12 +21,11 @@ pub struct PubTilemap {
     pub anchor: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
-    pub filter_mode: FilterMode,
     pub tiles: Vec<Option<Entity>>,
     pub flip: u32,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
-    pub z_order: u32,
+    pub z_order: f32,
 }
 
 impl PubTilemap {
@@ -41,7 +39,6 @@ impl PubTilemap {
             anchor: value.anchor,
             render_chunk_size: value.render_chunk_size,
             texture: value.texture.clone(),
-            filter_mode: value.filter_mode,
             tiles: value.tiles.clone(),
             flip: value.flip,
             aabb: value.aabb,
@@ -60,7 +57,6 @@ impl PubTilemap {
             anchor: value.anchor,
             render_chunk_size: value.render_chunk_size,
             texture: value.texture,
-            filter_mode: value.filter_mode,
             tiles: vec![],
             flip: value.flip,
             aabb: value.aabb,
@@ -79,7 +75,6 @@ impl PubTilemap {
             anchor: self.anchor,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture,
-            filter_mode: self.filter_mode,
             translation: self.translation,
             flip: self.flip,
             aabb: self.aabb,

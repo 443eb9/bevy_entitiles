@@ -1,5 +1,6 @@
 use bevy::{
     app::{Plugin, Update},
+    ecs::entity::Entity,
     math::{UVec2, Vec2, Vec4},
     render::render_resource::FilterMode,
     utils::HashMap,
@@ -11,19 +12,27 @@ use crate::{
     render::texture::{TileUV, TilemapTextureDescriptor},
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileType},
+        tile::{Tile, TileType, TilemapTexture},
     },
 };
 
-use self::save::{save, TilemapSaver};
+use self::{
+    load::load,
+    save::{save, TilemapSaver},
+};
 
+pub const TILEMAP_META: &str = "tilemap.ron";
+pub const TILES: &str = "tiles.ron";
+pub const PATH_TILES: &str = "path_tiles.ron";
+
+pub mod load;
 pub mod save;
 
 pub struct EntitilesSerializingPlugin;
 
 impl Plugin for EntitilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, save);
+        app.add_systems(Update, (save, load));
     }
 }
 
@@ -45,7 +54,8 @@ pub struct SerializedTilemap {
     pub flip: u32,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
-    pub z_order: u32,
+    pub z_order: f32,
+    pub layers: u32,
 }
 
 impl SerializedTilemap {
@@ -69,6 +79,30 @@ impl SerializedTilemap {
             aabb: tilemap.aabb,
             translation: tilemap.translation,
             z_order: tilemap.z_order,
+            layers: saver.layers,
+        }
+    }
+
+    pub fn into_tilemap(
+        &self,
+        entity: Entity,
+        texture: Option<TilemapTexture>,
+        tiles: Option<Vec<Option<Entity>>>,
+    ) -> Tilemap {
+        Tilemap {
+            id: entity,
+            tile_type: self.tile_type,
+            size: self.size,
+            tile_render_scale: self.tile_render_scale,
+            tile_slot_size: self.tile_slot_size,
+            anchor: self.anchor,
+            render_chunk_size: self.render_chunk_size,
+            texture,
+            tiles: tiles.unwrap_or_default(),
+            flip: self.flip,
+            aabb: self.aabb,
+            translation: self.translation,
+            z_order: self.z_order,
         }
     }
 }
@@ -79,7 +113,7 @@ pub struct SerializedTilemapTexture {
     pub desc: SerializedTilemapDescriptor,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTilemapDescriptor {
     pub size: UVec2,
     pub tiles_uv: Vec<TileUV>,
@@ -98,7 +132,18 @@ impl From<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+impl Into<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
+    fn into(self) -> TilemapTextureDescriptor {
+        TilemapTextureDescriptor {
+            size: self.size,
+            tiles_uv: self.tiles_uv,
+            filter_mode: self.filter_mode.into(),
+            is_uniform: self.is_uniform,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub enum SerializedFilterMode {
     Nearest = 0,
     Linear = 1,
@@ -113,12 +158,22 @@ impl From<FilterMode> for SerializedFilterMode {
     }
 }
 
+impl Into<FilterMode> for SerializedFilterMode {
+    fn into(self) -> FilterMode {
+        match self {
+            Self::Nearest => FilterMode::Nearest,
+            Self::Linear => FilterMode::Linear,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Serialize, Deserialize)]
 pub enum TilemapLayer {
     Texture = 1,
     Algorithm = 1 << 1,
     Physics = 1 << 2,
+    All = !0,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -129,13 +184,25 @@ pub struct SerializedTile {
     pub color: Vec4,
 }
 
-impl SerializedTile {
-    pub fn from_tile(tile: &Tile) -> Self {
+impl From<Tile> for SerializedTile {
+    fn from(value: Tile) -> Self {
         Self {
-            render_chunk_index: tile.render_chunk_index,
-            index: tile.index,
-            texture_index: tile.texture_index,
-            color: tile.color,
+            render_chunk_index: value.render_chunk_index,
+            index: value.index,
+            texture_index: value.texture_index,
+            color: value.color,
+        }
+    }
+}
+
+impl SerializedTile {
+    fn into_tile(&self, tilemap: Entity) -> Tile {
+        Tile {
+            tilemap_id: tilemap,
+            render_chunk_index: self.render_chunk_index,
+            index: self.index,
+            texture_index: self.texture_index,
+            color: self.color,
         }
     }
 }
@@ -147,27 +214,43 @@ pub struct SerializedPathTilemap {
 }
 
 #[cfg(feature = "algorithm")]
-impl SerializedPathTilemap {
-    pub fn from_tilemap(tilemap: &crate::tilemap::algorithm::path::PathTilemap) -> Self {
+impl From<crate::tilemap::algorithm::path::PathTilemap> for SerializedPathTilemap {
+    fn from(value: crate::tilemap::algorithm::path::PathTilemap) -> Self {
         let mut tiles = HashMap::default();
-        for (index, tile) in tilemap.tiles.iter() {
-            tiles.insert(*index, SerializedPathTile::from_path_tile(tile));
+        for (index, tile) in value.tiles.iter() {
+            tiles.insert(*index, (*tile).into());
         }
         Self { tiles }
     }
 }
 
 #[cfg(feature = "algorithm")]
-#[derive(Serialize, Deserialize)]
+impl SerializedPathTilemap {
+    fn into_path_tilemap(self, tilemap: Entity) -> crate::tilemap::algorithm::path::PathTilemap {
+        let mut tiles = HashMap::default();
+        for (index, tile) in self.tiles.iter() {
+            tiles.insert(*index, tile.clone().into());
+        }
+        crate::tilemap::algorithm::path::PathTilemap { tilemap, tiles }
+    }
+}
+
+#[cfg(feature = "algorithm")]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedPathTile {
     pub cost: u32,
 }
 
 #[cfg(feature = "algorithm")]
-impl SerializedPathTile {
-    pub fn from_path_tile(path_tile: &crate::algorithm::pathfinding::PathTile) -> Self {
-        Self {
-            cost: path_tile.cost,
-        }
+impl From<crate::algorithm::pathfinding::PathTile> for SerializedPathTile {
+    fn from(value: crate::algorithm::pathfinding::PathTile) -> Self {
+        Self { cost: value.cost }
+    }
+}
+
+#[cfg(feature = "algorithm")]
+impl Into<crate::algorithm::pathfinding::PathTile> for SerializedPathTile {
+    fn into(self) -> crate::algorithm::pathfinding::PathTile {
+        crate::algorithm::pathfinding::PathTile { cost: self.cost }
     }
 }

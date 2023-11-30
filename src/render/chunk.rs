@@ -64,11 +64,11 @@ impl TilemapRenderChunk {
         if !self.dirty_mesh {
             return;
         }
-        let (tile_uvs, is_uniform) = {
+        let (tile_uvs, is_uniform, is_pure_color) = {
             if let Some(texture) = &self.texture {
-                (&texture.desc.tiles_uv, texture.desc.is_uniform)
+                (Some(&texture.desc.tiles_uv), texture.desc.is_uniform, false)
             } else {
-                return;
+                (None, true, true)
             }
         };
 
@@ -106,17 +106,20 @@ impl TilemapRenderChunk {
                     tile.texture_index
                 } as usize;
 
-                let pos_2d = [
-                    tile_uvs[tex_idx].top_left(),
-                    tile_uvs[tex_idx].btm_left(),
-                    tile_uvs[tex_idx].btm_right(),
-                    tile_uvs[tex_idx].top_right(),
-                ];
-                uvs.extend_from_slice(&pos_2d);
+                if !is_pure_color {
+                    let t_uvs = tile_uvs.unwrap();
+                    let pos_2d = [
+                        t_uvs[tex_idx].top_left(),
+                        t_uvs[tex_idx].btm_left(),
+                        t_uvs[tex_idx].btm_right(),
+                        t_uvs[tex_idx].top_right(),
+                    ];
+                    uvs.extend_from_slice(&pos_2d);
 
-                if !is_uniform {
-                    let size = tile_uvs[tex_idx].render_size();
-                    tile_render_size.extend_from_slice(&[size, size, size, size]);
+                    if !is_uniform {
+                        let size = t_uvs[tex_idx].render_size();
+                        tile_render_size.extend_from_slice(&[size, size, size, size]);
+                    }
                 }
 
                 let pos = Vec3::ZERO;
@@ -141,7 +144,9 @@ impl TilemapRenderChunk {
             .insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         self.mesh
             .insert_attribute(TILEMAP_MESH_ATTR_INDEX, grid_indices);
-        self.mesh.insert_attribute(TILEMAP_MESH_ATTR_UV, uvs);
+        if !is_pure_color {
+            self.mesh.insert_attribute(TILEMAP_MESH_ATTR_UV, uvs);
+        }
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
         if !is_uniform {
             self.mesh

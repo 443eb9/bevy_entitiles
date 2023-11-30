@@ -33,8 +33,8 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Known Issues
 
-- The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's the reason why I didn't switch to `LookupHeap` )
-- Trigger collider for `bevy_rapier` still causes collision. (Fix in `0.2.2`)
+- The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
+- Program panics if load a tilemap twice.
 
 ## Features
 
@@ -64,7 +64,7 @@ Platform: 10600KF
 
 The pathfinding algorithm is very fast.
 
-Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, we the supports asynchronized one. The algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
+Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, we support the asynchronized one. The algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
 
 <div>
 	<img src="./docs/imgs/pathfinding.png" width="500px">

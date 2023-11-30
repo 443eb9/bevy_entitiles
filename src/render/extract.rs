@@ -4,7 +4,7 @@ use bevy::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
     },
-    render::{render_resource::FilterMode, Extract},
+    render::Extract,
     window::Window,
 };
 
@@ -26,11 +26,10 @@ pub struct ExtractedTilemap {
     pub anchor: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
-    pub filter_mode: FilterMode,
     pub translation: Vec2,
     pub flip: u32,
     pub aabb: AabbBox2d,
-    pub z_order: u32,
+    pub z_order: f32,
 }
 
 #[derive(Component)]
@@ -67,7 +66,6 @@ pub fn extract_tilemaps(
                 tile_slot_size: tilemap.tile_slot_size,
                 render_chunk_size: tilemap.render_chunk_size,
                 anchor: tilemap.anchor,
-                filter_mode: tilemap.filter_mode,
                 texture: tilemap.texture.clone(),
                 translation: tilemap.translation,
                 flip: tilemap.flip,

@@ -51,7 +51,7 @@ impl TilemapUniformsStorage {
             }
         } else {
             // pure color mode
-            (Vec2::ZERO, Vec2::ZERO)
+            (Vec2::ZERO, tilemap.tile_slot_size)
         };
 
         let component = TilemapUniform {

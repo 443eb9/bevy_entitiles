@@ -1,4 +1,5 @@
 use bevy::{
+    math::Vec4,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
     DefaultPlugins,
@@ -29,7 +30,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
-        Vec2 { x: 16.0, y: 16.0 },
+        Vec2 { x: 16., y: 16. },
     )
     .with_texture(
         assets_server.load("test_square.png"),
@@ -50,7 +51,23 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
-        &TileBuilder::new(1),
+        &TileBuilder::new(1).with_color(Vec4::new(0.8, 1., 0.8, 0.1)),
+    );
+
+    commands.entity(tilemap_entity).insert(tilemap);
+
+    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+        TileType::Square,
+        UVec2 { x: 20, y: 10 },
+        Vec2 { x: 16., y: 16. },
+    )
+    .with_translation(Vec2 { x: 0., y: -300. })
+    .build(&mut commands);
+
+    tilemap.fill_rect(
+        &mut commands,
+        FillArea::full(&tilemap),
+        &TileBuilder::new(0).with_color(Vec4::new(1., 1., 0., 1.)),
     );
 
     commands.entity(tilemap_entity).insert(tilemap);

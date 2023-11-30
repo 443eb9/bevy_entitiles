@@ -1,4 +1,7 @@
-use std::{fs::File, io::Write};
+use std::{
+    fs::{create_dir_all, File},
+    io::Write,
+};
 
 use bevy::{
     ecs::{
@@ -12,19 +15,21 @@ use serde::Serialize;
 
 use crate::tilemap::{map::Tilemap, tile::Tile};
 
-use super::{SerializedTile, SerializedTilemap, TilemapLayer};
+use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
 
 pub struct TilemapSaverBuilder {
     path: String,
+    map_name: String,
     texture_path: Option<String>,
     layers: u32,
     remove_map_after_done: bool,
 }
 
 impl TilemapSaverBuilder {
-    pub fn new(path: String) -> Self {
+    pub fn new(path: String, map_name: String) -> Self {
         TilemapSaverBuilder {
             path,
+            map_name,
             texture_path: None,
             layers: 0,
             remove_map_after_done: false,
@@ -53,6 +58,7 @@ impl TilemapSaverBuilder {
     pub fn build(self, commands: &mut Commands, target: Entity) {
         commands.entity(target).insert(TilemapSaver {
             path: self.path,
+            map_name: self.map_name,
             texture_path: self.texture_path,
             layers: self.layers,
             remove_map_after_done: self.remove_map_after_done,
@@ -63,6 +69,7 @@ impl TilemapSaverBuilder {
 #[derive(Component)]
 pub struct TilemapSaver {
     pub(crate) path: String,
+    pub(crate) map_name: String,
     pub(crate) texture_path: Option<String>,
     pub(crate) layers: u32,
     pub(crate) remove_map_after_done: bool,
@@ -77,24 +84,26 @@ pub fn save(
     >,
 ) {
     for (entity, tilemap, saver) in tilemaps_query.iter() {
+        let map_path = saver.path.clone() + &saver.map_name + "\\";
+
         let serialized_tilemap = SerializedTilemap::from_tilemap(tilemap, saver);
-        save_object(saver.path.clone() + "_tilemap.ron", &serialized_tilemap);
+        save_object(&map_path, TILEMAP_META, &serialized_tilemap);
 
         // texture
         if saver.layers & 1 != 0 {
-            let serialized_tiles = tilemap
+            let serialized_tiles: Vec<Option<SerializedTile>> = tilemap
                 .tiles
                 .iter()
-                .filter_map(|e| {
+                .map(|e| {
                     if let Some(tile) = e {
-                        Some(SerializedTile::from_tile(tiles_query.get(*tile).unwrap()))
+                        Some(tiles_query.get(tile.clone()).unwrap().clone().into())
                     } else {
                         None
                     }
                 })
                 .collect::<Vec<_>>();
 
-            save_object(saver.path.clone() + "_tiles.ron", &serialized_tiles);
+            save_object(&map_path, TILES, &serialized_tiles);
         }
 
         // algorithm
@@ -111,7 +120,7 @@ pub fn save(
                         .collect::<HashMap<_, _>>(),
                 };
 
-                save_object(saver.path.clone() + "_path_tiles.ron", &serialized_path_map);
+                save_object(&map_path, PATH_TILES, &serialized_path_map);
             }
         }
 
@@ -120,12 +129,12 @@ pub fn save(
         }
 
         commands.entity(entity).remove::<TilemapSaver>();
-        println!("saved tilemap(s)");
     }
 }
 
-pub fn save_object<T: Serialize>(path: String, object: &T) {
-    let _ = File::create(path.clone())
-        .unwrap_or(File::open(path).unwrap())
+pub fn save_object<T: Serialize>(path: &str, file_name: &str, object: &T) {
+    let _ = create_dir_all(path);
+    let _ = File::create(path.to_owned() + file_name)
+        .unwrap_or(File::open(path.to_owned() + file_name).unwrap())
         .write(ron::to_string(object).unwrap().as_bytes());
 }

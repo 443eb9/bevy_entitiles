@@ -1,6 +1,6 @@
 use bevy::{
     app::Update,
-    ecs::system::Query,
+    ecs::{entity::Entity, system::Query},
     input::{keyboard::KeyCode, Input},
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
@@ -11,7 +11,9 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::TilemapTextureDescriptor,
     serializing::{
-        save::TilemapSaverBuilder, TilemapLayer,
+        load::{TilemapLoadFailure, TilemapLoaderBuilder},
+        save::TilemapSaverBuilder,
+        TilemapLayer,
     },
     tilemap::{
         algorithm::path::PathTilemap,
@@ -28,7 +30,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
         .add_systems(Startup, setup)
-        .add_systems(Update, save)
+        .add_systems(Update, (save_and_load, failure_handle))
         .run();
 }
 
@@ -74,14 +76,33 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         .insert((tilemap, path_tilemap));
 }
 
-fn save(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Query<&Tilemap>) {
+fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Query<&Tilemap>) {
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
-            TilemapSaverBuilder::new("C:\\mytilemap".to_string())
-                .with_layer(TilemapLayer::Texture)
-                .with_layer(TilemapLayer::Algorithm)
+            TilemapSaverBuilder::new("C:\\saves\\".to_string(), "mytilemap".to_string())
+                .with_layer(TilemapLayer::All)
+                .with_texture("test_isometric.png".to_string())
                 .remove_map_after_done()
                 .build(&mut commands, t.id());
+            println!("Saved tilemap!");
         }
+    }
+
+    if input.just_pressed(KeyCode::AltRight) {
+        let entity = commands.spawn_empty().id();
+        TilemapLoaderBuilder::new("C:\\saves\\".to_string(), "mytilemap".to_string())
+            .with_layer(TilemapLayer::All)
+            .build(&mut commands, entity);
+        println!("Loading tilemap...");
+    }
+}
+
+fn failure_handle(mut commands: Commands, errs: Query<(Entity, &TilemapLoadFailure)>) {
+    for (entity, err) in errs.iter() {
+        println!(
+            "Failed to load tilemap: {:?}",
+            err.path.clone() + &err.map_name
+        );
+        commands.entity(entity).remove::<TilemapLoadFailure>();
     }
 }

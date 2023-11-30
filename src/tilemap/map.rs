@@ -1,7 +1,7 @@
 use bevy::{
     ecs::component::Component,
     prelude::{Assets, Commands, Entity, Handle, IVec2, Image, ResMut, UVec2, Vec2},
-    render::render_resource::{FilterMode, TextureUsages},
+    render::render_resource::TextureUsages,
 };
 
 use crate::{
@@ -19,9 +19,8 @@ pub struct TilemapBuilder {
     pub(crate) anchor: Vec2,
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
-    pub(crate) filter_mode: FilterMode,
     pub(crate) translation: Vec2,
-    pub(crate) z_order: u32,
+    pub(crate) z_order: f32,
     pub(crate) flip: u32,
 }
 
@@ -32,20 +31,19 @@ impl TilemapBuilder {
             tile_type: ty,
             size,
             tile_render_scale: Vec2::ONE,
-            tile_slot_size: tile_slot_size,
+            tile_slot_size,
             anchor: Vec2 { x: 0.5, y: 0. },
             texture: None,
             render_chunk_size: 32,
-            filter_mode: FilterMode::Nearest,
             translation: Vec2::ZERO,
-            z_order: 10,
+            z_order: 0.,
             flip: 0,
         }
     }
 
     /// Override z order. Default is 10.
     /// The higher the value of z_order, the less likely to be covered.
-    pub fn with_z_order(&mut self, z_order: u32) -> &mut Self {
+    pub fn with_z_order(&mut self, z_order: f32) -> &mut Self {
         self.z_order = z_order;
         self
     }
@@ -53,12 +51,6 @@ impl TilemapBuilder {
     /// Override render chunk size. Default is 32.
     pub fn with_render_chunk_size(&mut self, size: u32) -> &mut Self {
         self.render_chunk_size = size;
-        self
-    }
-
-    /// Override filter mode. Default is nearest.
-    pub fn with_filter_mode(&mut self, filter_mode: FilterMode) -> &mut Self {
-        self.filter_mode = filter_mode;
         self
     }
 
@@ -116,7 +108,6 @@ impl TilemapBuilder {
             tile_slot_size: self.tile_slot_size,
             anchor: self.anchor,
             texture: self.texture.clone(),
-            filter_mode: self.filter_mode,
             flip: self.flip,
             aabb: AabbBox2d::from_tilemap_builder(self),
             translation: self.translation,
@@ -137,12 +128,11 @@ pub struct Tilemap {
     pub(crate) anchor: Vec2,
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
-    pub(crate) filter_mode: FilterMode,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) flip: u32,
     pub(crate) aabb: AabbBox2d,
     pub(crate) translation: Vec2,
-    pub(crate) z_order: u32,
+    pub(crate) z_order: f32,
 }
 
 impl Tilemap {

@@ -50,14 +50,7 @@ pub struct WfcRunner {
 
 impl WfcRunner {
     /// The order of the directions in config should be: up, right, left, down.
-    ///
-    /// Don't input `weights_path` and `custom_sampler` at the same time.
-    ///
     /// Please make sure the length of the `weights` is the same as the length of the `rule`.
-    ///
-    /// **Currently not implemented:**
-    /// `step_interval` is the interval between each step in miliseconds.
-    /// If you want to visualize the process, you can set this to some value.
     ///
     /// `seed` is the seed of the random number generator. Leave it `None` if you want to use a random seed.
     pub fn from_config(rule_path: String, area: FillArea, seed: Option<u64>) -> Self {
