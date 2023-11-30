@@ -26,15 +26,15 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Delayed
 
-- SSAO ( Personal ability )
-- Volumetric Clouds / Fog ( Personal ability )
-- Lighting ( Personal ability )
-- Realtime Shadow ( Personal ability )
+- SSAO ( Personal capability )
+- Volumetric Clouds / Fog ( Personal capability )
+- Lighting ( Personal capability )
+- Realtime Shadow ( Personal capability )
 
 ## Known Issues
 
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
-- Program panics if load a tilemap twice.
+- Program panics when load a tilemap twice.
 
 ## Features
 
