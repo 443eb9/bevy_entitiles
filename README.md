@@ -8,7 +8,7 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Currently Working On
 
-- Tilemap Serializing
+- Chunk Unloading
 
 ## Future Goals
 
@@ -16,8 +16,6 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 - ~~Pathfinding~~
 - Tilemap-Link
 - Runtime Mesh & Texture Baking
-- Tilemap Serializing
-- Chunk Unloading
 - Wang Tilling
 - Tilemap Mask
 - Frustum Culling ( Optimization )
@@ -33,8 +31,12 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Known Issues
 
+*Versions in the end of the line means when the issue will be fixed. Or empty if it's not on schedule yet.*
+
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
 - Program panics when load a tilemap twice.
+- The aabbs of tilemaps and chunks are not correct. ( But I remember I had fixed them. Weird. ) `0.2.3`
+- `TileFlip` are not working correctly. `0.2.3`
 
 ## Features
 
