@@ -6,6 +6,8 @@ This repo is under maintenance as long as this message exists. ( Hope this messa
 
 Notice that the following progress may **not up to date**. Check the `README.md` in `dev` branch to get the latest progress!
 
+It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
+
 ## Currently Working On
 
 - Chunk Unloading
@@ -31,12 +33,12 @@ Notice that the following progress may **not up to date**. Check the `README.md`
 
 ## Known Issues
 
-*Versions in the end of the line means when the issue will be fixed. Or empty if it's not on schedule yet.*
+*Versions in the end of the line means when the issue will be fixed. `m` means it has already fixed in master branch. Empty if it's not on schedule or the source is unclear.*
 
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
 - Program panics when load a tilemap twice.
-- The aabbs of tilemaps and chunks are not correct. ( But I remember I had fixed them. Weird. ) `0.2.3`
-- `TileFlip` are not working correctly. `0.2.3`
+- The aabbs of tilemaps and chunks are not correct. ( But I remember I had fixed them. Weird. ) `0.2.3m`
+- `TileFlip` are not working correctly. `0.2.3m`
 
 ## Features
 
@@ -66,7 +68,7 @@ Platform: 10600KF
 
 The pathfinding algorithm is very fast.
 
-Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, we support the asynchronized one. The algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
+Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, the asynchronized one in implemented. So the algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
 
 <div>
 	<img src="./docs/imgs/pathfinding.png" width="500px">
@@ -103,7 +105,6 @@ Video at `docs/vids/wfc.mp4`
 ## Special Thanks
 
 - SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
-
 - [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap). I took this crate as the reference and learnt the basis of bevy rendering.
 
 ## Versions

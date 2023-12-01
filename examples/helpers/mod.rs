@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{fmt::Debug, time::Duration};
 
 use bevy::{
@@ -9,7 +10,7 @@ use bevy::{
 #[cfg(feature = "debug")]
 use drawing::{draw_chunk_aabb, draw_tilemap_aabb};
 
-use crate::helpers::camera_movement::camera_control;
+use crate::helpers::{camera_movement::camera_control, drawing::draw_axis};
 
 use self::common::{debug_info_display, DebugFpsText};
 
@@ -37,6 +38,7 @@ impl Plugin for EntiTilesDebugPlugin {
                 camera_control,
                 #[cfg(all(feature = "algorithm", feature = "debug"))]
                 drawing::draw_path,
+                draw_axis,
                 debug_info_display.run_if(on_real_timer(Duration::from_millis(100))),
             ),
         );

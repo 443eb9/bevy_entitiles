@@ -46,7 +46,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             is_uniform: false,
         },
     )
-    .with_anchor(Vec2 { x: 0.5, y: 0. })
     .build(&mut commands);
 
     tilemap.fill_rect(

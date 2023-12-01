@@ -100,6 +100,8 @@ impl TilemapRenderChunk {
 
                 let tex_idx = if let Some(anim) = &tile.anim {
                     let passed_frames = (time.elapsed_seconds() * anim.fps) as usize;
+                    // TODO cause plenty of performance overhead if a tilemap has many animated tiles.
+                    // try to achieve this in gpu.
                     if anim.is_loop {
                         anim.sequence[passed_frames % anim.sequence.len()]
                     } else {
@@ -185,7 +187,7 @@ impl TilemapRenderChunk {
         self.dirty_mesh = false;
     }
 
-    // TODO find better approach
+    // TODO looks stupid but actually works, need to find a better way to do this.
     fn get_uv(&self, tile_uv: &TileUV) -> [Vec2; 4] {
         match self.flip {
             0b00 => [
