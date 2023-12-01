@@ -4,7 +4,7 @@ version = "0.2.2"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
-description = "A tilemap library for bevy. With many great utilities built in."
+description = "A 2d tilemap library for bevy. With many useful features built in."
 
 [profile.dev]
 opt-level = 1

@@ -1,6 +1,6 @@
 # Bevy EntiTiles 🗺️
 
-A tilemap library for bevy. With many great utilities built in.
+A 2d tilemap library for bevy. With many useful features built in.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 

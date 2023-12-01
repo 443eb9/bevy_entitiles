@@ -33,8 +33,6 @@ pub enum WfcMode {
     CustomSampler,
 }
 
-/// # Warning!
-/// This feature is still in preview. It may fail to generate a map and stuck in an infinite loop.
 #[derive(Component)]
 pub struct WfcRunner {
     rule: Vec<[u128; 4]>,
@@ -43,7 +41,7 @@ pub struct WfcRunner {
     seed: Option<u64>,
     area: FillArea,
     max_retrace_factor: u32,
-    max_retrace_count: u32,
+    max_retrace_time: u32,
     max_history: usize,
     fallback: Option<Box<dyn Fn(&mut Commands, Entity, &Tilemap, &WfcRunner) + Send + Sync>>,
 }
@@ -93,7 +91,7 @@ impl WfcRunner {
             area,
             seed,
             max_retrace_factor: size.ilog10().clamp(2, 16),
-            max_retrace_count: size.ilog10().clamp(2, 16) * 100,
+            max_retrace_time: size.ilog10().clamp(2, 16) * 100,
             max_history: (size.ilog10().clamp(1, 8) * 20) as usize,
             fallback: None,
         }
@@ -146,14 +144,14 @@ impl WfcRunner {
     pub fn with_retrace_settings(
         mut self,
         max_retrace_factor: Option<u32>,
-        max_retrace_count: Option<u32>,
+        max_retrace_time: Option<u32>,
     ) -> Self {
         if let Some(factor) = max_retrace_factor {
             assert!(factor <= 16, "max_retrace_factor should be <= 16");
             self.max_retrace_factor = factor;
         }
-        if let Some(count) = max_retrace_count {
-            self.max_retrace_count = count;
+        if let Some(time) = max_retrace_time {
+            self.max_retrace_time = time;
         }
         self
     }
@@ -217,7 +215,8 @@ struct WfcHistory {
 #[derive(Component)]
 pub struct WfcGrid {
     mode: WfcMode,
-    history: Vec<WfcHistory>,
+    history: Vec<Option<WfcHistory>>,
+    cur_hist: usize,
     size: UVec2,
     grid: Vec<WfcTile>,
     rng: StdRng,
@@ -259,7 +258,8 @@ impl WfcGrid {
         WfcGrid {
             grid,
             size: runner.area.extent,
-            history: vec![],
+            history: vec![None; runner.max_history],
+            cur_hist: 0,
             mode: runner.mode.clone(),
             rule: runner.rule.clone(),
             rng: match runner.seed {
@@ -270,7 +270,7 @@ impl WfcGrid {
             remaining: runner.area.size(),
             retrace_strength: 1,
             max_retrace_factor: runner.max_retrace_factor,
-            max_retrace_time: runner.max_retrace_count,
+            max_retrace_time: runner.max_retrace_time,
             retraced_time: 0,
             sampler: runner.sampler.take(),
             fallback: runner.fallback.take(),
@@ -303,7 +303,8 @@ impl WfcGrid {
             remaining: self.remaining,
             heap: self.heap.clone(),
         };
-        self.history.push(hist);
+        self.history[self.cur_hist] = Some(hist);
+        self.cur_hist = (self.cur_hist + 1) % self.history.len();
 
         let min_tile = self.get_tile(self.heap[1].1).unwrap().clone();
         self.remaining -= 1;
@@ -429,17 +430,37 @@ impl WfcGrid {
         #[cfg(feature = "debug")]
         println!("retrace with strength: {}", self.retrace_strength);
         let hist = {
-            if self.history.len() > self.retrace_strength as usize {
-                for _ in 0..self.retrace_strength {
-                    self.history.pop();
-                }
-                self.history.pop().unwrap()
+            let hist_len = self.history.len();
+            let strength = self.retrace_strength as usize;
+
+            if hist_len <= strength {
+                // max retrace time exceeded
+                self.retraced_time = self.max_retrace_time;
             } else {
-                let h = self.history[0].clone();
-                self.history.clear();
-                h
+                if self.cur_hist >= strength {
+                    self.cur_hist -= strength;
+                } else {
+                    // need to wrap around
+                    let hist_to_be = hist_len - (strength - self.cur_hist);
+                    println!(
+                        "hist_to_be = {} = {} - ({} - {})",
+                        hist_to_be, hist_len, strength, self.cur_hist
+                    );
+                    if self.history[hist_to_be].is_none() {
+                        // retrace failed
+                        self.retraced_time = self.max_retrace_time;
+                    } else {
+                        self.cur_hist = hist_to_be;
+                    }
+                }
             }
+
+            // in case the cur_hist is 0
+            self.history[(self.cur_hist + hist_len - 1) % hist_len]
+                .clone()
+                .unwrap()
         };
+
         self.grid = hist.grid;
         self.remaining = hist.remaining;
         self.heap = hist.heap;
@@ -669,10 +690,10 @@ pub fn wave_function_collapse_async(
                     }
                 } else {
                     commands.command_scope(|mut c| {
-                        if grid.retraced_time < grid.max_retrace_time {
-                            // grid.apply_map(&mut c, &mut tilemap);
-                        } else if let Some(fallback) = &grid.fallback {
-                            fallback(&mut c, entity, &tilemap, &runner);
+                        if grid.retraced_time >= grid.max_retrace_time {
+                            if let Some(fallback) = &grid.fallback {
+                                fallback(&mut c, entity, &tilemap, &runner);
+                            }
                         }
                         c.entity(entity).remove::<WfcRunner>();
                         c.entity(entity).remove::<AsyncWfcRunner>();
