@@ -167,7 +167,7 @@ impl Into<FilterMode> for SerializedFilterMode {
     }
 }
 
-#[repr(C)]
+#[repr(u32)]
 #[derive(Serialize, Deserialize)]
 pub enum TilemapLayer {
     Texture = 1,

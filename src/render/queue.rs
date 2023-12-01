@@ -121,7 +121,6 @@ pub fn queue(
                 EntiTilesPipelineKey {
                     msaa: msaa.samples(),
                     map_type: tilemap.tile_type,
-                    flip: tilemap.flip,
                     is_pure_color,
                     is_uniform,
                 },

@@ -34,16 +34,8 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.color = input.color;
 
 #ifndef PURE_COLOR
-
     output.uv = input.uv / tilemap.texture_size;
-#ifdef FLIP_H
-    output.uv.x = 1. - output.uv.x;
 #endif
-#ifdef FLIP_V
-    output.uv.y = 1. - output.uv.y;
-#endif
-
-#endif // PURE_COLOR
 
     return output;
 }

@@ -1,10 +1,10 @@
 # Bevy EntiTiles 🗺️
 
-A tilemap library for bevy. With many algorithms built in.
+A tilemap library for bevy. With many great utilities built in.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
-Notice that the following progress may **not up to date**. Check the `README.md` in `dev` brach to get the latest progress!
+Notice that the following progress may **not up to date**. Check the `README.md` in `dev` branch to get the latest progress!
 
 ## Currently Working On
 

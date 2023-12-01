@@ -30,7 +30,6 @@ pub struct EntiTilesPipeline {
 pub struct EntiTilesPipelineKey {
     pub msaa: u32,
     pub map_type: TileType,
-    pub flip: u32,
     pub is_pure_color: bool,
     pub is_uniform: bool,
 }
@@ -112,13 +111,6 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             }
             .into(),
         );
-
-        if key.flip & 1u32 != 0 {
-            shader_defs.push("FLIP_H".into());
-        }
-        if key.flip & (1u32 << 1) != 0 {
-            shader_defs.push("FLIP_V".into());
-        }
 
         let mut vtx_fmt = vec![
             // position

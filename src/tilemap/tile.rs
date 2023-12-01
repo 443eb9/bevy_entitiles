@@ -18,8 +18,9 @@ pub enum TileType {
 #[repr(u32)]
 #[derive(Debug, Clone, Copy)]
 pub enum TileFlip {
-    Horizontal = 1u32 << 0,
-    Vertical = 1u32 << 1,
+    Horizontal = 0b01,
+    Vertical = 0b10,
+    Both = 0b11,
 }
 
 #[derive(Component, Clone)]

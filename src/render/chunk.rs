@@ -16,6 +16,7 @@ use crate::{
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
+    texture::TileUV,
     TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_RD_SIZE,
     TILEMAP_MESH_ATTR_UV,
 };
@@ -40,6 +41,7 @@ pub struct TilemapRenderChunk {
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
     pub aabb: AabbBox2d,
+    pub flip: u32,
 }
 
 impl TilemapRenderChunk {
@@ -51,6 +53,7 @@ impl TilemapRenderChunk {
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type,
             texture: tilemap.texture.clone(),
+            flip: tilemap.flip,
             tiles: vec![None; (tilemap.render_chunk_size * tilemap.render_chunk_size) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
@@ -108,13 +111,7 @@ impl TilemapRenderChunk {
 
                 if !is_pure_color {
                     let t_uvs = tile_uvs.unwrap();
-                    let pos_2d = [
-                        t_uvs[tex_idx].top_left(),
-                        t_uvs[tex_idx].btm_left(),
-                        t_uvs[tex_idx].btm_right(),
-                        t_uvs[tex_idx].top_right(),
-                    ];
-                    uvs.extend_from_slice(&pos_2d);
+                    uvs.extend_from_slice(&self.get_uv(&t_uvs[tex_idx]));
 
                     if !is_uniform {
                         let size = t_uvs[tex_idx].render_size();
@@ -186,6 +183,41 @@ impl TilemapRenderChunk {
         });
 
         self.dirty_mesh = false;
+    }
+
+    // TODO find better approach
+    fn get_uv(&self, tile_uv: &TileUV) -> [Vec2; 4] {
+        match self.flip {
+            0b00 => [
+                tile_uv.top_left(),
+                tile_uv.btm_left(),
+                tile_uv.btm_right(),
+                tile_uv.top_right(),
+            ],
+            // flip h
+            0b01 => [
+                tile_uv.top_right(),
+                tile_uv.btm_right(),
+                tile_uv.btm_left(),
+                tile_uv.top_left(),
+            ],
+            // flip v
+            0b10 => [
+                tile_uv.btm_left(),
+                tile_uv.top_left(),
+                tile_uv.top_right(),
+                tile_uv.btm_right(),
+            ],
+            // both
+            0b11 => [
+                tile_uv.btm_right(),
+                tile_uv.top_right(),
+                tile_uv.top_left(),
+                tile_uv.btm_left(),
+            ],
+            // impossible
+            _ => [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+        }
     }
 
     /// Set a tile in the chunk. Overwrites the previous tile.
