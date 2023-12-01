@@ -60,10 +60,8 @@ impl AabbBox2d {
             TileType::Square => {
                 let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
                 AabbBox2d {
-                    min: (tilemap_render_size - tilemap_render_size) / 2. + builder.translation
-                        - anchor_offset,
-                    max: (tilemap_render_size + tilemap_render_size) / 2. + builder.translation
-                        - anchor_offset,
+                    min: builder.translation - anchor_offset,
+                    max: tilemap_render_size + builder.translation - anchor_offset,
                 }
             }
             TileType::IsometricDiamond => {

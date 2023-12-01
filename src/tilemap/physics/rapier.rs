@@ -4,7 +4,7 @@ use bevy::{
         event::{EventReader, EventWriter},
         system::{Commands, Query},
     },
-    math::{UVec2, Vec2},
+    math::UVec2,
 };
 use bevy_rapier2d::{
     geometry::{ActiveEvents, Collider, Friction, Sensor},
@@ -17,7 +17,7 @@ use crate::{
     math::FillArea,
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileType},
+        tile::Tile,
     },
 };
 
@@ -63,25 +63,7 @@ impl Tilemap {
             return;
         };
 
-        let x = self.tile_slot_size.x;
-        let y = self.tile_slot_size.y;
-        let translation = self.index_to_world(index);
-
-        let collider = match self.tile_type {
-            TileType::Square => Collider::convex_hull(&[
-                (Vec2::new(-x / 2., -y / 2.) + translation).into(),
-                (Vec2::new(-x / 2., y / 2.) + translation).into(),
-                (Vec2::new(x / 2., y / 2.) + translation).into(),
-                (Vec2::new(x / 2., -y / 2.) + translation).into(),
-            ]),
-            TileType::IsometricDiamond => Collider::convex_hull(&[
-                (Vec2::new(-x / 2., 0.) + translation).into(),
-                (Vec2::new(0., y / 2.) + translation).into(),
-                (Vec2::new(x / 2., 0.) + translation).into(),
-                (Vec2::new(0., -y / 2.) + translation).into(),
-            ]),
-        }
-        .unwrap();
+        let collider = Collider::convex_hull(&self.get_tile_convex_hull(index)).unwrap();
 
         if is_trigger {
             commands

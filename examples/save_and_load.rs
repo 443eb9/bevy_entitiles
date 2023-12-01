@@ -39,7 +39,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::IsometricDiamond,
-        UVec2 { x: 500, y: 500 },
+        UVec2 { x: 20, y: 20 },
         Vec2 { x: 32.0, y: 16.0 },
     )
     .with_texture(
@@ -77,6 +77,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 }
 
 fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Query<&Tilemap>) {
+    // save
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
             TilemapSaverBuilder::new("C:\\saves\\".to_string(), "mytilemap".to_string())
@@ -88,6 +89,7 @@ fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Qu
         }
     }
 
+    // load
     if input.just_pressed(KeyCode::AltRight) {
         let entity = commands.spawn_empty().id();
         TilemapLoaderBuilder::new("C:\\saves\\".to_string(), "mytilemap".to_string())

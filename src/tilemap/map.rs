@@ -250,16 +250,16 @@ impl Tilemap {
     pub fn index_to_world(&self, index: UVec2) -> Vec2 {
         let index = index.as_vec2();
         match self.tile_type {
-            TileType::Square => Vec2 {
-                x: (index.x + 0.5 - self.anchor.x) * self.tile_slot_size.x + self.translation.x,
-                y: (index.y + 0.5 - self.anchor.y) * self.tile_slot_size.y + self.translation.y,
-            },
-            TileType::IsometricDiamond => Vec2 {
-                x: ((index.x - index.y + 1.) / 2. - self.anchor.x) * self.tile_slot_size.x
-                    + self.translation.x,
-                y: ((index.x + index.y + 1.) / 2. - self.anchor.y) * self.tile_slot_size.y
-                    + self.translation.y,
-            },
+            TileType::Square => (index - self.anchor) * self.tile_slot_size + self.translation,
+            TileType::IsometricDiamond => {
+                (Vec2 {
+                    x: (index.x - index.y - 1.),
+                    y: (index.x + index.y),
+                } / 2.
+                    - self.anchor)
+                    * self.tile_slot_size
+                    + self.translation
+            }
         }
     }
 
@@ -271,6 +271,26 @@ impl Tilemap {
     #[inline]
     pub fn is_out_of_tilemap_ivec(&self, index: IVec2) -> bool {
         index.x < 0 || index.y < 0 || index.x >= self.size.x as i32 || index.y >= self.size.y as i32
+    }
+
+    #[inline]
+    pub fn get_tile_convex_hull(&self, index: UVec2) -> [Vec2; 4] {
+        let offset = self.index_to_world(index);
+        let (x, y) = (self.tile_slot_size.x, self.tile_slot_size.y);
+        match self.tile_type {
+            TileType::Square => [
+                (Vec2 { x: 0., y: 0. } + offset).into(),
+                (Vec2 { x: 0., y } + offset).into(),
+                (Vec2 { x, y } + offset).into(),
+                (Vec2 { x, y: 0. } + offset).into(),
+            ],
+            TileType::IsometricDiamond => [
+                (Vec2 { x: 0., y: y / 2. } + offset).into(),
+                (Vec2 { x: x / 2., y } + offset).into(),
+                (Vec2 { x, y: y / 2. } + offset).into(),
+                (Vec2 { x: x / 2., y: 0. } + offset).into(),
+            ],
+        }
     }
 
     /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.

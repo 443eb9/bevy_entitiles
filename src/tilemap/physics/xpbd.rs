@@ -65,26 +65,8 @@ impl Tilemap {
         let Some(tile_entity) = self.get(index) else {
             return;
         };
-
-        let x = self.tile_slot_size.x;
-        let y = self.tile_slot_size.y;
-        let translation = self.index_to_world(index);
-
-        let collider = match self.tile_type {
-            TileType::Square => Collider::convex_hull(vec![
-                Vec2::new(-x / 2., -y / 2.) + translation,
-                Vec2::new(-x / 2., y / 2.) + translation,
-                Vec2::new(x / 2., y / 2.) + translation,
-                Vec2::new(x / 2., -y / 2.) + translation,
-            ]),
-            TileType::IsometricDiamond => Collider::convex_hull(vec![
-                Vec2::new(-x / 2., 0.) + translation,
-                Vec2::new(0., y / 2.) + translation,
-                Vec2::new(x / 2., 0.) + translation,
-                Vec2::new(0., -y / 2.) + translation,
-            ]),
-        }
-        .unwrap();
+        
+        let collider = Collider::convex_hull(self.get_tile_convex_hull(index).to_vec()).unwrap();
 
         if is_trigger {
             commands.entity(tile_entity).insert(collider);

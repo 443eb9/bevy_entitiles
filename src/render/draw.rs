@@ -20,15 +20,15 @@ use super::{
 pub type DrawTilemap = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
-    SetTilemapDataBindGroup<1>,
-    SetTilemapcolorTextureBindGroup<2>,
+    SetTilemapUniformBindGroup<1>,
+    SetTilemapColorTextureBindGroup<2>,
     DrawTileMesh,
 );
 
 pub type DrawTilemapPureColor = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
-    SetTilemapDataBindGroup<1>,
+    SetTilemapUniformBindGroup<1>,
     DrawTileMesh,
 );
 
@@ -84,8 +84,8 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I>
     }
 }
 
-pub struct SetTilemapDataBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I> {
+pub struct SetTilemapUniformBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBindGroup<I> {
     type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
@@ -107,6 +107,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I>
             .tilemap_uniform_bind_group
             .get(&tilemap.id)
         {
+            println!("{}", uniform_data.index);
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index]);
             RenderCommandResult::Success
         } else {
@@ -116,8 +117,8 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapDataBindGroup<I>
     }
 }
 
-pub struct SetTilemapcolorTextureBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapcolorTextureBindGroup<I> {
+pub struct SetTilemapColorTextureBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBindGroup<I> {
     type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
