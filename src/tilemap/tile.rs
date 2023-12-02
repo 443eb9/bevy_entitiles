@@ -24,6 +24,7 @@ pub enum TileFlip {
 }
 
 #[derive(Component, Clone)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileAnimation {
     pub sequence: Vec<u32>,
     pub fps: f32,
@@ -72,6 +73,15 @@ impl TileBuilder {
             texture_index,
             anim: None,
             color: Vec4::ONE,
+        }
+    }
+
+    #[cfg(feature = "serializing")]
+    pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
+        Self {
+            texture_index: serialized_tile.texture_index,
+            anim: serialized_tile.anim.clone(),
+            color: serialized_tile.color,
         }
     }
 

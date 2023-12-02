@@ -12,7 +12,7 @@ use crate::{
     render::texture::{TileUV, TilemapTextureDescriptor},
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileType, TilemapTexture},
+        tile::{Tile, TileAnimation, TileType, TilemapTexture},
     },
 };
 
@@ -87,7 +87,6 @@ impl SerializedTilemap {
         &self,
         entity: Entity,
         texture: Option<TilemapTexture>,
-        tiles: Option<Vec<Option<Entity>>>,
     ) -> Tilemap {
         Tilemap {
             id: entity,
@@ -98,7 +97,7 @@ impl SerializedTilemap {
             anchor: self.anchor,
             render_chunk_size: self.render_chunk_size,
             texture,
-            tiles: tiles.unwrap_or_default(),
+            tiles: vec![],
             flip: self.flip,
             aabb: self.aabb,
             translation: self.translation,
@@ -176,33 +175,21 @@ pub enum TilemapLayer {
     All = !0,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTile {
-    pub render_chunk_index: usize,
     pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
-}
-
-impl From<Tile> for SerializedTile {
-    fn from(value: Tile) -> Self {
-        Self {
-            render_chunk_index: value.render_chunk_index,
-            index: value.index,
-            texture_index: value.texture_index,
-            color: value.color,
-        }
-    }
+    pub anim: Option<TileAnimation>,
 }
 
 impl SerializedTile {
-    fn into_tile(&self, tilemap: Entity) -> Tile {
-        Tile {
-            tilemap_id: tilemap,
-            render_chunk_index: self.render_chunk_index,
-            index: self.index,
-            texture_index: self.texture_index,
-            color: self.color,
+    fn from_tile(tile: Tile, anim: Option<TileAnimation>) -> Self {
+        Self {
+            index: tile.index,
+            texture_index: tile.texture_index,
+            color: tile.color,
+            anim,
         }
     }
 }

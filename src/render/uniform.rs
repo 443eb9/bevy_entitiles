@@ -53,7 +53,6 @@ impl TilemapUniformsStorage {
             // pure color mode
             (Vec2::ZERO, tilemap.tile_slot_size)
         };
-        println!("inserting uniform buffer");
 
         let component = TilemapUniform {
             translation: tilemap.translation,

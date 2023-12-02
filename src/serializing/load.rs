@@ -12,7 +12,11 @@ use bevy::{
 use ron::{de::from_bytes, error::SpannedError};
 use serde::Deserialize;
 
-use crate::tilemap::{algorithm::path::PathTilemap, map::Tilemap, tile::TilemapTexture};
+use crate::tilemap::{
+    algorithm::path::PathTilemap,
+    map::Tilemap,
+    tile::{TileBuilder, TilemapTexture},
+};
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
 
@@ -71,7 +75,10 @@ impl From<TilemapLoader> for TilemapLoadFailure {
 
 pub fn load(
     mut commands: Commands,
-    tilemaps_query: Query<(Entity, &TilemapLoader), (Without<Tilemap>, Without<PathTilemap>)>,
+    tilemaps_query: Query<
+        (Entity, &TilemapLoader),
+        (Without<Tilemap>, Without<PathTilemap>),
+    >,
     asset_server: Res<AssetServer>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
@@ -99,25 +106,6 @@ pub fn load(
             None
         };
 
-        let mut tiles = None;
-        if let Some(ser_tiles) = serialized_tiles {
-            let Ok(ser_tiles) = ser_tiles else {
-                complete::<TilemapLoadFailure>(&mut commands, entity, loader.clone().into());
-                continue;
-            };
-
-            tiles = Some(vec![None; ser_tiles.len()]);
-            let tiles = tiles.as_mut().unwrap();
-
-            for i in 0..ser_tiles.len() {
-                if let Some(ser_t) = &ser_tiles[i] {
-                    let mut e = commands.spawn_empty();
-                    e.insert((*ser_t).into_tile(entity));
-                    tiles[i] = Some(e.id());
-                }
-            }
-        }
-
         // algorithm
         #[cfg(feature = "algorithm")]
         if loader.layers & (1 << 1) != 0 {
@@ -133,8 +121,27 @@ pub fn load(
                 .insert(serialized_path_tilemap.into_path_tilemap(entity));
         }
 
-        let map = serialized_tilemap.into_tilemap(entity, texture, tiles);
-        complete(&mut commands, entity, map);
+        let mut tilemap = serialized_tilemap.into_tilemap(entity, texture);
+
+        if let Some(ser_tiles) = serialized_tiles {
+            let Ok(ser_tiles) = ser_tiles else {
+                complete::<TilemapLoadFailure>(&mut commands, entity, loader.clone().into());
+                continue;
+            };
+
+            tilemap.tiles = vec![None; ser_tiles.len()];
+            for i in 0..ser_tiles.len() {
+                if let Some(ser_t) = &ser_tiles[i] {
+                    tilemap.set(
+                        &mut commands,
+                        ser_t.index,
+                        &TileBuilder::from_serialized_tile(ser_t),
+                    );
+                }
+            }
+        }
+
+        complete(&mut commands, entity, tilemap);
     }
 }
 

@@ -45,7 +45,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // I just want to show you the full functionality.
     // Please adjust them before you run the program.
     commands.entity(tilemap_entity).insert((
-        WfcRunner::from_config(
+        WfcRunner::from_simple_config(
             "examples/wfc_config.ron".to_string(),
             FillArea::full(&tilemap),
             Some(0),

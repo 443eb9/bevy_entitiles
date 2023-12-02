@@ -107,7 +107,6 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBindGroup
             .tilemap_uniform_bind_group
             .get(&tilemap.id)
         {
-            println!("{}", uniform_data.index);
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index]);
             RenderCommandResult::Success
         } else {

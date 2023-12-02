@@ -52,7 +52,7 @@ bevy_mod_debugdump = "0.9.0"
 
 [features]
 default = []
-algorithm = ["dep:rand", "dep:ron", "dep:serde"]
+algorithm = ["dep:rand", "dep:ron", "dep:serde", "serializing"]
 debug = []
 debug_verbose = ["debug"]
 physics_rapier = ["dep:bevy_rapier2d"]

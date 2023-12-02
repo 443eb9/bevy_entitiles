@@ -6,7 +6,7 @@ pub mod aabb;
 pub mod extension;
 pub mod tilemap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct FillArea {
     pub(crate) origin: UVec2,
     pub(crate) extent: UVec2,

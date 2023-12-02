@@ -66,7 +66,7 @@ pub fn queue(
         for (entity, tilemap) in tilemaps_query.iter() {
             if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
                 let tilemap_uniform_bind_group = render_device.create_bind_group(
-                    Some("tilemap_data_bind_group"),
+                    Some("tilemap_uniform_bind_group"),
                     &entitile_pipeline.tilemap_uniform_layout,
                     &[BindGroupEntry {
                         binding: 0,

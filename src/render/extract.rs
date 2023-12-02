@@ -69,7 +69,7 @@ pub fn extract_tilemaps(
                 texture: tilemap.texture.clone(),
                 translation: tilemap.translation,
                 flip: tilemap.flip,
-                aabb: tilemap.aabb.clone(),
+                aabb: tilemap.aabb,
                 z_order: tilemap.z_order,
             },
         ));

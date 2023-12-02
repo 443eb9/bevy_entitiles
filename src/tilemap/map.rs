@@ -118,6 +118,19 @@ impl TilemapBuilder {
     }
 }
 
+#[cfg(feature = "serializing")]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+pub struct TilemapPattern {
+    pub size: UVec2,
+    pub tiles: Vec<Option<crate::serializing::SerializedTile>>,
+}
+
+impl TilemapPattern {
+    pub fn get(&self, index: UVec2) -> Option<&crate::serializing::SerializedTile> {
+        self.tiles[(index.y * self.size.x + index.x) as usize].as_ref()
+    }
+}
+
 #[derive(Component, Clone)]
 pub struct Tilemap {
     pub(crate) id: Entity,
@@ -146,7 +159,7 @@ impl Tilemap {
     }
 
     pub(crate) fn get_unchecked(&self, index: UVec2) -> Option<Entity> {
-        self.tiles[(index.y * self.size.x + index.x) as usize]
+        self.tiles[self.grid_index_to_linear_index(index)]
     }
 
     /// Set a tile.
@@ -166,7 +179,7 @@ impl Tilemap {
         index: UVec2,
         tile_builder: &TileBuilder,
     ) {
-        let linear_index = (index.y * self.size.x + index.x) as usize;
+        let linear_index = self.grid_index_to_linear_index(index);
         if let Some(previous) = self.tiles[linear_index] {
             commands.entity(previous).despawn();
         }
@@ -184,7 +197,7 @@ impl Tilemap {
     }
 
     pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, index: UVec2) {
-        let index = (index.y * self.size.x + index.x) as usize;
+        let index = self.grid_index_to_linear_index(index);
         commands.entity(self.tiles[index].unwrap()).despawn();
         self.tiles[index] = None;
     }
@@ -240,6 +253,22 @@ impl Tilemap {
         }
     }
 
+    #[cfg(feature = "serializing")]
+    pub fn set_pattern(&mut self, commands: &mut Commands, pattern: TilemapPattern, origin: UVec2) {
+        for y in 0..pattern.size.y {
+            for x in 0..pattern.size.x {
+                let index = UVec2 { x, y };
+                if let Some(tile) = pattern.get(index) {
+                    self.set(
+                        commands,
+                        index + origin,
+                        &TileBuilder::from_serialized_tile(tile),
+                    );
+                }
+            }
+        }
+    }
+
     #[inline]
     /// Get the id of the tilemap.
     pub fn id(&self) -> Entity {
@@ -261,6 +290,11 @@ impl Tilemap {
                     + self.translation
             }
         }
+    }
+
+    #[inline]
+    pub fn grid_index_to_linear_index(&self, index: UVec2) -> usize {
+        (index.y * self.size.x + index.x) as usize
     }
 
     #[inline]

@@ -23,6 +23,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - Frustum Culling ( Optimization )
 - ~~Physics~~
 - Tilemap Editor
+- Negative Indices
 
 ## Delayed
 
@@ -36,7 +37,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 *Versions in the end of the line means when the issue will be fixed. `m` means it has already fixed in master branch. Empty if it's not on schedule or the source is unclear.*
 
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
-- Program panics when load a tilemap twice.
 - The aabbs of tilemaps and chunks are not correct. ( But I remember I had fixed them. Weird. ) `0.2.3m`
 - `TileFlip` are not working correctly. `0.2.3m`
 

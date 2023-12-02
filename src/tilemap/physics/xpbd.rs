@@ -19,7 +19,7 @@ use crate::{
     math::FillArea,
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileType},
+        tile::Tile,
     },
 };
 
