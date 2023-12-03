@@ -41,6 +41,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileType::IsometricDiamond,
         UVec2 { x: 20, y: 20 },
         Vec2 { x: 32.0, y: 16.0 },
+        "test_map".to_string(),
     )
     .with_texture(
         assets_server.load("test_isometric.png"),
@@ -80,7 +81,7 @@ fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Qu
     // save
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
-            TilemapSaverBuilder::new("C:\\saves\\".to_string(), "mytilemap".to_string())
+            TilemapSaverBuilder::new("C:\\saves\\".to_string())
                 .with_layer(TilemapLayer::All)
                 .with_texture("test_isometric.png".to_string())
                 .remove_map_after_done()
@@ -92,7 +93,7 @@ fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Qu
     // load
     if input.just_pressed(KeyCode::AltRight) {
         let entity = commands.spawn_empty().id();
-        TilemapLoaderBuilder::new("C:\\saves\\".to_string(), "mytilemap".to_string())
+        TilemapLoaderBuilder::new("C:\\saves".to_string(), "mytilemap".to_string())
             .with_layer(TilemapLayer::All)
             .build(&mut commands, entity);
         println!("Loading tilemap...");

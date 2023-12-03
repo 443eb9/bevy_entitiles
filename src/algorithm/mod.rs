@@ -13,9 +13,9 @@ use self::{
 pub mod pathfinding;
 pub mod wfc;
 
-pub struct EntitilesAlgorithmPlugin;
+pub struct EntiTilesAlgorithmPlugin;
 
-impl Plugin for EntitilesAlgorithmPlugin {
+impl Plugin for EntiTilesAlgorithmPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(
             Update,

@@ -4,7 +4,7 @@ version = "0.2.3"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
-description = "A 2d tilemap library for bevy. With many useful features built in."
+description = "A 2d tilemap library for bevy. With many useful algorithms/tools built in."
 
 [profile.dev]
 opt-level = 1
@@ -55,6 +55,7 @@ default = []
 algorithm = ["dep:rand", "dep:ron", "dep:serde", "serializing"]
 debug = []
 debug_verbose = ["debug"]
+editor = ["serializing", "algorithm"]
 physics_rapier = ["dep:bevy_rapier2d"]
 physics_xpbd = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
@@ -98,3 +99,13 @@ required-features = []
 name = "save_and_load"
 path = "examples/save_and_load.rs"
 required-features = ["serializing", "algorithm"]
+
+[[example]]
+name = "editor"
+path = "examples/editor.rs"
+required-features = ["editor"]
+
+[[example]]
+name = "ui"
+path = "examples/ui.rs"
+required-features = []

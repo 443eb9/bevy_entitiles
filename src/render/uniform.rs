@@ -1,12 +1,37 @@
 use bevy::{
     prelude::{Component, Resource, Vec2},
     render::{
-        render_resource::{BindingResource, DynamicUniformBuffer, ShaderType},
+        render_resource::{
+            encase::internal::WriteInto, BindingResource, DynamicUniformBuffer, ShaderType,
+        },
         renderer::{RenderDevice, RenderQueue},
     },
 };
 
 use super::extract::ExtractedTilemap;
+
+pub trait UniformsStorage<E, U: ShaderType + WriteInto + 'static> {
+    /// Update the uniform buffer with the current uniforms.
+    /// Returns the `U` component to be used in the render pass.
+    fn insert(&mut self, extracted: &E) -> DynamicUniformComponent<U>;
+
+    /// Get the binding resource for the uniform buffer.
+    fn binding(&mut self) -> Option<BindingResource> {
+        self.buffer().binding()
+    }
+
+    /// Clear the uniform buffer.
+    fn clear(&mut self) {
+        self.buffer().clear();
+    }
+
+    /// Write the uniform buffer to the GPU.
+    fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
+        self.buffer().write_buffer(render_device, render_queue);
+    }
+
+    fn buffer(&mut self) -> &mut DynamicUniformBuffer<U>;
+}
 
 #[derive(Component)]
 pub struct DynamicUniformComponent<T>
@@ -32,14 +57,11 @@ pub struct TilemapUniformsStorage {
     buffer: DynamicUniformBuffer<TilemapUniform>,
 }
 
-impl TilemapUniformsStorage {
+impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorage {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
-    pub fn insert(
-        &mut self,
-        tilemap: &ExtractedTilemap,
-    ) -> DynamicUniformComponent<TilemapUniform> {
-        let (texture_size, tile_render_size) = if let Some(texture) = &tilemap.texture {
+    fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicUniformComponent<TilemapUniform> {
+        let (texture_size, tile_render_size) = if let Some(texture) = &extracted.texture {
             let desc = texture.desc();
             if desc.is_uniform {
                 // if uniform, all the tiles are the same size as the first one.
@@ -51,15 +73,15 @@ impl TilemapUniformsStorage {
             }
         } else {
             // pure color mode
-            (Vec2::ZERO, tilemap.tile_slot_size)
+            (Vec2::ZERO, extracted.tile_slot_size)
         };
 
         let component = TilemapUniform {
-            translation: tilemap.translation,
+            translation: extracted.translation,
             tile_render_size,
-            tile_slot_size: tilemap.tile_slot_size,
-            tile_render_scale: tilemap.tile_render_scale,
-            anchor: tilemap.anchor,
+            tile_slot_size: extracted.tile_slot_size,
+            tile_render_scale: extracted.tile_render_scale,
+            anchor: extracted.anchor,
             texture_size,
         };
 
@@ -68,18 +90,8 @@ impl TilemapUniformsStorage {
         DynamicUniformComponent { index, component }
     }
 
-    /// Get the binding resource for the uniform buffer.
-    pub fn binding(&self) -> Option<BindingResource> {
-        self.buffer.binding()
-    }
-
-    /// Clear the uniform buffer.
-    pub fn clear(&mut self) {
-        self.buffer.clear();
-    }
-
-    /// Write the uniform buffer to the GPU.
-    pub fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        self.buffer.write_buffer(render_device, render_queue);
+    #[inline]
+    fn buffer(&mut self) -> &mut DynamicUniformBuffer<TilemapUniform> {
+        &mut self.buffer
     }
 }

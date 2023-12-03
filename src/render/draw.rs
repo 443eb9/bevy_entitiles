@@ -13,8 +13,7 @@ use super::{
     chunk::RenderChunkStorage,
     extract::ExtractedTilemap,
     queue::TileViewBindGroup,
-    uniform::{DynamicUniformComponent, TilemapUniform},
-    TilemapBindGroups,
+    uniform::{DynamicUniformComponent, TilemapUniform}, resources::TilemapBindGroups,
 };
 
 pub type DrawTilemap = (
@@ -104,7 +103,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBindGroup
     ) -> RenderCommandResult {
         if let Some(tilemap_uniform_bind_group) = bind_groups
             .into_inner()
-            .tilemap_uniform_bind_group
+            .tilemap_uniforms
             .get(&tilemap.id)
         {
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index]);
@@ -137,7 +136,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBind
                 I,
                 bind_groups
                     .into_inner()
-                    .color_textures
+                    .colored_textures
                     .get(texture.handle())
                     .unwrap(),
                 &[],
@@ -156,7 +155,6 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
 
     type ItemWorldQuery = Read<ExtractedTilemap>;
 
-    #[inline]
     fn render<'w>(
         _item: &Transparent2d,
         _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,

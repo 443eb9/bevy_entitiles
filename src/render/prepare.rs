@@ -12,7 +12,7 @@ use bevy::{
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTexturesStorage,
-    uniform::TilemapUniformsStorage,
+    uniform::{TilemapUniformsStorage, UniformsStorage},
     RenderChunkStorage,
 };
 

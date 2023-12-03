@@ -34,6 +34,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         TileType::Square,
         UVec2 { x: 20, y: 20 },
         Vec2 { x: 16., y: 16. },
+        "test_map".to_string(),
     )
     .with_texture(
         asset_server.load("test_square.png"),

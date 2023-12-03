@@ -68,14 +68,6 @@ impl TileBuilder {
         }
     }
 
-    pub fn from_texture_index(texture_index: u32) -> Self {
-        Self {
-            texture_index,
-            anim: None,
-            color: Vec4::ONE,
-        }
-    }
-
     #[cfg(feature = "serializing")]
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
@@ -95,13 +87,7 @@ impl TileBuilder {
         self
     }
 
-    /// Build the tile and spawn it.
-    ///
-    /// # Note
-    /// DO NOT call this method manually unless you really need to.
-    ///
-    /// Use `Tilemap::set` or `Tilemap::fill_xxx` instead.
-    pub fn build(&self, commands: &mut Commands, index: UVec2, tilemap: &Tilemap) -> Entity {
+    pub(crate) fn build(&self, commands: &mut Commands, index: UVec2, tilemap: &Tilemap) -> Entity {
         let render_chunk_index_2d = index / tilemap.render_chunk_size;
         let render_chunk_index = {
             if tilemap.size.x % tilemap.render_chunk_size == 0 {
@@ -135,3 +121,6 @@ pub struct Tile {
     pub texture_index: u32,
     pub color: Vec4,
 }
+
+#[derive(Component)]
+pub struct InvisibleTile;

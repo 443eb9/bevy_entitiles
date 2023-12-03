@@ -27,6 +27,16 @@ pub struct TilemapLoaderBuilder {
 }
 
 impl TilemapLoaderBuilder {
+    /// For example if the file tree look like:
+    ///
+    /// ```
+    /// C
+    /// └── maps
+    ///     └── beautiful map
+    ///         ├── tilemap.ron
+    ///         └── (and other data)
+    /// ```
+    /// Then path = `C:\\maps` and map_name = `beautiful map`
     pub fn new(path: String, map_name: String) -> Self {
         TilemapLoaderBuilder {
             path,
@@ -75,14 +85,11 @@ impl From<TilemapLoader> for TilemapLoadFailure {
 
 pub fn load(
     mut commands: Commands,
-    tilemaps_query: Query<
-        (Entity, &TilemapLoader),
-        (Without<Tilemap>, Without<PathTilemap>),
-    >,
+    tilemaps_query: Query<(Entity, &TilemapLoader), (Without<Tilemap>, Without<PathTilemap>)>,
     asset_server: Res<AssetServer>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
-        let map_path = loader.path.clone() + &loader.map_name + "\\";
+        let map_path = format!("{}\\{}\\", loader.path, loader.map_name);
 
         let Ok(serialized_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META)
         else {
@@ -146,7 +153,7 @@ pub fn load(
 }
 
 fn load_object<T: for<'a> Deserialize<'a>>(path: &str, file_name: &str) -> Result<T, SpannedError> {
-    from_bytes(read_to_string(path.to_owned() + file_name)?.as_bytes())
+    from_bytes(read_to_string(format!("{}{}", path, file_name))?.as_bytes())
 }
 
 fn complete<T: Component>(commands: &mut Commands, entity: Entity, component: T) {

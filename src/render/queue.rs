@@ -16,9 +16,9 @@ use super::{
     draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
+    resources::TilemapBindGroups,
     texture::TilemapTexturesStorage,
-    uniform::TilemapUniformsStorage,
-    TilemapBindGroups,
+    uniform::{TilemapUniformsStorage, UniformsStorage},
 };
 
 #[derive(Component)]
@@ -39,7 +39,7 @@ pub fn queue(
     mut bind_groups: ResMut<TilemapBindGroups>,
     textures_storage: Res<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    tilemap_uniform_strorage: Res<TilemapUniformsStorage>,
+    mut tilemap_uniform_strorage: ResMut<TilemapUniformsStorage>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -75,7 +75,7 @@ pub fn queue(
                 );
 
                 bind_groups
-                    .tilemap_uniform_bind_group
+                    .tilemap_uniforms
                     .insert(tilemap.id, tilemap_uniform_bind_group);
             }
 
@@ -85,7 +85,7 @@ pub fn queue(
                 };
 
                 if !bind_groups
-                    .color_textures
+                    .colored_textures
                     .contains_key(tilemap_texture.handle())
                 {
                     let bind_group = render_device.create_bind_group(
@@ -104,7 +104,7 @@ pub fn queue(
                     );
 
                     bind_groups
-                        .color_textures
+                        .colored_textures
                         .insert(tilemap_texture.clone_weak(), bind_group);
                 }
 

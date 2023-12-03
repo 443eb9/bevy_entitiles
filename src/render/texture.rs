@@ -17,6 +17,9 @@ use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
 
 /// Notice that the UVs are not the one you might think.
 /// They are pixel coordinates instead of normalized coordinates.
+/// 
+/// For example, you have a 16x16 texture, and this tile uses `(0, 0)-(0.5, 0.5)`,
+/// then you should fill `min` = `(0, 0)`, `max` = `(8, 8)` instead of `(0, 0)-(0.5, 0.5)`
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileUV {

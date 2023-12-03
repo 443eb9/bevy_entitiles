@@ -12,22 +12,24 @@ use crate::{
 use super::tile::{TileBuilder, TileFlip, TileType, TilemapTexture};
 
 pub struct TilemapBuilder {
-    pub(crate) tile_type: TileType,
-    pub(crate) size: UVec2,
-    pub(crate) tile_render_scale: Vec2,
-    pub(crate) tile_slot_size: Vec2,
-    pub(crate) anchor: Vec2,
-    pub(crate) render_chunk_size: u32,
-    pub(crate) texture: Option<TilemapTexture>,
-    pub(crate) translation: Vec2,
-    pub(crate) z_order: f32,
-    pub(crate) flip: u32,
+    pub name: String,
+    pub tile_type: TileType,
+    pub size: UVec2,
+    pub tile_render_scale: Vec2,
+    pub tile_slot_size: Vec2,
+    pub anchor: Vec2,
+    pub render_chunk_size: u32,
+    pub texture: Option<TilemapTexture>,
+    pub translation: Vec2,
+    pub z_order: f32,
+    pub flip: u32,
 }
 
 impl TilemapBuilder {
     /// Create a new tilemap builder.
-    pub fn new(ty: TileType, size: UVec2, tile_slot_size: Vec2) -> Self {
+    pub fn new(ty: TileType, size: UVec2, tile_slot_size: Vec2, name: String) -> Self {
         Self {
+            name,
             tile_type: ty,
             size,
             tile_render_scale: Vec2::ONE,
@@ -99,17 +101,18 @@ impl TilemapBuilder {
     pub fn build(&self, commands: &mut Commands) -> (Entity, Tilemap) {
         let mut entity = commands.spawn_empty();
         let tilemap = Tilemap {
-            tiles: vec![None; (self.size.x * self.size.y) as usize],
             id: entity.id(),
+            name: self.name.clone(),
             tile_render_scale: self.tile_render_scale,
             tile_type: self.tile_type,
             size: self.size,
+            tiles: vec![None; (self.size.x * self.size.y) as usize],
             render_chunk_size: self.render_chunk_size,
             tile_slot_size: self.tile_slot_size,
             anchor: self.anchor,
             texture: self.texture.clone(),
             flip: self.flip,
-            aabb: AabbBox2d::from_tilemap_builder(self),
+            aabb: AabbBox2d::from_tilemap_builder(&self),
             translation: self.translation,
             z_order: self.z_order,
         };
@@ -125,6 +128,7 @@ pub struct TilemapPattern {
     pub tiles: Vec<Option<crate::serializing::SerializedTile>>,
 }
 
+#[cfg(feature = "serializing")]
 impl TilemapPattern {
     pub fn get(&self, index: UVec2) -> Option<&crate::serializing::SerializedTile> {
         self.tiles[(index.y * self.size.x + index.x) as usize].as_ref()
@@ -134,6 +138,7 @@ impl TilemapPattern {
 #[derive(Component, Clone)]
 pub struct Tilemap {
     pub(crate) id: Entity,
+    pub(crate) name: String,
     pub(crate) tile_type: TileType,
     pub(crate) size: UVec2,
     pub(crate) tile_render_scale: Vec2,
@@ -269,10 +274,16 @@ impl Tilemap {
         }
     }
 
-    #[inline]
     /// Get the id of the tilemap.
+    #[inline]
     pub fn id(&self) -> Entity {
         self.id
+    }
+
+    /// Get the name of the tilemap.
+    #[inline]
+    pub fn name(&self) -> String {
+        self.name.clone()
     }
 
     /// Get the world position of the center of a slot.

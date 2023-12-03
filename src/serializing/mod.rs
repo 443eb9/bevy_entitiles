@@ -28,9 +28,9 @@ pub const PATH_TILES: &str = "path_tiles.ron";
 pub mod load;
 pub mod save;
 
-pub struct EntitilesSerializingPlugin;
+pub struct EntiTilesSerializingPlugin;
 
-impl Plugin for EntitilesSerializingPlugin {
+impl Plugin for EntiTilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, (save, load));
     }
@@ -44,6 +44,7 @@ pub struct SerializedTilemapData {
 
 #[derive(Serialize, Deserialize)]
 pub struct SerializedTilemap {
+    pub name: String,
     pub tile_type: TileType,
     pub size: UVec2,
     pub tile_render_scale: Vec2,
@@ -61,6 +62,7 @@ pub struct SerializedTilemap {
 impl SerializedTilemap {
     pub fn from_tilemap(tilemap: &Tilemap, saver: &TilemapSaver) -> Self {
         SerializedTilemap {
+            name: tilemap.name.clone(),
             tile_type: tilemap.tile_type,
             size: tilemap.size,
             tile_render_scale: tilemap.tile_render_scale,
@@ -90,6 +92,7 @@ impl SerializedTilemap {
     ) -> Tilemap {
         Tilemap {
             id: entity,
+            name: self.name.clone(),
             tile_type: self.tile_type,
             size: self.size,
             tile_render_scale: self.tile_render_scale,

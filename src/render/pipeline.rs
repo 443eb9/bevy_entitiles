@@ -2,22 +2,18 @@ use bevy::{
     prelude::{FromWorld, Resource},
     render::{
         render_resource::{
-            BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType,
-            BlendState, BufferBindingType, ColorTargetState, ColorWrites, Face, FragmentState,
+            BindGroupLayout, BlendState, ColorTargetState, ColorWrites, Face, FragmentState,
             FrontFace, MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, SamplerBindingType, ShaderDefVal, ShaderStages, ShaderType,
-            SpecializedRenderPipeline, TextureFormat, TextureSampleType, TextureViewDimension,
+            RenderPipelineDescriptor, ShaderDefVal, SpecializedRenderPipeline, TextureFormat,
             VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
-        renderer::RenderDevice,
         texture::BevyDefault,
-        view::ViewUniform,
     },
 };
 
 use crate::tilemap::tile::TileType;
 
-use super::{uniform::TilemapUniform, TILEMAP_SHADER};
+use super::{resources::TilemapBindGroupLayouts, TILEMAP_SHADER};
 
 #[derive(Resource)]
 pub struct EntiTilesPipeline {
@@ -36,63 +32,11 @@ pub struct EntiTilesPipelineKey {
 
 impl FromWorld for EntiTilesPipeline {
     fn from_world(world: &mut bevy::prelude::World) -> Self {
-        let render_device = world.resource::<RenderDevice>();
-        let view_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("tilemap_view_layout"),
-            entries: &[BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
-                ty: BindingType::Buffer {
-                    ty: BufferBindingType::Uniform,
-                    has_dynamic_offset: true,
-                    min_binding_size: Some(ViewUniform::min_size()),
-                },
-                count: None,
-            }],
-        });
-
-        let tilemap_uniform_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("tilemap_uniform_layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(TilemapUniform::min_size()),
-                    },
-                    count: None,
-                }],
-            });
-
-        let color_texture_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("color_texture_layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Texture {
-                            sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
-
-        EntiTilesPipeline {
-            view_layout,
-            tilemap_uniform_layout,
-            color_texture_layout,
+        let layouts = world.resource::<TilemapBindGroupLayouts>();
+        Self {
+            view_layout: layouts.view_layout.clone(),
+            tilemap_uniform_layout: layouts.tilemap_uniform_layout.clone(),
+            color_texture_layout: layouts.color_texture_layout.clone(),
         }
     }
 }

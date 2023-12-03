@@ -56,6 +56,7 @@ fn setup(
         TileType::IsometricDiamond,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
+        "test_map".to_string(),
     )
     .with_texture(
         assets_server.load("test_isometric.png"),
@@ -89,6 +90,7 @@ fn setup(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },
+        "test_map".to_string(),
     )
     .with_translation(Vec2 { x: 500., y: -100. })
     .with_texture(

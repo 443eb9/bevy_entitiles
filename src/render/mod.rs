@@ -16,7 +16,7 @@ use crate::render::{
     draw::{DrawTilemap, DrawTilemapPureColor},
     pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
-    uniform::TilemapUniformsStorage,
+    uniform::TilemapUniformsStorage, resources::{TilemapBindGroups, TilemapBindGroupLayouts},
 };
 
 pub mod chunk;
@@ -26,6 +26,7 @@ pub mod extract;
 pub mod pipeline;
 pub mod prepare;
 pub mod queue;
+pub mod resources;
 pub mod texture;
 pub mod uniform;
 
@@ -86,6 +87,7 @@ impl Plugin for EntiTilesRendererPlugin {
             .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapUniformsStorage>()
+            .init_resource::<TilemapBindGroupLayouts>()
             .init_resource::<EntiTilesPipeline>()
             .init_resource::<TilemapBindGroups>()
             .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
@@ -94,10 +96,4 @@ impl Plugin for EntiTilesRendererPlugin {
             .add_render_command::<Transparent2d, DrawTilemap>()
             .add_render_command::<Transparent2d, DrawTilemapPureColor>();
     }
-}
-
-#[derive(Resource, Default)]
-pub struct TilemapBindGroups {
-    pub tilemap_uniform_bind_group: HashMap<Entity, BindGroup>,
-    pub color_textures: HashMap<Handle<Image>, BindGroup>,
 }

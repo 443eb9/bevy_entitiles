@@ -1,16 +1,16 @@
 # Bevy EntiTiles 🗺️
 
-A 2d tilemap library for bevy. With many useful features built in.
+A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
 Notice that the following progress may **not up to date**. Check the `README.md` in `dev` branch to get the latest progress!
 
-It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
+It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features. If you are curious about what will be updated next, you can check the `release_note` in `dev` branch.
 
 ## Currently Working On
 
-- Chunk Unloading
+- Tilemap Editor (expect: before 12.15)
 
 ## Future Goals
 
@@ -22,7 +22,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - Tilemap Mask
 - Frustum Culling ( Optimization )
 - ~~Physics~~
-- Tilemap Editor
+- Chunk Unloading
 - Negative Indices
 
 ## Delayed
@@ -47,6 +47,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | `algorithm`      | Implementation of algorithms                                                                                            |
 | `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.                                 |
 | `debug-verbose`  | Show verbose process of functions. This feature is only useful when debug algorithms. But it's useless for most of you. |
+| `editor`         | Enable the tilemap editor for editing tilemaps and map patterns.                                                        |
 | `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                                            |
 | `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc.                    |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                                          |

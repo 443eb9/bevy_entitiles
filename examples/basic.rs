@@ -31,6 +31,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },
+        "test_map".to_string(),
     )
     .with_texture(
         assets_server.load("test_square.png"),
@@ -60,6 +61,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },
+        "test_map".to_string(),
     )
     .with_translation(Vec2 { x: 0., y: -300. })
     .build(&mut commands);

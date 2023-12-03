@@ -22,17 +22,24 @@ use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP
 
 pub struct TilemapSaverBuilder {
     path: String,
-    map_name: String,
     texture_path: Option<String>,
     layers: u32,
     remove_map_after_done: bool,
 }
 
 impl TilemapSaverBuilder {
-    pub fn new(path: String, map_name: String) -> Self {
+    /// For example if path = C:\\maps, then the crate will create:
+    /// 
+    /// ```
+    /// C
+    /// └── maps
+    ///     └── (your tilemap's name)
+    ///         ├── tilemap.ron
+    ///         └── (and other data)
+    /// ```
+    pub fn new(path: String) -> Self {
         TilemapSaverBuilder {
             path,
-            map_name,
             texture_path: None,
             layers: 0,
             remove_map_after_done: false,
@@ -61,7 +68,6 @@ impl TilemapSaverBuilder {
     pub fn build(self, commands: &mut Commands, target: Entity) {
         commands.entity(target).insert(TilemapSaver {
             path: self.path,
-            map_name: self.map_name,
             texture_path: self.texture_path,
             layers: self.layers,
             remove_map_after_done: self.remove_map_after_done,
@@ -72,7 +78,6 @@ impl TilemapSaverBuilder {
 #[derive(Component)]
 pub struct TilemapSaver {
     pub(crate) path: String,
-    pub(crate) map_name: String,
     pub(crate) texture_path: Option<String>,
     pub(crate) layers: u32,
     pub(crate) remove_map_after_done: bool,
@@ -87,7 +92,7 @@ pub fn save(
     >,
 ) {
     for (entity, tilemap, saver) in tilemaps_query.iter() {
-        let map_path = saver.path.clone() + &saver.map_name + "\\";
+        let map_path = format!("{}\\{}\\", saver.path, tilemap.name);
 
         let serialized_tilemap = SerializedTilemap::from_tilemap(tilemap, saver);
         save_object(&map_path, TILEMAP_META, &serialized_tilemap);
@@ -138,7 +143,8 @@ pub fn save(
 
 pub fn save_object<T: Serialize>(path: &str, file_name: &str, object: &T) {
     let _ = create_dir_all(path);
-    let _ = File::create(path.to_owned() + file_name)
-        .unwrap_or(File::open(path.to_owned() + file_name).unwrap())
+    let path = format!("{}{}", path, file_name);
+    let _ = File::create(path.clone())
+        .unwrap_or(File::open(path).unwrap())
         .write(ron::to_string(object).unwrap().as_bytes());
 }

@@ -30,6 +30,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileType::IsometricDiamond,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
+        "test_map".to_string(),
     )
     .with_texture(
         assets_server.load("test_nonuniform.png"),
