@@ -9,7 +9,7 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::pathfinding::PathTile,
     math::FillArea,
-    render::texture::TilemapTextureDescriptor,
+    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     serializing::{
         load::{TilemapLoadFailure, TilemapLoaderBuilder},
         save::TilemapSaverBuilder,
@@ -43,14 +43,14 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         Vec2 { x: 32.0, y: 16.0 },
         "test_map".to_string(),
     )
-    .with_texture(
+    .with_texture(TilemapTexture::new(
         assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor::from_full_grid(
             UVec2 { x: 32, y: 32 },
             UVec2 { x: 1, y: 2 },
             FilterMode::Nearest,
         ),
-    )
+    ))
     .with_anchor(Vec2 { x: 0.5, y: 0. })
     .with_render_chunk_size(64)
     .build(&mut commands);

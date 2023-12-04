@@ -1,14 +1,13 @@
 use bevy::{
     asset::load_internal_asset,
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Entity, Handle, Image, IntoSystemConfigs, Plugin, Resource, Shader},
+    prelude::{Handle, IntoSystemConfigs, Plugin, Shader},
     render::{
         mesh::MeshVertexAttribute,
         render_phase::AddRenderCommand,
-        render_resource::{BindGroup, SpecializedRenderPipelines, VertexFormat},
+        render_resource::{SpecializedRenderPipelines, VertexFormat},
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
-    utils::HashMap,
 };
 
 use crate::render::{

@@ -12,11 +12,11 @@ use bevy::{
 use ron::{de::from_bytes, error::SpannedError};
 use serde::Deserialize;
 
-use crate::tilemap::{
+use crate::{tilemap::{
     algorithm::path::PathTilemap,
     map::Tilemap,
-    tile::{TileBuilder, TilemapTexture},
-};
+    tile::TileBuilder,
+}, render::texture::TilemapTexture};
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
 

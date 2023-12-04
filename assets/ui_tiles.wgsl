@@ -15,15 +15,15 @@ struct UiTile {
 var texture: texture_2d<f32>;
 
 @group(1) @binding(1)
-var sampler: sampler;
+var texture_sampler: sampler;
 
 @group(1) @binding(2)
 var<uniform> tile: UiTile;
 
 @fragment
-fn fragment(in: UiVertexOutput) -> location(0) vec4<f32> {
+fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let area = tile.uv.max - tile.uv.min;
     let uv = in.uv * area + tile.uv.min;
-    return vec4<f32>(1.
-    // return textureSample(texture, sampler, uv / tile.texture_size) * tile.color;
+    // return vec4<f32>(1.);
+    return textureSample(texture, texture_sampler, uv / tile.texture_size) * tile.color;
 }

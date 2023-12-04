@@ -1,6 +1,4 @@
-use bevy::prelude::{Commands, Component, Entity, Handle, Image, UVec2, Vec4};
-
-use crate::render::texture::TilemapTextureDescriptor;
+use bevy::prelude::{Commands, Component, Entity, UVec2, Vec4};
 
 use super::map::Tilemap;
 
@@ -29,26 +27,6 @@ pub struct TileAnimation {
     pub sequence: Vec<u32>,
     pub fps: f32,
     pub is_loop: bool,
-}
-
-#[derive(Clone, Default)]
-pub struct TilemapTexture {
-    pub(crate) texture: Handle<Image>,
-    pub(crate) desc: TilemapTextureDescriptor,
-}
-
-impl TilemapTexture {
-    pub fn clone_weak(&self) -> Handle<Image> {
-        self.texture.clone_weak()
-    }
-
-    pub fn desc(&self) -> &TilemapTextureDescriptor {
-        &self.desc
-    }
-
-    pub fn handle(&self) -> &Handle<Image> {
-        &self.texture
-    }
 }
 
 #[derive(Clone)]

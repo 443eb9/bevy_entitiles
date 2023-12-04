@@ -12,9 +12,11 @@ use crate::{
     math::aabb::AabbBox2d,
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileAnimation, TileType, TilemapTexture},
+        tile::{Tile, TileAnimation, TileType},
     },
 };
+
+use super::texture::TilemapTexture;
 
 #[derive(Component)]
 pub struct ExtractedTilemap {

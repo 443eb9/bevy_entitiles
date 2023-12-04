@@ -55,10 +55,11 @@ default = []
 algorithm = ["dep:rand", "dep:ron", "dep:serde", "serializing"]
 debug = []
 debug_verbose = ["debug"]
-editor = ["serializing", "algorithm"]
+editor = ["serializing", "algorithm", "ui"]
 physics_rapier = ["dep:bevy_rapier2d"]
 physics_xpbd = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
+ui = []
 
 [[example]]
 name = "basic"

@@ -7,7 +7,7 @@ use bevy::{
     math::Vec2,
     prelude::{Image, UVec2},
     render::{
-        render_resource::{FilterMode, Sampler},
+        render_resource::{FilterMode, Sampler, ShaderType},
         texture::GpuImage,
     },
     utils::HashMap,
@@ -17,10 +17,10 @@ use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
 
 /// Notice that the UVs are not the one you might think.
 /// They are pixel coordinates instead of normalized coordinates.
-/// 
+///
 /// For example, you have a 16x16 texture, and this tile uses `(0, 0)-(0.5, 0.5)`,
 /// then you should fill `min` = `(0, 0)`, `max` = `(8, 8)` instead of `(0, 0)-(0.5, 0.5)`
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileUV {
     pub min: Vec2,
@@ -70,6 +70,21 @@ impl From<(UVec2, UVec2)> for TileUV {
     }
 }
 
+impl From<(u32, u32, u32, u32)> for TileUV {
+    fn from(value: (u32, u32, u32, u32)) -> Self {
+        Self {
+            min: Vec2 {
+                x: value.0 as f32,
+                y: value.1 as f32,
+            },
+            max: Vec2 {
+                x: value.2 as f32,
+                y: value.3 as f32,
+            },
+        }
+    }
+}
+
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
     textures: HashMap<Handle<Image>, GpuImage>,
@@ -90,12 +105,43 @@ impl TilemapTexturesStorage {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct TilemapTexture {
+    pub(crate) texture: Handle<Image>,
+    pub(crate) desc: TilemapTextureDescriptor,
+}
+
+impl TilemapTexture {
+    pub fn new(texture: Handle<Image>, desc: TilemapTextureDescriptor) -> Self {
+        Self { texture, desc }
+    }
+
+    pub fn clone_weak(&self) -> Handle<Image> {
+        self.texture.clone_weak()
+    }
+
+    pub fn desc(&self) -> &TilemapTextureDescriptor {
+        &self.desc
+    }
+
+    pub fn handle(&self) -> &Handle<Image> {
+        &self.texture
+    }
+
+    #[cfg(feature = "ui")]
+    pub fn as_ui_texture(&self) -> crate::ui::UiTilemapTexture {
+        crate::ui::UiTilemapTexture {
+            texture: self.texture.clone(),
+            desc: self.desc.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct TilemapTextureDescriptor {
     pub size: UVec2,
     pub tiles_uv: Vec<TileUV>,
     pub filter_mode: FilterMode,
-    /// Be honest please :)
     pub is_uniform: bool,
 }
 
@@ -134,6 +180,17 @@ impl TilemapTextureDescriptor {
             tiles_uv,
             filter_mode,
             is_uniform: true,
+        }
+    }
+
+    /// Create a non-uniform descriptor.
+    /// Use `from_full_grid` if your texture is filled with tiles in the same size.
+    pub fn new_non_uniform(size: UVec2, tiles_uv: Vec<TileUV>, filter_mode: FilterMode) -> Self {
+        Self {
+            size,
+            tiles_uv,
+            filter_mode,
+            is_uniform: false,
         }
     }
 }

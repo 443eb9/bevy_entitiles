@@ -5,11 +5,8 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::extract::ExtractedTilemap,
-    tilemap::{
-        map::Tilemap,
-        tile::{TileType, TilemapTexture},
-    },
+    render::{extract::ExtractedTilemap, texture::TilemapTexture},
+    tilemap::{map::Tilemap, tile::TileType},
 };
 
 pub struct PubTilemap {

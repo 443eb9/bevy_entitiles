@@ -9,7 +9,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::FillArea,
-    render::texture::TilemapTextureDescriptor,
+    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::TilemapBuilder,
         tile::{TileAnimation, TileBuilder, TileType},
@@ -36,14 +36,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )
-    .with_texture(
+    .with_texture(TilemapTexture::new(
         asset_server.load("test_square.png"),
         TilemapTextureDescriptor::from_full_grid(
             UVec2 { x: 32, y: 32 },
             UVec2 { x: 2, y: 2 },
             FilterMode::Nearest,
         ),
-    )
+    ))
     .build(&mut commands);
 
     tilemap.fill_rect(

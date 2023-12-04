@@ -1,15 +1,15 @@
 use bevy::{
     ecs::component::Component,
-    prelude::{Assets, Commands, Entity, Handle, IVec2, Image, ResMut, UVec2, Vec2},
+    prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     render::render_resource::TextureUsages,
 };
 
 use crate::{
     math::{aabb::AabbBox2d, FillArea},
-    render::texture::TilemapTextureDescriptor,
+    render::texture::TilemapTexture,
 };
 
-use super::tile::{TileBuilder, TileFlip, TileType, TilemapTexture};
+use super::tile::{TileBuilder, TileFlip, TileType};
 
 pub struct TilemapBuilder {
     pub name: String,
@@ -65,10 +65,9 @@ impl TilemapBuilder {
     /// Assign a texture to the tilemap.
     pub fn with_texture(
         &mut self,
-        texture: Handle<Image>,
-        desc: TilemapTextureDescriptor,
+        texture: TilemapTexture,
     ) -> &mut Self {
-        self.texture = Some(TilemapTexture { texture, desc });
+        self.texture = Some(texture);
         self
     }
 

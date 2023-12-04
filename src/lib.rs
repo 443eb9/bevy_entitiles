@@ -30,6 +30,8 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(tilemap::physics::EntiTilesPhysicsPlugin);
         #[cfg(feature = "serializing")]
         app.add_plugins(serializing::EntiTilesSerializingPlugin);
+        #[cfg(feature = "ui")]
+        app.add_plugins(ui::EntiTilesUiPlugin);
     }
 }
 

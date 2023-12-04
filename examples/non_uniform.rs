@@ -5,7 +5,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::FillArea,
-    render::texture::TilemapTextureDescriptor,
+    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::TilemapBuilder,
         tile::{TileBuilder, TileType},
@@ -32,21 +32,21 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         Vec2 { x: 32., y: 16. },
         "test_map".to_string(),
     )
-    .with_texture(
+    .with_texture(TilemapTexture::new(
         assets_server.load("test_nonuniform.png"),
-        TilemapTextureDescriptor {
-            size: UVec2 { x: 64, y: 80 },
-            tiles_uv: vec![
+        TilemapTextureDescriptor::new_non_uniform(
+            UVec2 { x: 64, y: 80 },
+            vec![
                 (UVec2 { x: 0, y: 0 }, UVec2 { x: 32, y: 32 }).into(),
                 (UVec2 { x: 32, y: 8 }, UVec2 { x: 64, y: 32 }).into(),
                 (UVec2 { x: 0, y: 32 }, UVec2 { x: 32, y: 59 }).into(),
                 (UVec2 { x: 32, y: 32 }, UVec2 { x: 52, y: 69 }).into(),
-                (UVec2 { x: 0, y: 64 }, UVec2 { x: 32, y: 80 }).into(),
+                // just to show you another way
+                (0, 64, 32, 80).into(),
             ],
-            filter_mode: FilterMode::Nearest,
-            is_uniform: false,
-        },
-    )
+            FilterMode::Nearest,
+        ),
+    ))
     .build(&mut commands);
 
     tilemap.fill_rect(

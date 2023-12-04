@@ -14,8 +14,6 @@ use bevy::{
     utils::{EntityHashMap, HashMap},
 };
 
-use crate::ui::uniform::UiTilemapUniform;
-
 use super::uniform::TilemapUniform;
 
 #[derive(Resource, Default)]
@@ -27,7 +25,6 @@ pub struct TilemapBindGroups {
 #[derive(Resource)]
 pub struct TilemapBindGroupLayouts {
     pub view_layout: BindGroupLayout,
-    pub ui_tilemap_uniform_layout: BindGroupLayout,
     pub tilemap_uniform_layout: BindGroupLayout,
     pub color_texture_layout: BindGroupLayout,
 }
@@ -87,24 +84,8 @@ impl FromWorld for TilemapBindGroupLayouts {
                 ],
             });
 
-        let ui_tilemap_uniform_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("ui_tilemap_uniform_layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(UiTilemapUniform::min_size()),
-                    },
-                    count: None,
-                }],
-            });
-
         Self {
             view_layout,
-            ui_tilemap_uniform_layout,
             tilemap_uniform_layout,
             color_texture_layout,
         }

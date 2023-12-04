@@ -20,7 +20,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::FillArea,
-    render::texture::TilemapTextureDescriptor,
+    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::TilemapBuilder,
         physics::TileCollision,
@@ -58,14 +58,14 @@ fn setup(
         Vec2 { x: 32., y: 16. },
         "test_map".to_string(),
     )
-    .with_texture(
+    .with_texture(TilemapTexture::new(
         assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor::from_full_grid(
             UVec2 { x: 32, y: 32 },
             UVec2 { x: 1, y: 2 },
             FilterMode::Nearest,
         ),
-    )
+    ))
     .with_z_order(-0.5)
     .build(&mut commands);
 
@@ -93,14 +93,14 @@ fn setup(
         "test_map".to_string(),
     )
     .with_translation(Vec2 { x: 500., y: -100. })
-    .with_texture(
+    .with_texture(TilemapTexture::new(
         assets_server.load("test_square.png"),
         TilemapTextureDescriptor::from_full_grid(
             UVec2 { x: 32, y: 32 },
             UVec2 { x: 2, y: 2 },
             FilterMode::Nearest,
         ),
-    )
+    ))
     .build(&mut commands);
 
     tilemap.fill_rect(

@@ -11,12 +11,12 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::tile::{TileAnimation, TileType, TilemapTexture},
+    tilemap::tile::{TileAnimation, TileType},
 };
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
-    texture::TileUV,
+    texture::{TileUV, TilemapTexture},
     TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_RD_SIZE,
     TILEMAP_MESH_ATTR_UV,
 };

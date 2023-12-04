@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::texture::{TileUV, TilemapTextureDescriptor},
+    render::texture::{TileUV, TilemapTextureDescriptor, TilemapTexture},
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileAnimation, TileType, TilemapTexture},
+        tile::{Tile, TileAnimation, TileType},
     },
 };
 
