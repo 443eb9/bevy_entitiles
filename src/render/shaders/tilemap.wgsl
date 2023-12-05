@@ -26,7 +26,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         vec2<f32>(tile_render_size.x, 0.),
     );
 
-    let translation = translations[input.v_index % 4u] - tilemap.anchor * tile_render_size;
+    let translation = translations[input.v_index % 4u] - tilemap.pivot * tile_render_size;
     var position_model = vec2<f32>(mesh_center + translation);
     var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
 

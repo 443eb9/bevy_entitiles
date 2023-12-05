@@ -17,7 +17,7 @@ pub struct TilemapBuilder {
     pub size: UVec2,
     pub tile_render_scale: Vec2,
     pub tile_slot_size: Vec2,
-    pub anchor: Vec2,
+    pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
     pub translation: Vec2,
@@ -34,7 +34,7 @@ impl TilemapBuilder {
             size,
             tile_render_scale: Vec2::ONE,
             tile_slot_size,
-            anchor: Vec2 { x: 0.5, y: 0. },
+            pivot: Vec2 { x: 0.5, y: 0. },
             texture: None,
             render_chunk_size: 32,
             translation: Vec2::ZERO,
@@ -77,15 +77,15 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override the anchor of the tile. Default is `[0.5, 0.]`.
+    /// Override the pivot of the tile. Default is `[0.5, 0.]`.
     ///
     /// This can be useful when rendering `non_uniform` tilemaps. ( See the example )
-    pub fn with_anchor(&mut self, anchor: Vec2) -> &mut Self {
+    pub fn with_pivot(&mut self, pivot: Vec2) -> &mut Self {
         assert!(
-            anchor.x >= 0. && anchor.x <= 1. && anchor.y >= 0. && anchor.y <= 1.,
-            "Anchor must be in range [0, 1]"
+            pivot.x >= 0. && pivot.x <= 1. && pivot.y >= 0. && pivot.y <= 1.,
+            "pivot must be in range [0, 1]"
         );
-        self.anchor = anchor;
+        self.pivot = pivot;
         self
     }
 
@@ -108,7 +108,7 @@ impl TilemapBuilder {
             tiles: vec![None; (self.size.x * self.size.y) as usize],
             render_chunk_size: self.render_chunk_size,
             tile_slot_size: self.tile_slot_size,
-            anchor: self.anchor,
+            pivot: self.pivot,
             texture: self.texture.clone(),
             flip: self.flip,
             aabb: AabbBox2d::from_tilemap_builder(&self),
@@ -142,7 +142,7 @@ pub struct Tilemap {
     pub(crate) size: UVec2,
     pub(crate) tile_render_scale: Vec2,
     pub(crate) tile_slot_size: Vec2,
-    pub(crate) anchor: Vec2,
+    pub(crate) pivot: Vec2,
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
     pub(crate) tiles: Vec<Option<Entity>>,
@@ -289,13 +289,13 @@ impl Tilemap {
     pub fn index_to_world(&self, index: UVec2) -> Vec2 {
         let index = index.as_vec2();
         match self.tile_type {
-            TileType::Square => (index - self.anchor) * self.tile_slot_size + self.translation,
+            TileType::Square => (index - self.pivot) * self.tile_slot_size + self.translation,
             TileType::IsometricDiamond => {
                 (Vec2 {
                     x: (index.x - index.y - 1.),
                     y: (index.x + index.y),
                 } / 2.
-                    - self.anchor)
+                    - self.pivot)
                     * self.tile_slot_size
                     + self.translation
             }

@@ -21,16 +21,16 @@ impl AabbBox2d {
     }
 
     pub fn from_chunk(chunk_index: UVec2, tilemap: &ExtractedTilemap) -> Self {
-        let anchor_offset = tilemap.anchor * tilemap.tile_slot_size;
+        let pivot_offset = tilemap.pivot * tilemap.tile_slot_size;
 
         match tilemap.tile_type {
             TileType::Square => {
                 let chunk_render_size = tilemap.tile_slot_size * tilemap.render_chunk_size as f32;
                 AabbBox2d {
                     min: chunk_index.as_vec2() * chunk_render_size + tilemap.translation
-                        - anchor_offset,
+                        - pivot_offset,
                     max: (chunk_index + 1).as_vec2() * chunk_render_size + tilemap.translation
-                        - anchor_offset,
+                        - pivot_offset,
                 }
             }
             TileType::IsometricDiamond => {
@@ -43,7 +43,7 @@ impl AabbBox2d {
                     x: center_x,
                     y: center_y,
                 } + tilemap.translation
-                    - anchor_offset;
+                    - pivot_offset;
 
                 AabbBox2d {
                     min: center - half_chunk_render_size,
@@ -54,14 +54,14 @@ impl AabbBox2d {
     }
 
     pub fn from_tilemap_builder(builder: &TilemapBuilder) -> AabbBox2d {
-        let anchor_offset = builder.anchor * builder.tile_slot_size;
+        let pivot_offset = builder.pivot * builder.tile_slot_size;
 
         match builder.tile_type {
             TileType::Square => {
                 let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
                 AabbBox2d {
-                    min: builder.translation - anchor_offset,
-                    max: tilemap_render_size + builder.translation - anchor_offset,
+                    min: builder.translation - pivot_offset,
+                    max: tilemap_render_size + builder.translation - pivot_offset,
                 }
             }
             TileType::IsometricDiamond => {
@@ -73,7 +73,7 @@ impl AabbBox2d {
                     x: center_x,
                     y: center_y,
                 } + builder.translation
-                    - anchor_offset;
+                    - pivot_offset;
 
                 AabbBox2d {
                     min: center - tilemap_render_size / 2.,

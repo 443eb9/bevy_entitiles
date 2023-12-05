@@ -37,7 +37,7 @@ struct Tilemap {
     tile_render_size: vec2<f32>,
     tile_render_scale: vec2<f32>,
     tile_slot_size: vec2<f32>,
-    anchor: vec2<f32>,
+    pivot: vec2<f32>,
     texture_size: vec2<f32>,
 }
 

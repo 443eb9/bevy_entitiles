@@ -1,0 +1,15 @@
+{
+	"identifier": "AutoLayer",
+	"uniqueIdentifer": "a2a50ff0-66b0-11ec-9cd7-c721746049b9",
+	"x": -1,
+	"y": -1,
+	"width": 296,
+	"height": 176,
+	"bgColor": "#1E2027",
+	"neighbourLevels": [],
+	"customFields" : {},
+	"layers": [
+		"IntGrid_layer.png"
+	],
+	"entities" : {}
+}

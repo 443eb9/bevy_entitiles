@@ -48,7 +48,7 @@ pub struct TilemapUniform {
     pub tile_render_size: Vec2,
     pub tile_render_scale: Vec2,
     pub tile_slot_size: Vec2,
-    pub anchor: Vec2,
+    pub pivot: Vec2,
     pub texture_size: Vec2,
 }
 
@@ -81,7 +81,7 @@ impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorag
             tile_render_size,
             tile_slot_size: extracted.tile_slot_size,
             tile_render_scale: extracted.tile_render_scale,
-            anchor: extracted.anchor,
+            pivot: extracted.pivot,
             texture_size,
         };
 

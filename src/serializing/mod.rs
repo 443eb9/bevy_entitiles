@@ -50,7 +50,7 @@ pub struct SerializedTilemap {
     pub size: UVec2,
     pub tile_render_scale: Vec2,
     pub tile_slot_size: Vec2,
-    pub anchor: Vec2,
+    pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<SerializedTilemapTexture>,
     pub flip: u32,
@@ -68,7 +68,7 @@ impl SerializedTilemap {
             size: tilemap.size,
             tile_render_scale: tilemap.tile_render_scale,
             tile_slot_size: tilemap.tile_slot_size,
-            anchor: tilemap.anchor,
+            pivot: tilemap.pivot,
             render_chunk_size: tilemap.render_chunk_size,
             texture: if let Some(tex) = &saver.texture_path {
                 Some(SerializedTilemapTexture {
@@ -94,7 +94,7 @@ impl SerializedTilemap {
             size: self.size,
             tile_render_scale: self.tile_render_scale,
             tile_slot_size: self.tile_slot_size,
-            anchor: self.anchor,
+            pivot: self.pivot,
             render_chunk_size: self.render_chunk_size,
             texture,
             tiles: vec![],

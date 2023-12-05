@@ -51,7 +51,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             FilterMode::Nearest,
         ),
     ))
-    .with_anchor(Vec2 { x: 0.5, y: 0. })
+    .with_pivot(Vec2 { x: 0.5, y: 0. })
     .with_render_chunk_size(64)
     .build(&mut commands);
 

@@ -10,7 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Currently Working On
 
-- LDTK Support (expect: before 12.15)
+- LDTK Support (expect: before 12.25)
 
 ## Future Goals
 
