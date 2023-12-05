@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::texture::{TileUV, TilemapTextureDescriptor, TilemapTexture},
+    render::texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::Tilemap,
         tile::{Tile, TileAnimation, TileType},
@@ -25,6 +25,7 @@ pub const TILEMAP_META: &str = "tilemap.ron";
 pub const TILES: &str = "tiles.ron";
 pub const PATH_TILES: &str = "path_tiles.ron";
 
+pub mod ldtk;
 pub mod load;
 pub mod save;
 
@@ -85,11 +86,7 @@ impl SerializedTilemap {
         }
     }
 
-    pub fn into_tilemap(
-        &self,
-        entity: Entity,
-        texture: Option<TilemapTexture>,
-    ) -> Tilemap {
+    pub fn into_tilemap(&self, entity: Entity, texture: Option<TilemapTexture>) -> Tilemap {
         Tilemap {
             id: entity,
             name: self.name.clone(),

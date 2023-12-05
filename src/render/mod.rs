@@ -48,24 +48,24 @@ pub struct EntiTilesRendererPlugin;
 impl Plugin for EntiTilesRendererPlugin {
     fn build(&self, _app: &mut bevy::prelude::App) {}
 
-    fn finish(&self, _app: &mut bevy::prelude::App) {
-        load_internal_asset!(_app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
+    fn finish(&self, app: &mut bevy::prelude::App) {
+        load_internal_asset!(app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
         load_internal_asset!(
-            _app,
+            app,
             ISO_DIAMOND,
             "shaders/iso_diamond.wgsl",
             Shader::from_wgsl
         );
-        load_internal_asset!(_app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
+        load_internal_asset!(app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(
-            _app,
+            app,
             TILEMAP_SHADER,
             "shaders/tilemap.wgsl",
             Shader::from_wgsl
         );
 
-        let render_app = _app.get_sub_app_mut(RenderApp).unwrap();
+        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 
         render_app
             .add_systems(

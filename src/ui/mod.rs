@@ -52,6 +52,7 @@ impl UiTilemapTexture {
     }
 }
 
+#[derive(Default)]
 pub struct UiTileMaterialsLookup {
     pub(crate) materials: Vec<Handle<UiTileMaterial>>,
 }
@@ -81,7 +82,6 @@ pub struct UiTileMaterial {
 
 impl UiMaterial for UiTileMaterial {
     fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
-        // UI_TILES_SHADER.into()
-        "ui_tiles.wgsl".into()
+        UI_TILES_SHADER.into()
     }
 }

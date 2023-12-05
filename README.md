@@ -10,7 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Currently Working On
 
-- Tilemap Editor (expect: before 12.15)
+- LDTK Support (expect: before 12.15)
 
 ## Future Goals
 
@@ -51,6 +51,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                                            |
 | `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc.                    |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                                          |
+| `ui`             | Support renderring tiles as ui image.                                                                                   |
 
 ## Performance
 

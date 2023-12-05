@@ -5,8 +5,6 @@ use render::{texture, EntiTilesRendererPlugin};
 pub mod algorithm;
 #[cfg(feature = "debug")]
 pub mod debug;
-#[cfg(feature = "editor")]
-pub mod editor;
 pub mod math;
 pub mod render;
 #[cfg(feature = "serializing")]
