@@ -8,6 +8,7 @@
 
 - `TileFlip` not working as expected in non-uniform mode.
 - Aabbs for isometric tilemaps are incorrect.
+- Loader causes panic when `algorithm` feature is not enabled.
 
 # Known Issues:
 

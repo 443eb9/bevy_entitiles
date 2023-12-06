@@ -10,7 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Currently Working On
 
-- LDTK Support (expect: before 12.25)
+- LDTK Support (expect: before Christmas!!)
 
 ## Future Goals
 
@@ -47,7 +47,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | `algorithm`      | Implementation of algorithms                                                                                            |
 | `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.                                 |
 | `debug-verbose`  | Show verbose process of functions. This feature is only useful when debug algorithms. But it's useless for most of you. |
-| `editor`         | Enable the tilemap editor for editing tilemaps and map patterns.                                                        |
 | `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                                            |
 | `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc.                    |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                                          |

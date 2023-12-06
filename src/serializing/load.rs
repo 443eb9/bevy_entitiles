@@ -12,11 +12,10 @@ use bevy::{
 use ron::{de::from_bytes, error::SpannedError};
 use serde::Deserialize;
 
-use crate::{tilemap::{
-    algorithm::path::PathTilemap,
-    map::Tilemap,
-    tile::TileBuilder,
-}, render::texture::TilemapTexture};
+use crate::{
+    render::texture::TilemapTexture,
+    tilemap::{map::Tilemap, tile::TileBuilder},
+};
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
 
@@ -85,7 +84,14 @@ impl From<TilemapLoader> for TilemapLoadFailure {
 
 pub fn load(
     mut commands: Commands,
-    tilemaps_query: Query<(Entity, &TilemapLoader), (Without<Tilemap>, Without<PathTilemap>)>,
+    #[cfg(feature = "algorithm")] tilemaps_query: Query<
+        (Entity, &TilemapLoader),
+        (Without<Tilemap>, Without<PathTilemap>),
+    >,
+    #[cfg(not(feature = "algorithm"))] tilemaps_query: Query<
+        (Entity, &TilemapLoader),
+        Without<Tilemap>,
+    >,
     asset_server: Res<AssetServer>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
