@@ -11,7 +11,7 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    tilemap::tile::{TileAnimation, TileType},
+    tilemap::tile::{AnimatedTile, TileType},
 };
 
 use super::{
@@ -26,7 +26,7 @@ pub struct TileData {
     pub index: UVec2,
     pub texture_index: u32,
     pub color: Vec4,
-    pub anim: Option<TileAnimation>,
+    pub anim: Option<AnimatedTile>,
 }
 
 #[derive(Clone)]
@@ -231,7 +231,7 @@ impl TilemapRenderChunk {
 
         self.tiles[index] = Some(TileData {
             index: tile.index,
-            texture_index: tile.texture_index,
+            texture_index: tile.texture_index[tile.top_layer].unwrap(),
             color: tile.color,
             anim: tile.anim.clone(),
         });

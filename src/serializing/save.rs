@@ -15,7 +15,7 @@ use serde::Serialize;
 
 use crate::tilemap::{
     map::Tilemap,
-    tile::{Tile, TileAnimation},
+    tile::{Tile, AnimatedTile},
 };
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
@@ -86,7 +86,7 @@ pub struct TilemapSaver {
 pub fn save(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &Tilemap, &TilemapSaver)>,
-    tiles_query: Query<(&Tile, Option<&TileAnimation>)>,
+    tiles_query: Query<(&Tile, Option<&AnimatedTile>)>,
     #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
         &crate::tilemap::algorithm::path::PathTilemap,
     >,

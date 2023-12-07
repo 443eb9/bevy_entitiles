@@ -21,18 +21,10 @@ pub enum TileFlip {
     Both = 0b11,
 }
 
-#[derive(Component, Clone)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TileAnimation {
-    pub sequence: Vec<u32>,
-    pub fps: f32,
-    pub is_loop: bool,
-}
-
 #[derive(Clone)]
 pub struct TileBuilder {
-    pub(crate) texture_index: u32,
-    pub(crate) anim: Option<TileAnimation>,
+    pub(crate) texture_index: Vec<Option<u32>>,
+    pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
 }
 
@@ -40,7 +32,7 @@ impl TileBuilder {
     /// Create a new tile builder.
     pub fn new(texture_index: u32) -> Self {
         Self {
-            texture_index,
+            texture_index: vec![Some(texture_index)],
             anim: None,
             color: Vec4::ONE,
         }
@@ -49,7 +41,7 @@ impl TileBuilder {
     #[cfg(feature = "serializing")]
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
-            texture_index: serialized_tile.texture_index,
+            texture_index: serialized_tile.texture_index.clone(),
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
         }
@@ -60,7 +52,7 @@ impl TileBuilder {
         self
     }
 
-    pub fn with_animation(mut self, anim: TileAnimation) -> Self {
+    pub fn with_animation(mut self, anim: AnimatedTile) -> Self {
         self.anim = Some(anim);
         self
     }
@@ -81,7 +73,8 @@ impl TileBuilder {
             render_chunk_index,
             tilemap_id: tilemap.id,
             index,
-            texture_index: self.texture_index,
+            texture_index: self.texture_index.clone(),
+            top_layer: 0,
             color: self.color,
         });
         if let Some(anim) = &self.anim {
@@ -96,9 +89,16 @@ pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_index: u32,
+    pub texture_index: Vec<Option<u32>>,
+    pub top_layer: usize,
     pub color: Vec4,
 }
 
-#[derive(Component)]
-pub struct InvisibleTile;
+#[derive(Component, Clone)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct AnimatedTile {
+    pub layer: usize,
+    pub sequence: Vec<u32>,
+    pub fps: f32,
+    pub is_loop: bool,
+}

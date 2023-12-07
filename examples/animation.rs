@@ -12,7 +12,7 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::TilemapBuilder,
-        tile::{TileAnimation, TileBuilder, TileType},
+        tile::{AnimatedTile, TileBuilder, TileType},
     },
     EntiTilesPlugin,
 };
@@ -49,7 +49,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0).with_animation(TileAnimation {
+        &TileBuilder::new(0).with_animation(AnimatedTile {
+            layer: 0,
             sequence: vec![0, 1, 2, 3],
             fps: 5.,
             is_loop: true,
@@ -59,7 +60,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
-        &TileBuilder::new(0).with_animation(TileAnimation {
+        &TileBuilder::new(0).with_animation(AnimatedTile {
+            layer: 0,
             sequence: vec![0, 1, 2, 3],
             fps: 2.,
             is_loop: true,
@@ -69,7 +71,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
-        &TileBuilder::new(0).with_animation(TileAnimation {
+        &TileBuilder::new(0).with_animation(AnimatedTile {
+            layer: 0,
             sequence: vec![0, 1, 2, 3],
             fps: 1.,
             is_loop: false,

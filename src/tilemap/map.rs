@@ -9,7 +9,10 @@ use crate::{
     render::texture::TilemapTexture,
 };
 
-use super::tile::{TileBuilder, TileFlip, TileType};
+use super::{
+    layer::UpdateLayer,
+    tile::{TileBuilder, TileFlip, TileType},
+};
 
 pub struct TilemapBuilder {
     pub name: String,
@@ -63,10 +66,7 @@ impl TilemapBuilder {
     }
 
     /// Assign a texture to the tilemap.
-    pub fn with_texture(
-        &mut self,
-        texture: TilemapTexture,
-    ) -> &mut Self {
+    pub fn with_texture(&mut self, texture: TilemapTexture) -> &mut Self {
         self.texture = Some(texture);
         self
     }
@@ -191,6 +191,46 @@ impl Tilemap {
         self.tiles[linear_index] = Some(new_tile);
     }
 
+    /// Update the `texture_index` of a layer for a tile.
+    /// Leave `texture_index` to `None` if you want to remove the layer.
+    ///
+    /// If the target tile is a `AnimatedTile`, this will changed the layer of the whole animation.
+    /// But this method does nothing if you try to remove the layer of a `AnimatedTile`
+    /// or the target tile only has one layer left.
+    ///
+    /// Use `Tilemap::set()` if you want to change more.
+    pub fn update(
+        &mut self,
+        commands: &mut Commands,
+        index: UVec2,
+        layer: usize,
+        texture_index: Option<u32>,
+    ) {
+        if self.is_out_of_tilemap_uvec(index)
+            || self.get(index).is_none()
+        {
+            return;
+        }
+
+        self.update_unchecked(commands, index, layer, texture_index);
+    }
+
+    pub(crate) fn update_unchecked(
+        &mut self,
+        commands: &mut Commands,
+        index: UVec2,
+        layer: usize,
+        texture_index: Option<u32>,
+    ) {
+        commands
+            .entity(self.get(index).unwrap())
+            .insert(UpdateLayer {
+                target: layer,
+                value: texture_index.unwrap_or_default(),
+                is_remove: texture_index.is_none(),
+            });
+    }
+
     /// Remove a tile.
     pub fn remove(&mut self, commands: &mut Commands, index: UVec2) {
         if self.is_out_of_tilemap_uvec(index) || self.get(index).is_none() {
@@ -257,18 +297,59 @@ impl Tilemap {
         }
     }
 
-    #[cfg(feature = "serializing")]
-    pub fn set_pattern(&mut self, commands: &mut Commands, pattern: TilemapPattern, origin: UVec2) {
-        for y in 0..pattern.size.y {
-            for x in 0..pattern.size.x {
-                let index = UVec2 { x, y };
-                if let Some(tile) = pattern.get(index) {
-                    self.set(
-                        commands,
-                        index + origin,
-                        &TileBuilder::from_serialized_tile(tile),
-                    );
-                }
+    // TODO implement this
+    // #[cfg(feature = "serializing")]
+    // pub fn set_pattern(&mut self, commands: &mut Commands, pattern: TilemapPattern, origin: UVec2) {
+    //     for y in 0..pattern.size.y {
+    //         for x in 0..pattern.size.x {
+    //             let index = UVec2 { x, y };
+    //             if let Some(tile) = pattern.get(index) {
+    //                 self.set(
+    //                     commands,
+    //                     index + origin,
+    //                     &TileBuilder::from_serialized_tile(tile),
+    //                 );
+    //             }
+    //         }
+    //     }
+    // }
+
+    /// Simlar to `Tilemap::fill_rect()`.
+    pub fn update_rect(
+        &mut self,
+        commands: &mut Commands,
+        area: FillArea,
+        layer: usize,
+        texture_index: Option<u32>,
+    ) {
+        for y in area.origin.y..=area.dest.y {
+            for x in area.origin.x..=area.dest.x {
+                self.update_unchecked(commands, UVec2 { x, y }, layer, texture_index);
+            }
+        }
+    }
+
+    /// Simlar to `Tilemap::fill_rect_custom()`.
+    pub fn update_rect_custom(
+        &mut self,
+        commands: &mut Commands,
+        area: FillArea,
+        layer: usize,
+        mut texture_index: impl FnMut(UVec2) -> Option<u32>,
+        relative_index: bool,
+    ) {
+        for y in area.origin.y..=area.dest.y {
+            for x in area.origin.x..=area.dest.x {
+                self.update_unchecked(
+                    commands,
+                    UVec2 { x, y },
+                    layer,
+                    texture_index(if relative_index {
+                        UVec2 { x, y } - area.origin
+                    } else {
+                        UVec2 { x, y }
+                    }),
+                );
             }
         }
     }

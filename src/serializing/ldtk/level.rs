@@ -138,7 +138,6 @@ pub struct EntityInstance {
 pub struct FieldInstance {
     pub def_uid: i32,
     #[serde(rename = "__type")]
-    // TODO custom serialization to support various types
     pub ty: String,
     #[serde(rename = "__value")]
     pub identifier: String,

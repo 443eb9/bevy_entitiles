@@ -1,5 +1,6 @@
 use bevy::{app::Update, ecs::schedule::States, prelude::Plugin};
 use render::{texture, EntiTilesRendererPlugin};
+use tilemap::EntiTilesTilemapPlugin;
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
@@ -20,7 +21,7 @@ impl Plugin for EntiTilesPlugin {
 
         app.add_state::<EntiTilesStates>();
 
-        app.add_plugins(EntiTilesRendererPlugin);
+        app.add_plugins((EntiTilesTilemapPlugin, EntiTilesRendererPlugin));
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmPlugin);

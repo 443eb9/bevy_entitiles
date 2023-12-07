@@ -1,4 +1,5 @@
 use bevy::{
+    ecs::system::Res,
     math::Vec3Swizzles,
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
@@ -12,7 +13,7 @@ use crate::{
     math::aabb::AabbBox2d,
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileAnimation, TileType},
+        tile::{AnimatedTile, Tile, TileType},
     },
 };
 
@@ -39,9 +40,10 @@ pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_index: u32,
+    pub texture_index: Vec<Option<u32>>,
+    pub top_layer: usize,
     pub color: Vec4,
-    pub anim: Option<TileAnimation>,
+    pub anim: Option<AnimatedTile>,
 }
 
 #[derive(Component)]
@@ -82,8 +84,9 @@ pub fn extract_tilemaps(
 
 pub fn extract_tiles(
     mut commands: Commands,
+    // TODO optimize this. AnimatedTile should not be queried every frame
     changed_tiles_query: Extract<
-        Query<(Entity, &Tile, Option<&TileAnimation>), Or<(Changed<Tile>, &TileAnimation)>>,
+        Query<(Entity, &Tile, Option<&AnimatedTile>), Or<(Changed<Tile>, &AnimatedTile)>>,
     >,
 ) {
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = vec![];
@@ -99,7 +102,8 @@ pub fn extract_tiles(
                 render_chunk_index: tile.render_chunk_index,
                 tilemap: tile.tilemap_id,
                 index: tile.index,
-                texture_index: tile.texture_index,
+                texture_index: tile.texture_index.clone(),
+                top_layer: tile.top_layer,
                 color: tile.color,
                 anim,
             },

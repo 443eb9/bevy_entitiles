@@ -12,7 +12,7 @@ use crate::{
     render::texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::Tilemap,
-        tile::{Tile, TileAnimation, TileType},
+        tile::{Tile, AnimatedTile, TileType},
     },
 };
 
@@ -180,13 +180,13 @@ pub enum TilemapLayer {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTile {
     pub index: UVec2,
-    pub texture_index: u32,
+    pub texture_index: Vec<Option<u32>>,
     pub color: Vec4,
-    pub anim: Option<TileAnimation>,
+    pub anim: Option<AnimatedTile>,
 }
 
 impl SerializedTile {
-    fn from_tile(tile: Tile, anim: Option<TileAnimation>) -> Self {
+    fn from_tile(tile: Tile, anim: Option<AnimatedTile>) -> Self {
         Self {
             index: tile.index,
             texture_index: tile.texture_index,
