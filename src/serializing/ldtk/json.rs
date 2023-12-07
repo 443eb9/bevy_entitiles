@@ -1,4 +1,3 @@
-use bevy::math::Vec4;
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use super::{

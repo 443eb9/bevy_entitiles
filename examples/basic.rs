@@ -61,6 +61,8 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.update_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
+        // just for example
+        // it's not recommended to leave empty layers between.
         3,
         Some(2),
     );

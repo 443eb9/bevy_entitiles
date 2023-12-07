@@ -1,5 +1,4 @@
 use bevy::{
-    ecs::system::Res,
     math::Vec3Swizzles,
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,

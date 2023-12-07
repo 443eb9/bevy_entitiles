@@ -1,10 +1,7 @@
-use bevy::{
-    ecs::{
-        component::Component,
-        entity::Entity,
-        system::{ParallelCommands, Query, Resource},
-    },
-    transform::commands,
+use bevy::ecs::{
+    component::Component,
+    entity::Entity,
+    system::{ParallelCommands, Query},
 };
 
 use super::tile::{AnimatedTile, Tile};

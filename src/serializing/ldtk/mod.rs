@@ -1,14 +1,11 @@
-use std::{
-    fs::{read_to_string, File},
-    io::Write,
-};
+use std::fs::read_to_string;
 
 use bevy::{
     asset::AssetServer,
     ecs::{
         component::Component,
         entity::Entity,
-        system::{Commands, ParallelCommands, Query, Res},
+        system::{ParallelCommands, Query, Res},
     },
     math::UVec2,
     render::render_resource::FilterMode,
