@@ -1,7 +1,4 @@
 use bevy::{
-    app::Update,
-    ecs::system::ResMut,
-    input::{keyboard::KeyCode, Input},
     math::Vec4,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,

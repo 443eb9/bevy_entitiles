@@ -2,6 +2,7 @@ use bevy::{
     app::{App, Startup},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::system::Commands,
+    render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{serializing::ldtk::LdtkLoader, EntiTilesPlugin};
@@ -18,5 +19,6 @@ fn setup(mut commands: Commands) {
 
     commands.spawn(LdtkLoader {
         path: "assets/ldtk/test_ldtk.json".to_string(),
+        filter_mode: FilterMode::Nearest,
     });
 }

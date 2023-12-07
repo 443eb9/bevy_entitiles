@@ -5,11 +5,21 @@ use super::json::Nullable;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Definitions {
-    pub tilesets: Vec<TilesetDef>,
-    pub layers: Vec<LayerDef>,
-    pub enums: Vec<EnumDef>,
+    /// All entities definitions, including their custom fields
     pub entities: Vec<EntityDef>,
+
+    /// All internal enums
+    pub enums: Vec<EnumDef>,
+
+    /// Note: external enums are exactly the same as enums,
+    /// except they have a relPath to point to an external source file.
     pub external_enums: Vec<EnumDef>,
+
+    /// All layer definitions
+    pub layers: Vec<LayerDef>,
+
+    /// All custom fields available to all levels.
+    pub tilesets: Vec<TilesetDef>,
 }
 
 /*
@@ -19,13 +29,28 @@ pub struct Definitions {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct LayerDef {
+    /// Type of the layer (IntGrid, Entities, Tiles or AutoLayer)
     #[serde(rename = "__type")]
     pub ty: String,
+
     pub auto_source_layer_def_uid: Nullable<i32>,
+
+    /// Opacity of the layer (0 to 1.0)
     pub display_opacity: f32,
+
+    /// Width and height of the grid in pixels
     pub grid_size: i32,
+
+    /// User defined unique identifier
     pub identifier: String,
+
+    /// An array that defines extra optional info for each IntGrid value.
+    /// ## WARNING:
+    /// the array order is not related to actual IntGrid values!
+    /// As user can re-order IntGrid values freely, you may value "2" before value "1" in this array.
     pub int_grid_values: Vec<IntGridValue>,
+
+    /// Group informations for IntGrid values
     pub int_grid_values_groups: Vec<IntGroupValueGroup>,
     pub parallax_factor_x: f32,
     pub parallax_factor_y: f32,
@@ -49,8 +74,13 @@ pub struct IntGridValue {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IntGroupValueGroup {
+    /// User defined color
     pub color: Nullable<String>,
+
+    /// User defined string identifier
     pub identifier: Nullable<String>,
+
+    /// Group unique ID
     pub uid: i32,
 }
 
@@ -61,17 +91,43 @@ pub struct IntGroupValueGroup {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityDef {
+    /// Base entity color
     pub color: String,
+
+    /// User defined unique identifier
     pub identifier: String,
+
+    /// An array of 4 dimensions for the up/right/down/left borders (in this order)
+    /// when using 9-slice mode for tileRenderMode.
+    /// If the tileRenderMode is not NineSlice, then this array is empty.
+    /// See: https://en.wikipedia.org/wiki/9-slice_scaling
     pub nine_slice_borders: [i32; 4],
+
+    /// Pivot X coordinate (from 0 to 1.0)
     pub pivot_x: f32,
+
+    /// Pivot Y coordinate (from 0 to 1.0)
     pub pivot_y: f32,
+
+    /// An object representing a rectangle from an existing Tileset
     pub tile_rect: Nullable<TilesetRect>,
+
+    /// An enum describing how the the Entity tile is rendered inside the Entity bounds.
     pub tile_render_mode: TileRenderMode,
+
+    /// Tileset ID used for optional tile display
     pub tileset_id: Nullable<i32>,
+
+    /// This tile overrides the one defined in tileRect in the UI
     pub ui_tile_rect: Nullable<TilesetRect>,
+
+    /// Unique Int identifier
     pub uid: i32,
+
+    /// Pixel width
     pub width: i32,
+
+    /// Pixel height
     pub height: i32,
 }
 
@@ -93,22 +149,54 @@ pub enum TileRenderMode {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TilesetDef {
+    /// Grid-based height
     #[serde(rename = "__cHei")]
     pub c_hei: i32,
+
+    /// Grid-based width
     #[serde(rename = "__cWid")]
     pub c_wid: i32,
+
+    /// An array of custom tile metadata
     pub custom_data: Vec<CustomData>,
+
+    /// If this value is set, then it means that this atlas uses
+    /// an internal LDtk atlas image instead of a loaded one.
     pub embed_atlas: Nullable<String>,
+
+    /// Tileset tags using Enum values specified by `tagsSourceEnumId`.
+    /// This array contains 1 element per Enum value,
+    /// which contains an array of all Tile IDs that are tagged with it.
     pub enum_tags: Vec<EnumTag>,
+
+    /// User defined unique identifier
     pub identifier: String,
+
+    /// Distance in pixels from image borders
     pub padding: i32,
+
+    /// Image height in pixels
     pub px_hei: i32,
+
+    /// Image width in pixels
     pub px_wid: i32,
+
+    /// Path to the source file, relative to the current project JSON file
+    /// It can be null if no image was provided, or when using an embed atlas.
     pub rel_path: Nullable<String>,
+
+    /// Space in pixels between all tiles
     pub spacing: i32,
+
+    /// An array of user-defined tags to organize the Tilesets
     pub tags: Vec<String>,
+
+    /// Optional Enum definition UID used for this tileset meta-data
     pub tags_source_enum_uid: Nullable<i32>,
+
     pub tile_grid_size: i32,
+
+    /// Unique Intidentifier
     pub uid: i32,
 }
 
@@ -129,13 +217,22 @@ pub struct EnumTag {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TilesetRect {
+    /// UID of the tileset
     pub tileset_uid: i32,
+
+    /// X pixels coordinate of the top-left corner in the Tileset image
     #[serde(rename = "x")]
     pub x_pos: i32,
+
+    /// Y pixels coordinate of the top-left corner in the Tileset image
     #[serde(rename = "y")]
     pub y_pos: i32,
+
+    /// Width in pixels
     #[serde(rename = "w")]
     pub width: i32,
+
+    /// Height in pixels
     #[serde(rename = "h")]
     pub height: i32,
 }
@@ -154,18 +251,34 @@ pub struct EnumTagValue {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumDef {
+    /// Relative path to the external file providing this Enum
     pub external_rel_path: Nullable<String>,
+
+    /// Tileset UID if provided
     pub icon_tileset_uid: Nullable<String>,
+
+    /// User defined unique identifier
     pub identifier: String,
+
+    /// An array of user-defined tags to organize the Enums
     pub tags: Vec<String>,
+
+    /// Unique Int identifier
     pub uid: i32,
+
+    /// All possible enum values, with their optional Tile infos.
     pub values: Vec<EnumValue>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumValue {
-    pub color: String,
+    /// Optional color
+    pub color: i32,
+
+    /// Enum value
     pub id: String,
+
+    /// Optional tileset rectangle to represents this value
     pub tile_rect: Nullable<TilesetRect>,
 }
