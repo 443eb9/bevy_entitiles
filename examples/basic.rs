@@ -1,7 +1,7 @@
 use bevy::{
     math::Vec4,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::render_resource::FilterMode,
+    render::{color::Color, render_resource::FilterMode},
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -53,6 +53,12 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
         &TileBuilder::new(1).with_color(Vec4::new(0.8, 1., 0.8, 0.1)),
+    );
+
+    tilemap.set(
+        &mut commands,
+        UVec2 { x: 18, y: 8 },
+        &TileBuilder::new(0).with_color(Color::BLUE.into()),
     );
 
     tilemap.update_rect(

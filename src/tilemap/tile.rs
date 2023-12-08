@@ -24,6 +24,7 @@ pub enum TileFlip {
 #[derive(Clone)]
 pub struct TileBuilder {
     pub(crate) texture_index: Vec<Option<u32>>,
+    pub(crate) top_layer: usize,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
 }
@@ -34,6 +35,7 @@ impl TileBuilder {
         Self {
             texture_index: vec![Some(texture_index)],
             anim: None,
+            top_layer: 0,
             color: Vec4::ONE,
         }
     }
@@ -42,6 +44,7 @@ impl TileBuilder {
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
             texture_index: serialized_tile.texture_index.clone(),
+            top_layer: serialized_tile.top_layer,
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
         }
@@ -54,6 +57,25 @@ impl TileBuilder {
 
     pub fn with_animation(mut self, anim: AnimatedTile) -> Self {
         self.anim = Some(anim);
+        self
+    }
+
+    pub fn with_layer(mut self, layer: usize, texture_index: u32) -> Self {
+        if let Some(anim) = self.anim.as_mut() {
+            anim.layer = layer;
+        } else if layer >= self.texture_index.len() {
+            let n = layer as i32 - self.texture_index.len() as i32;
+            if n > 0 {
+                self.texture_index.extend(vec![None; n as usize]);
+            }
+
+            self.top_layer = layer;
+            self.texture_index.push(Some(texture_index));
+        } else {
+            self.top_layer = self.top_layer.max(layer);
+            self.texture_index[layer] = Some(texture_index);
+        }
+
         self
     }
 

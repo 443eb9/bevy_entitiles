@@ -24,7 +24,7 @@ pub struct TilemapBuilder {
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
     pub translation: Vec2,
-    pub z_order: f32,
+    pub z_order: i32,
     pub flip: u32,
 }
 
@@ -41,14 +41,14 @@ impl TilemapBuilder {
             texture: None,
             render_chunk_size: 32,
             translation: Vec2::ZERO,
-            z_order: 0.,
+            z_order: 0,
             flip: 0,
         }
     }
 
     /// Override z order. Default is 10.
     /// The higher the value of z_order, the less likely to be covered.
-    pub fn with_z_order(&mut self, z_order: f32) -> &mut Self {
+    pub fn with_z_order(&mut self, z_order: i32) -> &mut Self {
         self.z_order = z_order;
         self
     }
@@ -149,7 +149,7 @@ pub struct Tilemap {
     pub(crate) flip: u32,
     pub(crate) aabb: AabbBox2d,
     pub(crate) translation: Vec2,
-    pub(crate) z_order: f32,
+    pub(crate) z_order: i32,
 }
 
 impl Tilemap {
@@ -175,6 +175,28 @@ impl Tilemap {
         }
 
         self.set_unchecked(commands, index, tile_builder);
+    }
+
+    /// Overwrites all the tiles.
+    pub fn set_all(&mut self, commands: &mut Commands, tiles: &Vec<Option<TileBuilder>>) {
+        assert_eq!(
+            tiles.len(),
+            self.tiles.len(),
+            "tiles length must be equal to the tilemap size"
+        );
+
+        for (i, tile) in tiles.iter().enumerate() {
+            let index = UVec2 {
+                x: i as u32 % self.size.x,
+                y: i as u32 / self.size.x,
+            };
+
+            if let Some(t) = tile {
+                self.set_unchecked(commands, index, t);
+            } else {
+                self.remove(commands, index);
+            }
+        }
     }
 
     pub(crate) fn set_unchecked(
@@ -206,9 +228,7 @@ impl Tilemap {
         layer: usize,
         texture_index: Option<u32>,
     ) {
-        if self.is_out_of_tilemap_uvec(index)
-            || self.get(index).is_none()
-        {
+        if self.is_out_of_tilemap_uvec(index) || self.get(index).is_none() {
             return;
         }
 
@@ -352,6 +372,16 @@ impl Tilemap {
                 );
             }
         }
+    }
+
+    /// Remove the whole tilemap.
+    pub fn delete(&mut self, commands: &mut Commands) {
+        for tile in self.tiles.iter() {
+            if let Some(tile) = tile {
+                commands.entity(*tile).despawn();
+            }
+        }
+        commands.entity(self.id).despawn();
     }
 
     /// Get the id of the tilemap.

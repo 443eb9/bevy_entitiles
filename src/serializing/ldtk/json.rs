@@ -1,8 +1,9 @@
+use bevy::math::Vec4;
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use super::{
     definitions::Definitions,
-    level::{EntityRef, Level},
+    level::{EntityRef, FieldValue, Level},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -21,11 +22,20 @@ impl<T> Nullable<T> {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub struct LdtkColor {
     pub r: f32,
     pub g: f32,
     pub b: f32,
+}
+
+impl From<String> for LdtkColor {
+    fn from(value: String) -> Self {
+        let r = u8::from_str_radix(&value[1..3], 16).unwrap() as f32 / 255.;
+        let g = u8::from_str_radix(&value[3..5], 16).unwrap() as f32 / 255.;
+        let b = u8::from_str_radix(&value[5..7], 16).unwrap() as f32 / 255.;
+        Self { r, g, b }
+    }
 }
 
 impl<'de> Deserialize<'de> for LdtkColor {
@@ -34,6 +44,12 @@ impl<'de> Deserialize<'de> for LdtkColor {
         D: serde::Deserializer<'de>,
     {
         deserializer.deserialize_str(LdtkColorVisitor)
+    }
+}
+
+impl Into<Vec4> for LdtkColor {
+    fn into(self) -> Vec4 {
+        Vec4::new(self.r, self.g, self.b, 1.)
     }
 }
 
@@ -50,11 +66,7 @@ impl<'de> Visitor<'de> for LdtkColorVisitor {
     where
         E: serde::de::Error,
     {
-        let r = u8::from_str_radix(&value[1..3], 16).unwrap() as f32 / 255.0;
-        let g = u8::from_str_radix(&value[3..5], 16).unwrap() as f32 / 255.0;
-        let b = u8::from_str_radix(&value[5..7], 16).unwrap() as f32 / 255.0;
-
-        Ok(LdtkColor { r, g, b })
+        Ok(LdtkColor::from(value.to_string()))
     }
 }
 

@@ -31,7 +31,7 @@ pub struct ExtractedTilemap {
     pub translation: Vec2,
     pub flip: u32,
     pub aabb: AabbBox2d,
-    pub z_order: f32,
+    pub z_order: i32,
 }
 
 #[derive(Component)]

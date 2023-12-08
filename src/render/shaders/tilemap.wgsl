@@ -31,7 +31,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
 
     output.position = view.view_proj * position_world;
-    output.color = input.color;
+    output.color = pow(input.color, vec4<f32>(2.2));
 
 #ifndef PURE_COLOR
     output.uv = input.uv / tilemap.texture_size;
@@ -43,12 +43,11 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 @fragment
 fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
-    let color = vec4<f32>(1., 1., 1., 1.);
+    return input.color;
 #else
     let color = textureSample(bevy_entitiles::common::color_texture,
                               bevy_entitiles::common::color_texture_sampler,
                               input.uv);
-#endif
-
     return color * input.color;
+#endif
 }

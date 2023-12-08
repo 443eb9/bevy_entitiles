@@ -58,7 +58,7 @@ pub fn queue(
         });
 
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
-        tilemaps.sort_by(|lhs, rhs| FloatOrd(lhs.1.z_order).cmp(&FloatOrd(rhs.1.z_order)));
+        tilemaps.sort_by(|lhs, rhs| lhs.1.z_order.cmp(&rhs.1.z_order));
 
         let mut is_pure_color;
         let mut is_uniform;

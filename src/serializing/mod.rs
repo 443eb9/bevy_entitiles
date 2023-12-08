@@ -58,7 +58,7 @@ pub struct SerializedTilemap {
     pub flip: u32,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
-    pub z_order: f32,
+    pub z_order: i32,
     pub layers: u32,
 }
 
@@ -181,6 +181,7 @@ pub enum TilemapLayer {
 pub struct SerializedTile {
     pub index: UVec2,
     pub texture_index: Vec<Option<u32>>,
+    pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
 }
@@ -190,6 +191,7 @@ impl SerializedTile {
         Self {
             index: tile.index,
             texture_index: tile.texture_index,
+            top_layer: tile.top_layer,
             color: tile.color,
             anim,
         }

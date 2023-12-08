@@ -43,24 +43,26 @@ pub fn prepare(
                 continue;
             }
 
-            textures_storage.insert(
-                tex.clone_weak(),
-                render_images.get(tex.handle()).unwrap().clone(),
-                render_device.create_sampler(&SamplerDescriptor {
-                    label: Some("tilemap_color_texture_sampler"),
-                    address_mode_u: AddressMode::ClampToEdge,
-                    address_mode_v: AddressMode::ClampToEdge,
-                    address_mode_w: AddressMode::ClampToEdge,
-                    mag_filter: tex.desc.filter_mode,
-                    min_filter: tex.desc.filter_mode,
-                    mipmap_filter: tex.desc.filter_mode,
-                    lod_min_clamp: 0.,
-                    lod_max_clamp: f32::MAX,
-                    compare: None,
-                    anisotropy_clamp: 1,
-                    border_color: None,
-                }),
-            );
+            if let Some(rd_img) = render_images.get(tex.handle()) {
+                textures_storage.insert(
+                    tex.clone_weak(),
+                    rd_img.clone(),
+                    render_device.create_sampler(&SamplerDescriptor {
+                        label: Some("tilemap_color_texture_sampler"),
+                        address_mode_u: AddressMode::ClampToEdge,
+                        address_mode_v: AddressMode::ClampToEdge,
+                        address_mode_w: AddressMode::ClampToEdge,
+                        mag_filter: tex.desc.filter_mode,
+                        min_filter: tex.desc.filter_mode,
+                        mipmap_filter: tex.desc.filter_mode,
+                        lod_min_clamp: 0.,
+                        lod_max_clamp: f32::MAX,
+                        compare: None,
+                        anisotropy_clamp: 1,
+                        border_color: None,
+                    }),
+                );
+            }
         }
     }
     tilemap_uniforms_storage.write(&render_device, &render_queue);

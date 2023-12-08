@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::Visitor, Deserialize, Serialize};
 
 use super::json::Nullable;
 
@@ -31,7 +31,7 @@ pub struct Definitions {
 pub struct LayerDef {
     /// Type of the layer (IntGrid, Entities, Tiles or AutoLayer)
     #[serde(rename = "__type")]
-    pub ty: String,
+    pub ty: LayerType,
 
     pub auto_source_layer_def_uid: Nullable<i32>,
 
@@ -59,6 +59,14 @@ pub struct LayerDef {
     pub px_offset_y: i32,
     pub tileset_def_uid: Nullable<i32>,
     pub uid: i32,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum LayerType {
+    IntGrid,
+    Entities,
+    Tiles,
+    AutoLayer,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -101,7 +109,7 @@ pub struct EntityDef {
     /// when using 9-slice mode for tileRenderMode.
     /// If the tileRenderMode is not NineSlice, then this array is empty.
     /// See: https://en.wikipedia.org/wiki/9-slice_scaling
-    pub nine_slice_borders: [i32; 4],
+    pub nine_slice_borders: NineSliceBorders,
 
     /// Pivot X coordinate (from 0 to 1.0)
     pub pivot_x: f32,
@@ -140,6 +148,60 @@ pub enum TileRenderMode {
     FullSizeCropped,
     FullSizeUncropped,
     NineSlice,
+}
+
+#[derive(Serialize, Debug)]
+pub struct NineSliceBorders {
+    pub is_valid: bool,
+    pub up: i32,
+    pub right: i32,
+    pub down: i32,
+    pub left: i32,
+}
+
+impl<'de> Deserialize<'de> for NineSliceBorders {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        deserializer.deserialize_seq(NineSliceBordersVisitor)
+    }
+}
+
+pub struct NineSliceBordersVisitor;
+
+impl<'de> Visitor<'de> for NineSliceBordersVisitor {
+    type Value = NineSliceBorders;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("an array of [top, right, bottom, left] values")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut borders = NineSliceBorders {
+            is_valid: false,
+            up: 0,
+            right: 0,
+            down: 0,
+            left: 0,
+        };
+
+        if let Some(x) = seq.next_element()? {
+            borders.up = x;
+            borders.is_valid = true;
+        } else {
+            return Ok(borders);
+        }
+
+        borders.right = seq.next_element()?.unwrap();
+        borders.down = seq.next_element()?.unwrap();
+        borders.left = seq.next_element()?.unwrap();
+
+        Ok(borders)
+    }
 }
 
 /*
@@ -255,7 +317,7 @@ pub struct EnumDef {
     pub external_rel_path: Nullable<String>,
 
     /// Tileset UID if provided
-    pub icon_tileset_uid: Nullable<String>,
+    pub icon_tileset_uid: Nullable<i32>,
 
     /// User defined unique identifier
     pub identifier: String,
