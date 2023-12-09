@@ -6,10 +6,7 @@ use bevy::{
 };
 
 use bevy_entitiles::{
-    debug::PubTilemap,
-    math::aabb::AabbBox2d,
-    render::chunk::RenderChunkStorage,
-    tilemap::map::Tilemap,
+    debug::PubTilemap, math::aabb::AabbBox2d, render::chunk::RenderChunkStorage, tilemap::map::Tilemap,
 };
 
 #[cfg(feature = "algorithm")]
@@ -30,20 +27,12 @@ pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
 pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
     for tilemap in tilemaps.iter() {
         let tilemap = PubTilemap::from_tilemap(tilemap).into_extracted_tilemap();
-        let count = RenderChunkStorage::calculate_render_chunk_count(
-            tilemap.size,
-            tilemap.render_chunk_size,
-        );
+        let count = RenderChunkStorage::calculate_render_chunk_count(tilemap.size, tilemap.render_chunk_size);
 
         for y in 0..count.y {
             for x in 0..count.x {
                 let aabb = AabbBox2d::from_chunk(UVec2::new(x, y), &tilemap);
-                gizmos.rect_2d(
-                    aabb.center(),
-                    0.,
-                    Vec2::new(aabb.width(), aabb.height()),
-                    Color::GREEN,
-                );
+                gizmos.rect_2d(aabb.center(), 0., Vec2::new(aabb.width(), aabb.height()), Color::GREEN);
             }
         }
     }
@@ -61,6 +50,26 @@ pub fn draw_path(mut gizmos: Gizmos, path_query: Query<&Path>, tilemaps: Query<&
 }
 
 pub fn draw_axis(mut gizmos: Gizmos) {
-    gizmos.line_2d(Vec2::NEG_X * 200., Vec2::X * 200., Color::RED);
-    gizmos.line_2d(Vec2::NEG_Y * 200., Vec2::Y * 200., Color::GREEN);
+    gizmos.line_2d(Vec2::NEG_X * 1e10, Vec2::X * 1e10, Color::RED);
+    gizmos.line_2d(Vec2::NEG_Y * 1e10, Vec2::Y * 1e10, Color::GREEN);
+}
+
+pub fn draw_grid(mut gizmos: Gizmos) {
+    const SIZE: f32 = 256.;
+
+    for y in -100..100 {
+        gizmos.line_2d(
+            Vec2::new(-100. * SIZE, y as f32 * SIZE),
+            Vec2::new(100. * SIZE, y as f32 * SIZE),
+            Color::WHITE,
+        );
+    }
+
+    for x in -100..100 {
+        gizmos.line_2d(
+            Vec2::new(x as f32 * SIZE, -100. * SIZE),
+            Vec2::new(x as f32 * SIZE, 100. * SIZE),
+            Color::WHITE,
+        );
+    }
 }

@@ -1,2 +1,3 @@
-/target
+/bevy_entitiles/target
+/bevy_entitiles_derive/target
 /examples/test.rs

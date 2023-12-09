@@ -7,7 +7,7 @@ use crate::{transfer_enum, transfer_field, transfer_str, unwrap_field};
 
 use super::{
     definitions::{LayerType, TilesetRect},
-    json::LdtkColor,
+    LdtkColor,
 };
 
 /*
@@ -374,7 +374,9 @@ impl<'de> Deserialize<'de> for FieldInstance {
                 while let Some(key) = map.next_key()? {
                     match key {
                         FieldInstanceFields::DefUid => transfer_field!(def_uid, "defUid", map),
-                        FieldInstanceFields::Identifier => transfer_field!(identifier, "__identifier", map),
+                        FieldInstanceFields::Identifier => {
+                            transfer_field!(identifier, "__identifier", map)
+                        }
                         FieldInstanceFields::Tile => transfer_field!(tile, "__tile", map),
                         FieldInstanceFields::Type => transfer_field!(ty, "__type", map),
                         FieldInstanceFields::Value => transfer_field!(value, "__value", map),
@@ -391,16 +393,27 @@ impl<'de> Deserialize<'de> for FieldInstance {
                 let value = unwrap_field!(value, "__value");
 
                 let value = match ty {
-                    SpecialFieldType::Multilines => transfer_str!(String, Multilines, "multiline string", value),
-                    SpecialFieldType::FilePath => transfer_str!(String, FilePath, "file path", value),
-                    SpecialFieldType::LocalEnum(name) => transfer_enum!(LocalEnum, "local enum", name, value),
-                    SpecialFieldType::ExternEnum(name) => transfer_enum!(ExternEnum, "extern enum", name, value),
+                    SpecialFieldType::Multilines => {
+                        transfer_str!(String, Multilines, "multiline string", value)
+                    }
+                    SpecialFieldType::FilePath => {
+                        transfer_str!(String, FilePath, "file path", value)
+                    }
+                    SpecialFieldType::LocalEnum(name) => {
+                        transfer_enum!(LocalEnum, "local enum", name, value)
+                    }
+                    SpecialFieldType::ExternEnum(name) => {
+                        transfer_enum!(ExternEnum, "extern enum", name, value)
+                    }
                     SpecialFieldType::Color => {
                         if let Some(v) = value {
                             if let FieldValue::String(s) = v {
                                 Some(FieldValue::Color(LdtkColor::from(s)))
                             } else {
-                                return Err(A::Error::custom(format!("expected color, got {:?}", v)));
+                                return Err(A::Error::custom(format!(
+                                    "expected color, got {:?}",
+                                    v
+                                )));
                             }
                         } else {
                             None
@@ -491,10 +504,14 @@ impl<'de> Deserialize<'de> for SpecialFieldType {
                 E: serde::de::Error,
             {
                 if v.starts_with("LocalEnum") {
-                    return Ok(SpecialFieldType::LocalEnum(v.split(".").last().unwrap().to_string()));
+                    return Ok(SpecialFieldType::LocalEnum(
+                        v.split(".").last().unwrap().to_string(),
+                    ));
                 }
                 if v.starts_with("ExternEnum") {
-                    return Ok(SpecialFieldType::ExternEnum(v.split(".").last().unwrap().to_string()));
+                    return Ok(SpecialFieldType::ExternEnum(
+                        v.split(".").last().unwrap().to_string(),
+                    ));
                 }
 
                 match v {

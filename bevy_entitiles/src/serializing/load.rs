@@ -89,7 +89,7 @@ pub fn load(
     mut commands: Commands,
     #[cfg(feature = "algorithm")] tilemaps_query: Query<
         (Entity, &TilemapLoader),
-        (Without<Tilemap>, Without<PathTilemap>),
+        (Without<Tilemap>, Without<crate::tilemap::algorithm::path::PathTilemap>),
     >,
     #[cfg(not(feature = "algorithm"))] tilemaps_query: Query<
         (Entity, &TilemapLoader),

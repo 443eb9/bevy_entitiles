@@ -37,7 +37,7 @@ impl TilemapBuilder {
             size,
             tile_render_scale: Vec2::ONE,
             tile_slot_size,
-            pivot: Vec2 { x: 0.5, y: 0. },
+            pivot: Vec2::ZERO,
             texture: None,
             render_chunk_size: 32,
             translation: Vec2::ZERO,
@@ -77,7 +77,7 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override the pivot of the tile. Default is `[0.5, 0.]`.
+    /// Override the pivot of the tile. Default is `[0., 0.]`.
     ///
     /// This can be useful when rendering `non_uniform` tilemaps. ( See the example )
     pub fn with_pivot(&mut self, pivot: Vec2) -> &mut Self {

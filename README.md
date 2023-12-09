@@ -23,7 +23,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - Frustum Culling ( Optimization )
 - ~~Physics~~
 - Chunk Unloading
-- Negative Indices
 - [Tiled](https://www.mapeditor.org/) Support
 - SSAO
 - Volumetric Clouds / Fog

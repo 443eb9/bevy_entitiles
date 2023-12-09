@@ -22,7 +22,7 @@ pub struct PubTilemap {
     pub flip: u32,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
-    pub z_order: f32,
+    pub z_order: i32,
 }
 
 impl PubTilemap {

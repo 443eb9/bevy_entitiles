@@ -14,7 +14,6 @@ use bevy::{
 use crate::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
-    serializing::ldtk::definitions::LayerType,
     tilemap::{
         layer::update_tile_builder_layer,
         map::TilemapBuilder,
@@ -22,16 +21,15 @@ use crate::{
     },
 };
 
-use self::{
-    definitions::TilesetDef,
-    json::{LdtkJson, WorldLayout},
-    level::{LayerInstance, Level},
+use self::json::{
+    definitions::{LayerType, TilesetDef},
+    level::LayerInstance,
+    LdtkJson, WorldLayout,
 };
 
-pub mod definitions;
+pub mod entities;
+pub mod enums;
 pub mod json;
-pub mod level;
-pub mod macros;
 
 #[derive(Component)]
 pub struct LdtkLoader {
@@ -68,7 +66,12 @@ pub fn load_ldtk_json(
     });
 }
 
-fn load_ldtk(ldtk_data: &mut LdtkJson, loader: &LdtkLoader, asset_server: &Res<AssetServer>, commands: &mut Commands) {
+fn load_ldtk(
+    ldtk_data: &mut LdtkJson,
+    loader: &LdtkLoader,
+    asset_server: &Res<AssetServer>,
+    commands: &mut Commands,
+) {
     // texture
     // assert_eq!(
     //     ldtk_data.defs.tilesets.len(),
@@ -79,12 +82,11 @@ fn load_ldtk(ldtk_data: &mut LdtkJson, loader: &LdtkLoader, asset_server: &Res<A
     let texture = load_texture(tileset, &loader, &asset_server);
 
     // level
-    for (level_index, level) in ldtk_data
-        .levels
-        .iter()
-        .filter(|l| l.world_depth == loader.at_depth)
-        .enumerate()
-    {
+    for (level_index, level) in ldtk_data.levels.iter().enumerate() {
+        if level.world_depth != loader.at_depth {
+            continue;
+        }
+
         let translation = get_level_translation(&ldtk_data, loader, level_index);
 
         // background map
@@ -92,6 +94,7 @@ fn load_ldtk(ldtk_data: &mut LdtkJson, loader: &LdtkLoader, asset_server: &Res<A
             x: (level.px_wid / tileset.tile_grid_size) as u32,
             y: (level.px_hei / tileset.tile_grid_size) as u32,
         };
+
         let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
             TileType::Square,
             level_grid_size,
@@ -129,7 +132,11 @@ fn load_ldtk(ldtk_data: &mut LdtkJson, loader: &LdtkLoader, asset_server: &Res<A
     }
 }
 
-fn load_texture(tileset: &TilesetDef, loader: &LdtkLoader, asset_server: &Res<AssetServer>) -> TilemapTexture {
+fn load_texture(
+    tileset: &TilesetDef,
+    loader: &LdtkLoader,
+    asset_server: &Res<AssetServer>,
+) -> TilemapTexture {
     let texture = asset_server.load(format!(
         "{}/{}",
         loader.asset_path_prefix,
@@ -181,15 +188,18 @@ impl Layer {
 }
 
 fn load_layer(layer_index: usize, layer: &LayerInstance, layer_grid: &mut Layer) {
-    // TODO support negative indices
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
+                if tile.px[0] < 0 || tile.px[1] < 0 {
+                    continue;
+                }
+
                 layer_grid.update(
                     UVec2 {
                         x: (tile.px[0] / layer.grid_size) as u32,
                         // the y axis is flipped in ldtk
-                        y: (tile.px[1] / layer.grid_size) as u32,
+                        y: (layer.c_hei - tile.px[1] / layer.grid_size - 1) as u32,
                     },
                     layer_index,
                     tile.tile_id as u32,
@@ -209,7 +219,7 @@ fn load_layer(layer_index: usize, layer: &LayerInstance, layer_grid: &mut Layer)
                     UVec2 {
                         x: (tile.px[0] / layer.grid_size) as u32,
                         // the y axis is flipped in ldtk
-                        y: (layer.c_hei - tile.px[1] / layer.grid_size) as u32,
+                        y: (layer.c_hei - tile.px[1] / layer.grid_size - 1) as u32,
                     },
                     layer_index,
                     tile.tile_id as u32,
@@ -221,11 +231,12 @@ fn load_layer(layer_index: usize, layer: &LayerInstance, layer_grid: &mut Layer)
 
 fn get_level_translation(ldtk_data: &LdtkJson, loader: &LdtkLoader, index: usize) -> Vec2 {
     // TODO change this after LDtk update
+    let level = &ldtk_data.levels[index];
     match ldtk_data.world_layout.unwrap() {
         WorldLayout::Free => todo!(),
         WorldLayout::GridVania => Vec2 {
-            x: ldtk_data.levels[index].world_x as f32,
-            y: ldtk_data.levels[index].world_y as f32,
+            x: level.world_x as f32,
+            y: (-level.world_y - level.px_hei) as f32,
         },
         WorldLayout::LinearHorizontal => {
             let mut offset = 0;
@@ -244,7 +255,7 @@ fn get_level_translation(ldtk_data: &LdtkJson, loader: &LdtkLoader, index: usize
             }
             Vec2 {
                 x: 0.,
-                y: offset as f32,
+                y: -offset as f32,
             }
         }
     }

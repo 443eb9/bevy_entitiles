@@ -20,8 +20,7 @@ pub fn camera_control(
         // only accepts mouse or keyboard input
         if input_mouse.pressed(MouseButton::Left) {
             for ev in event_move.read() {
-                CAMERA_TARGET_POSITION +=
-                    1. * projection.scale * ev.delta.extend(0.) * Vec3::new(-1., 1., 0.);
+                CAMERA_TARGET_POSITION += 1. * projection.scale * ev.delta.extend(0.) * Vec3::new(-1., 1., 0.);
             }
         } else {
             let mut step = 90. * time.delta_seconds();
@@ -48,11 +47,7 @@ pub fn camera_control(
             CAMERA_TARGET_POSITION += y as f32 * step * Vec3::Y;
         }
 
-        if transform
-            .translation
-            .distance_squared(CAMERA_TARGET_POSITION)
-            > 0.01
-        {
+        if transform.translation.distance_squared(CAMERA_TARGET_POSITION) > 0.01 {
             transform.translation = transform
                 .translation
                 .lerp(CAMERA_TARGET_POSITION, 40. * time.delta_seconds());
@@ -64,8 +59,9 @@ pub fn camera_control(
         }
 
         if (projection.scale - CAMERA_TARGET_SCALE).abs() > 0.01 {
-            projection.scale = projection.scale
-                + ((CAMERA_TARGET_SCALE - projection.scale) * 20. * time.delta_seconds());
+            projection.scale =
+                projection.scale + ((CAMERA_TARGET_SCALE - projection.scale) * 20. * time.delta_seconds());
         }
+        event_move.clear();
     }
 }

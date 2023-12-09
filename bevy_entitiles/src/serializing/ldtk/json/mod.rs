@@ -1,10 +1,14 @@
 use bevy::math::Vec4;
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use super::{
+use self::{
     definitions::Definitions,
     level::{EntityRef, Level},
 };
+
+pub mod definitions;
+pub mod level;
+pub mod macros;
 
 #[derive(Serialize, Debug, Clone, Copy)]
 pub struct LdtkColor {
