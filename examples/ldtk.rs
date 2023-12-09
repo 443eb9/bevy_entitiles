@@ -29,20 +29,18 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
-fn load(
-    mut commands: Commands,
-    input: Res<Input<KeyCode>>,
-    mut tilemaps_query: Query<&mut Tilemap>,
-) {
+fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut tilemaps_query: Query<&mut Tilemap>) {
     if input.just_pressed(KeyCode::Space) {
         for mut map in tilemaps_query.iter_mut() {
             map.delete(&mut commands);
         }
 
         commands.spawn(LdtkLoader {
-            path: "assets/ldtk/test_ldtk.ldtk".to_string(),
+            path: "assets/ldtk/grid_vanilla.ldtk".to_string(),
             asset_path_prefix: "ldtk".to_string(),
+            at_depth: 0,
             filter_mode: FilterMode::Nearest,
+            level_spacing: Some(30),
             tilemap_name: "ldtk".to_string(),
             scale: 1.,
             z_order: 0,

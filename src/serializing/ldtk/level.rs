@@ -7,7 +7,7 @@ use crate::{transfer_enum, transfer_field, transfer_str, unwrap_field};
 
 use super::{
     definitions::{LayerType, TilesetRect},
-    json::{LdtkColor, Nullable},
+    json::LdtkColor,
 };
 
 /*
@@ -24,7 +24,7 @@ pub struct Level {
 
     /// Position informations of the background image, if there is one.
     #[serde(rename = "__bgPos")]
-    pub bg_pos: Nullable<ImagePosition>,
+    pub bg_pos: Option<ImagePosition>,
 
     /// An array listing all other levels touching this one on the world map.
     /// Since 1.4.0, this includes levels that overlap in the same world layer,
@@ -37,12 +37,12 @@ pub struct Level {
     pub neighbours: Vec<Neighbour>,
 
     /// The optional relative path to the level background image.
-    pub bg_rel_path: Nullable<String>,
+    pub bg_rel_path: Option<String>,
 
     /// This value is not null if the project option
     /// "Save levels separately" is enabled. In this case,
     /// this relative path points to the level Json file.
-    pub external_rel_path: Nullable<String>,
+    pub external_rel_path: Option<String>,
 
     /// An array containing this level custom field values.
     pub field_instances: Vec<FieldInstance>,
@@ -165,11 +165,11 @@ pub struct LayerInstance {
 
     /// The definition UID of corresponding Tileset, if any.
     #[serde(rename = "__tilesetDefUid")]
-    pub tileset_def_uid: Nullable<i32>,
+    pub tileset_def_uid: Option<i32>,
 
     /// The relative path to corresponding Tileset, if any.
     #[serde(rename = "__tilesetRelPath")]
-    pub tileset_rel_path: Nullable<String>,
+    pub tileset_rel_path: Option<String>,
 
     /// Layer type (possible values: IntGrid, Entities, Tiles or AutoLayer)
     #[serde(rename = "__type")]
@@ -204,7 +204,7 @@ pub struct LayerInstance {
     pub level_id: i32,
 
     /// This layer can use another tileset by overriding the tileset UID here.
-    pub override_tileset_uid: Nullable<i32>,
+    pub override_tileset_uid: Option<i32>,
 
     /// X offset in pixels to render this layer, usually 0
     /// ## IMPORTANT:
@@ -277,7 +277,7 @@ pub struct EntityInstance {
     /// (it could either be the default Entity tile,
     /// or some tile provided by a field value, like an Enum).
     #[serde(rename = "__tile")]
-    pub tile: Nullable<TilesetRect>,
+    pub tile: Option<TilesetRect>,
 
     /// X world coordinate in pixels
     #[serde(rename = "__worldX")]
@@ -338,12 +338,12 @@ pub struct FieldInstance {
     /// (this can be the field own Tile,
     /// or some other Tile guessed from the value, like an Enum).
     #[serde(rename = "__tile")]
-    pub tile: Nullable<TilesetRect>,
+    pub tile: Option<TilesetRect>,
 
     /// Actual value of the field instance. The value type varies, depending on `__type`
     /// If the field is an array, then this `__value` will also be a JSON array.
     #[serde(rename = "__value")]
-    pub value: Nullable<FieldValue>,
+    pub value: Option<FieldValue>,
 }
 
 const FIELDS: &[&str] = &["defUid", "__identifier", "__tile", "__type", "__value"];
@@ -396,14 +396,14 @@ impl<'de> Deserialize<'de> for FieldInstance {
                     SpecialFieldType::LocalEnum(name) => transfer_enum!(LocalEnum, "local enum", name, value),
                     SpecialFieldType::ExternEnum(name) => transfer_enum!(ExternEnum, "extern enum", name, value),
                     SpecialFieldType::Color => {
-                        if let Nullable::Data(v) = value {
+                        if let Some(v) = value {
                             if let FieldValue::String(s) = v {
-                                Nullable::Data(FieldValue::Color(LdtkColor::from(s)))
+                                Some(FieldValue::Color(LdtkColor::from(s)))
                             } else {
                                 return Err(A::Error::custom(format!("expected color, got {:?}", v)));
                             }
                         } else {
-                            Nullable::Null
+                            None
                         }
                     }
                     SpecialFieldType::None => value,

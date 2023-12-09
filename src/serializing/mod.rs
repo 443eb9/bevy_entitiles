@@ -19,7 +19,7 @@ use crate::{
 };
 
 use self::{
-    ldtk::load_ldtk,
+    ldtk::load_ldtk_json,
     load::load,
     save::{save, TilemapSaver},
 };
@@ -37,7 +37,7 @@ pub struct EntiTilesSerializingPlugin;
 impl Plugin for EntiTilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, (save, load))
-            .add_systems(Update, load_ldtk);
+            .add_systems(Update, load_ldtk_json);
     }
 }
 

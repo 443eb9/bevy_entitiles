@@ -1,7 +1,5 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use super::json::Nullable;
-
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Definitions {
@@ -33,7 +31,7 @@ pub struct LayerDef {
     #[serde(rename = "__type")]
     pub ty: LayerType,
 
-    pub auto_source_layer_def_uid: Nullable<i32>,
+    pub auto_source_layer_def_uid: Option<i32>,
 
     /// Opacity of the layer (0 to 1.0)
     pub display_opacity: f32,
@@ -57,7 +55,7 @@ pub struct LayerDef {
     pub parallax_scaling: bool,
     pub px_offset_x: i32,
     pub px_offset_y: i32,
-    pub tileset_def_uid: Nullable<i32>,
+    pub tileset_def_uid: Option<i32>,
     pub uid: i32,
 }
 
@@ -74,8 +72,8 @@ pub enum LayerType {
 pub struct IntGridValue {
     pub color: String,
     pub group_uid: i32,
-    pub identifier: Nullable<String>,
-    pub tile: Nullable<TilesetRect>,
+    pub identifier: Option<String>,
+    pub tile: Option<TilesetRect>,
     pub value: i32,
 }
 
@@ -83,10 +81,10 @@ pub struct IntGridValue {
 #[serde(rename_all = "camelCase")]
 pub struct IntGroupValueGroup {
     /// User defined color
-    pub color: Nullable<String>,
+    pub color: Option<String>,
 
     /// User defined string identifier
-    pub identifier: Nullable<String>,
+    pub identifier: Option<String>,
 
     /// Group unique ID
     pub uid: i32,
@@ -118,16 +116,16 @@ pub struct EntityDef {
     pub pivot_y: f32,
 
     /// An object representing a rectangle from an existing Tileset
-    pub tile_rect: Nullable<TilesetRect>,
+    pub tile_rect: Option<TilesetRect>,
 
     /// An enum describing how the the Entity tile is rendered inside the Entity bounds.
     pub tile_render_mode: TileRenderMode,
 
     /// Tileset ID used for optional tile display
-    pub tileset_id: Nullable<i32>,
+    pub tileset_id: Option<i32>,
 
     /// This tile overrides the one defined in tileRect in the UI
-    pub ui_tile_rect: Nullable<TilesetRect>,
+    pub ui_tile_rect: Option<TilesetRect>,
 
     /// Unique Int identifier
     pub uid: i32,
@@ -224,7 +222,7 @@ pub struct TilesetDef {
 
     /// If this value is set, then it means that this atlas uses
     /// an internal LDtk atlas image instead of a loaded one.
-    pub embed_atlas: Nullable<String>,
+    pub embed_atlas: Option<String>,
 
     /// Tileset tags using Enum values specified by `tagsSourceEnumId`.
     /// This array contains 1 element per Enum value,
@@ -245,7 +243,7 @@ pub struct TilesetDef {
 
     /// Path to the source file, relative to the current project JSON file
     /// It can be null if no image was provided, or when using an embed atlas.
-    pub rel_path: Nullable<String>,
+    pub rel_path: Option<String>,
 
     /// Space in pixels between all tiles
     pub spacing: i32,
@@ -254,7 +252,7 @@ pub struct TilesetDef {
     pub tags: Vec<String>,
 
     /// Optional Enum definition UID used for this tileset meta-data
-    pub tags_source_enum_uid: Nullable<i32>,
+    pub tags_source_enum_uid: Option<i32>,
 
     pub tile_grid_size: i32,
 
@@ -314,10 +312,10 @@ pub struct EnumTagValue {
 #[serde(rename_all = "camelCase")]
 pub struct EnumDef {
     /// Relative path to the external file providing this Enum
-    pub external_rel_path: Nullable<String>,
+    pub external_rel_path: Option<String>,
 
     /// Tileset UID if provided
-    pub icon_tileset_uid: Nullable<i32>,
+    pub icon_tileset_uid: Option<i32>,
 
     /// User defined unique identifier
     pub identifier: String,
@@ -342,5 +340,5 @@ pub struct EnumValue {
     pub id: String,
 
     /// Optional tileset rectangle to represents this value
-    pub tile_rect: Nullable<TilesetRect>,
+    pub tile_rect: Option<TilesetRect>,
 }

@@ -6,22 +6,6 @@ use super::{
     level::{EntityRef, Level},
 };
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(untagged)]
-pub enum Nullable<T> {
-    Data(T),
-    Null,
-}
-
-impl<T> Nullable<T> {
-    pub fn unwrap(self) -> T {
-        match self {
-            Nullable::Data(data) => data,
-            Nullable::Null => panic!("Tried to unwrap a null value"),
-        }
-    }
-}
-
 #[derive(Serialize, Debug, Clone, Copy)]
 pub struct LdtkColor {
     pub r: f32,
@@ -105,7 +89,7 @@ pub struct LdtkJson {
     /// advanced project option to enable the change immediately.
     ///
     /// Height of the world grid in pixels.
-    pub world_grid_height: Nullable<i32>,
+    pub world_grid_height: Option<i32>,
 
     /// ## WARNING:
     /// this field will move to the `worlds` array after the "multi-worlds" update.
@@ -113,7 +97,7 @@ pub struct LdtkJson {
     /// advanced project option to enable the change immediately.
     ///
     /// Width of the world grid in pixels.
-    pub world_grid_width: Nullable<i32>,
+    pub world_grid_width: Option<i32>,
 
     /// ## WARNING:
     /// this field will move to the `worlds` array after the "multi-worlds" update.
@@ -121,7 +105,7 @@ pub struct LdtkJson {
     /// advanced project option to enable the change immediately.
     ///
     /// An enum that describes how levels are organized in this project (ie. linearly or in a 2D space).
-    pub world_layout: Nullable<WorldLayout>,
+    pub world_layout: Option<WorldLayout>,
 
     /// This array will be empty, unless you enable the Multi-Worlds in the project advanced settings.
     /// - in current version, a LDtk project file can only contain a single world with
@@ -147,10 +131,10 @@ pub struct Toc {
     pub instances: Vec<EntityRef>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum WorldLayout {
     Free,
-    GridVanilla,
+    GridVania,
     LinearHorizontal,
     LinearVertical,
 }
@@ -168,7 +152,7 @@ pub struct World {
     pub world_grid_height: i32,
 
     ///
-    pub world_layout: Nullable<WorldLayout>,
+    pub world_layout: Option<WorldLayout>,
 
     ///
     pub default_level_width: i32,
