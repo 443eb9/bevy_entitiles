@@ -3,9 +3,11 @@ use bevy::{
     ecs::entity::Entity,
     math::{UVec2, Vec2, Vec4},
     render::render_resource::FilterMode,
-    utils::HashMap,
 };
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "algorithm")]
+use bevy::utils::HashMap;
 
 use crate::{
     math::aabb::AabbBox2d,

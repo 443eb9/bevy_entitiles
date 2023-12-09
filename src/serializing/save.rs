@@ -3,22 +3,24 @@ use std::{
     io::Write,
 };
 
-use bevy::{
-    ecs::{
-        component::Component,
-        entity::Entity,
-        system::{Commands, Query},
-    },
-    utils::HashMap,
+use bevy::ecs::{
+    component::Component,
+    entity::Entity,
+    system::{Commands, Query},
 };
 use serde::Serialize;
 
 use crate::tilemap::{
     map::Tilemap,
-    tile::{Tile, AnimatedTile},
+    tile::{AnimatedTile, Tile},
 };
 
-use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
+use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
+
+#[cfg(feature = "algorithm")]
+use bevy::utils::HashMap;
+#[cfg(feature = "algorithm")]
+use super::PATH_TILES;
 
 pub struct TilemapSaverBuilder {
     path: String,
@@ -29,7 +31,7 @@ pub struct TilemapSaverBuilder {
 
 impl TilemapSaverBuilder {
     /// For example if path = C:\\maps, then the crate will create:
-    /// 
+    ///
     /// ```
     /// C
     /// └── maps
@@ -87,9 +89,7 @@ pub fn save(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &Tilemap, &TilemapSaver)>,
     tiles_query: Query<(&Tile, Option<&AnimatedTile>)>,
-    #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
-        &crate::tilemap::algorithm::path::PathTilemap,
-    >,
+    #[cfg(feature = "algorithm")] path_tilemaps_query: Query<&crate::tilemap::algorithm::path::PathTilemap>,
 ) {
     for (entity, tilemap, saver) in tilemaps_query.iter() {
         let map_path = format!("{}\\{}\\", saver.path, tilemap.name);
@@ -123,9 +123,7 @@ pub fn save(
                     tiles: path_tilemap
                         .tiles
                         .iter()
-                        .map(|(index, tile)| {
-                            (*index, super::SerializedPathTile { cost: tile.cost })
-                        })
+                        .map(|(index, tile)| (*index, super::SerializedPathTile { cost: tile.cost }))
                         .collect::<HashMap<_, _>>(),
                 };
 

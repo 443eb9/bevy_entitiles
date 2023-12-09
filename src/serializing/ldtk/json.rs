@@ -3,7 +3,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 
 use super::{
     definitions::Definitions,
-    level::{EntityRef, FieldValue, Level},
+    level::{EntityRef, Level},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

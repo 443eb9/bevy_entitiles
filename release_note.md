@@ -1,10 +1,11 @@
 # What's New:
 
+- ## Supported [LDtk](https://ldtk.io/)!!!
 - Slightly optimized the wfc history system and reduced its memory usage.
 - Added tilemap editor.
 - Added `UiTileMaterial` (And many other related stuff, see `ui` example). Which can be rendered as ui image in an elegant way.
 - Tilemaps now support multiple layers. (this can be useful when loading maps from ldtk and calculate shadow and light in the future)
-- Renamed `TileAnimation` to `AnimatedTile`
+- Renamed `TileAnimation` to `AnimatedTile`.
 
 # What's Fixed:
 
@@ -14,6 +15,4 @@
 
 # Known Issues:
 
-- `FilterMode` doesn't really works for `UiTilemapTexture`, as the sampler type is determined by `ImagePlugin`. I don't know how to use custom sampler in `AsBindGroup`. :(
-
-# What's Next:
+- `FilterMode` doesn't really works for `UiTilemapTexture`, as the sampler type is determined by `ImagePlugin`.

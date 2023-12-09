@@ -5,10 +5,10 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        system::{Commands, ParallelCommands, Query, Res},
+        system::{ParallelCommands, Query, Res},
     },
     math::{UVec2, Vec2},
-    render::{color::Color, render_resource::FilterMode},
+    render::render_resource::FilterMode,
 };
 
 use crate::{
@@ -16,16 +16,16 @@ use crate::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     serializing::ldtk::definitions::LayerType,
     tilemap::{
-        layer::{update_tile_builder_layer, update_tile_layer},
-        map::{Tilemap, TilemapBuilder},
-        tile::{self, TileBuilder, TileType},
+        layer::update_tile_builder_layer,
+        map::TilemapBuilder,
+        tile::{TileBuilder, TileType},
     },
 };
 
 use self::{
     definitions::TilesetDef,
     json::LdtkJson,
-    level::{LayerInstance, Level},
+    level::LayerInstance,
 };
 
 pub mod definitions;

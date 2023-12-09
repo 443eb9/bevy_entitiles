@@ -1,11 +1,9 @@
-use std::fmt::format;
-
 use serde::{
     de::{Error, IgnoredAny, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::transfer_str;
+use crate::{transfer_enum, transfer_field, transfer_str, unwrap_field};
 
 use super::{
     definitions::{LayerType, TilesetRect},
@@ -355,115 +353,72 @@ impl<'de> Deserialize<'de> for FieldInstance {
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_struct("FieldInstance", FIELDS, FieldInstanceVisitor)
-    }
-}
+        pub struct FieldInstanceVisitor;
+        impl<'de> Visitor<'de> for FieldInstanceVisitor {
+            type Value = FieldInstance;
 
-pub struct FieldInstanceVisitor;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a field instance")
+            }
 
-impl<'de> Visitor<'de> for FieldInstanceVisitor {
-    type Value = FieldInstance;
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut def_uid = None;
+                let mut identifier = None;
+                let mut tile = None;
+                let mut ty = None;
+                let mut value = None;
 
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a field instance")
-    }
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        FieldInstanceFields::DefUid => transfer_field!(def_uid, "defUid", map),
+                        FieldInstanceFields::Identifier => transfer_field!(identifier, "__identifier", map),
+                        FieldInstanceFields::Tile => transfer_field!(tile, "__tile", map),
+                        FieldInstanceFields::Type => transfer_field!(ty, "__type", map),
+                        FieldInstanceFields::Value => transfer_field!(value, "__value", map),
+                        FieldInstanceFields::Skip => {
+                            map.next_value::<IgnoredAny>()?;
+                        }
+                    }
+                }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-    where
-        A: serde::de::MapAccess<'de>,
-    {
-        let mut def_uid = None;
-        let mut identifier = None;
-        let mut tile = None;
-        let mut ty = None;
-        let mut value = None;
+                let def_uid = unwrap_field!(def_uid, "defUid");
+                let identifier = unwrap_field!(identifier, "__identifier");
+                let tile = unwrap_field!(tile, "__tile");
+                let ty = unwrap_field!(ty, "__type");
+                let value = unwrap_field!(value, "__value");
 
-        while let Some(key) = map.next_key()? {
-            match key {
-                FieldInstanceFields::DefUid => {
-                    if def_uid.is_some() {
-                        return Err(A::Error::duplicate_field("defUid"));
+                let value = match ty {
+                    SpecialFieldType::Multilines => transfer_str!(String, Multilines, "multiline string", value),
+                    SpecialFieldType::FilePath => transfer_str!(String, FilePath, "file path", value),
+                    SpecialFieldType::LocalEnum(name) => transfer_enum!(LocalEnum, "local enum", name, value),
+                    SpecialFieldType::ExternEnum(name) => transfer_enum!(ExternEnum, "extern enum", name, value),
+                    SpecialFieldType::Color => {
+                        if let Nullable::Data(v) = value {
+                            if let FieldValue::String(s) = v {
+                                Nullable::Data(FieldValue::Color(LdtkColor::from(s)))
+                            } else {
+                                return Err(A::Error::custom(format!("expected color, got {:?}", v)));
+                            }
+                        } else {
+                            Nullable::Null
+                        }
                     }
-                    println!("def_uid");
-                    def_uid = Some(map.next_value()?);
-                    println!("def_uid");
-                }
-                FieldInstanceFields::Identifier => {
-                    if identifier.is_some() {
-                        return Err(A::Error::duplicate_field("__identifier"));
-                    }
-                    println!("identifier");
-                    identifier = Some(map.next_value()?);
-                    println!("identifier");
-                }
-                FieldInstanceFields::Tile => {
-                    if tile.is_some() {
-                        return Err(A::Error::duplicate_field("__tile"));
-                    }
-                    println!("tile");
-                    tile = Some(map.next_value()?);
-                    println!("tile");
-                }
-                FieldInstanceFields::Type => {
-                    if ty.is_some() {
-                        return Err(A::Error::duplicate_field("__type"));
-                    }
-                    println!("ty");
-                    ty = Some(map.next_value()?);
-                    println!("ty");
-                }
-                FieldInstanceFields::Value => {
-                    if value.is_some() {
-                        return Err(A::Error::duplicate_field("__value"));
-                    }
-                    println!("value");
-                    value = Some(map.next_value()?);
-                    println!("value");
-                }
-                FieldInstanceFields::Skip => {
-                    map.next_value::<IgnoredAny>()?;
-                }
+                    SpecialFieldType::None => value,
+                };
+
+                Ok(FieldInstance {
+                    def_uid,
+                    identifier,
+                    tile,
+                    value,
+                })
             }
         }
 
-        let def_uid = def_uid.ok_or_else(|| Error::missing_field("defUid"))?;
-        let identifier = identifier.ok_or_else(|| Error::missing_field("__identifier"))?;
-        let tile = tile.ok_or_else(|| Error::missing_field("__tile"))?;
-        let ty = ty.ok_or_else(|| Error::missing_field("__type"))?;
-        let value: Nullable<FieldValue> = value.ok_or_else(|| Error::missing_field("__value"))?;
-
-        let value = match ty {
-            FieldType::Int => value,
-            FieldType::Float => value,
-            FieldType::Bool => value,
-            FieldType::String => value,
-            FieldType::Multilines => transfer_str!(String, Multilines, "multiline string", value),
-            FieldType::FilePath => transfer_str!(String, FilePath, "file path", value),
-            FieldType::LocalEnum => value,
-            FieldType::ExternEnum => value,
-            FieldType::Color => {
-                if let Nullable::Data(v) = value {
-                    if let FieldValue::String(s) = v {
-                        Nullable::Data(FieldValue::Color(LdtkColor::from(s)))
-                    } else {
-                        return Err(A::Error::custom(format!("expected color, got {:?}", v)));
-                    }
-                } else {
-                    Nullable::Null
-                }
-            }
-            FieldType::Point => value,
-            FieldType::EntityRef => value,
-            FieldType::Array => value,
-        };
-
-        println!("OK");
-        Ok(FieldInstance {
-            def_uid,
-            identifier,
-            tile,
-            value,
-        })
+        deserializer.deserialize_struct("FieldInstance", FIELDS, FieldInstanceVisitor)
     }
 }
 
@@ -481,95 +436,77 @@ impl<'de> Deserialize<'de> for FieldInstanceFields {
     where
         D: Deserializer<'de>,
     {
+        pub struct FieldInstanceFieldsVisitor;
+        impl<'de> Visitor<'de> for FieldInstanceFieldsVisitor {
+            type Value = FieldInstanceFields;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a field instance field")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match v {
+                    "defUid" => Ok(FieldInstanceFields::DefUid),
+                    "__identifier" => Ok(FieldInstanceFields::Identifier),
+                    "__tile" => Ok(FieldInstanceFields::Tile),
+                    "__type" => Ok(FieldInstanceFields::Type),
+                    "__value" => Ok(FieldInstanceFields::Value),
+                    _ => Ok(FieldInstanceFields::Skip),
+                }
+            }
+        }
+
         deserializer.deserialize_identifier(FieldInstanceFieldsVisitor)
     }
 }
 
-pub struct FieldInstanceFieldsVisitor;
-
-impl<'de> Visitor<'de> for FieldInstanceFieldsVisitor {
-    type Value = FieldInstanceFields;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a field instance field")
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        match v {
-            "defUid" => Ok(FieldInstanceFields::DefUid),
-            "__identifier" => Ok(FieldInstanceFields::Identifier),
-            "__tile" => Ok(FieldInstanceFields::Tile),
-            "__type" => Ok(FieldInstanceFields::Type),
-            "__value" => Ok(FieldInstanceFields::Value),
-            "realEditorValues" => Ok(FieldInstanceFields::Skip),
-            _ => Err(E::unknown_field(v, FIELDS)),
-        }
-    }
-}
-
 #[derive(Serialize, Debug)]
-pub enum FieldType {
-    Int,
-    Float,
-    Bool,
-    String,
+pub enum SpecialFieldType {
+    None,
     Multilines,
     FilePath,
-    LocalEnum,
-    ExternEnum,
+    LocalEnum(String),
+    ExternEnum(String),
     Color,
-    Point,
-    EntityRef,
-    Array,
 }
 
-impl<'de> Deserialize<'de> for FieldType {
+impl<'de> Deserialize<'de> for SpecialFieldType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
+        pub struct FieldTypeVisitor;
+        impl<'de> Visitor<'de> for FieldTypeVisitor {
+            type Value = SpecialFieldType;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a field type")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.starts_with("LocalEnum") {
+                    return Ok(SpecialFieldType::LocalEnum(v.split(".").last().unwrap().to_string()));
+                }
+                if v.starts_with("ExternEnum") {
+                    return Ok(SpecialFieldType::ExternEnum(v.split(".").last().unwrap().to_string()));
+                }
+
+                match v {
+                    "Multilines" => Ok(SpecialFieldType::Multilines),
+                    "FilePath" => Ok(SpecialFieldType::FilePath),
+                    "Color" => Ok(SpecialFieldType::Color),
+                    _ => Ok(SpecialFieldType::None),
+                }
+            }
+        }
+
         deserializer.deserialize_str(FieldTypeVisitor)
-    }
-}
-
-pub struct FieldTypeVisitor;
-
-impl<'de> Visitor<'de> for FieldTypeVisitor {
-    type Value = FieldType;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a field type")
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        if v.starts_with("LocalEnum") {
-            return Ok(FieldType::LocalEnum);
-        }
-        if v.starts_with("ExternEnum") {
-            return Ok(FieldType::ExternEnum);
-        }
-        if v.starts_with("Array") {
-            return Ok(FieldType::Array);
-        }
-
-        match v {
-            "Int" => Ok(FieldType::Int),
-            "Float" => Ok(FieldType::Float),
-            "Bool" => Ok(FieldType::Bool),
-            "String" => Ok(FieldType::String),
-            "Multilines" => Ok(FieldType::Multilines),
-            "FilePath" => Ok(FieldType::FilePath),
-            "Color" => Ok(FieldType::Color),
-            "Point" => Ok(FieldType::Point),
-            "EntityRef" => Ok(FieldType::EntityRef),
-            _ => Err(E::custom(format!("Expected a field type, got {}", v))),
-        }
     }
 }
 

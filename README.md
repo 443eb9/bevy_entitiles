@@ -10,7 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Currently Working On
 
-- LDTK Support (expect: before Christmas!!)
+- [LDtk](https://ldtk.io/) Support (expect: before Christmas!!)
 
 ## Future Goals
 
@@ -24,13 +24,11 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - ~~Physics~~
 - Chunk Unloading
 - Negative Indices
-
-## Delayed
-
-- SSAO ( Personal capability )
-- Volumetric Clouds / Fog ( Personal capability )
-- Lighting ( Personal capability )
-- Realtime Shadow ( Personal capability )
+- [Tiled](https://www.mapeditor.org/) Support
+- SSAO
+- Volumetric Clouds / Fog
+- Lighting
+- Realtime Shadow
 
 ## Known Issues
 

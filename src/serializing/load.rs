@@ -17,7 +17,10 @@ use crate::{
     tilemap::{map::Tilemap, tile::TileBuilder},
 };
 
-use super::{SerializedTile, SerializedTilemap, TilemapLayer, PATH_TILES, TILEMAP_META, TILES};
+use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
+
+#[cfg(feature = "algorithm")]
+use super::PATH_TILES;
 
 pub struct TilemapLoaderBuilder {
     path: String,
