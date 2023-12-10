@@ -59,7 +59,7 @@ pub struct LayerDef {
     pub uid: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum LayerType {
     IntGrid,
     Entities,

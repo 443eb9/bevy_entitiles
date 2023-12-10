@@ -530,7 +530,7 @@ impl WfcGrid {
                 for ptn in self.grid.iter() {
                     let pattern = patterns[ptn.element_index.unwrap() as usize].clone();
                     let ptn_size = pattern.size;
-                    tilemap.set_pattern(commands, pattern, ptn.index * ptn_size + self.area.origin);
+                    // tilemap.set_pattern(commands, pattern, ptn.index * ptn_size + self.area.origin);
                 }
             }
         }
@@ -747,7 +747,7 @@ pub fn wave_function_collapse_async(
                             WfcType::MapPattern(patterns) => {
                                 let pattern = patterns[idx as usize].clone();
                                 let ptn_size = pattern.size;
-                                tilemap.set_pattern(&mut c, pattern, min_elem.index * ptn_size + grid.area.origin);
+                                // tilemap.set_pattern(&mut c, pattern, min_elem.index * ptn_size + grid.area.origin);
                             }
                         })
                     }

@@ -1,9 +1,9 @@
 #[macro_export]
-macro_rules! transfer_str {
-    ($field_type:ident, $value_type:ident, $type_name:expr, $value:expr) => {
+macro_rules! transfer_enum {
+    ($enum_type:ident, $type_name:expr, $name:expr, $value:expr) => {
         if let Some(v) = $value {
-            if let FieldValue::$field_type(s) = v {
-                Some(FieldValue::$value_type(s))
+            if let FieldValue::String(s) = v {
+                Some(FieldValue::$enum_type(($name, s)))
             } else {
                 return Err(A::Error::custom(format!("expected {}, got {:?}", $type_name, v)));
             }
@@ -14,16 +14,18 @@ macro_rules! transfer_str {
 }
 
 #[macro_export]
-macro_rules! transfer_enum {
-    ($enum_type:ident, $type_name:expr, $name:expr, $value:expr) => {
-        if let Some(v) = $value {
-            if let FieldValue::String(s) = v {
-                Some(FieldValue::$enum_type(LdtkEnum {
-                    name: $name,
-                    variant: s,
-                }))
-            } else {
-                return Err(A::Error::custom(format!("expected {}, got {:?}", $type_name, v)));
+macro_rules! transfer_enum_arr {
+    ($enum_arr_type:ident, $type_name:expr, $name:expr, $values:expr) => {
+        if let Some(v) = $values {
+            if let FieldValue::StringArray(arr) = v {
+                Some(FieldValue::$enum_arr_type(($name, arr)))
+            }
+            else {
+                return Err(A::Error::custom(format!(
+                    "expected {}, got {:?}",
+                    $type_name,
+                    v
+                )));
             }
         } else {
             None

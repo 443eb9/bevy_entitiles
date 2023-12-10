@@ -5,9 +5,14 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
+        reflect::AppTypeRegistry,
         system::{Commands, ParallelCommands, Query, Res},
     },
     math::{UVec2, Vec2},
+    reflect::{
+        serde::{ReflectSerializer, UntypedReflectDeserializer},
+        DynamicStruct, Reflect, StructInfo, TypeInfo,
+    },
     render::render_resource::FilterMode,
 };
 
@@ -23,8 +28,8 @@ use crate::{
 
 use self::json::{
     definitions::{LayerType, TilesetDef},
-    level::LayerInstance,
-    LdtkJson, WorldLayout,
+    level::{FieldValue, LayerInstance},
+    LdtkColor, LdtkJson, WorldLayout,
 };
 
 pub mod entities;
@@ -47,20 +52,28 @@ pub fn load_ldtk_json(
     commands: ParallelCommands,
     mut loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
+    type_registry: Res<AppTypeRegistry>,
 ) {
     loader_query.par_iter_mut().for_each(|(entity, loader)| {
+        let path = std::env::current_dir().unwrap().join(&loader.path);
+        let str_raw = match read_to_string(&path) {
+            Ok(data) => data,
+            Err(e) => panic!("Could not read file at path: {:?}!\n{}", path, e),
+        };
+
+        let mut ldtk_data = match serde_json::from_str::<LdtkJson>(&str_raw) {
+            Ok(data) => data,
+            Err(e) => panic!("Could not parse file at path: {}!\n{}", loader.path, e),
+        };
+
         commands.command_scope(|mut cmd| {
-            let Ok(str_raw) = read_to_string(&loader.path) else {
-                panic!("Could not read file at path: {}!", loader.path);
-            };
-
-            let mut ldtk_data = match serde_json::from_str::<LdtkJson>(&str_raw) {
-                Ok(data) => data,
-                Err(e) => panic!("Could not parse file at path: {}!\n{}", loader.path, e),
-            };
-
-            load_ldtk(&mut ldtk_data, loader, &asset_server, &mut cmd);
-
+            load_ldtk(
+                &mut ldtk_data,
+                loader,
+                &asset_server,
+                &mut cmd,
+                &type_registry,
+            );
             cmd.entity(entity).despawn();
         });
     });
@@ -71,6 +84,7 @@ fn load_ldtk(
     loader: &LdtkLoader,
     asset_server: &Res<AssetServer>,
     commands: &mut Commands,
+    type_registry: &Res<AppTypeRegistry>,
 ) {
     // texture
     // assert_eq!(
@@ -112,7 +126,7 @@ fn load_ldtk(
 
         let mut layer_grid = Layer::new(level_grid_size);
         for (i, layer) in level.layer_instances.iter().enumerate() {
-            load_layer(i, layer, &mut layer_grid);
+            load_layer(i, layer, &mut layer_grid, type_registry);
         }
 
         let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
@@ -187,7 +201,12 @@ impl Layer {
     }
 }
 
-fn load_layer(layer_index: usize, layer: &LayerInstance, layer_grid: &mut Layer) {
+fn load_layer(
+    layer_index: usize,
+    layer: &LayerInstance,
+    layer_grid: &mut Layer,
+    type_registry: &Res<AppTypeRegistry>,
+) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
@@ -207,7 +226,35 @@ fn load_layer(layer_index: usize, layer: &LayerInstance, layer_grid: &mut Layer)
             }
         }
         LayerType::Entities => {
-            // TODO
+            for entity in layer.entity_instances.iter() {
+                let mut e = DynamicStruct::default();
+                for field in entity.field_instances.iter() {
+                    if let Some(value) = field.value.clone() {
+                        match value {
+                            FieldValue::Integer(v) => e.insert(&field.identifier, v),
+                            FieldValue::Float(v) => e.insert(&field.identifier, v),
+                            FieldValue::Bool(v) => e.insert(&field.identifier, v),
+                            FieldValue::String(v) => e.insert(&field.identifier, v),
+                            FieldValue::LocalEnum(v) => e.insert(&field.identifier, v),
+                            FieldValue::ExternEnum(v) => e.insert(&field.identifier, v),
+                            FieldValue::Color(v) => e.insert(&field.identifier, v),
+                            FieldValue::Point(v) => e.insert(&field.identifier, v),
+                            FieldValue::EntityRef(v) => e.insert(&field.identifier, v),
+                            FieldValue::IntegerArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::FloatArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::BoolArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::StringArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::LocalEnumArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::ExternEnumArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::ColorArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::PointArray(v) => e.insert(&field.identifier, v),
+                            FieldValue::EntityRefArray(v) => e.insert(&field.identifier, v),
+                        }
+                    }
+                }
+
+                // TODO Spawn entity
+            }
         }
         LayerType::Tiles => {
             for tile in layer.grid_tiles.iter() {

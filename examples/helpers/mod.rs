@@ -8,9 +8,9 @@ use bevy::{
 };
 
 #[cfg(feature = "debug")]
-use drawing::{draw_axis, draw_chunk_aabb, draw_tilemap_aabb};
+use drawing::{draw_axis, draw_chunk_aabb, draw_tilemap_aabb, draw_grid};
 
-use crate::helpers::{camera_movement::camera_control, drawing::draw_grid};
+use crate::helpers::{camera_movement::camera_control};
 
 use self::common::{debug_info_display, DebugFpsText};
 

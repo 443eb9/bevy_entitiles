@@ -1,9 +1,10 @@
+use bevy::reflect::Reflect;
 use serde::{
     de::{Error, IgnoredAny, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::{transfer_enum, transfer_field, transfer_str, unwrap_field};
+use crate::{transfer_enum, transfer_enum_arr, transfer_field, unwrap_field};
 
 use super::{
     definitions::{LayerType, TilesetRect},
@@ -252,7 +253,7 @@ pub struct TileInstance {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityInstance {
-    /// Grid-based coordinates ([x,y] format)
+    /// Grid-based coordinates (`[x,y]` format)
     #[serde(rename = "__grid")]
     pub grid: [i32; 2],
 
@@ -260,14 +261,14 @@ pub struct EntityInstance {
     #[serde(rename = "__identifier")]
     pub identifier: String,
 
-    /// Pivot coordinates ([x,y] format, values are from 0 to 1) of the Entity
+    /// Pivot coordinates (`[x,y]` format, values are from 0 to 1) of the Entity
     #[serde(rename = "__pivot")]
     pub pivot: [f32; 2],
 
     /// The entity "smart" color, guessed from either Entity definition,
     /// or one its field instances.
     #[serde(rename = "__smartColor")]
-    pub smart_color: String,
+    pub smart_color: LdtkColor,
 
     /// Array of tags defined in this Entity definition.
     #[serde(rename = "__tags")]
@@ -296,7 +297,7 @@ pub struct EntityInstance {
     /// Unique instance identifier
     pub iid: String,
 
-    /// Pixel coordinates ([x,y] format) in current level coordinate space.
+    /// Pixel coordinates (`[x,y]` format) in current level coordinate space.
     /// Don't forget optional layer offsets, if they exist!
     #[serde(rename = "px")]
     pub local_pos: [i32; 2],
@@ -393,12 +394,6 @@ impl<'de> Deserialize<'de> for FieldInstance {
                 let value = unwrap_field!(value, "__value");
 
                 let value = match ty {
-                    SpecialFieldType::Multilines => {
-                        transfer_str!(String, Multilines, "multiline string", value)
-                    }
-                    SpecialFieldType::FilePath => {
-                        transfer_str!(String, FilePath, "file path", value)
-                    }
                     SpecialFieldType::LocalEnum(name) => {
                         transfer_enum!(LocalEnum, "local enum", name, value)
                     }
@@ -418,6 +413,12 @@ impl<'de> Deserialize<'de> for FieldInstance {
                         } else {
                             None
                         }
+                    }
+                    SpecialFieldType::LocalEnumArray(name) => {
+                        transfer_enum_arr!(LocalEnumArray, "string array", name, value)
+                    }
+                    SpecialFieldType::ExternEnumArray(name) => {
+                        transfer_enum_arr!(ExternEnumArray, "string array", name, value)
                     }
                     SpecialFieldType::None => value,
                 };
@@ -479,10 +480,11 @@ impl<'de> Deserialize<'de> for FieldInstanceFields {
 #[derive(Serialize, Debug)]
 pub enum SpecialFieldType {
     None,
-    Multilines,
-    FilePath,
     LocalEnum(String),
     ExternEnum(String),
+
+    LocalEnumArray(String),
+    ExternEnumArray(String),
     Color,
 }
 
@@ -513,10 +515,21 @@ impl<'de> Deserialize<'de> for SpecialFieldType {
                         v.split(".").last().unwrap().to_string(),
                     ));
                 }
+                if v.starts_with("Array") {
+                    let ty = v.split("<").nth(1).unwrap().split(">").nth(0).unwrap();
+                    if ty.starts_with("LocalEnum") {
+                        return Ok(SpecialFieldType::LocalEnumArray(
+                            ty.split(".").last().unwrap().to_string(),
+                        ));
+                    }
+                    if ty.starts_with("ExternEnum") {
+                        return Ok(SpecialFieldType::ExternEnumArray(
+                            ty.split(".").last().unwrap().to_string(),
+                        ));
+                    }
+                }
 
                 match v {
-                    "Multilines" => Ok(SpecialFieldType::Multilines),
-                    "FilePath" => Ok(SpecialFieldType::FilePath),
                     "Color" => Ok(SpecialFieldType::Color),
                     _ => Ok(SpecialFieldType::None),
                 }
@@ -533,30 +546,31 @@ impl<'de> Deserialize<'de> for SpecialFieldType {
 /// - For Point, the value is a GridPoint object.
 /// - For Tile, the value is a TilesetRect object.
 /// - For EntityRef, the value is an EntityReferenceInfos object.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(untagged)]
 pub enum FieldValue {
+    IntegerArray(Vec<i32>),
+    FloatArray(Vec<f32>),
+    BoolArray(Vec<bool>),
+    StringArray(Vec<String>),
+    LocalEnumArray((String, Vec<String>)),
+    ExternEnumArray((String, Vec<String>)),
+    ColorArray(Vec<LdtkColor>),
+    PointArray(Vec<GridPoint>),
+    EntityRefArray(Vec<EntityRef>),
+
     Integer(i32),
     Float(f32),
     Bool(bool),
     String(String),
-    Multilines(String),
-    FilePath(String),
-    LocalEnum(LdtkEnum),
-    ExternEnum(LdtkEnum),
+    LocalEnum((String, String)),
+    ExternEnum((String, String)),
     Color(LdtkColor),
     Point(GridPoint),
     EntityRef(EntityRef),
-    Array(Vec<FieldValue>),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct LdtkEnum {
-    pub name: String,
-    pub variant: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRef {
     /// IID of the refered EntityInstance
@@ -572,7 +586,7 @@ pub struct EntityRef {
     pub world_iid: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct GridPoint {
     /// X grid-based coordinate

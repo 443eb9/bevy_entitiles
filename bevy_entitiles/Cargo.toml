@@ -62,50 +62,50 @@ ui = []
 
 [[example]]
 name = "basic"
-path = "examples/basic.rs"
+path = "../examples/basic.rs"
 required-features = []
 
 [[example]]
 name = "animation"
-path = "examples/animation.rs"
+path = "../examples/animation.rs"
 required-features = []
 
 [[example]]
 name = "pathfinding"
-path = "examples/pathfinding.rs"
+path = "../examples/pathfinding.rs"
 required-features = ["algorithm"]
 
 [[example]]
 name = "wfc"
-path = "examples/wfc.rs"
+path = "../examples/wfc.rs"
 required-features = ["algorithm"]
 
 [[example]]
 name = "physics_xpbd"
-path = "examples/physics_xpbd.rs"
+path = "../examples/physics_xpbd.rs"
 required-features = ["physics_xpbd"]
 
 [[example]]
 name = "physics_rapier"
-path = "examples/physics_rapier.rs"
+path = "../examples/physics_rapier.rs"
 required-features = ["physics_rapier"]
 
 [[example]]
 name = "non_uniform"
-path = "examples/non_uniform.rs"
+path = "../examples/non_uniform.rs"
 required-features = []
 
 [[example]]
 name = "save_and_load"
-path = "examples/save_and_load.rs"
+path = "../examples/save_and_load.rs"
 required-features = ["serializing", "algorithm"]
 
 [[example]]
 name = "ldtk"
-path = "examples/ldtk.rs"
+path = "../examples/ldtk.rs"
 required-features = ["serializing"]
 
 [[example]]
 name = "ui"
-path = "examples/ui.rs"
+path = "../examples/ui.rs"
 required-features = []

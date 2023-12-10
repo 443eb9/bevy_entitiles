@@ -1,0 +1,2 @@
+[workspace]
+members = ["bevy_entitiles", "bevy_entitiles_derive"]

@@ -1,4 +1,4 @@
-use bevy::math::Vec4;
+use bevy::{math::Vec4, reflect::Reflect};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use self::{
@@ -10,7 +10,7 @@ pub mod definitions;
 pub mod level;
 pub mod macros;
 
-#[derive(Serialize, Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy, Reflect)]
 pub struct LdtkColor {
     pub r: f32,
     pub g: f32,
@@ -128,10 +128,7 @@ pub struct LdtkJson {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Toc {
-    ///
     pub identifier: String,
-
-    ///
     pub instances: Vec<EntityRef>,
 }
 
@@ -146,27 +143,26 @@ pub enum WorldLayout {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct World {
-    ///
+    /// Width of the world grid in pixels.
     pub world_grid_width: i32,
 
-    ///
+    /// Unique instance identifer
     pub iid: String,
 
-    ///
+    /// Height of the world grid in pixels.
     pub world_grid_height: i32,
 
-    ///
+    /// An enum that describes how levels are organized in this project
+    /// (ie. linearly or in a 2D space).
+    /// Possible values: `Free`, `GridVania`, `LinearHorizontal`, `LinearVertical`
     pub world_layout: Option<WorldLayout>,
 
-    ///
-    pub default_level_width: i32,
-
-    ///
+    /// All levels from this world.
+    /// The order of this array is only relevant in `LinearHorizontal` and
+    /// `linearVertical` world layouts (see `worldLayout` value). Otherwise,
+    /// you should refer to the `worldX`,`worldY` coordinates of each Level.
     pub levels: Vec<Level>,
 
-    ///
-    pub default_level_height: i32,
-
-    ///
+    /// User defined unique identifier
     pub identifier: String,
 }
