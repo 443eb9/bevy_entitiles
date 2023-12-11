@@ -13,11 +13,12 @@ use bevy::{
 use crate::{
     math::aabb::AabbBox2d,
     tilemap::tile::{AnimatedTile, TileType},
+    MAX_LAYER_COUNT,
 };
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
-    texture::{TileUV, TilemapTexture},
+    texture::TilemapTexture,
     TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
     TILEMAP_MESH_ATTR_RD_SIZE,
 };
@@ -25,7 +26,7 @@ use super::{
 #[derive(Clone)]
 pub struct TileData {
     pub index: UVec2,
-    pub texture_index: u32,
+    pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
 }
@@ -99,27 +100,31 @@ impl TilemapRenderChunk {
                     index_float,
                 ]);
 
-                let tex_idx = if let Some(anim) = &tile.anim {
-                    let passed_frames = (time.elapsed_seconds() * anim.fps) as usize;
-                    // TODO cause plenty of performance overhead if a tilemap has many animated tiles.
-                    // try to achieve this in gpu.
-                    if anim.is_loop {
-                        anim.sequence[passed_frames % anim.sequence.len()]
-                    } else {
-                        anim.sequence[passed_frames.min(anim.sequence.len() - 1)]
-                    }
-                } else {
-                    tile.texture_index
-                } as usize;
+                // let tex_idx = if let Some(anim) = &tile.anim {
+                //     let passed_frames = (time.elapsed_seconds() * anim.fps) as usize;
+                //     // TODO cause plenty of performance overhead if a tilemap has many animated tiles.
+                //     // try to achieve this in gpu.
+                //     if anim.is_loop {
+                //         anim.sequence[passed_frames % anim.sequence.len()]
+                //     } else {
+                //         anim.sequence[passed_frames.min(anim.sequence.len() - 1)]
+                //     }
+                // } else {
+                //     tile.texture_indices
+                // } as usize;
 
                 if !is_pure_color {
-                    // TODO pass real indices
-                    let t_uvs = IVec4::new(tex_idx as i32, -1, -1, -1);
-                    atlas_indices.extend_from_slice(&[t_uvs, t_uvs, t_uvs, t_uvs]);
+                    atlas_indices.extend_from_slice(&[
+                        tile.texture_indices,
+                        tile.texture_indices,
+                        tile.texture_indices,
+                        tile.texture_indices,
+                    ]);
 
                     let t_uvs = tile_uvs.unwrap();
                     if !is_uniform {
-                        let size = t_uvs[tex_idx].render_size();
+                        // non uniform tilemaps are not allowed to have multiple layers
+                        let size = t_uvs[tile.texture_indices[0] as usize].render_size();
                         tile_render_size.extend_from_slice(&[size, size, size, size]);
                     }
                 }
@@ -200,7 +205,7 @@ impl TilemapRenderChunk {
 
         self.tiles[index] = Some(TileData {
             index: tile.index,
-            texture_index: tile.texture_index[tile.top_layer].unwrap(),
+            texture_indices: tile.texture_indices,
             color: tile.color,
             anim: tile.anim.clone(),
         });

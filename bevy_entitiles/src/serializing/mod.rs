@@ -14,8 +14,9 @@ use crate::{
     render::texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::Tilemap,
-        tile::{Tile, AnimatedTile, TileType},
+        tile::{AnimatedTile, Tile, TileType},
     },
+    MAX_LAYER_COUNT,
 };
 
 use self::{
@@ -182,7 +183,7 @@ pub enum TilemapLayer {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTile {
     pub index: UVec2,
-    pub texture_index: Vec<Option<u32>>,
+    pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
@@ -192,7 +193,7 @@ impl SerializedTile {
     fn from_tile(tile: Tile, anim: Option<AnimatedTile>) -> Self {
         Self {
             index: tile.index,
-            texture_index: tile.texture_index,
+            texture_indices: tile.texture_indices,
             top_layer: tile.top_layer,
             color: tile.color,
             anim,

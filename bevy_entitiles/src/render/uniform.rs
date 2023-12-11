@@ -9,7 +9,7 @@ use bevy::{
     },
 };
 
-use crate::MAX_ATLAS_COUNT;
+use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH, MAX_ATLAS_COUNT};
 
 use super::extract::ExtractedTilemap;
 
@@ -69,7 +69,7 @@ impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorag
 
         let (texture_size, tile_render_size) = if let Some(texture) = &extracted.texture {
             let desc = texture.desc();
-            
+
             desc.tiles_uv.iter().enumerate().for_each(|(i, uv)| {
                 atlas_uvs[i] = Vec4::new(uv.min.x, uv.min.y, uv.max.x, uv.max.y);
             });

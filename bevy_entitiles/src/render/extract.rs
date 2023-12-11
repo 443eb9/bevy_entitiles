@@ -14,6 +14,7 @@ use crate::{
         map::Tilemap,
         tile::{AnimatedTile, Tile, TileType},
     },
+    MAX_LAYER_COUNT,
 };
 
 use super::texture::TilemapTexture;
@@ -39,7 +40,7 @@ pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_index: Vec<Option<u32>>,
+    pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
@@ -101,7 +102,7 @@ pub fn extract_tiles(
                 render_chunk_index: tile.render_chunk_index,
                 tilemap: tile.tilemap_id,
                 index: tile.index,
-                texture_index: tile.texture_index.clone(),
+                texture_indices: tile.texture_indices,
                 top_layer: tile.top_layer,
                 color: tile.color,
                 anim,

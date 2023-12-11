@@ -1,5 +1,7 @@
 use bevy::prelude::{Commands, Component, Entity, UVec2, Vec4};
 
+use crate::MAX_LAYER_COUNT;
+
 use super::map::Tilemap;
 
 #[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
@@ -23,7 +25,7 @@ pub enum TileFlip {
 
 #[derive(Clone)]
 pub struct TileBuilder {
-    pub(crate) texture_index: Vec<Option<u32>>,
+    pub(crate) texture_indices: [i32; MAX_LAYER_COUNT],
     pub(crate) top_layer: usize,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
@@ -32,8 +34,10 @@ pub struct TileBuilder {
 impl TileBuilder {
     /// Create a new tile builder.
     pub fn new(texture_index: u32) -> Self {
+        let mut texture_indices = [-1; MAX_LAYER_COUNT];
+        texture_indices[0] = texture_index as i32;
         Self {
-            texture_index: vec![Some(texture_index)],
+            texture_indices,
             anim: None,
             top_layer: 0,
             color: Vec4::ONE,
@@ -43,7 +47,7 @@ impl TileBuilder {
     #[cfg(feature = "serializing")]
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
-            texture_index: serialized_tile.texture_index.clone(),
+            texture_indices: serialized_tile.texture_indices,
             top_layer: serialized_tile.top_layer,
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
@@ -63,17 +67,8 @@ impl TileBuilder {
     pub fn with_layer(mut self, layer: usize, texture_index: u32) -> Self {
         if let Some(anim) = self.anim.as_mut() {
             anim.layer = layer;
-        } else if layer >= self.texture_index.len() {
-            let n = layer as i32 - self.texture_index.len() as i32;
-            if n > 0 {
-                self.texture_index.extend(vec![None; n as usize]);
-            }
-
-            self.top_layer = layer;
-            self.texture_index.push(Some(texture_index));
-        } else {
-            self.top_layer = self.top_layer.max(layer);
-            self.texture_index[layer] = Some(texture_index);
+        } else if layer >= MAX_LAYER_COUNT {
+            self.texture_indices[layer] = texture_index as i32;
         }
 
         self
@@ -95,7 +90,7 @@ impl TileBuilder {
             render_chunk_index,
             tilemap_id: tilemap.id,
             index,
-            texture_index: self.texture_index.clone(),
+            texture_indices: self.texture_indices,
             top_layer: 0,
             color: self.color,
         });
@@ -111,7 +106,7 @@ pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_index: Vec<Option<u32>>,
+    pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub top_layer: usize,
     pub color: Vec4,
 }
@@ -120,7 +115,7 @@ pub struct Tile {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnimatedTile {
     pub layer: usize,
-    pub sequence: Vec<u32>,
+    pub sequence_index: u32,
     pub fps: f32,
     pub is_loop: bool,
 }

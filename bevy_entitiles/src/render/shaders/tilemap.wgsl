@@ -14,7 +14,11 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
     let mesh_center = get_mesh_origin(input);
 
-#ifdef PURE_COLOR
+#ifdef NON_UNIFORM
+    var uv_set = array<vec4<f32>, 1>(
+        tilemap.atlas_uvs[input.atlas_indices[0]],
+    );
+#else ifdef PURE_COLOR
     var uv_set = array<vec4<f32>, 4>(
         vec4<f32>(0., 0., tilemap.tile_render_size),
         vec4<f32>(0., 0., tilemap.tile_render_size),
@@ -22,7 +26,6 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         vec4<f32>(0., 0., tilemap.tile_render_size),
     );
 #else
-    // TODO make sure each layer has the same size
     var uv_set = array<vec4<f32>, 4>(
         vec4<f32>(0., 0., 0., 0.),
         vec4<f32>(0., 0., 0., 0.),
@@ -52,7 +55,11 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.color = pow(input.color, vec4<f32>(2.2));
 
 #ifndef PURE_COLOR
+#ifdef NON_UNIFORM
+    for (var i = 0u; i < 1u; i++) {
+#else // NON_UNIFORM
     for (var i = 0u; i < 4u; i++) {
+#endif // NON_UNIFORM
         let uvs = uv_set[i];
         var corner_uvs = array<vec2<f32>, 4>(
             vec2<f32>(uvs.x, uvs.w),
@@ -71,17 +78,26 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
             output.uv_d = uv;
         }
     }
-#endif
+#endif // PURE_COLOR
 
     return output;
+}
+
+fn blend(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {
+    return mix(a, b, b.a);
 }
 
 @fragment
 fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
     return input.color;
+#else ifdef NON_UNIFORM
+    return textureSample(bevy_entitiles::common::color_texture,
+                         bevy_entitiles::common::color_texture_sampler,
+                         input.uv_a) * input.color;
 #else
     var color = vec4<f32>(0., 0., 0., 0.);
+
     for (var i = 0u; i < 4u; i++) {
         var uv = vec2<f32>(0., 0.);
         if i == 0u {
@@ -93,14 +109,16 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
         } else if i == 3u {
             uv = input.uv_d;
         }
-        color += textureSample(bevy_entitiles::common::color_texture,
-                               bevy_entitiles::common::color_texture_sampler,
-                               uv);
-        if color.a > 0.999 {
-            break;
+
+        if uv.x + uv.y < 0.001 {
+            continue;
         }
+
+        let tex_color = textureSample(bevy_entitiles::common::color_texture,
+                                      bevy_entitiles::common::color_texture_sampler,
+                                      uv);
+        color = mix(color, tex_color, tex_color.a);
     }
     return color * input.color;
-    // return vec4<f32>(input.uv_a, 0., 1.);
 #endif
 }

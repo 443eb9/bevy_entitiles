@@ -88,7 +88,7 @@ impl WfcRunner {
             .into_iter()
             .map(|r| SerializedTile {
                 index: UVec2::ZERO,
-                texture_index: vec![Some(r as u32)],
+                texture_indices: vec![Some(r as u32)],
                 top_layer: 0,
                 color: Vec4::ONE,
                 anim: None,

@@ -344,7 +344,7 @@ impl Tilemap {
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.update_unchecked(commands, UVec2 { x, y }, layer, texture_index);
+                self.update(commands, UVec2 { x, y }, layer, texture_index);
             }
         }
     }
@@ -360,7 +360,7 @@ impl Tilemap {
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.update_unchecked(
+                self.update(
                     commands,
                     UVec2 { x, y },
                     layer,

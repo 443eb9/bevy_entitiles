@@ -39,8 +39,8 @@ pub fn layer_updater(
 
 pub fn remove_layer(tile: &mut Tile, layer: usize) {
     let (mut top_layer, mut available_layers) = (tile.top_layer, 0);
-    for i in 0..tile.texture_index.len() {
-        if tile.texture_index[i].is_some() {
+    for i in 0..tile.texture_indices.len() {
+        if tile.texture_indices[i] >= 0 {
             available_layers += 1;
         }
         if top_layer == tile.top_layer && i != layer {
@@ -49,7 +49,7 @@ pub fn remove_layer(tile: &mut Tile, layer: usize) {
     }
     if available_layers != 1 {
         tile.top_layer = top_layer;
-        tile.texture_index[layer] = None;
+        tile.texture_indices[layer] = -1;
     }
 }
 
@@ -61,33 +61,17 @@ pub fn update_tile_layer(
 ) {
     if let Some(anim) = animated_tile {
         anim.layer = layer;
-    } else if layer >= tile.texture_index.len() {
-        let n = layer as i32 - tile.texture_index.len() as i32;
-        if n > 0 {
-            tile.texture_index.extend(vec![None; n as usize]);
-        }
-
-        tile.top_layer = layer;
-        tile.texture_index.push(Some(texture_index));
     } else {
         tile.top_layer = tile.top_layer.max(layer);
-        tile.texture_index[layer] = Some(texture_index);
+        tile.texture_indices[layer] = texture_index as i32;
     }
 }
 
 pub fn update_tile_builder_layer(tile: &mut TileBuilder, layer: usize, texture_index: u32) {
     if let Some(anim) = tile.anim.as_mut() {
         anim.layer = layer;
-    } else if layer >= tile.texture_index.len() {
-        let n = layer as i32 - tile.texture_index.len() as i32;
-        if n > 0 {
-            tile.texture_index.extend(vec![None; n as usize]);
-        }
-
-        tile.top_layer = layer;
-        tile.texture_index.push(Some(texture_index));
     } else {
         tile.top_layer = tile.top_layer.max(layer);
-        tile.texture_index[layer] = Some(texture_index);
+        tile.texture_indices[layer] = texture_index as i32;
     }
 }

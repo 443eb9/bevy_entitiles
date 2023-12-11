@@ -1,6 +1,8 @@
 // MAX_LAYER_COUNT 4
 // MAX_TILESET_COUNT 4
-// MAX_ATLAS_COUNT 1024
+// MAX_ATLAS_COUNT 512
+// MAX_ANIM_COUNT 32
+// MAX_ANIM_SEQ_LENGTH 32
 
 #define_import_path bevy_entitiles::common
 
@@ -20,6 +22,7 @@ struct VertexInput {
     @location(1) index: vec2<f32>,
     @location(2) color: vec4<f32>,
     @location(3) atlas_indices: vec4<i32>,
+    // @location(4) anim_index: i32,
 }
 
 #endif // PURE_COLOR
@@ -46,7 +49,9 @@ struct Tilemap {
     pivot: vec2<f32>,
     texture_size: vec2<f32>,
     // MAX_ATLAS_COUNT
-    atlas_uvs: array<vec4<f32>, 1024>,
+    atlas_uvs: array<vec4<f32>, 512>,
+    // MAX_ANIM_COUNT MAX_ANIM_SEQ_LENGTH
+    // anim_seqs: array<array<vec4<i32>, 32>, 32>,
 }
 
 @group(1) @binding(0)

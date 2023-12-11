@@ -15,7 +15,9 @@ pub mod ui;
 
 pub const MAX_TILESET_COUNT: usize = 4;
 pub const MAX_LAYER_COUNT: usize = 4;
-pub const MAX_ATLAS_COUNT: usize = 1024;
+pub const MAX_ATLAS_COUNT: usize = 512;
+pub const MAX_ANIM_COUNT: usize = 32;
+pub const MAX_ANIM_SEQ_LENGTH: usize = 32;
 
 pub struct EntiTilesPlugin;
 
