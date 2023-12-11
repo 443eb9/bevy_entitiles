@@ -56,25 +56,22 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             .into(),
         );
 
-        let mut vtx_fmt = vec![
+        let vtx_fmt = vec![
             // position
             VertexFormat::Float32x3,
             // index
-            VertexFormat::Float32x2,
+            VertexFormat::Float32x3,
             // color
             VertexFormat::Float32x4,
+            // atlas_indices
+            VertexFormat::Sint32x4,
         ];
 
-        if !key.is_pure_color {
-            // uv
-            vtx_fmt.push(VertexFormat::Sint32x4);
-        } else {
+        if key.is_pure_color {
             shader_defs.push("PURE_COLOR".into());
         }
 
         if !key.is_uniform {
-            // tile_render_size
-            vtx_fmt.push(VertexFormat::Float32x2);
             shader_defs.push("NON_UNIFORM".into());
         }
 

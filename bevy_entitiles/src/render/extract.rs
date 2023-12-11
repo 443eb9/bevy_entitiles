@@ -1,10 +1,12 @@
 use bevy::{
+    ecs::system::Res,
     math::Vec3Swizzles,
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
     },
     render::Extract,
+    time::Time,
     window::Window,
 };
 
@@ -14,10 +16,10 @@ use crate::{
         map::Tilemap,
         tile::{AnimatedTile, Tile, TileType},
     },
-    MAX_LAYER_COUNT,
+    MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
-use super::texture::TilemapTexture;
+use super::{texture::TilemapTexture, uniform::TileAnimation};
 
 #[derive(Component)]
 pub struct ExtractedTilemap {
@@ -33,6 +35,8 @@ pub struct ExtractedTilemap {
     pub flip: u32,
     pub aabb: AabbBox2d,
     pub z_order: i32,
+    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub time: f32,
 }
 
 #[derive(Component)]
@@ -57,6 +61,7 @@ pub struct ExtractedView {
 pub fn extract_tilemaps(
     mut commands: Commands,
     tilemaps_query: Extract<Query<(Entity, &Tilemap)>>,
+    time: Extract<Res<Time>>,
 ) {
     let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = vec![];
     for (entity, tilemap) in tilemaps_query.iter() {
@@ -75,6 +80,8 @@ pub fn extract_tilemaps(
                 flip: tilemap.flip,
                 aabb: tilemap.aabb,
                 z_order: tilemap.z_order,
+                anim_seqs: tilemap.anim_seqs,
+                time: time.elapsed_seconds(),
             },
         ));
     }

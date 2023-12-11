@@ -5,8 +5,9 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::{extract::ExtractedTilemap, texture::TilemapTexture},
+    render::{extract::ExtractedTilemap, texture::TilemapTexture, uniform::TileAnimation},
     tilemap::{map::Tilemap, tile::TileType},
+    MAX_ANIM_COUNT,
 };
 
 pub struct PubTilemap {
@@ -23,6 +24,7 @@ pub struct PubTilemap {
     pub aabb: AabbBox2d,
     pub translation: Vec2,
     pub z_order: i32,
+    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
 impl PubTilemap {
@@ -41,6 +43,7 @@ impl PubTilemap {
             aabb: value.aabb,
             translation: value.translation,
             z_order: value.z_order,
+            anim_seqs: value.anim_seqs,
         }
     }
 
@@ -59,6 +62,7 @@ impl PubTilemap {
             aabb: value.aabb,
             translation: value.translation,
             z_order: value.z_order,
+            anim_seqs: value.anim_seqs,
         }
     }
 
@@ -76,6 +80,8 @@ impl PubTilemap {
             flip: self.flip,
             aabb: self.aabb,
             z_order: self.z_order,
+            anim_seqs: self.anim_seqs,
+            time: 0.,
         }
     }
 }

@@ -21,6 +21,7 @@ use crate::{
         map::{Tilemap, TilemapPattern},
         tile::TileBuilder,
     },
+    MAX_LAYER_COUNT,
 };
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
@@ -58,9 +59,13 @@ pub struct WfcRunner {
 impl WfcRunner {
     /// Create a runner uses the config that only contains a `texture_index`
     pub fn from_simple_config(rule_path: String, area: FillArea, seed: Option<u64>) -> Self {
-        let rule_vec: Vec<[Vec<u8>; 4]> = from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
+        let rule_vec: Vec<[Vec<u8>; 4]> =
+            from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
 
-        assert!(rule_vec.len() <= 128, "We only support 128 elements for now");
+        assert!(
+            rule_vec.len() <= 128,
+            "We only support 128 elements for now"
+        );
 
         let mut rule_set = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
@@ -86,12 +91,16 @@ impl WfcRunner {
 
         let tiles = (0..rule.len())
             .into_iter()
-            .map(|r| SerializedTile {
-                index: UVec2::ZERO,
-                texture_indices: vec![Some(r as u32)],
-                top_layer: 0,
-                color: Vec4::ONE,
-                anim: None,
+            .map(|r| {
+                let mut texture_indices = [-1; MAX_LAYER_COUNT];
+                texture_indices[0] = r as i32;
+                SerializedTile {
+                    index: UVec2::ZERO,
+                    texture_indices,
+                    top_layer: 0,
+                    color: Vec4::ONE,
+                    anim: None,
+                }
             })
             .collect();
 
@@ -119,7 +128,8 @@ impl WfcRunner {
             WfcMode::NonWeighted,
             "You can only use one sampler or one weights vector"
         );
-        let weights_vec: Vec<u8> = from_bytes(read_to_string(weights_path).unwrap().as_bytes()).unwrap();
+        let weights_vec: Vec<u8> =
+            from_bytes(read_to_string(weights_path).unwrap().as_bytes()).unwrap();
         assert_eq!(
             weights_vec.len(),
             self.rule.len(),
@@ -189,7 +199,11 @@ impl WfcRunner {
     /// Default:
     /// `max_retrace_factor` = `size.ilog10().clamp(2, 16)`,
     /// `max_retrace_time` = `size.ilog10().clamp(2, 16) * 100`
-    pub fn with_retrace_settings(mut self, max_retrace_factor: Option<u32>, max_retrace_time: Option<u32>) -> Self {
+    pub fn with_retrace_settings(
+        mut self,
+        max_retrace_factor: Option<u32>,
+        max_retrace_time: Option<u32>,
+    ) -> Self {
         if let Some(factor) = max_retrace_factor {
             assert!(factor <= 16, "max_retrace_factor should be <= 16");
             self.max_retrace_factor = factor;
@@ -324,11 +338,13 @@ impl WfcGrid {
     }
 
     pub fn get_tile(&self, index: UVec2) -> Option<&WfcElement> {
-        self.grid.get((index.y * self.area.extent.x + index.x) as usize)
+        self.grid
+            .get((index.y * self.area.extent.x + index.x) as usize)
     }
 
     pub fn get_tile_mut(&mut self, index: UVec2) -> Option<&mut WfcElement> {
-        self.grid.get_mut((index.y * self.area.extent.x + index.x) as usize)
+        self.grid
+            .get_mut((index.y * self.area.extent.x + index.x) as usize)
     }
 
     pub fn pick_random(&self) -> UVec2 {
@@ -442,7 +458,10 @@ impl WfcGrid {
                 }
                 psbs_cache[dir] &= neighbour_tile.psbs;
                 #[cfg(feature = "debug_verbose")]
-                println!("{}'s psbs: {:?}, dir={})", neighbours[dir], psbs_cache[dir], dir);
+                println!(
+                    "{}'s psbs: {:?}, dir={})",
+                    neighbours[dir], psbs_cache[dir], dir
+                );
                 if psbs_cache[dir].count_ones() == 0 {
                     #[cfg(feature = "debug_verbose")]
                     println!("start retrace because of: {}", neighbours[dir]);
@@ -494,7 +513,9 @@ impl WfcGrid {
             }
 
             // in case the cur_hist is 0
-            self.history[(self.cur_hist + hist_len - 1) % hist_len].clone().unwrap()
+            self.history[(self.cur_hist + hist_len - 1) % hist_len]
+                .clone()
+                .unwrap()
         };
 
         self.grid = hist.grid;
@@ -545,7 +566,12 @@ impl WfcGrid {
             IVec2::new(index.x, index.y - 1),
         ]
         .iter()
-        .filter(|p| p.x >= 0 && p.y >= 0 && p.x < self.area.extent.x as i32 && p.y < self.area.extent.y as i32)
+        .filter(|p| {
+            p.x >= 0
+                && p.y >= 0
+                && p.x < self.area.extent.x as i32
+                && p.y < self.area.extent.y as i32
+        })
         .map(|p| p.as_uvec2())
         .collect::<Vec<_>>()
     }

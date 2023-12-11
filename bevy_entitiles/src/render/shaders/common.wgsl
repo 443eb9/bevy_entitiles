@@ -19,10 +19,12 @@ struct VertexInput {
 struct VertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec3<f32>,
-    @location(1) index: vec2<f32>,
+    // when the third component of index is negative,
+    // it means this tile is a animated tile
+    // so the first component of atlas_indices is the index of the animation
+    @location(1) index: vec3<f32>,
     @location(2) color: vec4<f32>,
     @location(3) atlas_indices: vec4<i32>,
-    // @location(4) anim_index: i32,
 }
 
 #endif // PURE_COLOR
@@ -36,7 +38,18 @@ struct VertexOutput {
     @location(2) uv_b: vec2<f32>,
     @location(3) uv_c: vec2<f32>,
     @location(4) uv_d: vec2<f32>,
+    // when the third component of index is negative,
+    // it means this tile is a animated tile
+    @location(5) is_animated: f32,
 #endif
+}
+
+struct TileAnimation {
+    // MAX_ANIM_SEQ_LENGTH / 4
+    // because array stride must be a multiple of 16 bytes
+    seq: array<vec4<u32>, 8>,
+    length: u32,
+    fps: f32,
 }
 
 struct Tilemap {
@@ -51,7 +64,8 @@ struct Tilemap {
     // MAX_ATLAS_COUNT
     atlas_uvs: array<vec4<f32>, 512>,
     // MAX_ANIM_COUNT MAX_ANIM_SEQ_LENGTH
-    // anim_seqs: array<array<vec4<i32>, 32>, 32>,
+    anim_seqs: array<TileAnimation, 32>,
+    time: f32,
 }
 
 @group(1) @binding(0)

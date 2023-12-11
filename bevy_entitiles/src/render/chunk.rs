@@ -1,20 +1,14 @@
 use bevy::{
-    math::IVec4,
-    prelude::{Entity, Mesh, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4},
+    prelude::{Entity, Mesh, Query, Resource, UVec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
     },
-    time::Time,
     utils::HashMap,
 };
 
-use crate::{
-    math::aabb::AabbBox2d,
-    tilemap::tile::{AnimatedTile, TileType},
-    MAX_LAYER_COUNT,
-};
+use crate::{math::aabb::AabbBox2d, tilemap::tile::TileType, MAX_LAYER_COUNT};
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
@@ -25,10 +19,12 @@ use super::{
 
 #[derive(Clone)]
 pub struct TileData {
-    pub index: UVec2,
+    // when the third component of index is negative,
+    // it means this tile is a animated tile
+    // so the first component of texture_indices is the index of the animation
+    pub index: Vec3,
     pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub color: Vec4,
-    pub anim: Option<AnimatedTile>,
 }
 
 #[derive(Clone)]
@@ -65,7 +61,7 @@ impl TilemapRenderChunk {
     }
 
     /// Update the raw mesh for GPU processing.
-    pub fn update_mesh(&mut self, render_device: &Res<RenderDevice>, time: &Res<Time>) {
+    pub fn update_mesh(&mut self, render_device: &RenderDevice) {
         if !self.dirty_mesh {
             return;
         }
@@ -92,26 +88,7 @@ impl TilemapRenderChunk {
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
-                let index_float = Vec2::new(tile.index.x as f32, tile.index.y as f32);
-                grid_indices.extend_from_slice(&[
-                    index_float,
-                    index_float,
-                    index_float,
-                    index_float,
-                ]);
-
-                // let tex_idx = if let Some(anim) = &tile.anim {
-                //     let passed_frames = (time.elapsed_seconds() * anim.fps) as usize;
-                //     // TODO cause plenty of performance overhead if a tilemap has many animated tiles.
-                //     // try to achieve this in gpu.
-                //     if anim.is_loop {
-                //         anim.sequence[passed_frames % anim.sequence.len()]
-                //     } else {
-                //         anim.sequence[passed_frames.min(anim.sequence.len() - 1)]
-                //     }
-                // } else {
-                //     tile.texture_indices
-                // } as usize;
+                grid_indices.extend_from_slice(&[tile.index, tile.index, tile.index, tile.index]);
 
                 if !is_pure_color {
                     atlas_indices.extend_from_slice(&[
@@ -203,11 +180,20 @@ impl TilemapRenderChunk {
         // TODO fix this. this allows the tile sort by y axis. But this approach is not good.
         let index = self.tiles.len() - index - 1;
 
+        let (tile_index, texture_indices) = {
+            if let Some(anim) = tile.anim.as_ref() {
+                let mut tex_idxes = tile.texture_indices;
+                tex_idxes[0] = anim.sequence_index as i32;
+                (tile.index.as_vec2().extend(-1.), tex_idxes)
+            } else {
+                (tile.index.as_vec2().extend(1.), tile.texture_indices)
+            }
+        };
+
         self.tiles[index] = Some(TileData {
-            index: tile.index,
-            texture_indices: tile.texture_indices,
+            index: tile_index,
+            texture_indices,
             color: tile.color,
-            anim: tile.anim.clone(),
         });
         self.dirty_mesh = true;
     }
@@ -229,16 +215,11 @@ impl RenderChunkStorage {
     }
 
     /// Update the mesh for all chunks of a tilemap.
-    pub fn prepare_chunks(
-        &mut self,
-        tilemap: &ExtractedTilemap,
-        render_device: &Res<RenderDevice>,
-        time: &Res<Time>,
-    ) {
+    pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap, render_device: &RenderDevice) {
         if let Some(chunks) = self.value.get_mut(&tilemap.id) {
             for chunk in chunks.1.iter_mut() {
                 if let Some(c) = chunk {
-                    c.update_mesh(render_device, time);
+                    c.update_mesh(render_device);
                 }
             }
         }

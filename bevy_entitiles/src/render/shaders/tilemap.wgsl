@@ -55,36 +55,51 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.color = pow(input.color, vec4<f32>(2.2));
 
 #ifndef PURE_COLOR
-#ifdef NON_UNIFORM
-    for (var i = 0u; i < 1u; i++) {
-#else // NON_UNIFORM
-    for (var i = 0u; i < 4u; i++) {
-#endif // NON_UNIFORM
-        let uvs = uv_set[i];
+    // means that this tile is a animated tile
+    if input.index.z < 0. {
+        var animation = tilemap.anim_seqs[input.atlas_indices.x];
+        var frame = u32(tilemap.time * animation.fps) % animation.length;
+        var texture_index = animation.seq[frame / 4u][frame % 4u];
+        let uvs = tilemap.atlas_uvs[texture_index];
         var corner_uvs = array<vec2<f32>, 4>(
             vec2<f32>(uvs.x, uvs.w),
             vec2<f32>(uvs.x, uvs.y),
             vec2<f32>(uvs.z, uvs.y),
             vec2<f32>(uvs.z, uvs.w),
         );
-        let uv = corner_uvs[input.v_index % 4u] / tilemap.texture_size;
-        if i == 0u {
-            output.uv_a = uv;
-        } else if i == 1u {
-            output.uv_b = uv;
-        } else if i == 2u {
-            output.uv_c = uv;
-        } else if i == 3u {
-            output.uv_d = uv;
+        output.uv_a = corner_uvs[input.v_index % 4u] / tilemap.texture_size;
+        output.is_animated = -1.;
+    } else {
+#ifdef NON_UNIFORM
+        for (var i = 0u; i < 1u; i++) {
+#else
+        for (var i = 0u; i < 4u; i++) {
+#endif
+            let uvs = uv_set[i];
+            var corner_uvs = array<vec2<f32>, 4>(
+                vec2<f32>(uvs.x, uvs.w),
+                vec2<f32>(uvs.x, uvs.y),
+                vec2<f32>(uvs.z, uvs.y),
+                vec2<f32>(uvs.z, uvs.w),
+            );
+            let uv = corner_uvs[input.v_index % 4u] / tilemap.texture_size;
+
+            if i == 0u {
+                output.uv_a = uv;
+            } else if i == 1u {
+                output.uv_b = uv;
+            } else if i == 2u {
+                output.uv_c = uv;
+            } else if i == 3u {
+                output.uv_d = uv;
+            }
         }
+
+        output.is_animated = 1.;
     }
 #endif // PURE_COLOR
 
     return output;
-}
-
-fn blend(a: vec4<f32>, b: vec4<f32>) -> vec4<f32> {
-    return mix(a, b, b.a);
 }
 
 @fragment

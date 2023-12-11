@@ -6,7 +6,8 @@ use bevy::{
 
 use crate::{
     math::{aabb::AabbBox2d, FillArea},
-    render::texture::TilemapTexture,
+    render::{texture::TilemapTexture, uniform::TileAnimation},
+    MAX_ANIM_COUNT,
 };
 
 use super::{
@@ -26,6 +27,7 @@ pub struct TilemapBuilder {
     pub translation: Vec2,
     pub z_order: i32,
     pub flip: u32,
+    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
 impl TilemapBuilder {
@@ -43,6 +45,7 @@ impl TilemapBuilder {
             translation: Vec2::ZERO,
             z_order: 0,
             flip: 0,
+            anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
         }
     }
 
@@ -114,6 +117,8 @@ impl TilemapBuilder {
             aabb: AabbBox2d::from_tilemap_builder(&self),
             translation: self.translation,
             z_order: self.z_order,
+            anim_seqs: self.anim_seqs,
+            anim_counts: 0,
         };
         entity.insert((WaitForTextureUsageChange, tilemap.clone()));
         (entity.id(), tilemap)
@@ -150,6 +155,8 @@ pub struct Tilemap {
     pub(crate) aabb: AabbBox2d,
     pub(crate) translation: Vec2,
     pub(crate) z_order: i32,
+    pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub(crate) anim_counts: usize,
 }
 
 impl Tilemap {
@@ -371,6 +378,31 @@ impl Tilemap {
                     }),
                 );
             }
+        }
+    }
+
+    /// Register a tile animation so you can use it in `TileBuilder::with_animation`.
+    ///
+    /// Returns the sequence index of the animation.
+    pub fn register_animation(&mut self, anim: TileAnimation) -> usize {
+        assert!(
+            self.anim_counts + 1 < MAX_ANIM_COUNT,
+            "too many animations!, max is {}",
+            MAX_ANIM_COUNT
+        );
+
+        let index = self.anim_counts;
+        self.anim_seqs[index] = anim;
+        self.anim_counts += 1;
+        index
+    }
+
+    /// Update a tile animation by overwriting the element at `index`.
+    /// 
+    /// This does nothing if `index` is out of range.
+    pub fn update_animation(&mut self, anim: TileAnimation, index: usize) {
+        if index < MAX_ANIM_COUNT {
+            self.anim_seqs[index] = anim;
         }
     }
 

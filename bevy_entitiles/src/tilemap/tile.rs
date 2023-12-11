@@ -65,10 +65,10 @@ impl TileBuilder {
     }
 
     pub fn with_layer(mut self, layer: usize, texture_index: u32) -> Self {
-        if let Some(anim) = self.anim.as_mut() {
-            anim.layer = layer;
-        } else if layer >= MAX_LAYER_COUNT {
+        if self.anim.is_none() && layer < MAX_LAYER_COUNT {
             self.texture_indices[layer] = texture_index as i32;
+        } else {
+            panic!("Trying to add a layer to an animated tile or the layer index is out of bounds!");
         }
 
         self
@@ -114,8 +114,5 @@ pub struct Tile {
 #[derive(Component, Clone)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnimatedTile {
-    pub layer: usize,
-    pub sequence_index: u32,
-    pub fps: f32,
-    pub is_loop: bool,
+    pub sequence_index: usize,
 }

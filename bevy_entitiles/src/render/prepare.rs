@@ -36,7 +36,7 @@ pub fn prepare(
             .entity(tilemap.id)
             .insert(tilemap_uniforms_storage.insert(tilemap));
 
-        render_chunks.prepare_chunks(tilemap, &render_device, &time);
+        render_chunks.prepare_chunks(tilemap, &render_device);
 
         if let Some(tex) = tilemap.texture.as_ref() {
             if textures_storage.contains(&tex.texture) {

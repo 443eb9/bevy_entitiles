@@ -9,7 +9,10 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::FillArea,
-    render::texture::{TilemapTexture, TilemapTextureDescriptor},
+    render::{
+        texture::{TilemapTexture, TilemapTextureDescriptor},
+        uniform::TileAnimation,
+    },
     tilemap::{
         map::TilemapBuilder,
         tile::{AnimatedTile, TileBuilder, TileType},
@@ -46,14 +49,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ))
     .build(&mut commands);
 
+    let anim_a = tilemap.register_animation(TileAnimation::new(vec![0, 1, 2, 3], 2.));
+    let anim_b = tilemap.register_animation(TileAnimation::new(vec![0, 1, 2], 3.));
+
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
         &TileBuilder::new(0).with_animation(AnimatedTile {
-            layer: 0,
-            sequence: vec![0, 1, 2, 3],
-            fps: 5.,
-            is_loop: true,
+            sequence_index: anim_a,
         }),
     );
 
@@ -61,21 +64,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
         &TileBuilder::new(0).with_animation(AnimatedTile {
-            layer: 0,
-            sequence: vec![0, 1, 2, 3],
-            fps: 2.,
-            is_loop: true,
-        }),
-    );
-
-    tilemap.fill_rect(
-        &mut commands,
-        FillArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
-        &TileBuilder::new(0).with_animation(AnimatedTile {
-            layer: 0,
-            sequence: vec![0, 1, 2, 3],
-            fps: 1.,
-            is_loop: false,
+            sequence_index: anim_b,
         }),
     );
 

@@ -11,12 +11,15 @@ use bevy::utils::HashMap;
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
+    render::{
+        texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
+        uniform::TileAnimation,
+    },
     tilemap::{
         map::Tilemap,
         tile::{AnimatedTile, Tile, TileType},
     },
-    MAX_LAYER_COUNT,
+    MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
 use self::{
@@ -63,6 +66,8 @@ pub struct SerializedTilemap {
     pub translation: Vec2,
     pub z_order: i32,
     pub layers: u32,
+    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub anim_counts: usize,
 }
 
 impl SerializedTilemap {
@@ -88,6 +93,8 @@ impl SerializedTilemap {
             translation: tilemap.translation,
             z_order: tilemap.z_order,
             layers: saver.layers,
+            anim_seqs: tilemap.anim_seqs,
+            anim_counts: tilemap.anim_counts,
         }
     }
 
@@ -107,6 +114,8 @@ impl SerializedTilemap {
             aabb: self.aabb,
             translation: self.translation,
             z_order: self.z_order,
+            anim_seqs: self.anim_seqs,
+            anim_counts: self.anim_counts,
         }
     }
 }
