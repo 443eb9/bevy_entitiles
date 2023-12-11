@@ -61,7 +61,6 @@ pub struct SerializedTilemap {
     pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<SerializedTilemapTexture>,
-    pub flip: u32,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
     pub z_order: i32,
@@ -88,7 +87,6 @@ impl SerializedTilemap {
             } else {
                 None
             },
-            flip: tilemap.flip,
             aabb: tilemap.aabb,
             translation: tilemap.translation,
             z_order: tilemap.z_order,
@@ -110,7 +108,6 @@ impl SerializedTilemap {
             render_chunk_size: self.render_chunk_size,
             texture,
             tiles: vec![],
-            flip: self.flip,
             aabb: self.aabb,
             translation: self.translation,
             z_order: self.z_order,
@@ -196,6 +193,7 @@ pub struct SerializedTile {
     pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
+    pub flip: u32,
 }
 
 impl SerializedTile {
@@ -206,6 +204,7 @@ impl SerializedTile {
             top_layer: tile.top_layer,
             color: tile.color,
             anim,
+            flip: tile.flip,
         }
     }
 }

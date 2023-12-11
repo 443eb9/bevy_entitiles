@@ -9,7 +9,7 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::TilemapBuilder,
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TileFlip, TileType},
     },
     EntiTilesPlugin,
 };
@@ -59,6 +59,24 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &mut commands,
         UVec2 { x: 18, y: 8 },
         &TileBuilder::new(0).with_color(Color::BLUE.into()),
+    );
+
+    tilemap.set(
+        &mut commands,
+        UVec2 { x: 1, y: 1 },
+        &TileBuilder::new(1).with_flip(TileFlip::Horizontal),
+    );
+    
+    tilemap.set(
+        &mut commands,
+        UVec2 { x: 1, y: 2 },
+        &TileBuilder::new(1).with_flip(TileFlip::Vertical),
+    );
+
+    tilemap.set(
+        &mut commands,
+        UVec2 { x: 1, y: 3 },
+        &TileBuilder::new(1).with_flip(TileFlip::Both),
     );
 
     tilemap.update_rect(

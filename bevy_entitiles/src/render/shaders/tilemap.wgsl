@@ -9,6 +9,30 @@
     #import bevy_entitiles::iso_diamond::get_mesh_origin
 #endif
 
+fn get_uv(uvs: vec4<f32>, flip: f32, v_index: u32) -> vec2<f32> {
+    var corner_uvs = array<vec2<f32>, 4>(
+        vec2<f32>(uvs.x, uvs.w), // left up
+        vec2<f32>(uvs.x, uvs.y), // left down
+        vec2<f32>(uvs.z, uvs.y), // right down
+        vec2<f32>(uvs.z, uvs.w), // right up
+    );
+    var index = v_index % 4u;
+    // 0-1: not flipped
+    if flip > 1. {
+        if flip < 2. {
+            // 1-2: flipped horizontally
+            index = index / 2u * 2u + (index + 1u) % 2u;
+        } else if flip < 3. {
+            // 2-3: flipped vertically
+            index = 3u - index;
+        } else if flip < 4. {
+            // 3-4: flipped diagonally
+            index = (index + 2u) % 4u;
+        }
+    }
+    return corner_uvs[index] / tilemap.texture_size;
+}
+
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
@@ -61,13 +85,8 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         var frame = u32(tilemap.time * animation.fps) % animation.length;
         var texture_index = animation.seq[frame / 4u][frame % 4u];
         let uvs = tilemap.atlas_uvs[texture_index];
-        var corner_uvs = array<vec2<f32>, 4>(
-            vec2<f32>(uvs.x, uvs.w),
-            vec2<f32>(uvs.x, uvs.y),
-            vec2<f32>(uvs.z, uvs.y),
-            vec2<f32>(uvs.z, uvs.w),
-        );
-        output.uv_a = corner_uvs[input.v_index % 4u] / tilemap.texture_size;
+
+        output.uv_a = get_uv(uvs, input.index.w, input.v_index);
         output.is_animated = -1.;
     } else {
 #ifdef NON_UNIFORM
@@ -75,14 +94,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 #else
         for (var i = 0u; i < 4u; i++) {
 #endif
-            let uvs = uv_set[i];
-            var corner_uvs = array<vec2<f32>, 4>(
-                vec2<f32>(uvs.x, uvs.w),
-                vec2<f32>(uvs.x, uvs.y),
-                vec2<f32>(uvs.z, uvs.y),
-                vec2<f32>(uvs.z, uvs.w),
-            );
-            let uv = corner_uvs[input.v_index % 4u] / tilemap.texture_size;
+            let uv = get_uv(uv_set[i], input.index.w, input.v_index);
 
             if i == 0u {
                 output.uv_a = uv;
@@ -135,5 +147,6 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
         color = mix(color, tex_color, tex_color.a);
     }
     return color * input.color;
+    // return vec4<f32>(input.uv_a, 0., 1.);
 #endif
 }

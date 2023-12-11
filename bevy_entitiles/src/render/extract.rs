@@ -32,7 +32,6 @@ pub struct ExtractedTilemap {
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
     pub translation: Vec2,
-    pub flip: u32,
     pub aabb: AabbBox2d,
     pub z_order: i32,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
@@ -48,6 +47,7 @@ pub struct ExtractedTile {
     pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
+    pub flip: u32,
 }
 
 #[derive(Component)]
@@ -77,7 +77,6 @@ pub fn extract_tilemaps(
                 pivot: tilemap.pivot,
                 texture: tilemap.texture.clone(),
                 translation: tilemap.translation,
-                flip: tilemap.flip,
                 aabb: tilemap.aabb,
                 z_order: tilemap.z_order,
                 anim_seqs: tilemap.anim_seqs,
@@ -113,6 +112,7 @@ pub fn extract_tiles(
                 top_layer: tile.top_layer,
                 color: tile.color,
                 anim,
+                flip: tile.flip,
             },
         ));
     }

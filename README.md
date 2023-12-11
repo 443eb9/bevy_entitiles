@@ -62,6 +62,14 @@ Platform: 10600KF
 
 > *Bevy 0.11.3, crate 0.1.1, 1000x1000 tiles*
 
+### Animation
+
+<div>
+	<img src="./docs/imgs/animation.gif" width="500px">
+</div>
+
+> *Bevy 0.12.1, crate 0.2.3*
+
 ### Pathfinding
 
 The pathfinding algorithm is very fast.
@@ -99,6 +107,16 @@ Video at `docs/vids/wfc.mp4`
 | 100x100 | (Not measurable)        | 32,309.045 (16)         |
 
 > *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted; Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses*
+
+## Limitations
+
+- Supports up to 4 tilesets in one tilemap.
+- Supports up to 4 layers\* in one tilemap.
+- Supports up to 512 atlas count in one tilemap.
+- Supports up to 32 animations in one tilemap.
+- Supports up to 32 length of animation sequences.
+
+*\*The layer here is not the same as you see in LDtk, it's the rendered tilemap layer, which does not include the entity layer*
 
 ## Special Thanks
 

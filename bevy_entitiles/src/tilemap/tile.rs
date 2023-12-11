@@ -29,6 +29,7 @@ pub struct TileBuilder {
     pub(crate) top_layer: usize,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
+    pub(crate) flip: u32,
 }
 
 impl TileBuilder {
@@ -41,6 +42,7 @@ impl TileBuilder {
             anim: None,
             top_layer: 0,
             color: Vec4::ONE,
+            flip: 0,
         }
     }
 
@@ -51,6 +53,7 @@ impl TileBuilder {
             top_layer: serialized_tile.top_layer,
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
+            flip: serialized_tile.flip,
         }
     }
 
@@ -74,6 +77,11 @@ impl TileBuilder {
         self
     }
 
+    pub fn with_flip(mut self, flip: TileFlip) -> Self {
+        self.flip |= flip as u32;
+        self
+    }
+
     pub(crate) fn build(&self, commands: &mut Commands, index: UVec2, tilemap: &Tilemap) -> Entity {
         let render_chunk_index_2d = index / tilemap.render_chunk_size;
         let render_chunk_index = {
@@ -93,6 +101,7 @@ impl TileBuilder {
             texture_indices: self.texture_indices,
             top_layer: 0,
             color: self.color,
+            flip: self.flip,
         });
         if let Some(anim) = &self.anim {
             tile.insert(anim.clone());
@@ -109,6 +118,7 @@ pub struct Tile {
     pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub top_layer: usize,
     pub color: Vec4,
+    pub flip: u32,
 }
 
 #[derive(Component, Clone)]

@@ -6,7 +6,6 @@ use bevy::{
         renderer::{RenderDevice, RenderQueue},
         texture::Image,
     },
-    time::Time,
 };
 
 use super::{
@@ -26,7 +25,6 @@ pub fn prepare(
     mut tilemap_uniforms_storage: ResMut<TilemapUniformsStorage>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     render_images: Res<RenderAssets<Image>>,
-    time: Res<Time>,
 ) {
     render_chunks.add_tiles_with_query(&extracted_tilemaps, &extracted_tiles);
 

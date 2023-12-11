@@ -12,7 +12,7 @@ use crate::{
 
 use super::{
     layer::UpdateLayer,
-    tile::{TileBuilder, TileFlip, TileType},
+    tile::{TileBuilder, TileType},
 };
 
 pub struct TilemapBuilder {
@@ -26,7 +26,6 @@ pub struct TilemapBuilder {
     pub texture: Option<TilemapTexture>,
     pub translation: Vec2,
     pub z_order: i32,
-    pub flip: u32,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
@@ -44,7 +43,6 @@ impl TilemapBuilder {
             render_chunk_size: 32,
             translation: Vec2::ZERO,
             z_order: 0,
-            flip: 0,
             anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
         }
     }
@@ -71,12 +69,6 @@ impl TilemapBuilder {
     /// Assign a texture to the tilemap.
     pub fn with_texture(&mut self, texture: TilemapTexture) -> &mut Self {
         self.texture = Some(texture);
-        self
-    }
-
-    /// Flip the uv of tiles. Use `TileFlip::Horizontal | TileFlip::Vertical` to flip both.
-    pub fn with_flip(&mut self, flip: TileFlip) -> &mut Self {
-        self.flip |= flip as u32;
         self
     }
 
@@ -113,7 +105,6 @@ impl TilemapBuilder {
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
             texture: self.texture.clone(),
-            flip: self.flip,
             aabb: AabbBox2d::from_tilemap_builder(&self),
             translation: self.translation,
             z_order: self.z_order,
@@ -151,7 +142,6 @@ pub struct Tilemap {
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
     pub(crate) tiles: Vec<Option<Entity>>,
-    pub(crate) flip: u32,
     pub(crate) aabb: AabbBox2d,
     pub(crate) translation: Vec2,
     pub(crate) z_order: i32,
@@ -398,7 +388,7 @@ impl Tilemap {
     }
 
     /// Update a tile animation by overwriting the element at `index`.
-    /// 
+    ///
     /// This does nothing if `index` is out of range.
     pub fn update_animation(&mut self, anim: TileAnimation, index: usize) {
         if index < MAX_ANIM_COUNT {

@@ -42,8 +42,8 @@ impl Plugin for EntiTilesDebugPlugin {
                 draw_axis,
                 #[cfg(feature = "debug")]
                 draw_grid,
-                #[cfg(feature = "debug")]
-                draw_tiles,
+                // #[cfg(feature = "debug")]
+                // draw_tiles,
                 debug_info_display.run_if(on_real_timer(Duration::from_millis(100))),
             ),
         );

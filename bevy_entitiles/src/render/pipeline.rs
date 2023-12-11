@@ -56,19 +56,22 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             .into(),
         );
 
-        let vtx_fmt = vec![
+        let mut vtx_fmt = vec![
             // position
             VertexFormat::Float32x3,
             // index
-            VertexFormat::Float32x3,
+            VertexFormat::Float32x4,
             // color
             VertexFormat::Float32x4,
-            // atlas_indices
-            VertexFormat::Sint32x4,
         ];
 
         if key.is_pure_color {
             shader_defs.push("PURE_COLOR".into());
+        } else {
+            vtx_fmt.push(
+                // atlas_indices
+                VertexFormat::Sint32x4,
+            );
         }
 
         if !key.is_uniform {

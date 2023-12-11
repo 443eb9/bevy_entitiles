@@ -100,6 +100,7 @@ impl WfcRunner {
                     top_layer: 0,
                     color: Vec4::ONE,
                     anim: None,
+                    flip: 0,
                 }
             })
             .collect();

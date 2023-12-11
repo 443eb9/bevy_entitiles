@@ -14,7 +14,6 @@ use super::{
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTexture,
     TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
-    TILEMAP_MESH_ATTR_RD_SIZE,
 };
 
 #[derive(Clone)]
@@ -22,7 +21,7 @@ pub struct TileData {
     // when the third component of index is negative,
     // it means this tile is a animated tile
     // so the first component of texture_indices is the index of the animation
-    pub index: Vec3,
+    pub index: Vec4,
     pub texture_indices: [i32; MAX_LAYER_COUNT],
     pub color: Vec4,
 }
@@ -39,7 +38,6 @@ pub struct TilemapRenderChunk {
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
     pub aabb: AabbBox2d,
-    pub flip: u32,
 }
 
 impl TilemapRenderChunk {
@@ -51,7 +49,6 @@ impl TilemapRenderChunk {
             size: tilemap.render_chunk_size,
             tile_type: tilemap.tile_type,
             texture: tilemap.texture.clone(),
-            flip: tilemap.flip,
             tiles: vec![None; (tilemap.render_chunk_size * tilemap.render_chunk_size) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
@@ -65,13 +62,7 @@ impl TilemapRenderChunk {
         if !self.dirty_mesh {
             return;
         }
-        let (tile_uvs, is_uniform, is_pure_color) = {
-            if let Some(texture) = &self.texture {
-                (Some(&texture.desc.tiles_uv), texture.desc.is_uniform, false)
-            } else {
-                (None, true, true)
-            }
-        };
+        let is_pure_color = self.texture.is_none();
 
         let mut v_index = 0;
         let len = self.tiles.len();
@@ -81,10 +72,6 @@ impl TilemapRenderChunk {
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
-        let mut tile_render_size = Vec::new();
-        if !is_uniform {
-            tile_render_size = Vec::with_capacity(len * 4);
-        }
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
@@ -97,13 +84,6 @@ impl TilemapRenderChunk {
                         tile.texture_indices,
                         tile.texture_indices,
                     ]);
-
-                    let t_uvs = tile_uvs.unwrap();
-                    if !is_uniform {
-                        // non uniform tilemaps are not allowed to have multiple layers
-                        let size = t_uvs[tile.texture_indices[0] as usize].render_size();
-                        tile_render_size.extend_from_slice(&[size, size, size, size]);
-                    }
                 }
 
                 let pos = Vec3::ZERO;
@@ -133,10 +113,6 @@ impl TilemapRenderChunk {
                 .insert_attribute(TILEMAP_MESH_ATTR_ATLAS_INDICES, atlas_indices);
         }
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
-        if !is_uniform {
-            self.mesh
-                .insert_attribute(TILEMAP_MESH_ATTR_RD_SIZE, tile_render_size);
-        }
         self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
 
         let mesh_vert_count = self.mesh.count_vertices() as u32;
@@ -190,8 +166,20 @@ impl TilemapRenderChunk {
             }
         };
 
+        // 0-1: not flipped
+        // 1-2: flipped horizontally
+        // 2-3: flipped vertically
+        // 3-4: flipped diagonally
+        let flip = match tile.flip {
+            0b00 => 0.5,
+            0b01 => 1.5,
+            0b10 => 2.5,
+            0b11 => 3.5,
+            _ => unreachable!(),
+        };
+
         self.tiles[index] = Some(TileData {
-            index: tile_index,
+            index: tile_index.extend(flip),
             texture_indices,
             color: tile.color,
         });

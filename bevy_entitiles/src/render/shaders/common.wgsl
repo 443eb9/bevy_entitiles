@@ -10,7 +10,7 @@
 struct VertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec3<f32>,
-    @location(1) index: vec2<f32>,
+    @location(1) index: vec4<f32>,
     @location(2) color: vec4<f32>,
 }
 
@@ -22,7 +22,13 @@ struct VertexInput {
     // when the third component of index is negative,
     // it means this tile is a animated tile
     // so the first component of atlas_indices is the index of the animation
-    @location(1) index: vec3<f32>,
+
+    // the forth component of index is:
+    // 0-1: not flipped
+    // 1-2: flipped horizontally
+    // 2-3: flipped vertically
+    // 3-4: flipped diagonally
+    @location(1) index: vec4<f32>,
     @location(2) color: vec4<f32>,
     @location(3) atlas_indices: vec4<i32>,
 }
