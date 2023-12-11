@@ -1,3 +1,7 @@
+// MAX_LAYER_COUNT 4
+// MAX_TILESET_COUNT 4
+// MAX_ATLAS_COUNT 1024
+
 #define_import_path bevy_entitiles::common
 
 #ifdef PURE_COLOR
@@ -15,12 +19,7 @@ struct VertexInput {
     @location(0) position: vec3<f32>,
     @location(1) index: vec2<f32>,
     @location(2) color: vec4<f32>,
-    @location(3) uv: vec2<f32>,
-#ifdef NON_UNIFORM
-    // when the tilemap is NOT a uniform one,
-    // the tile_render_size below is used
-    @location(4) tile_render_size: vec2<f32>,
-#endif
+    @location(3) atlas_indices: vec4<i32>,
 }
 
 #endif // PURE_COLOR
@@ -28,9 +27,12 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
-    @location(1) height: f32,
 #ifndef PURE_COLOR
-    @location(2) uv: vec2<f32>,
+    // MAX_LAYER_COUNT
+    @location(1) uv_a: vec2<f32>,
+    @location(2) uv_b: vec2<f32>,
+    @location(3) uv_c: vec2<f32>,
+    @location(4) uv_d: vec2<f32>,
 #endif
 }
 
@@ -43,6 +45,8 @@ struct Tilemap {
     tile_slot_size: vec2<f32>,
     pivot: vec2<f32>,
     texture_size: vec2<f32>,
+    // MAX_ATLAS_COUNT
+    atlas_uvs: array<vec4<f32>, 1024>,
 }
 
 @group(1) @binding(0)

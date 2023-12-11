@@ -6,7 +6,10 @@ use bevy::{
 };
 
 use bevy_entitiles::{
-    debug::PubTilemap, math::aabb::AabbBox2d, render::chunk::RenderChunkStorage, tilemap::map::Tilemap,
+    debug::PubTilemap,
+    math::aabb::AabbBox2d,
+    render::chunk::RenderChunkStorage,
+    tilemap::{map::Tilemap, tile::Tile},
 };
 
 #[cfg(feature = "algorithm")]
@@ -27,12 +30,20 @@ pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
 pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
     for tilemap in tilemaps.iter() {
         let tilemap = PubTilemap::from_tilemap(tilemap).into_extracted_tilemap();
-        let count = RenderChunkStorage::calculate_render_chunk_count(tilemap.size, tilemap.render_chunk_size);
+        let count = RenderChunkStorage::calculate_render_chunk_count(
+            tilemap.size,
+            tilemap.render_chunk_size,
+        );
 
         for y in 0..count.y {
             for x in 0..count.x {
                 let aabb = AabbBox2d::from_chunk(UVec2::new(x, y), &tilemap);
-                gizmos.rect_2d(aabb.center(), 0., Vec2::new(aabb.width(), aabb.height()), Color::GREEN);
+                gizmos.rect_2d(
+                    aabb.center(),
+                    0.,
+                    Vec2::new(aabb.width(), aabb.height()),
+                    Color::GREEN,
+                );
             }
         }
     }
@@ -71,5 +82,13 @@ pub fn draw_grid(mut gizmos: Gizmos) {
             Vec2::new(x as f32 * SIZE, 100. * SIZE),
             Color::WHITE,
         );
+    }
+}
+
+pub fn draw_tiles(mut gizmos: Gizmos, tiles: Query<&Tile>, tilemaps: Query<&Tilemap>) {
+    for tile in tiles.iter() {
+        let tilemap = tilemaps.get(tile.tilemap_id).unwrap();
+        let center = tilemap.index_to_world(tile.index);
+        gizmos.rect_2d(center, 0., Vec2::new(8., 8.), Color::YELLOW);
     }
 }

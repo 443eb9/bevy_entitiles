@@ -1,4 +1,5 @@
 use bevy::{
+    math::Vec4,
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -7,6 +8,8 @@ use bevy::{
         renderer::{RenderDevice, RenderQueue},
     },
 };
+
+use crate::MAX_ATLAS_COUNT;
 
 use super::extract::ExtractedTilemap;
 
@@ -50,6 +53,7 @@ pub struct TilemapUniform {
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub texture_size: Vec2,
+    pub atlas_uvs: [Vec4; MAX_ATLAS_COUNT],
 }
 
 #[derive(Resource, Default)]
@@ -61,8 +65,15 @@ impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorag
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
     fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicUniformComponent<TilemapUniform> {
+        let mut atlas_uvs = [Vec4::ZERO; MAX_ATLAS_COUNT];
+
         let (texture_size, tile_render_size) = if let Some(texture) = &extracted.texture {
             let desc = texture.desc();
+            
+            desc.tiles_uv.iter().enumerate().for_each(|(i, uv)| {
+                atlas_uvs[i] = Vec4::new(uv.min.x, uv.min.y, uv.max.x, uv.max.y);
+            });
+
             if desc.is_uniform {
                 // if uniform, all the tiles are the same size as the first one.
                 (desc.size.as_vec2(), desc.tiles_uv[0].render_size())
@@ -83,6 +94,7 @@ impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorag
             tile_render_scale: extracted.tile_render_scale,
             pivot: extracted.pivot,
             texture_size,
+            atlas_uvs,
         };
 
         let index = self.buffer.push(component);

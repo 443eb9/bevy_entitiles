@@ -67,7 +67,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
 
         if !key.is_pure_color {
             // uv
-            vtx_fmt.push(VertexFormat::Float32x2);
+            vtx_fmt.push(VertexFormat::Sint32x4);
         } else {
             shader_defs.push("PURE_COLOR".into());
         }

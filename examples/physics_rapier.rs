@@ -66,7 +66,7 @@ fn setup(
             FilterMode::Nearest,
         ),
     ))
-    .with_z_order(-0.5)
+    .with_z_order(-1)
     .build(&mut commands);
 
     tilemap.fill_rect(

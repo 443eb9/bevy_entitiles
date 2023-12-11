@@ -73,6 +73,31 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.entity(tilemap_entity).insert(tilemap);
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+        TileType::IsometricDiamond,
+        UVec2 { x: 20, y: 10 },
+        Vec2 { x: 32., y: 16. },
+        "test_map".to_string(),
+    )
+    .with_texture(TilemapTexture::new(
+        assets_server.load("test_isometric.png"),
+        TilemapTextureDescriptor::from_full_grid(
+            UVec2 { x: 32, y: 32 },
+            UVec2 { x: 1, y: 2 },
+            FilterMode::Nearest,
+        ),
+    ))
+    .with_translation(Vec2 { x: -400., y: 0. })
+    .build(&mut commands);
+
+    tilemap.fill_rect(
+        &mut commands,
+        FillArea::full(&tilemap),
+        &TileBuilder::new(0),
+    );
+
+    commands.entity(tilemap_entity).insert(tilemap);
+
+    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },

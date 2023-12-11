@@ -1,4 +1,5 @@
 use bevy::{
+    math::IVec4,
     prelude::{Entity, Mesh, Query, Res, Resource, UVec2, Vec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -17,8 +18,8 @@ use crate::{
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
     texture::{TileUV, TilemapTexture},
-    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_RD_SIZE,
-    TILEMAP_MESH_ATTR_UV,
+    TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
+    TILEMAP_MESH_ATTR_RD_SIZE,
 };
 
 #[derive(Clone)]
@@ -79,7 +80,7 @@ impl TilemapRenderChunk {
         let len = self.tiles.len();
 
         let mut positions = Vec::with_capacity(len * 4);
-        let mut uvs = Vec::with_capacity(len * 4);
+        let mut atlas_indices = Vec::with_capacity(len * 4);
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
@@ -112,9 +113,11 @@ impl TilemapRenderChunk {
                 } as usize;
 
                 if !is_pure_color {
-                    let t_uvs = tile_uvs.unwrap();
-                    uvs.extend_from_slice(&self.get_uv(&t_uvs[tex_idx]));
+                    // TODO pass real indices
+                    let t_uvs = IVec4::new(tex_idx as i32, -1, -1, -1);
+                    atlas_indices.extend_from_slice(&[t_uvs, t_uvs, t_uvs, t_uvs]);
 
+                    let t_uvs = tile_uvs.unwrap();
                     if !is_uniform {
                         let size = t_uvs[tex_idx].render_size();
                         tile_render_size.extend_from_slice(&[size, size, size, size]);
@@ -144,7 +147,8 @@ impl TilemapRenderChunk {
         self.mesh
             .insert_attribute(TILEMAP_MESH_ATTR_INDEX, grid_indices);
         if !is_pure_color {
-            self.mesh.insert_attribute(TILEMAP_MESH_ATTR_UV, uvs);
+            self.mesh
+                .insert_attribute(TILEMAP_MESH_ATTR_ATLAS_INDICES, atlas_indices);
         }
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
         if !is_uniform {
@@ -185,41 +189,6 @@ impl TilemapRenderChunk {
         });
 
         self.dirty_mesh = false;
-    }
-
-    // TODO looks stupid but actually works, need to find a better way to do this.
-    fn get_uv(&self, tile_uv: &TileUV) -> [Vec2; 4] {
-        match self.flip {
-            0b00 => [
-                tile_uv.top_left(),
-                tile_uv.btm_left(),
-                tile_uv.btm_right(),
-                tile_uv.top_right(),
-            ],
-            // flip h
-            0b01 => [
-                tile_uv.top_right(),
-                tile_uv.btm_right(),
-                tile_uv.btm_left(),
-                tile_uv.top_left(),
-            ],
-            // flip v
-            0b10 => [
-                tile_uv.btm_left(),
-                tile_uv.top_left(),
-                tile_uv.top_right(),
-                tile_uv.btm_right(),
-            ],
-            // both
-            0b11 => [
-                tile_uv.btm_right(),
-                tile_uv.top_right(),
-                tile_uv.top_left(),
-                tile_uv.btm_left(),
-            ],
-            // impossible
-            _ => [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
-        }
     }
 
     /// Set a tile in the chunk. Overwrites the previous tile.

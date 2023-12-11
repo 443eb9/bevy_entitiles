@@ -38,8 +38,8 @@ pub const TILEMAP_MESH_ATTR_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Float32x2);
 pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
     MeshVertexAttribute::new("Color", 85415341854, VertexFormat::Float32x4);
-pub const TILEMAP_MESH_ATTR_UV: MeshVertexAttribute =
-    MeshVertexAttribute::new("TextureIndex", 186541653135, VertexFormat::Float32x2);
+pub const TILEMAP_MESH_ATTR_ATLAS_INDICES: MeshVertexAttribute =
+    MeshVertexAttribute::new("AtlasIndex", 186541653135, VertexFormat::Sint32x4);
 pub const TILEMAP_MESH_ATTR_RD_SIZE: MeshVertexAttribute =
     MeshVertexAttribute::new("RenderSize", 54164856348564, VertexFormat::Float32x2);
 

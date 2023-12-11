@@ -13,6 +13,10 @@ pub mod serializing;
 pub mod tilemap;
 pub mod ui;
 
+pub const MAX_TILESET_COUNT: usize = 4;
+pub const MAX_LAYER_COUNT: usize = 4;
+pub const MAX_ATLAS_COUNT: usize = 1024;
+
 pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {
