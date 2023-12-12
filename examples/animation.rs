@@ -10,8 +10,8 @@ use bevy::{
 use bevy_entitiles::{
     math::FillArea,
     render::{
+        buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
-        uniform::TileAnimation,
     },
     tilemap::{
         map::TilemapBuilder,

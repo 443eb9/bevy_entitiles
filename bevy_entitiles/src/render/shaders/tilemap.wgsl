@@ -1,4 +1,6 @@
-#import bevy_entitiles::common::{VertexInput, VertexOutput, tilemap}
+#import bevy_entitiles::common::{
+    VertexInput, VertexOutput, tilemap, atlas_uvs, anim_seqs
+}
 #import bevy_sprite::mesh2d_view_bindings::view
 
 #ifdef SQUARE
@@ -40,7 +42,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 
 #ifdef NON_UNIFORM
     var uv_set = array<vec4<f32>, 1>(
-        tilemap.atlas_uvs[input.atlas_indices[0]],
+        atlas_uvs[input.atlas_indices[0]],
     );
 #else ifdef PURE_COLOR
     var uv_set = array<vec4<f32>, 4>(
@@ -58,7 +60,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     );
     for (var i = 0u; i < 4u; i++) {
         if input.atlas_indices[i] >= 0 {
-            uv_set[i] = tilemap.atlas_uvs[input.atlas_indices[i]];
+            uv_set[i] = atlas_uvs[input.atlas_indices[i]];
         }
     }
 #endif
@@ -79,12 +81,12 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.color = pow(input.color, vec4<f32>(2.2));
 
 #ifndef PURE_COLOR
-    // means that this tile is a animated tile
     if input.index.z < 0. {
-        var animation = tilemap.anim_seqs[input.atlas_indices.x];
+        // means that this tile is a animated tile
+        var animation = anim_seqs[input.atlas_indices.x];
         var frame = u32(tilemap.time * animation.fps) % animation.length;
         var texture_index = animation.seq[frame / 4u][frame % 4u];
-        let uvs = tilemap.atlas_uvs[texture_index];
+        let uvs = atlas_uvs[texture_index];
 
         output.uv_a = get_uv(uvs, input.index.w, input.v_index);
         output.is_animated = -1.;

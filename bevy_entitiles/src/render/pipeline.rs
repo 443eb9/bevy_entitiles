@@ -13,12 +13,13 @@ use bevy::{
 
 use crate::tilemap::tile::TileType;
 
-use super::{resources::TilemapBindGroupLayouts, TILEMAP_SHADER};
+use super::{binding::TilemapBindGroupLayouts, TILEMAP_SHADER};
 
 #[derive(Resource)]
 pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
-    pub tilemap_uniform_layout: BindGroupLayout,
+    pub uniform_buffers_layout: BindGroupLayout,
+    pub storage_buffers_layout: BindGroupLayout,
     pub color_texture_layout: BindGroupLayout,
 }
 
@@ -35,7 +36,8 @@ impl FromWorld for EntiTilesPipeline {
         let layouts = world.resource::<TilemapBindGroupLayouts>();
         Self {
             view_layout: layouts.view_layout.clone(),
-            tilemap_uniform_layout: layouts.tilemap_uniform_layout.clone(),
+            uniform_buffers_layout: layouts.tilemap_uniforms_layout.clone(),
+            storage_buffers_layout: layouts.tilemap_storage_layout.clone(),
             color_texture_layout: layouts.color_texture_layout.clone(),
         }
     }
@@ -85,11 +87,13 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             // group(0)
             self.view_layout.clone(),
             // group(1)
-            self.tilemap_uniform_layout.clone(),
+            self.uniform_buffers_layout.clone(),
         ];
 
         if !key.is_pure_color {
             // group(2)
+            layout.push(self.storage_buffers_layout.clone());
+            // group(3)
             layout.push(self.color_texture_layout.clone());
         }
 

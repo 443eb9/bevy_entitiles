@@ -11,12 +11,12 @@ use bevy::{
 };
 
 use super::{
+    binding::TilemapBindGroups,
+    buffer::{TilemapStorageBuffers, TilemapUniformBuffers},
     draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
-    resources::TilemapBindGroups,
     texture::TilemapTexturesStorage,
-    uniform::TilemapUniformsStorage,
 };
 
 #[derive(Component)]
@@ -37,7 +37,8 @@ pub fn queue(
     mut bind_groups: ResMut<TilemapBindGroups>,
     textures_storage: Res<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    mut tilemap_uniform_storage: ResMut<TilemapUniformsStorage>,
+    mut uniform_buffers: ResMut<TilemapUniformBuffers>,
+    mut storage_buffers: ResMut<TilemapStorageBuffers>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -59,10 +60,17 @@ pub fn queue(
         tilemaps.sort_by(|lhs, rhs| lhs.1.z_order.cmp(&rhs.1.z_order));
 
         for (entity, tilemap) in tilemaps_query.iter() {
-            bind_groups.queue_uniforms(
+            bind_groups.queue_uniform_buffers(
                 &tilemap,
                 &render_device,
-                &mut tilemap_uniform_storage,
+                &mut uniform_buffers,
+                &entitile_pipeline,
+            );
+
+            bind_groups.queue_storage_buffers(
+                tilemap,
+                &render_device,
+                &mut storage_buffers,
                 &entitile_pipeline,
             );
 

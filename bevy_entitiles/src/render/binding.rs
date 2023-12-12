@@ -1,6 +1,7 @@
 use bevy::{
     asset::Handle,
     ecs::{entity::Entity, system::Resource, world::FromWorld},
+    math::Vec4,
     render::{
         render_resource::{
             BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -15,43 +16,85 @@ use bevy::{
 };
 
 use super::{
+    buffer::{
+        TileAnimation, TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffers, UniformBuffer,
+    },
     extract::ExtractedTilemap,
     pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
-    uniform::{TilemapUniform, TilemapUniformsStorage, UniformsStorage},
 };
 
 #[derive(Resource, Default)]
 pub struct TilemapBindGroups {
-    pub tilemap_uniforms: EntityHashMap<Entity, BindGroup>,
+    pub tilemap_uniform_buffers: EntityHashMap<Entity, BindGroup>,
+    pub tilemap_storage_buffers: EntityHashMap<Entity, BindGroup>,
     pub colored_textures: HashMap<Handle<Image>, BindGroup>,
 }
 
 impl TilemapBindGroups {
-    pub fn queue_uniforms(
+    pub fn queue_uniform_buffers(
         &mut self,
         tilemap: &ExtractedTilemap,
         render_device: &RenderDevice,
-        tilemap_uniform_storage: &mut TilemapUniformsStorage,
+        uniform_buffers: &mut TilemapUniformBuffers,
         entitile_pipeline: &EntiTilesPipeline,
     ) {
-        if self.tilemap_uniforms.get(&tilemap.id).is_none() {
-            let Some(resource) = tilemap_uniform_storage.binding() else {
-                return;
-            };
-
-            self.tilemap_uniforms.insert(
-                tilemap.id,
-                render_device.create_bind_group(
-                    Some("tilemap_uniform_bind_group"),
-                    &entitile_pipeline.tilemap_uniform_layout,
-                    &[BindGroupEntry {
-                        binding: 0,
-                        resource,
-                    }],
-                ),
-            );
+        if self.tilemap_uniform_buffers.get(&tilemap.id).is_some() {
+            return;
         }
+
+        let Some(uniform_buffer) = uniform_buffers.binding() else {
+            return;
+        };
+
+        self.tilemap_uniform_buffers.insert(
+            tilemap.id,
+            render_device.create_bind_group(
+                Some("tilemap_uniform_buffers_bind_group"),
+                &entitile_pipeline.uniform_buffers_layout,
+                &[BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer,
+                }],
+            ),
+        );
+    }
+
+    pub fn queue_storage_buffers(
+        &mut self,
+        tilemap: &ExtractedTilemap,
+        render_device: &RenderDevice,
+        storage_buffers: &mut TilemapStorageBuffers,
+        entitile_pipeline: &EntiTilesPipeline,
+    ) {
+        if tilemap.texture.is_none() {
+            return;
+        }
+
+        let (Some(atlas_uvs), Some(anim_seqs)) = (
+            storage_buffers.atlas_uvs_binding(tilemap.id),
+            storage_buffers.anim_seqs_binding(tilemap.id),
+        ) else {
+            return;
+        };
+
+        self.tilemap_storage_buffers.insert(
+            tilemap.id,
+            render_device.create_bind_group(
+                Some("tilemap_storage_bind_group"),
+                &entitile_pipeline.storage_buffers_layout,
+                &[
+                    BindGroupEntry {
+                        binding: 0,
+                        resource: atlas_uvs,
+                    },
+                    BindGroupEntry {
+                        binding: 1,
+                        resource: anim_seqs,
+                    },
+                ],
+            ),
+        );
     }
 
     /// Returns (is_pure_color, is_uniform)
@@ -97,7 +140,8 @@ impl TilemapBindGroups {
 #[derive(Resource)]
 pub struct TilemapBindGroupLayouts {
     pub view_layout: BindGroupLayout,
-    pub tilemap_uniform_layout: BindGroupLayout,
+    pub tilemap_uniforms_layout: BindGroupLayout,
+    pub tilemap_storage_layout: BindGroupLayout,
     pub color_texture_layout: BindGroupLayout,
 }
 
@@ -118,9 +162,9 @@ impl FromWorld for TilemapBindGroupLayouts {
             }],
         });
 
-        let tilemap_uniform_layout =
+        let tilemap_uniforms_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("tilemap_uniform_layout"),
+                label: Some("tilemap_uniforms_layout"),
                 entries: &[BindGroupLayoutEntry {
                     binding: 0,
                     visibility: ShaderStages::VERTEX,
@@ -131,6 +175,33 @@ impl FromWorld for TilemapBindGroupLayouts {
                     },
                     count: None,
                 }],
+            });
+
+        let tilemap_storage_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("tilemap_storage_layout"),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::VERTEX,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(Vec4::min_size()),
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::VERTEX,
+                        ty: BindingType::Buffer {
+                            ty: BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: Some(TileAnimation::min_size()),
+                        },
+                        count: None,
+                    },
+                ],
             });
 
         let color_texture_layout =
@@ -158,7 +229,8 @@ impl FromWorld for TilemapBindGroupLayouts {
 
         Self {
             view_layout,
-            tilemap_uniform_layout,
+            tilemap_uniforms_layout,
+            tilemap_storage_layout,
             color_texture_layout,
         }
     }

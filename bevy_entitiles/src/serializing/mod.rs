@@ -13,7 +13,7 @@ use crate::{
     math::aabb::AabbBox2d,
     render::{
         texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
-        uniform::TileAnimation,
+        buffer::TileAnimation,
     },
     tilemap::{
         map::Tilemap,

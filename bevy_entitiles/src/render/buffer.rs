@@ -1,35 +1,34 @@
+use std::marker::PhantomData;
+
 use bevy::{
+    ecs::entity::Entity,
     math::{UVec4, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
             encase::{internal::WriteInto, rts_array::Length},
-            BindingResource, DynamicUniformBuffer, ShaderType,
+            BindingResource, DynamicStorageBuffer, DynamicUniformBuffer, ShaderType,
         },
         renderer::{RenderDevice, RenderQueue},
     },
+    utils::EntityHashMap,
 };
 
 use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH, MAX_ATLAS_COUNT};
 
-use super::extract::ExtractedTilemap;
+use super::{extract::ExtractedTilemap, texture::TileUV};
 
-pub trait UniformsStorage<E, U: ShaderType + WriteInto + 'static> {
-    /// Update the uniform buffer with the current uniforms.
-    /// Returns the `U` component to be used in the render pass.
-    fn insert(&mut self, extracted: &E) -> DynamicUniformComponent<U>;
+pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static> {
+    fn insert(&mut self, extracted: &E) -> DynamicOffsetComponent<U>;
 
-    /// Get the binding resource for the uniform buffer.
     fn binding(&mut self) -> Option<BindingResource> {
         self.buffer().binding()
     }
 
-    /// Clear the uniform buffer.
     fn clear(&mut self) {
         self.buffer().clear();
     }
 
-    /// Write the uniform buffer to the GPU.
     fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
         self.buffer().write_buffer(render_device, render_queue);
     }
@@ -38,12 +37,26 @@ pub trait UniformsStorage<E, U: ShaderType + WriteInto + 'static> {
 }
 
 #[derive(Component)]
-pub struct DynamicUniformComponent<T>
+pub struct DynamicOffsetComponent<T>
 where
     T: ShaderType,
 {
-    pub index: u32,
-    pub component: T,
+    index: u32,
+    _marker: PhantomData<T>,
+}
+
+impl<T: ShaderType> DynamicOffsetComponent<T> {
+    pub fn new(index: u32) -> Self {
+        Self {
+            index,
+            _marker: PhantomData,
+        }
+    }
+
+    #[inline]
+    pub fn index(&self) -> u32 {
+        self.index
+    }
 }
 
 #[derive(ShaderType, Clone, Copy, Default)]
@@ -105,14 +118,14 @@ pub struct TilemapUniform {
 }
 
 #[derive(Resource, Default)]
-pub struct TilemapUniformsStorage {
+pub struct TilemapUniformBuffers {
     buffer: DynamicUniformBuffer<TilemapUniform>,
 }
 
-impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorage {
+impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
-    fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicUniformComponent<TilemapUniform> {
+    fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
         let mut atlas_uvs = [Vec4::ZERO; MAX_ATLAS_COUNT];
 
         let (texture_size, tile_render_size) = if let Some(texture) = &extracted.texture {
@@ -149,12 +162,61 @@ impl UniformsStorage<ExtractedTilemap, TilemapUniform> for TilemapUniformsStorag
 
         let index = self.buffer.push(component);
 
-        DynamicUniformComponent { index, component }
+        DynamicOffsetComponent::new(index)
     }
 
     #[inline]
     fn buffer(&mut self) -> &mut DynamicUniformBuffer<TilemapUniform> {
         &mut self.buffer
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct TilemapStorageBuffers {
+    atlas_uvs: EntityHashMap<Entity, DynamicStorageBuffer<Vec<Vec4>>>,
+    anim_seqs: EntityHashMap<Entity, DynamicStorageBuffer<Vec<TileAnimation>>>,
+}
+
+impl TilemapStorageBuffers {
+    pub fn insert_atlas_uvs(&mut self, tilemap: Entity, atlas_uvs: &Vec<TileUV>) {
+        let mut buffer = DynamicStorageBuffer::default();
+        buffer.push(atlas_uvs.iter().map(|uv| (*uv).into()).collect());
+        self.atlas_uvs.insert(tilemap, buffer);
+    }
+
+    pub fn insert_anim_seqs(&mut self, tilemap: Entity, anim_seqs: &Vec<TileAnimation>) {
+        let mut buffer = DynamicStorageBuffer::default();
+        buffer.push(anim_seqs.clone());
+        self.anim_seqs.insert(tilemap, buffer);
+    }
+
+    pub fn clear(&mut self) {
+        // self.atlas_uvs.clear();
+        // self.anim_seqs.clear();
+    }
+
+    pub fn atlas_uvs_binding(&self, tilemap: Entity) -> Option<BindingResource> {
+        self.atlas_uvs
+            .get(&tilemap)
+            .map(|buffer| buffer.binding())
+            .flatten()
+    }
+
+    pub fn anim_seqs_binding(&self, tilemap: Entity) -> Option<BindingResource> {
+        self.anim_seqs
+            .get(&tilemap)
+            .map(|buffer| buffer.binding())
+            .flatten()
+    }
+
+    pub fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
+        for buffer in self.atlas_uvs.values_mut() {
+            buffer.write_buffer(render_device, render_queue);
+        }
+
+        for buffer in self.anim_seqs.values_mut() {
+            buffer.write_buffer(render_device, render_queue);
+        }
     }
 }
 
@@ -165,7 +227,8 @@ mod test {
     #[test]
     fn test_anim_import() {
         let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2], 10.);
-        assert_eq!(anim.seq, 
+        assert_eq!(
+            anim.seq,
             [
                 UVec4::new(1, 2, 3, 4),
                 UVec4::new(5, 6, 4, 2),
@@ -178,7 +241,8 @@ mod test {
             ]
         );
         let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1], 10.);
-        assert_eq!(anim.seq, 
+        assert_eq!(
+            anim.seq,
             [
                 UVec4::new(1, 2, 3, 4),
                 UVec4::new(5, 6, 4, 2),
@@ -191,7 +255,8 @@ mod test {
             ]
         );
         let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1, 3], 10.);
-        assert_eq!(anim.seq, 
+        assert_eq!(
+            anim.seq,
             [
                 UVec4::new(1, 2, 3, 4),
                 UVec4::new(5, 6, 4, 2),
@@ -204,7 +269,8 @@ mod test {
             ]
         );
         let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1, 3, 6], 10.);
-        assert_eq!(anim.seq, 
+        assert_eq!(
+            anim.seq,
             [
                 UVec4::new(1, 2, 3, 4),
                 UVec4::new(5, 6, 4, 2),

@@ -11,13 +11,16 @@ use bevy::{
 };
 
 use crate::render::{
+    binding::{TilemapBindGroupLayouts, TilemapBindGroups},
+    buffer::{TilemapStorageBuffers, TilemapUniformBuffers},
     chunk::RenderChunkStorage,
     draw::{DrawTilemap, DrawTilemapPureColor},
     pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
-    uniform::TilemapUniformsStorage, resources::{TilemapBindGroups, TilemapBindGroupLayouts},
 };
 
+pub mod binding;
+pub mod buffer;
 pub mod chunk;
 pub mod culling;
 pub mod draw;
@@ -25,9 +28,7 @@ pub mod extract;
 pub mod pipeline;
 pub mod prepare;
 pub mod queue;
-pub mod resources;
 pub mod texture;
-pub mod uniform;
 
 const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
 const ISO_DIAMOND: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
@@ -44,9 +45,7 @@ pub const TILEMAP_MESH_ATTR_ATLAS_INDICES: MeshVertexAttribute =
 pub struct EntiTilesRendererPlugin;
 
 impl Plugin for EntiTilesRendererPlugin {
-    fn build(&self, _app: &mut bevy::prelude::App) {}
-
-    fn finish(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut bevy::prelude::App) {
         load_internal_asset!(app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
         load_internal_asset!(
             app,
@@ -83,14 +82,21 @@ impl Plugin for EntiTilesRendererPlugin {
         render_app
             .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapUniformsStorage>()
-            .init_resource::<TilemapBindGroupLayouts>()
-            .init_resource::<EntiTilesPipeline>()
-            .init_resource::<TilemapBindGroups>()
-            .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
+            .init_resource::<TilemapUniformBuffers>()
+            .init_resource::<TilemapStorageBuffers>()
+            .init_resource::<TilemapBindGroups>();
 
         render_app
             .add_render_command::<Transparent2d, DrawTilemap>()
             .add_render_command::<Transparent2d, DrawTilemapPureColor>();
+    }
+
+    fn finish(&self, app: &mut bevy::prelude::App) {
+        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
+
+        render_app
+            .init_resource::<TilemapBindGroupLayouts>()
+            .init_resource::<EntiTilesPipeline>()
+            .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
     }
 }

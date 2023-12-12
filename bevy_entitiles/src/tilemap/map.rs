@@ -6,7 +6,7 @@ use bevy::{
 
 use crate::{
     math::{aabb::AabbBox2d, FillArea},
-    render::{texture::TilemapTexture, uniform::TileAnimation},
+    render::{texture::TilemapTexture, buffer::TileAnimation},
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 

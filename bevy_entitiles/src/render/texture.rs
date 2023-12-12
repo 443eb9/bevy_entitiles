@@ -4,7 +4,7 @@ use bevy::{
         query::With,
         system::{Commands, Query, ResMut, Resource},
     },
-    math::Vec2,
+    math::{Vec2, Vec4},
     prelude::{Image, UVec2},
     render::{
         render_resource::{FilterMode, Sampler, ShaderType},
@@ -82,6 +82,12 @@ impl From<(u32, u32, u32, u32)> for TileUV {
                 y: value.3 as f32,
             },
         }
+    }
+}
+
+impl Into<Vec4> for TileUV {
+    fn into(self) -> Vec4 {
+        Vec4::new(self.min.x, self.min.y, self.max.x, self.max.y)
     }
 }
 

@@ -17,25 +17,26 @@ use bevy::{
 };
 
 use super::{
+    binding::TilemapBindGroups,
+    buffer::{DynamicOffsetComponent, TilemapUniform},
     chunk::RenderChunkStorage,
     extract::ExtractedTilemap,
     queue::TileViewBindGroup,
-    resources::TilemapBindGroups,
-    uniform::{DynamicUniformComponent, TilemapUniform},
 };
 
 pub type DrawTilemap = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
-    SetTilemapUniformBindGroup<1>,
-    SetTilemapColorTextureBindGroup<2>,
+    SetTilemapUniformBufferBindGroup<1>,
+    SetTilemapStorageBufferBindGroup<2>,
+    SetTilemapColorTextureBindGroup<3>,
     DrawTileMesh,
 );
 
 pub type DrawTilemapPureColor = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
-    SetTilemapUniformBindGroup<1>,
+    SetTilemapUniformBufferBindGroup<1>,
     DrawTileMesh,
 );
 
@@ -89,15 +90,15 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I>
     }
 }
 
-pub struct SetTilemapUniformBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBindGroup<I> {
+pub struct SetTilemapUniformBufferBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBufferBindGroup<I> {
     type Param = SRes<TilemapBindGroups>;
 
     type ViewWorldQuery = ();
 
     type ItemWorldQuery = (
         Read<ExtractedTilemap>,
-        Read<DynamicUniformComponent<TilemapUniform>>,
+        Read<DynamicOffsetComponent<TilemapUniform>>,
     );
 
     #[inline]
@@ -108,13 +109,45 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBindGroup
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(tilemap_uniform_bind_group) =
-            bind_groups.into_inner().tilemap_uniforms.get(&tilemap.id)
+        if let Some(tilemap_uniform_bind_group) = bind_groups
+            .into_inner()
+            .tilemap_uniform_buffers
+            .get(&tilemap.id)
         {
-            pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index]);
+            pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index()]);
             RenderCommandResult::Success
         } else {
             error!("Failed to get tilemap uniform bind group!");
+            RenderCommandResult::Failure
+        }
+    }
+}
+
+pub struct SetTilemapStorageBufferBindGroup<const I: usize>;
+impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapStorageBufferBindGroup<I> {
+    type Param = SRes<TilemapBindGroups>;
+
+    type ViewWorldQuery = ();
+
+    type ItemWorldQuery = Read<ExtractedTilemap>;
+
+    #[inline]
+    fn render<'w>(
+        _item: &Transparent2d,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        tilemap: ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        if let Some(bind_group) = bind_groups
+            .into_inner()
+            .tilemap_storage_buffers
+            .get(&tilemap.id)
+        {
+            pass.set_bind_group(I, bind_group, &[]);
+            RenderCommandResult::Success
+        } else {
+            error!("Failed to get tilemap storage bind group!");
             RenderCommandResult::Failure
         }
     }

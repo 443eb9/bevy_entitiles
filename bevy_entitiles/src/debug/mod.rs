@@ -5,7 +5,7 @@ use bevy::{
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::{extract::ExtractedTilemap, texture::TilemapTexture, uniform::TileAnimation},
+    render::{extract::ExtractedTilemap, texture::TilemapTexture, buffer::TileAnimation},
     tilemap::{map::Tilemap, tile::TileType},
     MAX_ANIM_COUNT,
 };

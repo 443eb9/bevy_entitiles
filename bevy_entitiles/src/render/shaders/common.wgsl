@@ -31,6 +31,7 @@ struct VertexInput {
     @location(1) index: vec4<f32>,
     @location(2) color: vec4<f32>,
     @location(3) atlas_indices: vec4<i32>,
+    // @location(4) tileset_indices: vec4<i32>,
 }
 
 #endif // PURE_COLOR
@@ -81,8 +82,14 @@ var<uniform> tilemap: Tilemap;
 
 #ifndef PURE_COLOR
 @group(2) @binding(0)
-var color_texture: texture_2d<f32>;
+var<storage> atlas_uvs: array<vec4<f32>>;
 
 @group(2) @binding(1)
+var<storage> anim_seqs: array<TileAnimation>;
+
+@group(3) @binding(0)
+var color_texture: texture_2d<f32>;
+
+@group(3) @binding(1)
 var color_texture_sampler: sampler;
 #endif

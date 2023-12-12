@@ -19,7 +19,7 @@ use crate::{
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
-use super::{texture::TilemapTexture, uniform::TileAnimation};
+use super::{texture::TilemapTexture, buffer::TileAnimation};
 
 #[derive(Component)]
 pub struct ExtractedTilemap {
