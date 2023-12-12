@@ -7,7 +7,7 @@ use bevy::{
 use crate::{
     math::{aabb::AabbBox2d, FillArea},
     render::{texture::TilemapTexture, uniform::TileAnimation},
-    MAX_ANIM_COUNT,
+    MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
 use super::{
@@ -225,7 +225,10 @@ impl Tilemap {
         layer: usize,
         texture_index: Option<u32>,
     ) {
-        if self.is_out_of_tilemap_uvec(index) || self.get(index).is_none() {
+        if self.is_out_of_tilemap_uvec(index)
+            || self.get(index).is_none()
+            || layer >= MAX_LAYER_COUNT
+        {
             return;
         }
 

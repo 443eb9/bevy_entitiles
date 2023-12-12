@@ -58,6 +58,8 @@ struct TileAnimation {
     fps: f32,
 }
 
+// TODO move the anim seqs and atlas uvs to a separate buffer
+//      and use runtime sized arrays
 struct Tilemap {
     translation: vec2<f32>,
     // when the tilemap is a uniform one,

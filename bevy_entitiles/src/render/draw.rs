@@ -1,9 +1,16 @@
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
-    ecs::system::lifetimeless::{Read, SRes},
+    ecs::{
+        query::ROQueryItem,
+        system::{
+            lifetimeless::{Read, SRes},
+            SystemParamItem,
+        },
+    },
+    log::error,
     render::{
         mesh::GpuBufferInfo,
-        render_phase::{RenderCommand, RenderCommandResult},
+        render_phase::{RenderCommand, RenderCommandResult, TrackedRenderPass},
         render_resource::PipelineCache,
         view::ViewUniformOffset,
     },
@@ -13,7 +20,8 @@ use super::{
     chunk::RenderChunkStorage,
     extract::ExtractedTilemap,
     queue::TileViewBindGroup,
-    uniform::{DynamicUniformComponent, TilemapUniform}, resources::TilemapBindGroups,
+    resources::TilemapBindGroups,
+    uniform::{DynamicUniformComponent, TilemapUniform},
 };
 
 pub type DrawTilemap = (
@@ -42,10 +50,10 @@ impl RenderCommand<Transparent2d> for SetPipeline {
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
-        pipeline_cache: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        pipeline_cache: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let pipeline_cache = pipeline_cache.into_inner();
         if let Some(pipeline) = pipeline_cache.get_render_pipeline(item.pipeline) {
@@ -53,7 +61,7 @@ impl RenderCommand<Transparent2d> for SetPipeline {
             RenderCommandResult::Success
         } else {
             pipeline_cache.get_render_pipeline_state(item.pipeline);
-            println!("Failed to get render pipeline!");
+            error!("Failed to get render pipeline!");
             panic!();
         }
     }
@@ -67,15 +75,13 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I>
 
     type ItemWorldQuery = ();
 
+    #[inline]
     fn render<'w>(
         _item: &Transparent2d,
-        (view_uniform_offset, view_bind_group): bevy::ecs::query::ROQueryItem<
-            'w,
-            Self::ViewWorldQuery,
-        >,
-        _entity: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
-        _param: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+        (view_uniform_offset, view_bind_group): ROQueryItem<'w, Self::ViewWorldQuery>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _param: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         pass.set_bind_group(I, &view_bind_group.value, &[view_uniform_offset.offset]);
 
@@ -94,22 +100,21 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBindGroup
         Read<DynamicUniformComponent<TilemapUniform>>,
     );
 
+    #[inline]
     fn render<'w>(
         _item: &Transparent2d,
-        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
-        (tilemap, uniform_data): bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
-        bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        (tilemap, uniform_data): ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(tilemap_uniform_bind_group) = bind_groups
-            .into_inner()
-            .tilemap_uniforms
-            .get(&tilemap.id)
+        if let Some(tilemap_uniform_bind_group) =
+            bind_groups.into_inner().tilemap_uniforms.get(&tilemap.id)
         {
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index]);
             RenderCommandResult::Success
         } else {
-            println!("Failed to get tilemap uniform bind group!");
+            error!("Failed to get tilemap uniform bind group!");
             RenderCommandResult::Failure
         }
     }
@@ -126,24 +131,22 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBind
     #[inline]
     fn render<'w>(
         _item: &Transparent2d,
-        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
-        tilemap: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
-        bind_groups: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        tilemap: ROQueryItem<'w, Self::ItemWorldQuery>,
+        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(texture) = &tilemap.texture {
-            pass.set_bind_group(
-                I,
-                bind_groups
-                    .into_inner()
-                    .colored_textures
-                    .get(texture.handle())
-                    .unwrap(),
-                &[],
-            );
+        if let Some(bind_group) = &bind_groups
+            .into_inner()
+            .colored_textures
+            .get(tilemap.texture.as_ref().unwrap().handle())
+        {
+            pass.set_bind_group(I, bind_group, &[]);
+            RenderCommandResult::Success
+        } else {
+            error!("Filed to get color texture bind group!");
+            RenderCommandResult::Failure
         }
-
-        RenderCommandResult::Success
     }
 }
 
@@ -155,14 +158,16 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
 
     type ItemWorldQuery = Read<ExtractedTilemap>;
 
+    #[inline]
     fn render<'w>(
         _item: &Transparent2d,
-        _view: bevy::ecs::query::ROQueryItem<'w, Self::ViewWorldQuery>,
-        tilemap: bevy::ecs::query::ROQueryItem<'w, Self::ItemWorldQuery>,
-        render_chunks: bevy::ecs::system::SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut bevy::render::render_phase::TrackedRenderPass<'w>,
+        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
+        tilemap: ROQueryItem<'w, Self::ItemWorldQuery>,
+        render_chunks: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let Some(chunks) = render_chunks.into_inner().get_chunks(tilemap.id) {
+            // iterate reversed to draw the chunks in y order
             for chunk in chunks.iter().rev() {
                 let Some(c) = chunk else {
                     continue;

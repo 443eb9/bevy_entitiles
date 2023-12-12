@@ -3,9 +3,9 @@ use bevy::{
     ecs::{entity::Entity, system::Resource, world::FromWorld},
     render::{
         render_resource::{
-            BindGroup, BindGroupLayout, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-            BindingType, BufferBindingType, SamplerBindingType, ShaderStages, ShaderType,
-            TextureSampleType, TextureViewDimension,
+            BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
+            BindGroupLayoutEntry, BindingResource, BindingType, BufferBindingType,
+            SamplerBindingType, ShaderStages, ShaderType, TextureSampleType, TextureViewDimension,
         },
         renderer::RenderDevice,
         texture::Image,
@@ -14,12 +14,84 @@ use bevy::{
     utils::{EntityHashMap, HashMap},
 };
 
-use super::uniform::TilemapUniform;
+use super::{
+    extract::ExtractedTilemap,
+    pipeline::EntiTilesPipeline,
+    texture::TilemapTexturesStorage,
+    uniform::{TilemapUniform, TilemapUniformsStorage, UniformsStorage},
+};
 
 #[derive(Resource, Default)]
 pub struct TilemapBindGroups {
     pub tilemap_uniforms: EntityHashMap<Entity, BindGroup>,
     pub colored_textures: HashMap<Handle<Image>, BindGroup>,
+}
+
+impl TilemapBindGroups {
+    pub fn queue_uniforms(
+        &mut self,
+        tilemap: &ExtractedTilemap,
+        render_device: &RenderDevice,
+        tilemap_uniform_storage: &mut TilemapUniformsStorage,
+        entitile_pipeline: &EntiTilesPipeline,
+    ) {
+        if self.tilemap_uniforms.get(&tilemap.id).is_none() {
+            let Some(resource) = tilemap_uniform_storage.binding() else {
+                return;
+            };
+
+            self.tilemap_uniforms.insert(
+                tilemap.id,
+                render_device.create_bind_group(
+                    Some("tilemap_uniform_bind_group"),
+                    &entitile_pipeline.tilemap_uniform_layout,
+                    &[BindGroupEntry {
+                        binding: 0,
+                        resource,
+                    }],
+                ),
+            );
+        }
+    }
+
+    /// Returns (is_pure_color, is_uniform)
+    pub fn queue_textures(
+        &mut self,
+        tilemap: &ExtractedTilemap,
+        render_device: &RenderDevice,
+        textures_storage: &TilemapTexturesStorage,
+        entitile_pipeline: &EntiTilesPipeline,
+    ) -> (bool, bool) {
+        if let Some(tilemap_texture) = &tilemap.texture {
+            let Some(texture) = textures_storage.get(tilemap_texture.handle()) else {
+                return (true, true);
+            };
+
+            if !self.colored_textures.contains_key(tilemap_texture.handle()) {
+                self.colored_textures.insert(
+                    tilemap_texture.clone_weak(),
+                    render_device.create_bind_group(
+                        Some("color_texture_bind_group"),
+                        &entitile_pipeline.color_texture_layout,
+                        &[
+                            BindGroupEntry {
+                                binding: 0,
+                                resource: BindingResource::TextureView(&texture.texture_view),
+                            },
+                            BindGroupEntry {
+                                binding: 1,
+                                resource: BindingResource::Sampler(&texture.sampler),
+                            },
+                        ],
+                    ),
+                );
+            }
+
+            (false, tilemap_texture.desc().is_uniform)
+        } else {
+            (true, true)
+        }
+    }
 }
 
 #[derive(Resource)]

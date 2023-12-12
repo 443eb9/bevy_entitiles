@@ -3,9 +3,7 @@ use bevy::{
     prelude::{Commands, Component, Entity, Msaa, Query, Res, ResMut},
     render::{
         render_phase::{DrawFunctions, RenderPhase},
-        render_resource::{
-            BindGroup, BindGroupEntry, BindingResource, PipelineCache, SpecializedRenderPipelines,
-        },
+        render_resource::{BindGroup, BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
         renderer::RenderDevice,
         view::ViewUniforms,
     },
@@ -18,7 +16,7 @@ use super::{
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     resources::TilemapBindGroups,
     texture::TilemapTexturesStorage,
-    uniform::{TilemapUniformsStorage, UniformsStorage},
+    uniform::TilemapUniformsStorage,
 };
 
 #[derive(Component)]
@@ -39,7 +37,7 @@ pub fn queue(
     mut bind_groups: ResMut<TilemapBindGroups>,
     textures_storage: Res<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    mut tilemap_uniform_strorage: ResMut<TilemapUniformsStorage>,
+    mut tilemap_uniform_storage: ResMut<TilemapUniformsStorage>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -60,60 +58,20 @@ pub fn queue(
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
         tilemaps.sort_by(|lhs, rhs| lhs.1.z_order.cmp(&rhs.1.z_order));
 
-        let mut is_pure_color;
-        let mut is_uniform;
-
         for (entity, tilemap) in tilemaps_query.iter() {
-            if let Some(tilemap_uniform_binding) = tilemap_uniform_strorage.binding() {
-                let tilemap_uniform_bind_group = render_device.create_bind_group(
-                    Some("tilemap_uniform_bind_group"),
-                    &entitile_pipeline.tilemap_uniform_layout,
-                    &[BindGroupEntry {
-                        binding: 0,
-                        resource: tilemap_uniform_binding,
-                    }],
-                );
+            bind_groups.queue_uniforms(
+                &tilemap,
+                &render_device,
+                &mut tilemap_uniform_storage,
+                &entitile_pipeline,
+            );
 
-                bind_groups
-                    .tilemap_uniforms
-                    .insert(tilemap.id, tilemap_uniform_bind_group);
-            }
-
-            if let Some(tilemap_texture) = &tilemap.texture {
-                let Some(texture) = textures_storage.get(tilemap_texture.handle()) else {
-                    continue;
-                };
-
-                if !bind_groups
-                    .colored_textures
-                    .contains_key(tilemap_texture.handle())
-                {
-                    let bind_group = render_device.create_bind_group(
-                        Some("color_texture_bind_group"),
-                        &entitile_pipeline.color_texture_layout,
-                        &[
-                            BindGroupEntry {
-                                binding: 0,
-                                resource: BindingResource::TextureView(&texture.texture_view),
-                            },
-                            BindGroupEntry {
-                                binding: 1,
-                                resource: BindingResource::Sampler(&texture.sampler),
-                            },
-                        ],
-                    );
-
-                    bind_groups
-                        .colored_textures
-                        .insert(tilemap_texture.clone_weak(), bind_group);
-                }
-
-                is_pure_color = false;
-                is_uniform = tilemap_texture.desc().is_uniform;
-            } else {
-                is_pure_color = true;
-                is_uniform = true;
-            }
+            let (is_pure_color, is_uniform) = bind_groups.queue_textures(
+                &tilemap,
+                &render_device,
+                &textures_storage,
+                &entitile_pipeline,
+            );
 
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
