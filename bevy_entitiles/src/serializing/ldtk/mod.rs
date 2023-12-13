@@ -5,19 +5,15 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        reflect::AppTypeRegistry,
         system::{Commands, ParallelCommands, Query, Res},
     },
     math::{UVec2, Vec2, Vec4},
-    reflect::{
-        serde::{ReflectSerializer, UntypedReflectDeserializer},
-        DynamicStruct, Reflect, StructInfo, TypeInfo,
-    },
     render::render_resource::FilterMode,
+    sprite::{Sprite, SpriteBundle},
+    transform::components::Transform,
 };
 
 use crate::{
-    math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         layer::update_tile_builder_layer,
@@ -27,12 +23,16 @@ use crate::{
     MAX_LAYER_COUNT,
 };
 
-use self::json::{
-    definitions::{LayerType, TilesetDef},
-    level::{FieldValue, LayerInstance, TileInstance},
-    LdtkColor, LdtkJson, WorldLayout,
+use self::{
+    entity::LdtkEntityIdentMapper,
+    json::{
+        definitions::{LayerType, TilesetDef},
+        level::{LayerInstance, TileInstance},
+        LdtkJson, WorldLayout,
+    },
 };
 
+pub mod app_ext;
 pub mod entity;
 pub mod r#enum;
 pub mod json;
@@ -42,6 +42,7 @@ pub struct LdtkLoader {
     pub path: String,
     pub asset_path_prefix: String,
     pub tilemap_name: String,
+    pub level: Option<u32>,
     pub level_spacing: Option<i32>,
     pub at_depth: i32,
     pub scale: f32,
@@ -53,7 +54,6 @@ pub fn load_ldtk_json(
     commands: ParallelCommands,
     mut loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
-    type_registry: Res<AppTypeRegistry>,
 ) {
     loader_query.par_iter_mut().for_each(|(entity, loader)| {
         let path = std::env::current_dir().unwrap().join(&loader.path);
@@ -68,13 +68,7 @@ pub fn load_ldtk_json(
         };
 
         commands.command_scope(|mut cmd| {
-            load_ldtk(
-                &mut ldtk_data,
-                loader,
-                &asset_server,
-                &mut cmd,
-                &type_registry,
-            );
+            load_ldtk(&mut ldtk_data, loader, &asset_server, &mut cmd);
             cmd.entity(entity).despawn();
         });
     });
@@ -83,9 +77,8 @@ pub fn load_ldtk_json(
 fn load_ldtk(
     ldtk_data: &mut LdtkJson,
     loader: &LdtkLoader,
-    asset_server: &Res<AssetServer>,
+    asset_server: &AssetServer,
     commands: &mut Commands,
-    type_registry: &Res<AppTypeRegistry>,
 ) {
     // texture
     // assert_eq!(
@@ -94,36 +87,35 @@ fn load_ldtk(
     //     "Multiple tilesets are not supported yet"
     // );
     let tileset = &ldtk_data.defs.tilesets[0];
-    let texture = load_texture(tileset, &loader, &asset_server);
+    let texture = load_texture(tileset, &loader, asset_server);
 
     // level
     for (level_index, level) in ldtk_data.levels.iter().enumerate() {
-        if level.world_depth != loader.at_depth {
-            continue;
-        }
+        // if level.world_depth != loader.at_depth
+        //     || loader.level.is_some() && loader.level.unwrap() != level_index as u32
+        // {
+        //     continue;
+        // }
 
         let translation = get_level_translation(&ldtk_data, loader, level_index);
 
-        // background map
         let level_grid_size = UVec2 {
             x: (level.px_wid / tileset.tile_grid_size) as u32,
             y: (level.px_hei / tileset.tile_grid_size) as u32,
         };
+        let level_render_size = level_grid_size.as_vec2() * tileset.tile_grid_size as f32;
 
-        let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
-            TileType::Square,
-            level_grid_size,
-            tileset.tile_grid_size as f32 * loader.scale * Vec2::ONE,
-            loader.tilemap_name.clone(),
-        )
-        .with_translation(translation)
-        .build(commands);
-        tilemap.fill_rect(
-            commands,
-            FillArea::full(&tilemap),
-            &TileBuilder::new().with_color(level.bg_color.into()),
-        );
-        commands.entity(tilemap_entity).insert(tilemap);
+        commands.spawn(SpriteBundle {
+            sprite: Sprite {
+                color: level.bg_color.into(),
+                custom_size: Some(level_render_size),
+                ..Default::default()
+            },
+            transform: Transform::from_translation(
+                (translation + level_render_size / 2.).extend(loader.z_order as f32 - 1.),
+            ),
+            ..Default::default()
+        });
 
         let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
             TileType::Square,
@@ -139,15 +131,9 @@ fn load_ldtk(
         let mut layer_grid = Layer::new(level_grid_size);
         let mut render_layer_index = MAX_LAYER_COUNT - 1;
         for layer in level.layer_instances.iter() {
-            load_layer(
-                render_layer_index,
-                layer,
-                &mut layer_grid,
-                type_registry,
-                &mut tilemap,
-            );
+            load_layer(render_layer_index, layer, &mut layer_grid, &mut tilemap);
             if layer.ty != LayerType::Entities {
-                render_layer_index -= 1;
+                render_layer_index += 1;
             }
         }
 
@@ -160,10 +146,10 @@ fn load_ldtk(
 fn load_texture(
     tileset: &TilesetDef,
     loader: &LdtkLoader,
-    asset_server: &Res<AssetServer>,
+    asset_server: &AssetServer,
 ) -> TilemapTexture {
     let texture = asset_server.load(format!(
-        "{}/{}",
+        "{}{}",
         loader.asset_path_prefix,
         tileset.rel_path.clone().unwrap()
     ));
@@ -201,6 +187,10 @@ impl Layer {
         ldtk_tile: &TileInstance,
         tilemap: &mut Tilemap,
     ) {
+        if ldtk_tile.px[0] < 0 || ldtk_tile.px[1] < 0 {
+            return;
+        }
+
         let index = self.linear_index(UVec2 {
             x: (ldtk_tile.px[0] / ldtk_layer.grid_size) as u32,
             // the y axis is flipped in ldtk
@@ -231,57 +221,17 @@ fn load_layer(
     layer_index: usize,
     layer: &LayerInstance,
     layer_grid: &mut Layer,
-    type_registry: &Res<AppTypeRegistry>,
     tilemap: &mut Tilemap,
 ) {
-    println!("{}: {}", layer.identifier, layer_index);
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
-                if tile.px[0] < 0 || tile.px[1] < 0 {
-                    continue;
-                }
-
                 layer_grid.update(layer_index, layer, tile, tilemap);
             }
         }
-        LayerType::Entities => {
-            for entity in layer.entity_instances.iter() {
-                let mut e = DynamicStruct::default();
-                for field in entity.field_instances.iter() {
-                    if let Some(value) = field.value.clone() {
-                        match value {
-                            FieldValue::Integer(v) => e.insert(&field.identifier, v),
-                            FieldValue::Float(v) => e.insert(&field.identifier, v),
-                            FieldValue::Bool(v) => e.insert(&field.identifier, v),
-                            FieldValue::String(v) => e.insert(&field.identifier, v),
-                            FieldValue::LocalEnum(v) => e.insert(&field.identifier, v),
-                            FieldValue::ExternEnum(v) => e.insert(&field.identifier, v),
-                            FieldValue::Color(v) => e.insert(&field.identifier, v),
-                            FieldValue::Point(v) => e.insert(&field.identifier, v),
-                            FieldValue::EntityRef(v) => e.insert(&field.identifier, v),
-                            FieldValue::IntegerArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::FloatArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::BoolArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::StringArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::LocalEnumArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::ExternEnumArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::ColorArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::PointArray(v) => e.insert(&field.identifier, v),
-                            FieldValue::EntityRefArray(v) => e.insert(&field.identifier, v),
-                        }
-                    }
-                }
-
-                // TODO Spawn entity
-            }
-        }
+        LayerType::Entities => for entity in layer.entity_instances.iter() {},
         LayerType::Tiles => {
             for tile in layer.grid_tiles.iter() {
-                if tile.px[0] < 0 || tile.px[1] < 0 {
-                    continue;
-                }
-
                 layer_grid.update(layer_index, layer, tile, tilemap);
             }
         }

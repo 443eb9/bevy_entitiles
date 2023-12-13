@@ -117,10 +117,11 @@ Video at `docs/vids/wfc.mp4`
 
 *\*The layer here is not the same as you see in LDtk, it's the rendered tilemap layer, which does not include the entity layer*
 
-## Special Thanks
+## Special Thanks & References
 
 - SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
-- [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap). I took this crate as the reference and learnt the basis of bevy rendering.
+- [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) I took this crate as the reference and learnt the basis of bevy rendering!
+- [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk) I was confused and have no idea about how to instantiate LDtk entities before I read this crate! I learnt proc macros and many other things from this crate!
 
 ## Versions
 

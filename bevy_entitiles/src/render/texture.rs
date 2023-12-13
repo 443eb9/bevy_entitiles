@@ -124,7 +124,7 @@ impl TilemapTexturesStorage {
 
         for (image_handle, desc) in to_queue.iter() {
             let Some(raw_gpu_image) = render_images.get(image_handle) else {
-                self.prepare_queue
+                self.queue_queue
                     .insert(image_handle.clone_weak(), desc.clone());
                 continue;
             };

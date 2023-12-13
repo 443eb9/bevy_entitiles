@@ -13,7 +13,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    serializing::ldtk::{json::level::EntityInstance, LdtkLoader},
+    serializing::ldtk::{json::level::EntityInstance, LdtkLoader, entity::LdtkEntity},
     tilemap::map::Tilemap,
     EntiTilesPlugin,
 };
@@ -47,9 +47,10 @@ fn load(
 
         commands.spawn(LdtkLoader {
             path: "assets/ldtk/grid_vania.ldtk".to_string(),
-            asset_path_prefix: "ldtk".to_string(),
+            asset_path_prefix: "ldtk/".to_string(),
             at_depth: 0,
             filter_mode: FilterMode::Nearest,
+            level: Some(0),
             level_spacing: Some(30),
             tilemap_name: "ldtk".to_string(),
             scale: 1.,
@@ -58,39 +59,30 @@ fn load(
     }
 }
 
-// #[derive(Reflect)]
-// pub enum ItemType {
-//     Meat,
-//     Gold,
-//     GoldNuggets,
-//     Gem,
-//     GreenGem,
-//     HealingPotion,
-//     Spell,
-//     Armor,
-//     Bow,
-//     Ammo,
-//     FireBlade,
-//     VorpalBlade,
-// }
+pub enum ItemType {
+    Meat,
+    Gold,
+    GoldNuggets,
+    Gem,
+    GreenGem,
+    HealingPotion,
+    Spell,
+    Armor,
+    Bow,
+    Ammo,
+    FireBlade,
+    VorpalBlade,
+}
 
-// #[derive(Component, Reflect, Default)]
-// pub struct Player {
-//     pub inventory: Vec<ItemType>,
-//     pub hp: i32,
-// }
+#[derive(Component, Default)]
+pub struct Player {
+    pub inventory: Vec<ItemType>,
+    pub hp: i32,
+}
 
-// impl LdtkEntity for Player {
-//     fn spawn(data: &EntityInstance, dyn_struct: &mut DynamicStruct) -> Self {
-//         let mut s = Self::default();
-//         dyn_struct.apply(&mut s);
-//         s
-//     }
-// }
-
-// #[derive(Component, Reflect)]
-// pub struct Item {
-//     pub ty: ItemType,
-//     pub price: i32,
-//     pub count: i32,
-// }
+#[derive(Component)]
+pub struct Item {
+    pub ty: ItemType,
+    pub price: i32,
+    pub count: i32,
+}

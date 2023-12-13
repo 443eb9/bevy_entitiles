@@ -123,6 +123,7 @@ pub struct TilemapUniformBuffers {
 impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
+    #[inline]
     fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
         let component = TilemapUniform {
             translation: extracted.translation,
@@ -133,10 +134,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
             layer_opacities: extracted.layer_opacities,
             time: extracted.time,
         };
-
-        let index = self.buffer.push(component);
-
-        DynamicOffsetComponent::new(index)
+        DynamicOffsetComponent::new(self.buffer.push(component))
     }
 
     #[inline]

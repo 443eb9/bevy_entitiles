@@ -1,4 +1,4 @@
-use bevy::{math::Vec4, reflect::Reflect};
+use bevy::{math::Vec4, reflect::Reflect, render::color::Color};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use self::{
@@ -23,6 +23,12 @@ impl From<String> for LdtkColor {
         let g = u8::from_str_radix(&value[3..5], 16).unwrap() as f32 / 255.;
         let b = u8::from_str_radix(&value[5..7], 16).unwrap() as f32 / 255.;
         Self { r, g, b }
+    }
+}
+
+impl Into<Color> for LdtkColor {
+    fn into(self) -> Color {
+        Color::rgb(self.r, self.g, self.b)
     }
 }
 
