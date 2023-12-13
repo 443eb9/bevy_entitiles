@@ -14,7 +14,7 @@ use bevy::{
 
 use super::{
     binding::TilemapBindGroups,
-    buffer::{TilemapStorageBuffers, TilemapUniformBuffers},
+    buffer::TilemapUniformBuffers,
     draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
@@ -40,7 +40,7 @@ pub fn queue(
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     mut uniform_buffers: ResMut<TilemapUniformBuffers>,
-    mut storage_buffers: ResMut<TilemapStorageBuffers>,
+    // mut storage_buffers: ResMut<TilemapStorageBuffers>,
     render_queue: Res<RenderQueue>,
     render_images: Res<RenderAssets<Image>>,
 ) {
@@ -73,12 +73,12 @@ pub fn queue(
                 &entitile_pipeline,
             );
 
-            bind_groups.queue_storage_buffers(
-                tilemap,
-                &render_device,
-                &mut storage_buffers,
-                &entitile_pipeline,
-            );
+            // bind_groups.queue_storage_buffers(
+            //     tilemap,
+            //     &render_device,
+            //     &mut storage_buffers,
+            //     &entitile_pipeline,
+            // );
 
             let is_pure_color = bind_groups.queue_textures(
                 &tilemap,

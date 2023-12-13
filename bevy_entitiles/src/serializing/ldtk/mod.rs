@@ -8,7 +8,7 @@ use bevy::{
         reflect::AppTypeRegistry,
         system::{Commands, ParallelCommands, Query, Res},
     },
-    math::{UVec2, Vec2},
+    math::{UVec2, Vec2, Vec4},
     reflect::{
         serde::{ReflectSerializer, UntypedReflectDeserializer},
         DynamicStruct, Reflect, StructInfo, TypeInfo,
@@ -21,14 +21,15 @@ use crate::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         layer::update_tile_builder_layer,
-        map::TilemapBuilder,
+        map::{Tilemap, TilemapBuilder},
         tile::{TileBuilder, TileType},
     },
+    MAX_LAYER_COUNT,
 };
 
 use self::json::{
     definitions::{LayerType, TilesetDef},
-    level::{FieldValue, LayerInstance},
+    level::{FieldValue, LayerInstance, TileInstance},
     LdtkColor, LdtkJson, WorldLayout,
 };
 
@@ -120,14 +121,9 @@ fn load_ldtk(
         tilemap.fill_rect(
             commands,
             FillArea::full(&tilemap),
-            &TileBuilder::new(0).with_color(level.bg_color.into()),
+            &TileBuilder::new().with_color(level.bg_color.into()),
         );
         commands.entity(tilemap_entity).insert(tilemap);
-
-        let mut layer_grid = Layer::new(level_grid_size);
-        for (i, layer) in level.layer_instances.iter().enumerate() {
-            load_layer(i, layer, &mut layer_grid, type_registry);
-        }
 
         let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
             TileType::Square,
@@ -139,6 +135,21 @@ fn load_ldtk(
         .with_texture(texture.clone())
         .with_z_order(loader.z_order)
         .build(commands);
+
+        let mut layer_grid = Layer::new(level_grid_size);
+        let mut render_layer_index = MAX_LAYER_COUNT - 1;
+        for layer in level.layer_instances.iter() {
+            load_layer(
+                render_layer_index,
+                layer,
+                &mut layer_grid,
+                type_registry,
+                &mut tilemap,
+            );
+            if layer.ty != LayerType::Entities {
+                render_layer_index -= 1;
+            }
+        }
 
         tilemap.set_all(commands, &layer_grid.tiles);
 
@@ -183,16 +194,31 @@ impl Layer {
         }
     }
 
-    pub fn update(&mut self, index: UVec2, layer: usize, texture_index: u32) {
-        let index = self.linear_index(index);
+    pub fn update(
+        &mut self,
+        layer_index: usize,
+        ldtk_layer: &LayerInstance,
+        ldtk_tile: &TileInstance,
+        tilemap: &mut Tilemap,
+    ) {
+        let index = self.linear_index(UVec2 {
+            x: (ldtk_tile.px[0] / ldtk_layer.grid_size) as u32,
+            // the y axis is flipped in ldtk
+            y: (ldtk_layer.c_hei - ldtk_tile.px[1] / ldtk_layer.grid_size - 1) as u32,
+        });
         if index >= self.tiles.len() {
             return;
         }
 
         if let Some(tile) = self.tiles[index].as_mut() {
-            update_tile_builder_layer(tile, layer, texture_index);
+            update_tile_builder_layer(tile, layer_index, ldtk_tile.tile_id as u32);
         } else {
-            self.tiles[index] = Some(TileBuilder::new(texture_index));
+            let mut builder = TileBuilder::new()
+                .with_layer(layer_index, ldtk_tile.tile_id as u32)
+                .with_color(Vec4::new(1., 1., 1., ldtk_tile.alpha));
+            builder.flip = ldtk_tile.flip as u32;
+            tilemap.set_layer_opacity(layer_index, ldtk_layer.opacity);
+            self.tiles[index] = Some(builder);
         }
     }
 
@@ -206,7 +232,9 @@ fn load_layer(
     layer: &LayerInstance,
     layer_grid: &mut Layer,
     type_registry: &Res<AppTypeRegistry>,
+    tilemap: &mut Tilemap,
 ) {
+    println!("{}: {}", layer.identifier, layer_index);
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
@@ -214,15 +242,7 @@ fn load_layer(
                     continue;
                 }
 
-                layer_grid.update(
-                    UVec2 {
-                        x: (tile.px[0] / layer.grid_size) as u32,
-                        // the y axis is flipped in ldtk
-                        y: (layer.c_hei - tile.px[1] / layer.grid_size - 1) as u32,
-                    },
-                    layer_index,
-                    tile.tile_id as u32,
-                );
+                layer_grid.update(layer_index, layer, tile, tilemap);
             }
         }
         LayerType::Entities => {
@@ -262,15 +282,7 @@ fn load_layer(
                     continue;
                 }
 
-                layer_grid.update(
-                    UVec2 {
-                        x: (tile.px[0] / layer.grid_size) as u32,
-                        // the y axis is flipped in ldtk
-                        y: (layer.c_hei - tile.px[1] / layer.grid_size - 1) as u32,
-                    },
-                    layer_index,
-                    tile.tile_id as u32,
-                );
+                layer_grid.update(layer_index, layer, tile, tilemap);
             }
         }
     }

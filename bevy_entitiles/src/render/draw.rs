@@ -28,8 +28,8 @@ pub type DrawTilemap = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
     SetTilemapUniformBufferBindGroup<1>,
-    SetTilemapStorageBufferBindGroup<2>,
-    SetTilemapColorTextureBindGroup<3>,
+    // SetTilemapStorageBufferBindGroup<2>,
+    SetTilemapColorTextureBindGroup<2>,
     DrawTileMesh,
 );
 
@@ -117,7 +117,11 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBufferBin
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index()]);
             RenderCommandResult::Success
         } else {
-            error!("Failed to get tilemap uniform bind group!");
+            error!(
+                "Failed to get tilemap uniform bind group! \
+                It' ok if you see this once per tilemap. \
+                But if you continously see this error, then something's going wrong!"
+            );
             RenderCommandResult::Failure
         }
     }

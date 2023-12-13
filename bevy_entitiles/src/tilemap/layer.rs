@@ -62,14 +62,12 @@ pub fn update_tile_layer(
     texture_index: u32,
 ) {
     if animated_tile.is_none() {
-        tile.top_layer = tile.top_layer.max(layer);
         tile.texture_indices[layer] = texture_index as i32;
     }
 }
 
 pub fn update_tile_builder_layer(tile: &mut TileBuilder, layer: usize, texture_index: u32) {
     if tile.anim.is_none() {
-        tile.top_layer = tile.top_layer.max(layer);
         tile.texture_indices[layer] = texture_index as i32;
     }
 }

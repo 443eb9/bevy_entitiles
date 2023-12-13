@@ -46,6 +46,7 @@ struct Tilemap {
     pivot: vec2<f32>,
     // MAX_ANIM_COUNT MAX_ANIM_SEQ_LENGTH
     anim_seqs: array<TileAnimation, 32>,
+    layer_opacities: vec4<f32>,
     time: f32,
 }
 
@@ -53,12 +54,12 @@ struct Tilemap {
 var<uniform> tilemap: Tilemap;
 
 #ifndef PURE_COLOR
-@group(2) @binding(0)
-var<storage> anim_seqs: array<TileAnimation>;
+// @group(2) @binding(0)
+// var<storage> anim_seqs: array<TileAnimation>;
 
-@group(3) @binding(0)
+@group(2) @binding(0)
 var color_texture: texture_2d_array<f32>;
 
-@group(3) @binding(1)
+@group(2) @binding(1)
 var color_texture_sampler: sampler;
 #endif

@@ -13,7 +13,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    serializing::ldtk::{entities::LdtkEntity, json::level::EntityInstance, LdtkLoader},
+    serializing::ldtk::{json::level::EntityInstance, LdtkLoader},
     tilemap::map::Tilemap,
     EntiTilesPlugin,
 };
@@ -58,39 +58,39 @@ fn load(
     }
 }
 
-#[derive(Reflect)]
-pub enum ItemType {
-    Meat,
-    Gold,
-    GoldNuggets,
-    Gem,
-    GreenGem,
-    HealingPotion,
-    Spell,
-    Armor,
-    Bow,
-    Ammo,
-    FireBlade,
-    VorpalBlade,
-}
+// #[derive(Reflect)]
+// pub enum ItemType {
+//     Meat,
+//     Gold,
+//     GoldNuggets,
+//     Gem,
+//     GreenGem,
+//     HealingPotion,
+//     Spell,
+//     Armor,
+//     Bow,
+//     Ammo,
+//     FireBlade,
+//     VorpalBlade,
+// }
 
-#[derive(Component, Reflect, Default)]
-pub struct Player {
-    pub inventory: Vec<ItemType>,
-    pub hp: i32,
-}
+// #[derive(Component, Reflect, Default)]
+// pub struct Player {
+//     pub inventory: Vec<ItemType>,
+//     pub hp: i32,
+// }
 
-impl LdtkEntity for Player {
-    fn spawn(data: &EntityInstance, dyn_struct: &mut DynamicStruct) -> Self {
-        let mut s = Self::default();
-        dyn_struct.apply(&mut s);
-        s
-    }
-}
+// impl LdtkEntity for Player {
+//     fn spawn(data: &EntityInstance, dyn_struct: &mut DynamicStruct) -> Self {
+//         let mut s = Self::default();
+//         dyn_struct.apply(&mut s);
+//         s
+//     }
+// }
 
-#[derive(Component, Reflect)]
-pub struct Item {
-    pub ty: ItemType,
-    pub price: i32,
-    pub count: i32,
-}
+// #[derive(Component, Reflect)]
+// pub struct Item {
+//     pub ty: ItemType,
+//     pub price: i32,
+//     pub count: i32,
+// }

@@ -53,7 +53,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 
     if input.index.z == 1u {
         // means that this tile is a animated tile
-        var animation = anim_seqs[input.texture_indices.x];
+        var animation = tilemap.anim_seqs[input.texture_indices.x];
         var frame = u32(tilemap.time * animation.fps) % animation.length;
         var texture_index = animation.seq[frame / 4u][frame % 4u];
 
@@ -81,7 +81,7 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
                                       input.uv, input.texture_indices[i]);
-        color = mix(color, tex_color, tex_color.a);
+        color = mix(color, tex_color, tex_color.a * pow(tilemap.layer_opacities[i], 1. / 2.2));
 
         if input.is_animated == 1u {
             break;

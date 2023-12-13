@@ -35,6 +35,7 @@ pub struct ExtractedTilemap {
     pub aabb: AabbBox2d,
     pub z_order: i32,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub layer_opacities: Vec4,
     pub time: f32,
 }
 
@@ -80,6 +81,7 @@ pub fn extract_tilemaps(
                 aabb: tilemap.aabb,
                 z_order: tilemap.z_order,
                 anim_seqs: tilemap.anim_seqs,
+                layer_opacities: tilemap.layer_opacities,
                 time: time.elapsed_seconds(),
             },
         ));
@@ -90,10 +92,7 @@ pub fn extract_tilemaps(
 
 pub fn extract_tiles(
     mut commands: Commands,
-    // TODO optimize this. AnimatedTile should not be queried every frame
-    changed_tiles_query: Extract<
-        Query<(Entity, &Tile, Option<&AnimatedTile>), Or<(Changed<Tile>, &AnimatedTile)>>,
-    >,
+    changed_tiles_query: Extract<Query<(Entity, &Tile, Option<&AnimatedTile>), Changed<Tile>>>,
 ) {
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = vec![];
     for (entity, tile, anim) in changed_tiles_query.iter() {

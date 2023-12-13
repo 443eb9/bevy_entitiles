@@ -49,13 +49,13 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0),
+        &TileBuilder::new().with_layer(0, 0),
     );
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
-        &TileBuilder::new(1),
+        &TileBuilder::new().with_layer(0, 1),
     );
 
     let mut path_tilemap = PathTilemap::new(tilemap_entity);

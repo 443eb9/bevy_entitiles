@@ -156,7 +156,7 @@ impl TilemapRenderChunk {
     pub fn set_tile(&mut self, index: UVec2, tile: &ExtractedTile) {
         let index = (index.y * self.size + index.x) as usize;
 
-        // TODO fix this. this allows the tile sort by y axis. But this approach is not good.
+        // TODO fix this. This allows the tile sort by y axis. But this approach looks weird.
         let index = self.tiles.len() - index - 1;
 
         let (tile_index, texture_indices) = {

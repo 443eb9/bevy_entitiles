@@ -72,7 +72,7 @@ fn setup(
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0),
+        &TileBuilder::new().with_layer(0, 0),
     );
 
     tilemap.set_physics_tile_rapier(&mut commands, UVec2 { x: 19, y: 9 }, None, true);
@@ -106,7 +106,7 @@ fn setup(
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0),
+        &TileBuilder::new().with_layer(0, 0),
     );
 
     tilemap.set_physics_tile_rapier(&mut commands, UVec2 { x: 19, y: 9 }, None, true);

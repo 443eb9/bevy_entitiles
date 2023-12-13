@@ -84,9 +84,9 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         ];
 
         if !key.is_pure_color {
+            // // group(2)
+            // layout.push(self.storage_buffers_layout.clone());
             // group(2)
-            layout.push(self.storage_buffers_layout.clone());
-            // group(3)
             layout.push(self.color_texture_layout.clone());
         }
 

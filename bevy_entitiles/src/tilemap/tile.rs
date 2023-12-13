@@ -1,4 +1,7 @@
-use bevy::{prelude::{Commands, Component, Entity, UVec2, Vec4}, math::IVec4};
+use bevy::{
+    math::IVec4,
+    prelude::{Commands, Component, Entity, UVec2, Vec4},
+};
 
 use crate::MAX_LAYER_COUNT;
 
@@ -26,7 +29,6 @@ pub enum TileFlip {
 #[derive(Clone)]
 pub struct TileBuilder {
     pub(crate) texture_indices: IVec4,
-    pub(crate) top_layer: usize,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
     pub(crate) flip: u32,
@@ -34,13 +36,10 @@ pub struct TileBuilder {
 
 impl TileBuilder {
     /// Create a new tile builder.
-    pub fn new(texture_index: u32) -> Self {
-        let mut texture_indices = IVec4::NEG_ONE;
-        texture_indices[0] = texture_index as i32;
+    pub fn new() -> Self {
         Self {
-            texture_indices,
+            texture_indices: IVec4::NEG_ONE,
             anim: None,
-            top_layer: 0,
             color: Vec4::ONE,
             flip: 0,
         }
@@ -50,7 +49,6 @@ impl TileBuilder {
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
             texture_indices: serialized_tile.texture_indices,
-            top_layer: serialized_tile.top_layer,
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
             flip: serialized_tile.flip,
@@ -71,7 +69,9 @@ impl TileBuilder {
         if self.anim.is_none() && layer < MAX_LAYER_COUNT {
             self.texture_indices[layer] = texture_index as i32;
         } else {
-            panic!("Trying to add a layer to an animated tile or the layer index is out of bounds!");
+            panic!(
+                "Trying to add a layer to an animated tile or the layer index is out of bounds!"
+            );
         }
 
         self

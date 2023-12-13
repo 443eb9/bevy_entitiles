@@ -1,11 +1,11 @@
 use bevy::{
     ecs::entity::Entity,
-    math::{UVec2, Vec2},
+    math::{UVec2, Vec2, Vec4},
 };
 
 use crate::{
     math::aabb::AabbBox2d,
-    render::{extract::ExtractedTilemap, texture::TilemapTexture, buffer::TileAnimation},
+    render::{buffer::TileAnimation, extract::ExtractedTilemap, texture::TilemapTexture},
     tilemap::{map::Tilemap, tile::TileType},
     MAX_ANIM_COUNT,
 };
@@ -19,6 +19,7 @@ pub struct PubTilemap {
     pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
+    pub layer_opacities: Vec4,
     pub tiles: Vec<Option<Entity>>,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
@@ -37,6 +38,7 @@ impl PubTilemap {
             pivot: value.pivot,
             render_chunk_size: value.render_chunk_size,
             texture: value.texture.clone(),
+            layer_opacities: value.layer_opacities,
             tiles: value.tiles.clone(),
             aabb: value.aabb,
             translation: value.translation,
@@ -55,6 +57,7 @@ impl PubTilemap {
             pivot: value.pivot,
             render_chunk_size: value.render_chunk_size,
             texture: value.texture,
+            layer_opacities: value.layer_opacities,
             tiles: vec![],
             aabb: value.aabb,
             translation: value.translation,
@@ -73,6 +76,7 @@ impl PubTilemap {
             pivot: self.pivot,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture,
+            layer_opacities: self.layer_opacities,
             translation: self.translation,
             aabb: self.aabb,
             z_order: self.z_order,

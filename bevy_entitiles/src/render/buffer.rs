@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::entity::Entity,
-    math::UVec4,
+    math::{UVec4, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -111,6 +111,7 @@ pub struct TilemapUniform {
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub layer_opacities: Vec4,
     pub time: f32,
 }
 
@@ -129,6 +130,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
             tile_slot_size: extracted.tile_slot_size,
             pivot: extracted.pivot,
             anim_seqs: extracted.anim_seqs,
+            layer_opacities: extracted.layer_opacities,
             time: extracted.time,
         };
 

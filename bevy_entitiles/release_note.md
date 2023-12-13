@@ -7,6 +7,7 @@
 - Optimized animation.
 - Renamed `TileAnimation` to `AnimatedTile`.
 - Non-uniform shaped tiles are no longer supported. They are useless and increases the code complexity.
+- Corrected colors for tiles. Now color will be displayed as expected.
 
 # What's Fixed:
 

@@ -1,12 +1,13 @@
 use bevy::{
     ecs::component::Component,
+    math::Vec4,
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     render::render_resource::TextureUsages,
 };
 
 use crate::{
     math::{aabb::AabbBox2d, FillArea},
-    render::{texture::TilemapTexture, buffer::TileAnimation},
+    render::{buffer::TileAnimation, texture::TilemapTexture},
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
@@ -107,6 +108,7 @@ impl TilemapBuilder {
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
             texture: self.texture.clone(),
+            layer_opacities: Vec4::ONE,
             aabb: AabbBox2d::from_tilemap_builder(&self),
             translation: self.translation,
             z_order: self.z_order,
@@ -143,6 +145,7 @@ pub struct Tilemap {
     pub(crate) pivot: Vec2,
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
+    pub(crate) layer_opacities: Vec4,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) aabb: AabbBox2d,
     pub(crate) translation: Vec2,
@@ -251,6 +254,17 @@ impl Tilemap {
                 value: texture_index.unwrap_or_default(),
                 is_remove: texture_index.is_none(),
             });
+    }
+
+    /// Set the opacity of a layer. Default is 1 for each layer.
+    pub fn set_layer_opacity(&mut self, layer: usize, opacity: f32) -> &mut Self {
+        assert!(
+            layer <= MAX_LAYER_COUNT,
+            "Currently we only support up to 4 layers!"
+        );
+
+        self.layer_opacities[layer] = opacity;
+        self
     }
 
     /// Remove a tile.

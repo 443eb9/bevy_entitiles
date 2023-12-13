@@ -61,6 +61,7 @@ pub struct SerializedTilemap {
     pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<SerializedTilemapTexture>,
+    pub layer_opacities: Vec4,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
     pub z_order: i32,
@@ -87,6 +88,7 @@ impl SerializedTilemap {
             } else {
                 None
             },
+            layer_opacities: tilemap.layer_opacities,
             aabb: tilemap.aabb,
             translation: tilemap.translation,
             z_order: tilemap.z_order,
@@ -107,6 +109,7 @@ impl SerializedTilemap {
             pivot: self.pivot,
             render_chunk_size: self.render_chunk_size,
             texture,
+            layer_opacities: self.layer_opacities,
             tiles: vec![],
             aabb: self.aabb,
             translation: self.translation,

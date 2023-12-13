@@ -46,37 +46,47 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0),
+        &TileBuilder::new().with_layer(0, 0),
     );
 
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
-        &TileBuilder::new(1).with_color(Vec4::new(0.8, 1., 0.8, 0.5)),
+        &TileBuilder::new()
+            .with_layer(0, 1)
+            .with_color(Vec4::new(0.8, 1., 0.8, 0.5)),
     );
 
     tilemap.set(
         &mut commands,
         UVec2 { x: 18, y: 8 },
-        &TileBuilder::new(0).with_color(Color::BLUE.into()),
+        &TileBuilder::new()
+            .with_layer(0, 0)
+            .with_color(Color::BLUE.into()),
     );
 
     tilemap.set(
         &mut commands,
         UVec2 { x: 1, y: 1 },
-        &TileBuilder::new(1).with_flip(TileFlip::Horizontal),
+        &TileBuilder::new()
+            .with_layer(0, 1)
+            .with_flip(TileFlip::Horizontal),
     );
 
     tilemap.set(
         &mut commands,
         UVec2 { x: 1, y: 2 },
-        &TileBuilder::new(1).with_flip(TileFlip::Vertical),
+        &TileBuilder::new()
+            .with_layer(0, 1)
+            .with_flip(TileFlip::Vertical),
     );
 
     tilemap.set(
         &mut commands,
         UVec2 { x: 1, y: 3 },
-        &TileBuilder::new(1).with_flip(TileFlip::Both),
+        &TileBuilder::new()
+            .with_layer(0, 1)
+            .with_flip(TileFlip::Both),
     );
 
     tilemap.update_rect(
@@ -108,7 +118,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0),
+        &TileBuilder::new().with_layer(0, 0),
     );
 
     commands.entity(tilemap_entity).insert(tilemap);
@@ -125,7 +135,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new(0).with_color(Vec4::new(1., 1., 0., 1.)),
+        &TileBuilder::new()
+            .with_layer(0, 0)
+            .with_color(Vec4::new(1., 1., 0., 1.)),
     );
 
     commands.entity(tilemap_entity).insert(tilemap);
