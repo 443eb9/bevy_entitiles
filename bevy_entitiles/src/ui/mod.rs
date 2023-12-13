@@ -11,7 +11,7 @@ use bevy::{
     ui::{UiMaterial, UiMaterialPlugin},
 };
 
-use crate::render::texture::{TileUV, TilemapTextureDescriptor};
+use crate::render::texture::TilemapTextureDescriptor;
 
 pub const UI_TILES_SHADER: Handle<Shader> = Handle::weak_from_u128(213513554364645316312);
 
@@ -37,16 +37,21 @@ impl UiTilemapTexture {
         color: Option<Vec4>,
         assets: &mut ResMut<Assets<UiTileMaterial>>,
     ) -> UiTileMaterialsLookup {
-        let mut handles = Vec::with_capacity(self.desc.tiles_uv.len());
+        let count = self.desc.size / self.desc.tile_size;
+        let mut handles = Vec::with_capacity((count.x * count.y) as usize);
         let color = color.unwrap_or(Vec4::ONE);
 
-        for ui in self.desc.tiles_uv.iter() {
-            handles.push(assets.add(UiTileMaterial {
-                texture: self.texture.clone(),
-                uv: *ui,
-                color,
-                texture_size: self.desc.size.as_vec2(),
-            }));
+        for y in 0..count.y {
+            for x in 0..count.x {
+                let min = Vec2::new(x as f32, y as f32) * self.desc.tile_size.as_vec2();
+                let max = min + self.desc.tile_size.as_vec2();
+                handles.push(assets.add(UiTileMaterial {
+                    texture: self.texture.clone(),
+                    uv: Vec4::new(min.x, min.y, max.x, max.y),
+                    color,
+                    texture_size: self.desc.size.as_vec2(),
+                }));
+            }
         }
         UiTileMaterialsLookup { materials: handles }
     }
@@ -73,7 +78,7 @@ pub struct UiTileMaterial {
     #[sampler(1)]
     pub texture: Handle<Image>,
     #[uniform(2)]
-    pub uv: TileUV,
+    pub uv: Vec4,
     #[uniform(2)]
     pub color: Vec4,
     #[uniform(2)]

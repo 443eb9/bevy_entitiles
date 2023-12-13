@@ -2,9 +2,11 @@ use bevy::{
     core_pipeline::core_2d::Transparent2d,
     prelude::{Commands, Component, Entity, Msaa, Query, Res, ResMut},
     render::{
+        render_asset::RenderAssets,
         render_phase::{DrawFunctions, RenderPhase},
         render_resource::{BindGroup, BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
-        renderer::RenderDevice,
+        renderer::{RenderDevice, RenderQueue},
+        texture::Image,
         view::ViewUniforms,
     },
     utils::{nonmax::NonMaxU32, FloatOrd},
@@ -35,14 +37,18 @@ pub fn queue(
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
     mut bind_groups: ResMut<TilemapBindGroups>,
-    textures_storage: Res<TilemapTexturesStorage>,
+    mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     mut uniform_buffers: ResMut<TilemapUniformBuffers>,
     mut storage_buffers: ResMut<TilemapStorageBuffers>,
+    render_queue: Res<RenderQueue>,
+    render_images: Res<RenderAssets<Image>>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
     };
+
+    textures_storage.queue_textures(&render_device, &render_queue, &render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TileViewBindGroup {
@@ -74,7 +80,7 @@ pub fn queue(
                 &entitile_pipeline,
             );
 
-            let (is_pure_color, is_uniform) = bind_groups.queue_textures(
+            let is_pure_color = bind_groups.queue_textures(
                 &tilemap,
                 &render_device,
                 &textures_storage,
@@ -88,7 +94,6 @@ pub fn queue(
                     msaa: msaa.samples(),
                     map_type: tilemap.tile_type,
                     is_pure_color,
-                    is_uniform,
                 },
             );
 

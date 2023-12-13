@@ -1,4 +1,4 @@
-use bevy::prelude::{Commands, Component, Entity, UVec2, Vec4};
+use bevy::{prelude::{Commands, Component, Entity, UVec2, Vec4}, math::IVec4};
 
 use crate::MAX_LAYER_COUNT;
 
@@ -25,7 +25,7 @@ pub enum TileFlip {
 
 #[derive(Clone)]
 pub struct TileBuilder {
-    pub(crate) texture_indices: [i32; MAX_LAYER_COUNT],
+    pub(crate) texture_indices: IVec4,
     pub(crate) top_layer: usize,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
@@ -35,7 +35,7 @@ pub struct TileBuilder {
 impl TileBuilder {
     /// Create a new tile builder.
     pub fn new(texture_index: u32) -> Self {
-        let mut texture_indices = [-1; MAX_LAYER_COUNT];
+        let mut texture_indices = IVec4::NEG_ONE;
         texture_indices[0] = texture_index as i32;
         Self {
             texture_indices,
@@ -115,7 +115,7 @@ pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_indices: [i32; MAX_LAYER_COUNT],
+    pub texture_indices: IVec4,
     pub top_layer: usize,
     pub color: Vec4,
     pub flip: u32,

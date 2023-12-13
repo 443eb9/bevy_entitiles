@@ -19,6 +19,7 @@ pub struct TilemapBuilder {
     pub name: String,
     pub tile_type: TileType,
     pub size: UVec2,
+    pub tile_render_size: Vec2,
     pub tile_render_scale: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
@@ -37,6 +38,7 @@ impl TilemapBuilder {
             tile_type: ty,
             size,
             tile_render_scale: Vec2::ONE,
+            tile_render_size: tile_slot_size,
             tile_slot_size,
             pivot: Vec2::ZERO,
             texture: None,
@@ -97,7 +99,7 @@ impl TilemapBuilder {
         let tilemap = Tilemap {
             id: entity.id(),
             name: self.name.clone(),
-            tile_render_scale: self.tile_render_scale,
+            tile_render_size: self.tile_render_size,
             tile_type: self.tile_type,
             size: self.size,
             tiles: vec![None; (self.size.x * self.size.y) as usize],
@@ -136,7 +138,7 @@ pub struct Tilemap {
     pub(crate) name: String,
     pub(crate) tile_type: TileType,
     pub(crate) size: UVec2,
-    pub(crate) tile_render_scale: Vec2,
+    pub(crate) tile_render_size: Vec2,
     pub(crate) tile_slot_size: Vec2,
     pub(crate) pivot: Vec2,
     pub(crate) render_chunk_size: u32,
@@ -299,20 +301,6 @@ impl Tilemap {
                     UVec2::new(x, y)
                 });
                 self.set_unchecked(commands, UVec2 { x, y }, &builder);
-            }
-        }
-    }
-
-    /// This is a method for debugging.
-    /// You can check if the uvs of tiles are correct.
-    ///
-    /// Fill the tilemap with tiles from the atlas in a row.
-    /// Notice that the method **won't** check if the tilemap is wide enough.
-    #[cfg(feature = "debug")]
-    pub fn fill_atlas(&mut self, commands: &mut Commands) {
-        if let Some(texture) = &self.texture {
-            for x in 0..texture.desc.tiles_uv.len() as u32 {
-                self.set_unchecked(commands, UVec2 { x, y: 0 }, &TileBuilder::new(x));
             }
         }
     }

@@ -4,6 +4,8 @@ use bevy::ecs::{
     system::{ParallelCommands, Query},
 };
 
+use crate::MAX_LAYER_COUNT;
+
 use super::tile::{AnimatedTile, Tile, TileBuilder};
 
 #[derive(Component)]
@@ -39,7 +41,7 @@ pub fn layer_updater(
 
 pub fn remove_layer(tile: &mut Tile, layer: usize) {
     let (mut top_layer, mut available_layers) = (tile.top_layer, 0);
-    for i in 0..tile.texture_indices.len() {
+    for i in 0..MAX_LAYER_COUNT {
         if tile.texture_indices[i] >= 0 {
             available_layers += 1;
         }

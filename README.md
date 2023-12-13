@@ -112,7 +112,6 @@ Video at `docs/vids/wfc.mp4`
 
 - Supports up to 4 tilesets in one tilemap.
 - Supports up to 4 layers\* in one tilemap.
-- Supports up to 512 atlas count in one tilemap. (this will no longer exists in next version)
 - Supports up to 32 animations in one tilemap. (this will no longer exists in next version)
 - Supports up to 32 length of animation sequences.
 

@@ -1,7 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{UVec2, Vec2, Vec4},
+    math::{IVec4, UVec2, Vec2, Vec4},
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
@@ -12,14 +12,14 @@ use bevy::utils::HashMap;
 use crate::{
     math::aabb::AabbBox2d,
     render::{
-        texture::{TileUV, TilemapTexture, TilemapTextureDescriptor},
         buffer::TileAnimation,
+        texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
         map::Tilemap,
         tile::{AnimatedTile, Tile, TileType},
     },
-    MAX_ANIM_COUNT, MAX_LAYER_COUNT,
+    MAX_ANIM_COUNT,
 };
 
 use self::{
@@ -56,7 +56,7 @@ pub struct SerializedTilemap {
     pub name: String,
     pub tile_type: TileType,
     pub size: UVec2,
-    pub tile_render_scale: Vec2,
+    pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub render_chunk_size: u32,
@@ -75,7 +75,7 @@ impl SerializedTilemap {
             name: tilemap.name.clone(),
             tile_type: tilemap.tile_type,
             size: tilemap.size,
-            tile_render_scale: tilemap.tile_render_scale,
+            tile_render_size: tilemap.tile_render_size,
             tile_slot_size: tilemap.tile_slot_size,
             pivot: tilemap.pivot,
             render_chunk_size: tilemap.render_chunk_size,
@@ -102,7 +102,7 @@ impl SerializedTilemap {
             name: self.name.clone(),
             tile_type: self.tile_type,
             size: self.size,
-            tile_render_scale: self.tile_render_scale,
+            tile_render_size: self.tile_render_size,
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
             render_chunk_size: self.render_chunk_size,
@@ -126,18 +126,16 @@ pub struct SerializedTilemapTexture {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTilemapDescriptor {
     pub size: UVec2,
-    pub tiles_uv: Vec<TileUV>,
+    pub tile_size: UVec2,
     pub filter_mode: SerializedFilterMode,
-    pub is_uniform: bool,
 }
 
 impl From<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
     fn from(value: TilemapTextureDescriptor) -> Self {
         Self {
             size: value.size,
-            tiles_uv: value.tiles_uv,
+            tile_size: value.tile_size,
             filter_mode: value.filter_mode.into(),
-            is_uniform: value.is_uniform,
         }
     }
 }
@@ -146,9 +144,8 @@ impl Into<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
     fn into(self) -> TilemapTextureDescriptor {
         TilemapTextureDescriptor {
             size: self.size,
-            tiles_uv: self.tiles_uv,
+            tile_size: self.tile_size,
             filter_mode: self.filter_mode.into(),
-            is_uniform: self.is_uniform,
         }
     }
 }
@@ -189,7 +186,7 @@ pub enum TilemapLayer {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTile {
     pub index: UVec2,
-    pub texture_indices: [i32; MAX_LAYER_COUNT],
+    pub texture_indices: IVec4,
     pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,

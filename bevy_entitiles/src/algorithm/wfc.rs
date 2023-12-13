@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{IVec2, Vec4},
+    math::{IVec2, IVec4, Vec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
@@ -92,7 +92,7 @@ impl WfcRunner {
         let tiles = (0..rule.len())
             .into_iter()
             .map(|r| {
-                let mut texture_indices = [-1; MAX_LAYER_COUNT];
+                let mut texture_indices = IVec4::NEG_ONE;
                 texture_indices[0] = r as i32;
                 SerializedTile {
                     index: UVec2::ZERO,

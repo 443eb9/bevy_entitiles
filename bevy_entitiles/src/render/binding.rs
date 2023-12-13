@@ -1,7 +1,6 @@
 use bevy::{
     asset::Handle,
     ecs::{entity::Entity, system::Resource, world::FromWorld},
-    math::Vec4,
     render::{
         render_resource::{
             BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -71,10 +70,7 @@ impl TilemapBindGroups {
             return;
         }
 
-        let (Some(atlas_uvs), Some(anim_seqs)) = (
-            storage_buffers.atlas_uvs_binding(tilemap.id),
-            storage_buffers.anim_seqs_binding(tilemap.id),
-        ) else {
+        let Some(anim_seqs) = storage_buffers.anim_seqs_binding(tilemap.id) else {
             return;
         };
 
@@ -83,31 +79,25 @@ impl TilemapBindGroups {
             render_device.create_bind_group(
                 Some("tilemap_storage_bind_group"),
                 &entitile_pipeline.storage_buffers_layout,
-                &[
-                    BindGroupEntry {
-                        binding: 0,
-                        resource: atlas_uvs,
-                    },
-                    BindGroupEntry {
-                        binding: 1,
-                        resource: anim_seqs,
-                    },
-                ],
+                &[BindGroupEntry {
+                    binding: 0,
+                    resource: anim_seqs,
+                }],
             ),
         );
     }
 
-    /// Returns (is_pure_color, is_uniform)
+    /// Returns is_pure_color
     pub fn queue_textures(
         &mut self,
         tilemap: &ExtractedTilemap,
         render_device: &RenderDevice,
         textures_storage: &TilemapTexturesStorage,
         entitile_pipeline: &EntiTilesPipeline,
-    ) -> (bool, bool) {
+    ) -> bool {
         if let Some(tilemap_texture) = &tilemap.texture {
-            let Some(texture) = textures_storage.get(tilemap_texture.handle()) else {
-                return (true, true);
+            let Some(texture) = textures_storage.get_texture_array(tilemap_texture.handle()) else {
+                return !textures_storage.contains(tilemap_texture.handle());
             };
 
             if !self.colored_textures.contains_key(tilemap_texture.handle()) {
@@ -130,9 +120,9 @@ impl TilemapBindGroups {
                 );
             }
 
-            (false, tilemap_texture.desc().is_uniform)
+            false
         } else {
-            (true, true)
+            true
         }
     }
 }
@@ -180,28 +170,16 @@ impl FromWorld for TilemapBindGroupLayouts {
         let tilemap_storage_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 label: Some("tilemap_storage_layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::VERTEX,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Storage { read_only: true },
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(Vec4::min_size()),
-                        },
-                        count: None,
+                entries: &[BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::VERTEX,
+                    ty: BindingType::Buffer {
+                        ty: BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: Some(TileAnimation::min_size()),
                     },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::VERTEX,
-                        ty: BindingType::Buffer {
-                            ty: BufferBindingType::Storage { read_only: true },
-                            has_dynamic_offset: false,
-                            min_binding_size: Some(TileAnimation::min_size()),
-                        },
-                        count: None,
-                    },
-                ],
+                    count: None,
+                }],
             });
 
         let color_texture_layout =
@@ -213,7 +191,7 @@ impl FromWorld for TilemapBindGroupLayouts {
                         visibility: ShaderStages::FRAGMENT,
                         ty: BindingType::Texture {
                             sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2,
+                            view_dimension: TextureViewDimension::D2Array,
                             multisampled: false,
                         },
                         count: None,

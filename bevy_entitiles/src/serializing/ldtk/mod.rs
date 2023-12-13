@@ -32,8 +32,8 @@ use self::json::{
     LdtkColor, LdtkJson, WorldLayout,
 };
 
-pub mod entities;
-pub mod enums;
+pub mod entity;
+pub mod r#enum;
 pub mod json;
 
 #[derive(Component)]
@@ -156,17 +156,17 @@ fn load_texture(
         loader.asset_path_prefix,
         tileset.rel_path.clone().unwrap()
     ));
-    let desc = TilemapTextureDescriptor::from_full_grid(
-        UVec2 {
+    let desc = TilemapTextureDescriptor {
+        size: UVec2 {
             x: tileset.px_wid as u32,
             y: tileset.px_hei as u32,
         },
-        UVec2 {
-            x: tileset.c_wid as u32,
-            y: tileset.c_hei as u32,
+        tile_size: UVec2 {
+            x: tileset.tile_grid_size as u32,
+            y: tileset.tile_grid_size as u32,
         },
-        loader.filter_mode,
-    );
+        filter_mode: loader.filter_mode,
+    };
     TilemapTexture { texture, desc }
 }
 

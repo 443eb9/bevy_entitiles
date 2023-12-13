@@ -39,11 +39,11 @@ fn setup(
 
     let textures = TilemapTexture::new(
         asset_server.load("test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 2, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 32, y: 32 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     )
     .as_ui_texture()
     .register_materials(None, &mut materials);

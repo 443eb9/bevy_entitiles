@@ -59,11 +59,11 @@ fn setup(
     )
     .with_texture(TilemapTexture::new(
         assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 1, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 32, y: 32 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     ))
     .build(&mut commands);
 
@@ -93,11 +93,11 @@ fn setup(
     .with_translation(Vec2 { x: 500., y: -100. })
     .with_texture(TilemapTexture::new(
         assets_server.load("test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 2, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 32, y: 32 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     ))
     .build(&mut commands);
 

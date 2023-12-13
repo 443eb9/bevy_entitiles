@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::entity::Entity,
-    math::{UVec4, Vec4},
+    math::UVec4,
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -14,9 +14,9 @@ use bevy::{
     utils::EntityHashMap,
 };
 
-use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH, MAX_ATLAS_COUNT};
+use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH};
 
-use super::{extract::ExtractedTilemap, texture::TileUV};
+use super::extract::ExtractedTilemap;
 
 pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static> {
     fn insert(&mut self, extracted: &E) -> DynamicOffsetComponent<U>;
@@ -108,11 +108,8 @@ impl TileAnimation {
 pub struct TilemapUniform {
     pub translation: Vec2,
     pub tile_render_size: Vec2,
-    pub tile_render_scale: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
-    pub texture_size: Vec2,
-    pub atlas_uvs: [Vec4; MAX_ATLAS_COUNT],
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub time: f32,
 }
@@ -126,36 +123,11 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
     fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
-        let mut atlas_uvs = [Vec4::ZERO; MAX_ATLAS_COUNT];
-
-        let (texture_size, tile_render_size) = if let Some(texture) = &extracted.texture {
-            let desc = texture.desc();
-
-            desc.tiles_uv.iter().enumerate().for_each(|(i, uv)| {
-                atlas_uvs[i] = Vec4::new(uv.min.x, uv.min.y, uv.max.x, uv.max.y);
-            });
-
-            if desc.is_uniform {
-                // if uniform, all the tiles are the same size as the first one.
-                (desc.size.as_vec2(), desc.tiles_uv[0].render_size())
-            } else {
-                // if not, we need to use the tile_render_size data in vertex input.
-                // so the UVec2::ZERO is just a placeholder.
-                (desc.size.as_vec2(), Vec2::ZERO)
-            }
-        } else {
-            // pure color mode
-            (Vec2::ZERO, extracted.tile_slot_size)
-        };
-
         let component = TilemapUniform {
             translation: extracted.translation,
-            tile_render_size,
+            tile_render_size: extracted.tile_render_size,
             tile_slot_size: extracted.tile_slot_size,
-            tile_render_scale: extracted.tile_render_scale,
             pivot: extracted.pivot,
-            texture_size,
-            atlas_uvs,
             anim_seqs: extracted.anim_seqs,
             time: extracted.time,
         };
@@ -173,17 +145,10 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
 
 #[derive(Resource, Default)]
 pub struct TilemapStorageBuffers {
-    atlas_uvs: EntityHashMap<Entity, DynamicStorageBuffer<Vec<Vec4>>>,
     anim_seqs: EntityHashMap<Entity, DynamicStorageBuffer<Vec<TileAnimation>>>,
 }
 
 impl TilemapStorageBuffers {
-    pub fn insert_atlas_uvs(&mut self, tilemap: Entity, atlas_uvs: &Vec<TileUV>) {
-        let mut buffer = DynamicStorageBuffer::default();
-        buffer.push(atlas_uvs.iter().map(|uv| (*uv).into()).collect());
-        self.atlas_uvs.insert(tilemap, buffer);
-    }
-
     pub fn insert_anim_seqs(&mut self, tilemap: Entity, anim_seqs: &Vec<TileAnimation>) {
         let mut buffer = DynamicStorageBuffer::default();
         buffer.push(anim_seqs.clone());
@@ -195,13 +160,6 @@ impl TilemapStorageBuffers {
         // self.anim_seqs.clear();
     }
 
-    pub fn atlas_uvs_binding(&self, tilemap: Entity) -> Option<BindingResource> {
-        self.atlas_uvs
-            .get(&tilemap)
-            .map(|buffer| buffer.binding())
-            .flatten()
-    }
-
     pub fn anim_seqs_binding(&self, tilemap: Entity) -> Option<BindingResource> {
         self.anim_seqs
             .get(&tilemap)
@@ -210,10 +168,6 @@ impl TilemapStorageBuffers {
     }
 
     pub fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        for buffer in self.atlas_uvs.values_mut() {
-            buffer.write_buffer(render_device, render_queue);
-        }
-
         for buffer in self.anim_seqs.values_mut() {
             buffer.write_buffer(render_device, render_queue);
         }

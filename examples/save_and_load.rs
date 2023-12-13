@@ -45,11 +45,11 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     )
     .with_texture(TilemapTexture::new(
         assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 1, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 32, y: 32 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     ))
     .with_pivot(Vec2 { x: 0.5, y: 0. })
     .with_render_chunk_size(64)

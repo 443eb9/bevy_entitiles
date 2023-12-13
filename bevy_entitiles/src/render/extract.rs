@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::Res,
-    math::Vec3Swizzles,
+    math::{IVec4, Vec3Swizzles},
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
@@ -16,17 +16,17 @@ use crate::{
         map::Tilemap,
         tile::{AnimatedTile, Tile, TileType},
     },
-    MAX_ANIM_COUNT, MAX_LAYER_COUNT,
+    MAX_ANIM_COUNT,
 };
 
-use super::{texture::TilemapTexture, buffer::TileAnimation};
+use super::{buffer::TileAnimation, texture::TilemapTexture};
 
 #[derive(Component)]
 pub struct ExtractedTilemap {
     pub id: Entity,
     pub tile_type: TileType,
     pub size: UVec2,
-    pub tile_render_scale: Vec2,
+    pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub render_chunk_size: u32,
@@ -43,7 +43,7 @@ pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_indices: [i32; MAX_LAYER_COUNT],
+    pub texture_indices: IVec4,
     pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
@@ -71,7 +71,7 @@ pub fn extract_tilemaps(
                 id: tilemap.id,
                 tile_type: tilemap.tile_type,
                 size: tilemap.size,
-                tile_render_scale: tilemap.tile_render_scale,
+                tile_render_size: tilemap.tile_render_size,
                 tile_slot_size: tilemap.tile_slot_size,
                 render_chunk_size: tilemap.render_chunk_size,
                 pivot: tilemap.pivot,

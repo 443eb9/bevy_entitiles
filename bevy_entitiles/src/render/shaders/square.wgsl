@@ -3,5 +3,6 @@
 #import bevy_entitiles::common::{VertexInput, tilemap}
 
 fn get_mesh_origin(input: VertexInput) -> vec2<f32> {
-    return input.index.xy * tilemap.tile_slot_size;
+    let index = vec2<f32>(input.index.xy);
+    return index.xy * tilemap.tile_slot_size;
 }

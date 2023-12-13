@@ -28,7 +28,6 @@ pub struct EntiTilesPipelineKey {
     pub msaa: u32,
     pub map_type: TileType,
     pub is_pure_color: bool,
-    pub is_uniform: bool,
 }
 
 impl FromWorld for EntiTilesPipeline {
@@ -61,8 +60,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         let mut vtx_fmt = vec![
             // position
             VertexFormat::Float32x3,
-            // index
-            VertexFormat::Float32x4,
+            // index + is_animated + flip
+            VertexFormat::Uint32x4,
             // color
             VertexFormat::Float32x4,
         ];
@@ -70,14 +69,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         if key.is_pure_color {
             shader_defs.push("PURE_COLOR".into());
         } else {
-            vtx_fmt.push(
-                // atlas_indices
-                VertexFormat::Sint32x4,
-            );
-        }
-
-        if !key.is_uniform {
-            shader_defs.push("NON_UNIFORM".into());
+            // texture_indices
+            vtx_fmt.push(VertexFormat::Sint32x4);
         }
 
         let vertex_layout =

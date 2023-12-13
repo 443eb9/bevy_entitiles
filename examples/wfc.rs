@@ -34,11 +34,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     )
     .with_texture(TilemapTexture::new(
         asset_server.load("test_wfc.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 48, y: 32 },
-            UVec2 { x: 3, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 48, y: 32 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     ))
     .build(&mut commands);
 

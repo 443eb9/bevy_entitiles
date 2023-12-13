@@ -4,10 +4,16 @@ use bevy::{
         query::With,
         system::{Commands, Query, ResMut, Resource},
     },
-    math::{Vec2, Vec4},
+    math::Vec2,
     prelude::{Image, UVec2},
     render::{
-        render_resource::{FilterMode, Sampler, ShaderType},
+        render_asset::RenderAssets,
+        render_resource::{
+            AddressMode, Extent3d, FilterMode, ImageCopyTexture, Origin3d, SamplerDescriptor,
+            TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            TextureViewDescriptor, TextureViewDimension,
+        },
+        renderer::{RenderDevice, RenderQueue},
         texture::GpuImage,
     },
     utils::HashMap,
@@ -15,99 +21,158 @@ use bevy::{
 
 use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
 
-/// Notice that the UVs are not the one you might think.
-/// They are pixel coordinates instead of normalized coordinates.
-///
-/// For example, you have a 16x16 texture, and this tile uses `(0, 0)-(0.5, 0.5)`,
-/// then you should fill `min` = `(0, 0)`, `max` = `(8, 8)` instead of `(0, 0)-(0.5, 0.5)`
-#[derive(Clone, Copy, Debug, PartialEq, ShaderType)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TileUV {
-    pub min: Vec2,
-    pub max: Vec2,
-}
-
-impl TileUV {
-    #[inline]
-    pub fn btm_left(&self) -> Vec2 {
-        self.min
-    }
-
-    #[inline]
-    pub fn btm_right(&self) -> Vec2 {
-        Vec2 {
-            x: self.max.x as f32,
-            y: self.min.y as f32,
-        }
-    }
-
-    #[inline]
-    pub fn top_left(&self) -> Vec2 {
-        Vec2 {
-            x: self.min.x as f32,
-            y: self.max.y as f32,
-        }
-    }
-
-    #[inline]
-    pub fn top_right(&self) -> Vec2 {
-        self.max
-    }
-
-    #[inline]
-    pub fn render_size(&self) -> Vec2 {
-        self.max - self.min
-    }
-}
-
-impl From<(UVec2, UVec2)> for TileUV {
-    #[inline]
-    fn from(value: (UVec2, UVec2)) -> Self {
-        Self {
-            min: value.0.as_vec2(),
-            max: value.1.as_vec2(),
-        }
-    }
-}
-
-impl From<(u32, u32, u32, u32)> for TileUV {
-    fn from(value: (u32, u32, u32, u32)) -> Self {
-        Self {
-            min: Vec2 {
-                x: value.0 as f32,
-                y: value.1 as f32,
-            },
-            max: Vec2 {
-                x: value.2 as f32,
-                y: value.3 as f32,
-            },
-        }
-    }
-}
-
-impl Into<Vec4> for TileUV {
-    fn into(self) -> Vec4 {
-        Vec4::new(self.min.x, self.min.y, self.max.x, self.max.y)
-    }
-}
-
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
     textures: HashMap<Handle<Image>, GpuImage>,
+    prepare_queue: HashMap<Handle<Image>, TilemapTextureDescriptor>,
+    queue_queue: HashMap<Handle<Image>, TilemapTextureDescriptor>,
 }
 
 impl TilemapTexturesStorage {
-    pub fn insert(&mut self, handle: Handle<Image>, mut gpu_image: GpuImage, sampler: Sampler) {
-        gpu_image.sampler = sampler;
-        self.textures.insert(handle, gpu_image);
+    pub fn insert(&mut self, handle: Handle<Image>, desc: &TilemapTextureDescriptor) {
+        self.prepare_queue.insert(handle, desc.clone());
     }
 
-    pub fn get(&self, handle: &Handle<Image>) -> Option<&GpuImage> {
-        self.textures.get(handle)
+    /// Try to get the processed texture array.
+    pub fn get_texture_array(&self, image: &Handle<Image>) -> Option<&GpuImage> {
+        self.textures.get(image)
+    }
+
+    /// Prepare the texture, creating the texture array and translate images in `queue_texture` function.
+    pub fn prepare_textures(&mut self, render_device: &RenderDevice) {
+        if self.prepare_queue.is_empty() {
+            return;
+        }
+
+        let to_prepare = self.prepare_queue.drain().collect::<Vec<_>>();
+
+        for (image_handle, desc) in to_prepare.iter() {
+            if image_handle.id() == Handle::<Image>::default().id() {
+                continue;
+            }
+
+            let tile_count = desc.size / desc.tile_size;
+
+            let texture = render_device.create_texture(&TextureDescriptor {
+                label: Some("tilemap_texture_array"),
+                size: Extent3d {
+                    width: desc.tile_size.x,
+                    height: desc.tile_size.y,
+                    depth_or_array_layers: tile_count.x * tile_count.y,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::Rgba8UnormSrgb,
+                usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+
+            let sampler = render_device.create_sampler(&SamplerDescriptor {
+                label: Some("tilemap_texture_array_sampler"),
+                address_mode_u: AddressMode::ClampToEdge,
+                address_mode_v: AddressMode::ClampToEdge,
+                address_mode_w: AddressMode::ClampToEdge,
+                mag_filter: desc.filter_mode,
+                min_filter: desc.filter_mode,
+                mipmap_filter: desc.filter_mode,
+                lod_min_clamp: 0.,
+                lod_max_clamp: f32::MAX,
+                compare: None,
+                anisotropy_clamp: 1,
+                border_color: None,
+            });
+
+            let texture_view = texture.create_view(&TextureViewDescriptor {
+                label: Some("tilemap_texture_array_view"),
+                format: Some(TextureFormat::Rgba8UnormSrgb),
+                dimension: Some(TextureViewDimension::D2Array),
+                aspect: TextureAspect::All,
+                base_mip_level: 0,
+                base_array_layer: 0,
+                mip_level_count: None,
+                array_layer_count: Some(tile_count.x * tile_count.y),
+            });
+
+            let gpu_image = GpuImage {
+                texture_format: texture.format(),
+                mip_level_count: texture.mip_level_count(),
+                texture,
+                texture_view,
+                sampler,
+                size: Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
+            };
+
+            self.textures.insert(image_handle.clone_weak(), gpu_image);
+            self.queue_queue
+                .insert(image_handle.clone_weak(), desc.clone());
+        }
+    }
+
+    /// Translate images to texture array.
+    pub fn queue_textures(
+        &mut self,
+        render_device: &RenderDevice,
+        render_queue: &RenderQueue,
+        render_images: &RenderAssets<Image>,
+    ) {
+        if self.queue_queue.is_empty() {
+            return;
+        }
+
+        let to_queue = self.queue_queue.drain().collect::<Vec<_>>();
+
+        for (image_handle, desc) in to_queue.iter() {
+            let Some(raw_gpu_image) = render_images.get(image_handle) else {
+                self.prepare_queue
+                    .insert(image_handle.clone_weak(), desc.clone());
+                continue;
+            };
+
+            let tile_count = desc.size / desc.tile_size;
+            let array_gpu_image = self.textures.get(image_handle).unwrap();
+            let mut command_encoder = render_device.create_command_encoder(&Default::default());
+
+            for index_y in 0..tile_count.y {
+                for index_x in 0..tile_count.x {
+                    command_encoder.copy_texture_to_texture(
+                        ImageCopyTexture {
+                            texture: &raw_gpu_image.texture,
+                            mip_level: 0,
+                            origin: Origin3d {
+                                x: index_x * desc.tile_size.x,
+                                y: index_y * desc.tile_size.y,
+                                z: 0,
+                            },
+                            aspect: TextureAspect::All,
+                        },
+                        ImageCopyTexture {
+                            texture: &array_gpu_image.texture,
+                            mip_level: 0,
+                            origin: Origin3d {
+                                x: 0,
+                                y: 0,
+                                z: index_x + index_y * tile_count.x,
+                            },
+                            aspect: TextureAspect::All,
+                        },
+                        Extent3d {
+                            width: desc.tile_size.x,
+                            height: desc.tile_size.y,
+                            depth_or_array_layers: 1,
+                        },
+                    );
+                }
+            }
+
+            render_queue.submit(vec![command_encoder.finish()]);
+        }
     }
 
     pub fn contains(&self, handle: &Handle<Image>) -> bool {
         self.textures.contains_key(handle)
+            || self.queue_queue.contains_key(handle)
+            || self.prepare_queue.contains_key(handle)
     }
 }
 
@@ -146,59 +211,8 @@ impl TilemapTexture {
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct TilemapTextureDescriptor {
     pub size: UVec2,
-    pub tiles_uv: Vec<TileUV>,
+    pub tile_size: UVec2,
     pub filter_mode: FilterMode,
-    pub is_uniform: bool,
-}
-
-impl TilemapTextureDescriptor {
-    /// Creates a new uniform descriptor from a full grid of tiles. The texture should be filled with tiles.
-    /// Just like the one in the example.
-    ///
-    /// Use `TileUVBuilder` to create a non-uniform descriptor.
-    pub fn from_full_grid(size: UVec2, tile_count: UVec2, filter_mode: FilterMode) -> Self {
-        assert_eq!(
-            (size % tile_count),
-            UVec2::ZERO,
-            "The texture size must be a multiple of the tile count."
-        );
-
-        let mut tiles_uv = Vec::with_capacity((tile_count.x * tile_count.y) as usize);
-        let unit_uv = (size / tile_count).as_vec2();
-
-        for y in 0..tile_count.y {
-            for x in 0..tile_count.x {
-                tiles_uv.push(TileUV {
-                    min: Vec2 {
-                        x: unit_uv.x * x as f32,
-                        y: unit_uv.y * y as f32,
-                    },
-                    max: Vec2 {
-                        x: unit_uv.x * (x + 1) as f32,
-                        y: unit_uv.y * (y + 1) as f32,
-                    },
-                });
-            }
-        }
-
-        Self {
-            size,
-            tiles_uv,
-            filter_mode,
-            is_uniform: true,
-        }
-    }
-
-    /// Create a non-uniform descriptor.
-    /// Use `from_full_grid` if your texture is filled with tiles in the same size.
-    pub fn new_non_uniform(size: UVec2, tiles_uv: Vec<TileUV>, filter_mode: FilterMode) -> Self {
-        Self {
-            size,
-            tiles_uv,
-            filter_mode,
-            is_uniform: false,
-        }
-    }
 }
 
 pub fn set_texture_usage(

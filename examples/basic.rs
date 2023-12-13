@@ -35,11 +35,11 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     )
     .with_texture(TilemapTexture::new(
         assets_server.load("test_square.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 2, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 32, y: 32 },
+            tile_size: UVec2 { x: 16, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     ))
     .build(&mut commands);
 
@@ -66,7 +66,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         UVec2 { x: 1, y: 1 },
         &TileBuilder::new(1).with_flip(TileFlip::Horizontal),
     );
-    
+
     tilemap.set(
         &mut commands,
         UVec2 { x: 1, y: 2 },
@@ -96,11 +96,11 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     )
     .with_texture(TilemapTexture::new(
         assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::from_full_grid(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 1, y: 2 },
-            FilterMode::Nearest,
-        ),
+        TilemapTextureDescriptor {
+            size: UVec2 { x: 32, y: 32 },
+            tile_size: UVec2 { x: 32, y: 16 },
+            filter_mode: FilterMode::Nearest,
+        },
     ))
     .with_translation(Vec2 { x: -400., y: 0. })
     .build(&mut commands);
