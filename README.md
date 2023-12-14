@@ -4,30 +4,29 @@ A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
-Notice that the following progress may **not up to date**. Check the `README.md` in `dev` branch to get the latest progress!
+Notice that the following progress may **not up to date**. Check the `SHCHEDULE.md` in `dev` branch to get the most comprehensive progress!
 
 It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features. If you are curious about what will be updated next, you can check the `release_note` in `dev` branch.
 
-## Currently Working On
-
-- [LDtk](https://ldtk.io/) Support (expect: before Christmas!!)
-
 ## Future Goals
 
-- Wave Function Collapse ( Optimization; Collapse map patterns )
-- ~~Pathfinding~~
-- Tilemap-Link
+*The higher the priority, the more towards the front in the following list.*
+
+- [LDtk](https://ldtk.io/) Fully Support
+- Physics (for LDtk maps)
+- Pathfinding (for LDtk maps)
+- Wave Function Collapse ( Collapse map from LDtk; Optimization )
+- Chunk Unloading
 - Runtime Mesh & Texture Baking
+- Tilemap-Link
 - Wang Tilling
 - Tilemap Mask
-- Frustum Culling ( Optimization )
-- ~~Physics~~
-- Chunk Unloading
 - [Tiled](https://www.mapeditor.org/) Support
-- SSAO
 - Volumetric Clouds / Fog
+- SSAO
 - Lighting
 - Realtime Shadow
+- ~~Frustum Culling~~
 
 ## Known Issues
 
