@@ -33,7 +33,7 @@ impl AabbBox2d {
                         - pivot_offset,
                 }
             }
-            TileType::IsometricDiamond => {
+            TileType::Isometric => {
                 let chunk_index = chunk_index.as_vec2();
                 let half_chunk_render_size =
                     tilemap.render_chunk_size as f32 * tilemap.tile_slot_size / 2.;
@@ -64,7 +64,7 @@ impl AabbBox2d {
                     max: tilemap_render_size + builder.translation - pivot_offset,
                 }
             }
-            TileType::IsometricDiamond => {
+            TileType::Isometric => {
                 let half_size = builder.size.as_vec2() / 2.;
                 let tilemap_render_size = (half_size.x + half_size.y) * builder.tile_slot_size;
                 let center_x = (half_size.x - half_size.y) * builder.tile_slot_size.x / 2.;

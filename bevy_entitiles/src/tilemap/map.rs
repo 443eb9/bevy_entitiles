@@ -428,7 +428,7 @@ impl Tilemap {
         let index = index.as_vec2();
         match self.tile_type {
             TileType::Square => (index - self.pivot) * self.tile_slot_size + self.translation,
-            TileType::IsometricDiamond => {
+            TileType::Isometric => {
                 (Vec2 {
                     x: (index.x - index.y - 1.),
                     y: (index.x + index.y),
@@ -466,7 +466,7 @@ impl Tilemap {
                 (Vec2 { x, y } + offset).into(),
                 (Vec2 { x, y: 0. } + offset).into(),
             ],
-            TileType::IsometricDiamond => [
+            TileType::Isometric => [
                 (Vec2 { x: 0., y: y / 2. } + offset).into(),
                 (Vec2 { x: x / 2., y } + offset).into(),
                 (Vec2 { x, y: y / 2. } + offset).into(),

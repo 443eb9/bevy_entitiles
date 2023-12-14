@@ -110,7 +110,7 @@ Video at `docs/vids/wfc.mp4`
 
 ## Limitations
 
-- Supports up to 4 tilesets in one tilemap.
+- Supports up to 1 tilesets in one tilemap. (this will no longer change to 4 in next version)
 - Supports up to 4 layers\* in one tilemap.
 - Supports up to 32 animations in one tilemap. (this will no longer exists in next version)
 - Supports up to 32 length of animation sequences.
@@ -125,7 +125,8 @@ Video at `docs/vids/wfc.mp4`
 
 ## Versions
 
-| Bevy ver | EntiTiles ver |
-| -------- | ------------- |
-| 0.12.x   | 0.2.x         |
-| 0.11.x   | 0.1.x         |
+| Bevy ver | EntiTiles ver | LDtk ver      |
+| -------- | ------------- | ------------- |
+| 0.12.x   | 0.2.3         | 1.4.1         |
+| 0.12.x   | 0.2.0-0.2.2   | Not supported |
+| 0.11.x   | 0.1.x         | Not supported |

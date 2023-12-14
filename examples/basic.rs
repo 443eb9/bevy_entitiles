@@ -99,7 +99,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.entity(tilemap_entity).insert(tilemap);
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
-        TileType::IsometricDiamond,
+        TileType::Isometric,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
         "test_map".to_string(),

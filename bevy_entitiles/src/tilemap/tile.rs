@@ -15,7 +15,7 @@ pub enum TileType {
     Square,
     /// A diamond shape. It's like a square but rotated 45 degrees counterclockwise around the origin.
     /// But the coordinate system is the same as `Square`.
-    IsometricDiamond,
+    Isometric,
 }
 
 #[repr(u32)]

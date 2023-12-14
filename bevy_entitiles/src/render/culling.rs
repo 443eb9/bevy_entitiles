@@ -34,7 +34,7 @@ pub fn cull(
 
             match tilemap.tile_type {
                 TileType::Square => cull_square(&camera_aabb, tilemap, &mut render_chunk_storage),
-                TileType::IsometricDiamond => {
+                TileType::Isometric => {
                     cull_isometric_diamond(&camera_aabb, tilemap, &mut render_chunk_storage)
                 }
             }

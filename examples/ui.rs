@@ -21,8 +21,6 @@ use bevy_entitiles::{
 fn main() {
     App::new()
         .add_plugins((
-            // use ImagePlugin to change the filter mode.
-            // I don't know how to do that for indivisual materials.
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
         ))

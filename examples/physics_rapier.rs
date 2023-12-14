@@ -53,7 +53,7 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
-        TileType::IsometricDiamond,
+        TileType::Isometric,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
         "test_map".to_string(),
@@ -62,7 +62,7 @@ fn setup(
         assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor {
             size: UVec2 { x: 32, y: 32 },
-            tile_size: UVec2 { x: 16, y: 16 },
+            tile_size: UVec2 { x: 32, y: 16 },
             filter_mode: FilterMode::Nearest,
         },
     ))

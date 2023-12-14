@@ -494,7 +494,6 @@ name = "bevy_entitiles"
 version = "0.2.3"
 dependencies = [
  "bevy",
- "bevy_entitiles_derive",
  "bevy_mod_debugdump",
  "bevy_rapier2d",
  "bevy_xpbd_2d",

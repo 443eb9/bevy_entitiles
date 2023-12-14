@@ -51,11 +51,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             FillArea::full(&tilemap),
             Some(0),
         )
-        // just a simple example, you can use some noise function
-        // .with_custom_sampler(Box::new(|tile, rng| {
-        //     let psbs = tile.get_psbs_vec();
-        //     psbs[rng.sample(Uniform::new(0, psbs.len()))]
-        // }))
         // use weights OR custom_sampler
         // .with_weights("examples/wfc_weights.ron".to_string())
         .with_retrace_settings(Some(8), Some(1000000))

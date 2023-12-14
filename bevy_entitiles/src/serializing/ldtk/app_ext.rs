@@ -3,11 +3,11 @@ use bevy::{app::App, ecs::bundle::Bundle};
 use super::entity::{LdtkEntity, LdtkEntityIdentMapper, LdtkEntityTypeMarker};
 
 pub trait AppExt {
-    fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str);
+    fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) -> &mut App;
 }
 
 impl AppExt for App {
-    fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) {
+    fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) -> &mut App {
         match self
             .world
             .get_non_send_resource_mut::<LdtkEntityIdentMapper>()
@@ -24,5 +24,7 @@ impl AppExt for App {
                 self.register_ldtk_entity::<T>(ident);
             }
         }
+
+        self
     }
 }

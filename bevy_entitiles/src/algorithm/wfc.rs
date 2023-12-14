@@ -21,7 +21,6 @@ use crate::{
         map::{Tilemap, TilemapPattern},
         tile::TileBuilder,
     },
-    MAX_LAYER_COUNT,
 };
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
@@ -548,12 +547,13 @@ impl WfcGrid {
                     );
                 }
             }
-            WfcType::MapPattern(patterns) => {
-                for ptn in self.grid.iter() {
-                    let pattern = patterns[ptn.element_index.unwrap() as usize].clone();
-                    let ptn_size = pattern.size;
-                    // tilemap.set_pattern(commands, pattern, ptn.index * ptn_size + self.area.origin);
-                }
+            WfcType::MapPattern(_patterns) => {
+                unimplemented!();
+                // for ptn in self.grid.iter() {
+                //     let pattern = patterns[ptn.element_index.unwrap() as usize].clone();
+                //     let ptn_size = pattern.size;
+                //     tilemap.set_pattern(commands, pattern, ptn.index * ptn_size + self.area.origin);
+                // }
             }
         }
     }
@@ -771,9 +771,10 @@ pub fn wave_function_collapse_async(
                                     &TileBuilder::from_serialized_tile(serialized_tile),
                                 );
                             }
-                            WfcType::MapPattern(patterns) => {
-                                let pattern = patterns[idx as usize].clone();
-                                let ptn_size = pattern.size;
+                            WfcType::MapPattern(_patterns) => {
+                                unimplemented!()
+                                // let pattern = patterns[idx as usize].clone();
+                                // let ptn_size = pattern.size;
                                 // tilemap.set_pattern(&mut c, pattern, min_elem.index * ptn_size + grid.area.origin);
                             }
                         })

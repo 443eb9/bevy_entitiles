@@ -38,7 +38,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
-        TileType::IsometricDiamond,
+        TileType::Isometric,
         UVec2 { x: 20, y: 20 },
         Vec2 { x: 32.0, y: 16.0 },
         "test_map".to_string(),
@@ -47,7 +47,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor {
             size: UVec2 { x: 32, y: 32 },
-            tile_size: UVec2 { x: 16, y: 16 },
+            tile_size: UVec2 { x: 32, y: 16 },
             filter_mode: FilterMode::Nearest,
         },
     ))
@@ -93,7 +93,7 @@ fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Qu
     // load
     if input.just_pressed(KeyCode::AltRight) {
         let entity = commands.spawn_empty().id();
-        TilemapLoaderBuilder::new("C:\\saves".to_string(), "mytilemap".to_string())
+        TilemapLoaderBuilder::new("C:\\saves".to_string(), "test_map".to_string())
             .with_layer(TilemapLayer::All)
             .build(&mut commands, entity);
         println!("Loading tilemap...");
@@ -103,8 +103,9 @@ fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Qu
 fn failure_handle(mut commands: Commands, errs: Query<(Entity, &TilemapLoadFailure)>) {
     for (entity, err) in errs.iter() {
         println!(
-            "Failed to load tilemap: {:?}",
-            err.path.clone() + &err.map_name
+            "Failed to load tilemap: {}\\{}",
+            err.path.clone(),
+            &err.map_name
         );
         commands.entity(entity).remove::<TilemapLoadFailure>();
     }

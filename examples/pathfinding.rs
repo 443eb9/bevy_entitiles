@@ -29,16 +29,16 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
-        TileType::IsometricDiamond,
+        TileType::Isometric,
         UVec2 { x: 500, y: 500 },
-        Vec2 { x: 32.0, y: 16.0 },
+        Vec2 { x: 32., y: 16. },
         "test_map".to_string(),
     )
     .with_texture(TilemapTexture::new(
         assets_server.load("test_isometric.png"),
         TilemapTextureDescriptor {
             size: UVec2 { x: 32, y: 32 },
-            tile_size: UVec2 { x: 16, y: 16 },
+            tile_size: UVec2 { x: 32, y: 16 },
             filter_mode: FilterMode::Nearest,
         },
     ))
