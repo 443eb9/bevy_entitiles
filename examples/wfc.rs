@@ -42,9 +42,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ))
     .build(&mut commands);
 
-    // The following code is NOT suitable for every project.
-    // I just want to show you the full functionality.
-    // Please adjust them before you run the program.
     commands.entity(tilemap_entity).insert((
         WfcRunner::from_simple_config(
             &tilemap,

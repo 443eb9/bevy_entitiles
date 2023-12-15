@@ -35,7 +35,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
 
-## Features
+## Feature Flags
 
 | Flag             | Funtionality                                                                                                            |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -70,6 +70,12 @@ Platform: 10600KF
 
 > *Bevy 0.12.1, crate 0.2.3*
 
+### Ui System
+
+<div>
+	<img src="./docs/imgs/ui.gif" width="500px">
+</div>
+
 ### Pathfinding
 
 The pathfinding algorithm is very fast.
@@ -92,10 +98,8 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
 
-Video at `docs/vids/wfc.mp4`
-
 <div>
-	<img src="./docs/imgs/wfc.png" width="500px">
+	<img src="./docs/imgs/wfc.gif" width="500px">
 </div>
 
 | Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |
