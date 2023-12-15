@@ -1,11 +1,11 @@
 use bevy::{
     ecs::query::Without,
-    prelude::{Component, Entity, IVec2, ParallelCommands, Query, UVec2},
+    prelude::{Component, Entity, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
 
 use crate::{
-    math::extension::ManhattanDistance,
+    math::extension::{ManhattanDistance, TileIndex},
     tilemap::{algorithm::path::PathTilemap, map::Tilemap},
 };
 
@@ -144,37 +144,14 @@ impl PathGrid {
         tilemap: &Tilemap,
         path_tilemap: &PathTilemap,
     ) -> Vec<UVec2> {
-        let count = {
-            if self.allow_diagonal {
-                8
-            } else {
-                4
-            }
-        };
-
-        let mut result = Vec::with_capacity(count);
-        for dy in [-1, 0, 1] {
-            for dx in [-1, 0, 1] {
-                if dx == 0 && dy == 0 {
-                    continue;
-                }
-
-                if !self.allow_diagonal && dx != 0 && dy != 0 {
-                    continue;
-                }
-
-                let index = IVec2 {
-                    x: (node.index.x as i32 + dx),
-                    y: (node.index.y as i32 + dy),
-                };
-                if let Some(index) =
-                    self.get_or_register_new(index, self.dest, tilemap, path_tilemap)
-                {
-                    result.push(index);
-                };
-            }
-        }
-        result
+        node.index
+            .neighbours(tilemap.tile_type, self.allow_diagonal)
+            .into_iter()
+            .filter(|n| {
+                self.get_or_register_new(*n, self.dest, tilemap, path_tilemap)
+                    .is_some()
+            })
+            .collect()
     }
 
     #[inline]
@@ -201,16 +178,14 @@ impl PathGrid {
 
     fn get_or_register_new(
         &mut self,
-        index: IVec2,
+        index: UVec2,
         dest: UVec2,
         tilemap: &Tilemap,
         path_tilemap: &PathTilemap,
     ) -> Option<UVec2> {
-        if tilemap.is_out_of_tilemap_ivec(index) {
+        if tilemap.is_out_of_tilemap_uvec(index) {
             return None;
         }
-
-        let index = index.as_uvec2();
 
         if self.is_explored(index) {
             return None;
@@ -258,7 +233,9 @@ pub fn pathfinding(
     finders.par_iter_mut().for_each(|(finder_entity, finder)| {
         #[cfg(feature = "debug")]
         let start = std::time::SystemTime::now();
-        let (tilemap, path_tilemap) = &tilemaps_query.get(finder.tilemap).unwrap();
+        let Ok((tilemap, path_tilemap)) = tilemaps_query.get(finder.tilemap) else {
+            panic!("Failed to find the tilemap! Did you add the tilemap and path tilemap to the same entity?");
+        };
 
         // check if origin or dest doesn't exists
         if tilemap.is_out_of_tilemap_uvec(finder.origin)
@@ -400,13 +377,7 @@ fn find_path(
             return;
         }
 
-        let neighbours = {
-            if finder.allow_diagonal {
-                path_grid.neighbours(&current, tilemap, &path_tilemap)
-            } else {
-                path_grid.neighbours(&current, tilemap, &path_tilemap)
-            }
-        };
+        let neighbours = path_grid.neighbours(&current, tilemap, &path_tilemap);
 
         // explore neighbours
         for neighbour in neighbours {

@@ -1,4 +1,9 @@
-use bevy::prelude::{UVec2, Vec2};
+use bevy::{
+    math::IVec2,
+    prelude::{UVec2, Vec2},
+};
+
+use crate::tilemap::tile::TileType;
 
 pub trait F32ToU32 {
     fn round_to_u32(self) -> u32;
@@ -9,11 +14,7 @@ pub trait F32ToU32 {
 impl F32ToU32 for f32 {
     #[inline]
     fn round_to_u32(self) -> u32 {
-        if self.fract() >= 0.5 {
-            self as u32 + 1
-        } else {
-            self as u32
-        }
+        (self + 0.5) as u32
     }
 
     #[inline]
@@ -85,6 +86,58 @@ impl ManhattanDistance<u32> for UVec2 {
     fn manhattan_distance(self, other: Self) -> u32 {
         let d = (self.as_ivec2() - other.as_ivec2()).abs().as_uvec2();
         d.x + d.y
+    }
+}
+
+pub trait TileIndex<T> {
+    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<T>;
+}
+
+impl TileIndex<UVec2> for UVec2 {
+    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<UVec2> {
+        let mut result = Vec::with_capacity(8);
+        match ty {
+            TileType::Hexagonal(_) => {
+                for d in [
+                    IVec2::ONE,
+                    IVec2::ONE,
+                    IVec2::NEG_ONE,
+                    IVec2::NEG_ONE,
+                    IVec2::X,
+                    IVec2::Y,
+                ] {
+                    let index = IVec2 {
+                        x: (self.x as i32 + d.x),
+                        y: (self.y as i32 + d.y),
+                    };
+                    if index.x >= 0 || index.y >= 0 {
+                        result.push(index.as_uvec2());
+                    }
+                }
+            }
+            _ => {
+                for dy in [-1, 0, 1] {
+                    for dx in [-1, 0, 1] {
+                        if dx == 0 && dy == 0 {
+                            continue;
+                        }
+
+                        if !allow_diagonal && dx != 0 && dy != 0 {
+                            continue;
+                        }
+
+                        let index = IVec2 {
+                            x: (self.x as i32 + dx),
+                            y: (self.y as i32 + dy),
+                        };
+                        if index.x >= 0 || index.y >= 0 {
+                            result.push(index.as_uvec2());
+                        }
+                    }
+                }
+            }
+        }
+        result
     }
 }
 

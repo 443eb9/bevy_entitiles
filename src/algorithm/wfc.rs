@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{IVec2, IVec4, Vec4},
+    math::{IVec4, Vec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
@@ -15,11 +15,11 @@ use rand::{
 use ron::de::from_bytes;
 
 use crate::{
-    math::FillArea,
+    math::{extension::TileIndex, FillArea},
     serializing::SerializedTile,
     tilemap::{
         map::{Tilemap, TilemapPattern},
-        tile::TileBuilder,
+        tile::{TileBuilder, TileType},
     },
 };
 
@@ -46,6 +46,7 @@ pub struct WfcRunner {
     rule: Vec<[u128; 4]>,
     mode: WfcMode,
     ty: WfcType,
+    tile_type: TileType,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     seed: Option<u64>,
     area: FillArea,
@@ -57,7 +58,12 @@ pub struct WfcRunner {
 
 impl WfcRunner {
     /// Create a runner uses the config that only contains a `texture_index`
-    pub fn from_simple_config(rule_path: String, area: FillArea, seed: Option<u64>) -> Self {
+    pub fn from_simple_config(
+        tilemap: &Tilemap,
+        rule_path: String,
+        area: FillArea,
+        seed: Option<u64>,
+    ) -> Self {
         let rule_vec: Vec<[Vec<u8>; 4]> =
             from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
 
@@ -110,6 +116,7 @@ impl WfcRunner {
             rule,
             mode: WfcMode::NonWeighted,
             ty: WfcType::SingleTile(tiles),
+            tile_type: tilemap.tile_type,
             sampler: None,
             area,
             seed,
@@ -272,6 +279,7 @@ struct WfcHistory {
 
 #[derive(Component)]
 pub struct WfcGrid {
+    tile_type: TileType,
     mode: WfcMode,
     ty: WfcType,
     area: FillArea,
@@ -321,6 +329,7 @@ impl WfcGrid {
             cur_hist: 0,
             mode: runner.mode.clone(),
             ty: runner.ty.clone(),
+            tile_type: runner.tile_type,
             rule: runner.rule.clone(),
             rng: match runner.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
@@ -559,22 +568,11 @@ impl WfcGrid {
     }
 
     pub fn neighbours(&mut self, index: UVec2) -> Vec<UVec2> {
-        let index = index.as_ivec2();
-        vec![
-            IVec2::new(index.x, index.y + 1),
-            IVec2::new(index.x + 1, index.y),
-            IVec2::new(index.x - 1, index.y),
-            IVec2::new(index.x, index.y - 1),
-        ]
-        .iter()
-        .filter(|p| {
-            p.x >= 0
-                && p.y >= 0
-                && p.x < self.area.extent.x as i32
-                && p.y < self.area.extent.y as i32
-        })
-        .map(|p| p.as_uvec2())
-        .collect::<Vec<_>>()
+        index
+            .neighbours(self.tile_type, false)
+            .into_iter()
+            .filter(|n| n.x < self.area.extent.x && n.y < self.area.extent.y)
+            .collect()
     }
 
     fn update_entropy(&mut self, index: UVec2) {

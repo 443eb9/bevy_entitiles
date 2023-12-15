@@ -17,11 +17,10 @@ use bevy::{
 };
 
 use super::{
-    binding::TilemapBindGroups,
+    binding::{TilemapBindGroups, TilemapViewBindGroup},
     buffer::{DynamicOffsetComponent, TilemapUniform},
     chunk::RenderChunkStorage,
     extract::ExtractedTilemap,
-    queue::TileViewBindGroup,
 };
 
 pub type DrawTilemap = (
@@ -61,9 +60,10 @@ impl RenderCommand<Transparent2d> for SetPipeline {
             pass.set_render_pipeline(pipeline);
             RenderCommandResult::Success
         } else {
-            pipeline_cache.get_render_pipeline_state(item.pipeline);
-            error!("Failed to get render pipeline!");
-            panic!();
+            panic!(
+                "Failed to get render pipeline!\n{:?}",
+                pipeline_cache.get_render_pipeline_state(item.pipeline)
+            );
         }
     }
 }
@@ -72,7 +72,7 @@ pub struct SetTilemapViewBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I> {
     type Param = ();
 
-    type ViewWorldQuery = (Read<ViewUniformOffset>, Read<TileViewBindGroup>);
+    type ViewWorldQuery = (Read<ViewUniformOffset>, Read<TilemapViewBindGroup>);
 
     type ItemWorldQuery = ();
 

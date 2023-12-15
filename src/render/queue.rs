@@ -1,10 +1,10 @@
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
-    prelude::{Commands, Component, Entity, Msaa, Query, Res, ResMut},
+    prelude::{Commands, Entity, Msaa, Query, Res, ResMut},
     render::{
         render_asset::RenderAssets,
         render_phase::{DrawFunctions, RenderPhase},
-        render_resource::{BindGroup, BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
+        render_resource::{BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
         renderer::{RenderDevice, RenderQueue},
         texture::Image,
         view::ViewUniforms,
@@ -13,18 +13,13 @@ use bevy::{
 };
 
 use super::{
-    binding::TilemapBindGroups,
+    binding::{TilemapBindGroups, TilemapViewBindGroup},
     buffer::TilemapUniformBuffers,
     draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     texture::TilemapTexturesStorage,
 };
-
-#[derive(Component)]
-pub struct TileViewBindGroup {
-    pub value: BindGroup,
-}
 
 pub fn queue(
     mut commands: Commands,
@@ -51,7 +46,7 @@ pub fn queue(
     textures_storage.queue_textures(&render_device, &render_queue, &render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
-        commands.entity(view_entity).insert(TileViewBindGroup {
+        commands.entity(view_entity).insert(TilemapViewBindGroup {
             value: render_device.create_bind_group(
                 "tilemap_view_bind_group",
                 &entitile_pipeline.view_layout,

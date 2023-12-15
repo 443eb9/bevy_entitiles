@@ -14,7 +14,7 @@ use bevy::{
     utils::EntityHashMap,
 };
 
-use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH, tilemap::tile::TileType};
+use crate::{tilemap::tile::TileType, MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH};
 
 use super::extract::ExtractedTilemap;
 
@@ -59,7 +59,7 @@ impl<T: ShaderType> DynamicOffsetComponent<T> {
     }
 }
 
-#[derive(ShaderType, Clone, Copy, Default)]
+#[derive(ShaderType, Debug, Clone, Copy, Default)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileAnimation {
     // because array stride must be a multiple of 16 bytes
@@ -195,10 +195,6 @@ mod test {
                 UVec4::new(5, 6, 4, 2),
                 UVec4::ZERO,
                 UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
             ]
         );
         let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1], 10.);
@@ -208,10 +204,6 @@ mod test {
                 UVec4::new(1, 2, 3, 4),
                 UVec4::new(5, 6, 4, 2),
                 UVec4::new(1, 0, 0, 0),
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
                 UVec4::ZERO,
             ]
         );
@@ -223,10 +215,6 @@ mod test {
                 UVec4::new(5, 6, 4, 2),
                 UVec4::new(1, 3, 0, 0),
                 UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
             ]
         );
         let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1, 3, 6], 10.);
@@ -236,10 +224,6 @@ mod test {
                 UVec4::new(1, 2, 3, 4),
                 UVec4::new(5, 6, 4, 2),
                 UVec4::new(1, 3, 6, 0),
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
-                UVec4::ZERO,
                 UVec4::ZERO,
             ]
         );

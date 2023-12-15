@@ -1,74 +1,155 @@
 use bevy::{
-    app::Plugin,
+    app::{App, Plugin, Update},
     asset::{load_internal_asset, Asset, Assets, Handle},
-    ecs::system::ResMut,
-    math::{Vec2, Vec4},
+    ecs::system::{Res, ResMut, Resource},
+    math::{UVec2, Vec2, Vec4},
     reflect::TypePath,
     render::{
-        render_resource::{AsBindGroup, Shader},
+        render_resource::{AsBindGroup, Shader, ShaderRef, ShaderType},
         texture::Image,
     },
+    time::Time,
     ui::{UiMaterial, UiMaterialPlugin},
+    utils::HashMap,
 };
 
-use crate::render::texture::TilemapTextureDescriptor;
+use crate::{
+    render::{
+        buffer::TileAnimation,
+        texture::{TilemapTexture, TilemapTextureDescriptor},
+    },
+    tilemap::tile::TileFlip,
+};
 
 pub const UI_TILES_SHADER: Handle<Shader> = Handle::weak_from_u128(213513554364645316312);
 
 pub struct EntiTilesUiPlugin;
 
 impl Plugin for EntiTilesUiPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut App) {
         load_internal_asset!(app, UI_TILES_SHADER, "ui_tiles.wgsl", Shader::from_wgsl);
 
         app.add_plugins(UiMaterialPlugin::<UiTileMaterial>::default());
+        app.init_resource::<UiTileMaterialRegistry>();
+        app.add_systems(Update, materials_time_updater);
     }
 }
 
-pub struct UiTilemapTexture {
-    pub(crate) texture: Handle<Image>,
-    pub(crate) desc: TilemapTextureDescriptor,
+#[derive(Resource, Default)]
+pub struct UiTileMaterialRegistry {
+    materials: HashMap<Handle<Image>, Vec<Handle<UiTileMaterial>>>,
 }
 
-impl UiTilemapTexture {
-    /// Add all the textures to `Assets<UiMaterial>`
-    pub fn register_materials(
-        self,
-        color: Option<Vec4>,
+impl UiTileMaterialRegistry {
+    pub fn register(
+        &mut self,
         assets: &mut ResMut<Assets<UiTileMaterial>>,
-    ) -> UiTileMaterialsLookup {
-        let count = self.desc.size / self.desc.tile_size;
-        let mut handles = Vec::with_capacity((count.x * count.y) as usize);
-        let color = color.unwrap_or(Vec4::ONE);
+        texture: &TilemapTexture,
+        builder: &UiTileBuilder,
+    ) {
+        self.materials
+            .entry(texture.clone_weak())
+            .or_default()
+            .push(assets.add(UiTileMaterial {
+                texture: texture.texture.clone(),
+                uniform: builder.build(&texture.desc).into(),
+            }));
+    }
+
+    pub fn register_many(
+        &mut self,
+        assets: &mut ResMut<Assets<UiTileMaterial>>,
+        texture: &TilemapTexture,
+        builders: Vec<UiTileBuilder>,
+    ) {
+        let count = texture.desc.size / texture.desc.tile_size;
 
         for y in 0..count.y {
             for x in 0..count.x {
-                let min = Vec2::new(x as f32, y as f32) * self.desc.tile_size.as_vec2();
-                let max = min + self.desc.tile_size.as_vec2();
-                handles.push(assets.add(UiTileMaterial {
-                    texture: self.texture.clone(),
-                    uv: Vec4::new(min.x, min.y, max.x, max.y),
-                    color,
-                    texture_size: self.desc.size.as_vec2(),
-                }));
+                let builder = &builders[(y * count.x + x) as usize];
+                self.register(assets, texture, builder);
             }
         }
-        UiTileMaterialsLookup { materials: handles }
+    }
+
+    pub fn get_handle(
+        &self,
+        texture: &Handle<Image>,
+        texture_index: usize,
+    ) -> Option<Handle<UiTileMaterial>> {
+        self.materials
+            .get(texture)
+            .and_then(|mats| mats.get(texture_index).cloned())
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &Handle<UiTileMaterial>> {
+        self.materials.iter().map(|(_, mats)| mats.iter()).flatten()
     }
 }
 
-#[derive(Default)]
-pub struct UiTileMaterialsLookup {
-    pub(crate) materials: Vec<Handle<UiTileMaterial>>,
+pub struct UiTileBuilder {
+    pub(crate) color: Vec4,
+    pub(crate) flip: u32,
+    pub(crate) texture_index: u32,
+    pub(crate) animation: Option<TileAnimation>,
 }
 
-impl UiTileMaterialsLookup {
-    pub fn clone(&self, index: u32) -> Option<Handle<UiTileMaterial>> {
-        if let Some(h) = self.materials.get(index as usize) {
-            Some(h.clone())
-        } else {
-            None
+impl UiTileBuilder {
+    pub fn new() -> Self {
+        Self {
+            color: Vec4::ONE,
+            flip: 0,
+            texture_index: 0,
+            animation: None,
         }
+    }
+
+    pub fn with_color(mut self, color: Vec4) -> Self {
+        self.color = color;
+        self
+    }
+
+    pub fn with_flip(mut self, flip: TileFlip) -> Self {
+        self.flip |= flip as u32;
+        self
+    }
+
+    pub fn with_animation(mut self, animation: TileAnimation) -> Self {
+        self.animation = Some(animation);
+        self
+    }
+
+    pub fn with_texture_index(mut self, texture_index: u32) -> Self {
+        self.texture_index = texture_index;
+        self
+    }
+
+    pub fn build(&self, desc: &TilemapTextureDescriptor) -> UiTileUniform {
+        UiTileUniform {
+            color: self.color,
+            atlas_size: desc.tile_size.as_vec2(),
+            atlas_count: desc.size / desc.tile_size,
+            texture_index: self.texture_index,
+            flip: self.flip,
+            time: 0.,
+            anim: self.animation.unwrap_or_default(),
+        }
+    }
+
+    pub fn fill_grid_with_atlas(&self, desc: &TilemapTextureDescriptor) -> Vec<Self> {
+        let count = desc.size / desc.tile_size;
+        let mut builders = Vec::with_capacity(count.x as usize * count.y as usize);
+        for y in 0..count.y {
+            for x in 0..count.x {
+                builders.push(Self {
+                    color: self.color,
+                    flip: self.flip,
+                    texture_index: y * count.x + x,
+                    animation: self.animation.clone(),
+                });
+            }
+        }
+        builders
     }
 }
 
@@ -78,15 +159,32 @@ pub struct UiTileMaterial {
     #[sampler(1)]
     pub texture: Handle<Image>,
     #[uniform(2)]
-    pub uv: Vec4,
-    #[uniform(2)]
-    pub color: Vec4,
-    #[uniform(2)]
-    pub texture_size: Vec2,
+    pub uniform: UiTileUniform,
 }
 
 impl UiMaterial for UiTileMaterial {
-    fn fragment_shader() -> bevy::render::render_resource::ShaderRef {
+    fn fragment_shader() -> ShaderRef {
         UI_TILES_SHADER.into()
     }
+}
+
+#[derive(ShaderType, Debug, Clone)]
+pub struct UiTileUniform {
+    pub color: Vec4,
+    pub atlas_size: Vec2,
+    pub atlas_count: UVec2,
+    pub texture_index: u32,
+    pub flip: u32,
+    pub time: f32,
+    pub anim: TileAnimation,
+}
+
+pub fn materials_time_updater(
+    mut asstes: ResMut<Assets<UiTileMaterial>>,
+    mats_reg: Res<UiTileMaterialRegistry>,
+    time: Res<Time>,
+) {
+    mats_reg.iter().for_each(|handle| {
+        asstes.get_mut(handle).unwrap().uniform.time = time.elapsed_seconds();
+    });
 }

@@ -1,6 +1,6 @@
 use bevy::{
     asset::Handle,
-    ecs::{entity::Entity, system::Resource, world::FromWorld},
+    ecs::{component::Component, entity::Entity, system::Resource, world::FromWorld},
     render::{
         render_resource::{
             BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
@@ -22,6 +22,11 @@ use super::{
     pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
 };
+
+#[derive(Component)]
+pub struct TilemapViewBindGroup {
+    pub value: BindGroup,
+}
 
 #[derive(Resource, Default)]
 pub struct TilemapBindGroups {

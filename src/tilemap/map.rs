@@ -22,7 +22,6 @@ pub struct TilemapBuilder {
     pub ext_dir: Vec2,
     pub size: UVec2,
     pub tile_render_size: Vec2,
-    pub tile_render_scale: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub render_chunk_size: u32,
@@ -34,15 +33,14 @@ pub struct TilemapBuilder {
 
 impl TilemapBuilder {
     /// Create a new tilemap builder.
-    pub fn new(ty: TileType, size: UVec2, tile_slot_size: Vec2, name: String) -> Self {
+    pub fn new(ty: TileType, size: UVec2, tile_render_size: Vec2, name: String) -> Self {
         Self {
             name,
             tile_type: ty,
             ext_dir: Vec2::ONE,
             size,
-            tile_render_scale: Vec2::ONE,
-            tile_render_size: tile_slot_size,
-            tile_slot_size,
+            tile_render_size,
+            tile_slot_size: tile_render_size,
             pivot: Vec2::ZERO,
             texture: None,
             render_chunk_size: 32,
@@ -77,9 +75,13 @@ impl TilemapBuilder {
         self
     }
 
+    /// Override the size of the tilemap slots. Default is equal to `tile_render_size`.
+    pub fn with_tile_slot_size(&mut self, tile_slot_size: Vec2) -> &mut Self {
+        self.tile_slot_size = tile_slot_size;
+        self
+    }
+
     /// Override the pivot of the tile. Default is `[0., 0.]`.
-    ///
-    /// This can be useful when rendering `non_uniform` tilemaps. ( See the example )
     pub fn with_pivot(&mut self, pivot: Vec2) -> &mut Self {
         assert!(
             pivot.x >= 0. && pivot.x <= 1. && pivot.y >= 0. && pivot.y <= 1.,
@@ -89,14 +91,8 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override the tile render scale. Default is `Vec2::ONE` which means the render size is equal to the pixel size.
-    pub fn with_tile_render_scale(&mut self, tile_render_scale: Vec2) -> &mut Self {
-        self.tile_render_scale = tile_render_scale;
-        self
-    }
-
     /// Override the extend direction of the tilemap. Default is `Vec2::ONE`.
-    /// 
+    ///
     /// You can set this to `[1, -1]` or something to change the direction of the tilemap.
     pub fn with_extend_direction(&mut self, direction: Vec2) -> &mut Self {
         self.ext_dir = direction;
@@ -449,8 +445,13 @@ impl Tilemap {
                     - self.pivot)
                     * self.tile_slot_size
                     + self.translation
-            },
-            TileType::Hexagonal(_) => todo!(),
+            }
+            TileType::Hexagonal(legs) => {
+                Vec2 {
+                    x: self.tile_slot_size.x * (index.x - 0.5 * index.y - self.pivot.x),
+                    y: (self.tile_slot_size.y + legs as f32) / 2. * (index.y - self.pivot.y),
+                } + self.translation
+            }
         }
     }
 

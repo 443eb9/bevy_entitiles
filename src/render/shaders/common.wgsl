@@ -1,7 +1,7 @@
 // MAX_LAYER_COUNT 4
 // MAX_TILESET_COUNT 4
-// MAX_ANIM_COUNT 32
-// MAX_ANIM_SEQ_LENGTH 32
+// MAX_ANIM_COUNT 64
+// MAX_ANIM_SEQ_LENGTH 16
 
 #define_import_path bevy_entitiles::common
 
@@ -33,7 +33,7 @@ struct VertexOutput {
 struct TileAnimation {
     // MAX_ANIM_SEQ_LENGTH / 4
     // because array stride must be a multiple of 16 bytes
-    seq: array<vec4<u32>, 8>,
+    seq: array<vec4<u32>, 4>,
     length: u32,
     fps: f32,
 }
@@ -45,7 +45,7 @@ struct Tilemap {
     tile_slot_size: vec2<f32>,
     pivot: vec2<f32>,
     // MAX_ANIM_COUNT MAX_ANIM_SEQ_LENGTH
-    anim_seqs: array<TileAnimation, 32>,
+    anim_seqs: array<TileAnimation, 64>,
     layer_opacities: vec4<f32>,
     // this value will only be meaningful when the tilemap is hexagonal!
     hex_legs: f32,

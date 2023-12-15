@@ -198,21 +198,30 @@ impl TilemapTexture {
     pub fn handle(&self) -> &Handle<Image> {
         &self.texture
     }
-
-    #[cfg(feature = "ui")]
-    pub fn as_ui_texture(&self) -> crate::ui::UiTilemapTexture {
-        crate::ui::UiTilemapTexture {
-            texture: self.texture.clone(),
-            desc: self.desc.clone(),
-        }
-    }
 }
 
 #[derive(Clone, Default, Debug, PartialEq)]
 pub struct TilemapTextureDescriptor {
-    pub size: UVec2,
-    pub tile_size: UVec2,
-    pub filter_mode: FilterMode,
+    pub(crate) size: UVec2,
+    pub(crate) tile_size: UVec2,
+    pub(crate) filter_mode: FilterMode,
+}
+
+impl TilemapTextureDescriptor {
+    pub fn new(size: UVec2, tile_size: UVec2, filter_mode: FilterMode) -> Self {
+        assert_eq!(
+            size % tile_size,
+            UVec2::ZERO,
+            "Invalid tilemap texture descriptor! \
+            The size must be divisible by the tile size!"
+        );
+
+        Self {
+            size,
+            tile_size,
+            filter_mode,
+        }
+    }
 }
 
 pub fn set_texture_usage(

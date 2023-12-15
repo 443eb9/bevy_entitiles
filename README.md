@@ -110,9 +110,9 @@ Video at `docs/vids/wfc.mp4`
 
 ## Limitations
 
-- Supports up to 1 tilesets in one tilemap. (this will no longer change to 4 in next version)
+- Supports up to 1 tilesets in one tilemap. (this will no longer exists in the future)
 - Supports up to 4 layers\* in one tilemap.
-- Supports up to 32 animations in one tilemap. (this will no longer exists in next version)
+- Supports up to 32 animations in one tilemap. (this will no longer exists in the future)
 - Supports up to 32 length of animation sequences.
 
 *\*The layer here is not the same as you see in LDtk, it's the rendered tilemap layer, which does not include the entity layer*

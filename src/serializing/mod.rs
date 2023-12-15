@@ -69,7 +69,7 @@ pub struct SerializedTilemap {
     pub translation: Vec2,
     pub z_order: i32,
     pub layers: u32,
-    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub anim_seqs: Vec<TileAnimation>,
     pub anim_counts: usize,
 }
 
@@ -97,12 +97,16 @@ impl SerializedTilemap {
             translation: tilemap.translation,
             z_order: tilemap.z_order,
             layers: saver.layers,
-            anim_seqs: tilemap.anim_seqs,
+            anim_seqs: tilemap.anim_seqs.to_vec(),
             anim_counts: tilemap.anim_counts,
         }
     }
 
     pub fn into_tilemap(&self, entity: Entity, texture: Option<TilemapTexture>) -> Tilemap {
+        let mut anim_seqs = [TileAnimation::default(); MAX_ANIM_COUNT];
+        for (i, anim) in self.anim_seqs.iter().enumerate() {
+            anim_seqs[i] = *anim;
+        }
         Tilemap {
             id: entity,
             name: self.name.clone(),
@@ -119,7 +123,7 @@ impl SerializedTilemap {
             aabb: self.aabb,
             translation: self.translation,
             z_order: self.z_order,
-            anim_seqs: self.anim_seqs,
+            anim_seqs,
             anim_counts: self.anim_counts,
         }
     }

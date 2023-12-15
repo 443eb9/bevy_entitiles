@@ -34,11 +34,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     )
     .with_texture(TilemapTexture::new(
         asset_server.load("test_wfc.png"),
-        TilemapTextureDescriptor {
-            size: UVec2 { x: 48, y: 32 },
-            tile_size: UVec2 { x: 16, y: 16 },
-            filter_mode: FilterMode::Nearest,
-        },
+        TilemapTextureDescriptor::new(
+            UVec2 { x: 48, y: 32 },
+            UVec2 { x: 16, y: 16 },
+            FilterMode::Nearest,
+        ),
     ))
     .build(&mut commands);
 
@@ -47,6 +47,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Please adjust them before you run the program.
     commands.entity(tilemap_entity).insert((
         WfcRunner::from_simple_config(
+            &tilemap,
             "examples/wfc_config.ron".to_string(),
             FillArea::full(&tilemap),
             Some(0),
