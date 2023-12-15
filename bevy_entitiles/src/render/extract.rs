@@ -25,6 +25,7 @@ use super::{buffer::TileAnimation, texture::TilemapTexture};
 pub struct ExtractedTilemap {
     pub id: Entity,
     pub tile_type: TileType,
+    pub ext_dir: Vec2,
     pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
@@ -71,6 +72,7 @@ pub fn extract_tilemaps(
             ExtractedTilemap {
                 id: tilemap.id,
                 tile_type: tilemap.tile_type,
+                ext_dir: tilemap.ext_dir,
                 size: tilemap.size,
                 tile_render_size: tilemap.tile_render_size,
                 tile_slot_size: tilemap.tile_slot_size,

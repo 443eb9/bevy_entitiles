@@ -7,8 +7,12 @@
     #import bevy_entitiles::square::get_mesh_origin
 #endif
 
-#ifdef ISO_DIAMOND
-    #import bevy_entitiles::iso_diamond::get_mesh_origin
+#ifdef ISOMETRIC
+    #import bevy_entitiles::isometric::get_mesh_origin
+#endif
+
+#ifdef HEXAGONAL
+    #import bevy_entitiles::hexagonal::get_mesh_origin
 #endif
 
 fn get_uv(flip: u32, v_index: u32) -> vec2<f32> {
@@ -31,8 +35,8 @@ fn get_uv(flip: u32, v_index: u32) -> vec2<f32> {
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    let mesh_center = get_mesh_origin(input);
-
+    let mesh_origin = get_mesh_origin(input);
+    
     var translations = array<vec2<f32>, 4>(
         vec2<f32>(0., 0.),
         vec2<f32>(0., 1.),
@@ -41,7 +45,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     );
     
     var position_model = vec2<f32>((translations[input.v_index % 4u] - tilemap.pivot)
-                                    * tilemap.tile_render_size + mesh_center);
+                                    * tilemap.tile_render_size + mesh_origin);
     var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
 
     output.position = view.view_proj * position_world;

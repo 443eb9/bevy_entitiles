@@ -17,6 +17,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - Pathfinding (for LDtk maps)
 - Wave Function Collapse ( Collapse map from LDtk; Optimization )
 - Chunk Unloading
+- Infinite Tilemap
 - Runtime Mesh & Texture Baking
 - Tilemap-Link
 - Wang Tilling
@@ -45,6 +46,8 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc.                    |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                                          |
 | `ui`             | Support renderring tiles as ui image.                                                                                   |
+
+## Coordinate Systems
 
 ## Show Cases & Performance
 

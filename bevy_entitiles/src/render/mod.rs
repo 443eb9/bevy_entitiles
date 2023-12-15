@@ -31,7 +31,8 @@ pub mod queue;
 pub mod texture;
 
 const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
-const ISO_DIAMOND: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
+const ISOMETRIC: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
+const HEXAGONAL: Handle<Shader> = Handle::weak_from_u128(341658413214563135);
 const COMMON: Handle<Shader> = Handle::weak_from_u128(1321023135616351);
 const TILEMAP_SHADER: Handle<Shader> = Handle::weak_from_u128(89646584153215);
 
@@ -47,12 +48,8 @@ pub struct EntiTilesRendererPlugin;
 impl Plugin for EntiTilesRendererPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         load_internal_asset!(app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
-        load_internal_asset!(
-            app,
-            ISO_DIAMOND,
-            "shaders/iso_diamond.wgsl",
-            Shader::from_wgsl
-        );
+        load_internal_asset!(app, ISOMETRIC, "shaders/isometric.wgsl", Shader::from_wgsl);
+        load_internal_asset!(app, HEXAGONAL, "shaders/hexagonal.wgsl", Shader::from_wgsl);
         load_internal_asset!(app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
 
         load_internal_asset!(

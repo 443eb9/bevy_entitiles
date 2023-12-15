@@ -13,6 +13,7 @@ use crate::{
 pub struct PubTilemap {
     pub id: Entity,
     pub tile_type: TileType,
+    pub ext_dir: Vec2,
     pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
@@ -32,6 +33,7 @@ impl PubTilemap {
         Self {
             id: value.id,
             tile_type: value.tile_type,
+            ext_dir: value.ext_dir,
             size: value.size,
             tile_render_size: value.tile_render_size,
             tile_slot_size: value.tile_slot_size,
@@ -51,6 +53,7 @@ impl PubTilemap {
         Self {
             id: value.id,
             tile_type: value.tile_type,
+            ext_dir: value.ext_dir,
             size: value.size,
             tile_render_size: value.tile_render_size,
             tile_slot_size: value.tile_slot_size,
@@ -70,6 +73,7 @@ impl PubTilemap {
         ExtractedTilemap {
             id: self.id,
             tile_type: self.tile_type,
+            ext_dir: self.ext_dir,
             size: self.size,
             tile_render_size: self.tile_render_size,
             tile_slot_size: self.tile_slot_size,

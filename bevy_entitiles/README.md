@@ -4,7 +4,7 @@ A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
-Notice that the following progress may **not up to date**. Check the `SHCHEDULE.md` in `dev` branch to get the most comprehensive progress!
+Check the `SHCHEDULE.md` in `dev` branch to get the most comprehensive progress!
 
 It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features. If you are curious about what will be updated next, you can check the `release_note` in `dev` branch.
 

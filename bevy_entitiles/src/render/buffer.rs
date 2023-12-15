@@ -14,7 +14,7 @@ use bevy::{
     utils::EntityHashMap,
 };
 
-use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH};
+use crate::{MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH, tilemap::tile::TileType};
 
 use super::extract::ExtractedTilemap;
 
@@ -108,10 +108,12 @@ impl TileAnimation {
 pub struct TilemapUniform {
     pub translation: Vec2,
     pub tile_render_size: Vec2,
+    pub ext_dir: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub layer_opacities: Vec4,
+    pub hex_legs: f32,
     pub time: f32,
 }
 
@@ -128,10 +130,15 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
         let component = TilemapUniform {
             translation: extracted.translation,
             tile_render_size: extracted.tile_render_size,
+            ext_dir: extracted.ext_dir,
             tile_slot_size: extracted.tile_slot_size,
             pivot: extracted.pivot,
             anim_seqs: extracted.anim_seqs,
             layer_opacities: extracted.layer_opacities,
+            hex_legs: match extracted.tile_type {
+                TileType::Hexagonal(legs) => legs as f32,
+                _ => 0.,
+            },
             time: extracted.time,
         };
         DynamicOffsetComponent::new(self.buffer.push(component))

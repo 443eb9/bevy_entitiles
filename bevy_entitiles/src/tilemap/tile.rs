@@ -7,15 +7,15 @@ use crate::MAX_LAYER_COUNT;
 
 use super::map::Tilemap;
 
+/// Defines the shape of tiles in a tilemap.
+/// Check the `Coordinate Systems` chapter in README.md to see the details.
 #[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TileType {
-    /// The most basic shape.
     #[default]
     Square,
-    /// A diamond shape. It's like a square but rotated 45 degrees counterclockwise around the origin.
-    /// But the coordinate system is the same as `Square`.
     Isometric,
+    Hexagonal(u32),
 }
 
 #[repr(u32)]

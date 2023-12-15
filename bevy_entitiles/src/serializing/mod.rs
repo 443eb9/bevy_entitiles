@@ -57,6 +57,7 @@ pub struct SerializedTilemapData {
 pub struct SerializedTilemap {
     pub name: String,
     pub tile_type: TileType,
+    pub ext_dir: Vec2,
     pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
@@ -77,6 +78,7 @@ impl SerializedTilemap {
         SerializedTilemap {
             name: tilemap.name.clone(),
             tile_type: tilemap.tile_type,
+            ext_dir: tilemap.ext_dir,
             size: tilemap.size,
             tile_render_size: tilemap.tile_render_size,
             tile_slot_size: tilemap.tile_slot_size,
@@ -105,6 +107,7 @@ impl SerializedTilemap {
             id: entity,
             name: self.name.clone(),
             tile_type: self.tile_type,
+            ext_dir: self.ext_dir,
             size: self.size,
             tile_render_size: self.tile_render_size,
             tile_slot_size: self.tile_slot_size,

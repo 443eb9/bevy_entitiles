@@ -1,6 +1,5 @@
 // MAX_LAYER_COUNT 4
 // MAX_TILESET_COUNT 4
-// MAX_ATLAS_COUNT 512
 // MAX_ANIM_COUNT 32
 // MAX_ANIM_SEQ_LENGTH 32
 
@@ -42,11 +41,14 @@ struct TileAnimation {
 struct Tilemap {
     translation: vec2<f32>,
     tile_render_size: vec2<f32>,
+    ext_dir: vec2<f32>,
     tile_slot_size: vec2<f32>,
     pivot: vec2<f32>,
     // MAX_ANIM_COUNT MAX_ANIM_SEQ_LENGTH
     anim_seqs: array<TileAnimation, 32>,
     layer_opacities: vec4<f32>,
+    // this value will only be meaningful when the tilemap is hexagonal!
+    hex_legs: f32,
     time: f32,
 }
 

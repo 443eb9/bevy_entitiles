@@ -50,6 +50,26 @@ impl AabbBox2d {
                     max: center + half_chunk_render_size,
                 }
             }
+            TileType::Hexagonal(c) => {
+                /*
+                 * MATHEMATICAL MAGIC!!!!!!!
+                 */
+                let Vec2 { x: a, y: b } = tilemap.tile_render_size;
+                let c = c as f32;
+                let Vec2 { x, y } = chunk_index.as_vec2();
+                let n = tilemap.render_chunk_size as f32;
+
+                let min = Vec2 {
+                    x: a * x * n - a / 2. * y * n - n / 2. * a - a / 2.,
+                    y: (b + c) / 2. * y * n,
+                } + tilemap.translation;
+                let max = Vec2 {
+                    x: a * x * n - a / 2. * y * n + 1.5 * a * n - a / 2.,
+                    y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
+                } + tilemap.translation;
+
+                AabbBox2d { min, max }
+            }
         }
     }
 
@@ -80,6 +100,11 @@ impl AabbBox2d {
                     max: center + tilemap_render_size / 2.,
                 }
             }
+            // TODO
+            TileType::Hexagonal(_) => AabbBox2d {
+                min: Vec2::ZERO,
+                max: Vec2::ZERO,
+            },
         }
     }
 

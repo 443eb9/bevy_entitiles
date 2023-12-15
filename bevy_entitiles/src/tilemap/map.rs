@@ -19,6 +19,7 @@ use super::{
 pub struct TilemapBuilder {
     pub name: String,
     pub tile_type: TileType,
+    pub ext_dir: Vec2,
     pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_render_scale: Vec2,
@@ -37,6 +38,7 @@ impl TilemapBuilder {
         Self {
             name,
             tile_type: ty,
+            ext_dir: Vec2::ONE,
             size,
             tile_render_scale: Vec2::ONE,
             tile_render_size: tile_slot_size,
@@ -93,6 +95,14 @@ impl TilemapBuilder {
         self
     }
 
+    /// Override the extend direction of the tilemap. Default is `Vec2::ONE`.
+    /// 
+    /// You can set this to `[1, -1]` or something to change the direction of the tilemap.
+    pub fn with_extend_direction(&mut self, direction: Vec2) -> &mut Self {
+        self.ext_dir = direction;
+        self
+    }
+
     /// Build the tilemap and spawn it into the world.
     /// You can modify the component and insert it back.
     pub fn build(&self, commands: &mut Commands) -> (Entity, Tilemap) {
@@ -102,6 +112,7 @@ impl TilemapBuilder {
             name: self.name.clone(),
             tile_render_size: self.tile_render_size,
             tile_type: self.tile_type,
+            ext_dir: self.ext_dir,
             size: self.size,
             tiles: vec![None; (self.size.x * self.size.y) as usize],
             render_chunk_size: self.render_chunk_size,
@@ -139,6 +150,7 @@ pub struct Tilemap {
     pub(crate) id: Entity,
     pub(crate) name: String,
     pub(crate) tile_type: TileType,
+    pub(crate) ext_dir: Vec2,
     pub(crate) size: UVec2,
     pub(crate) tile_render_size: Vec2,
     pub(crate) tile_slot_size: Vec2,
@@ -424,6 +436,7 @@ impl Tilemap {
     }
 
     /// Get the world position of the center of a slot.
+    #[inline]
     pub fn index_to_world(&self, index: UVec2) -> Vec2 {
         let index = index.as_vec2();
         match self.tile_type {
@@ -436,7 +449,8 @@ impl Tilemap {
                     - self.pivot)
                     * self.tile_slot_size
                     + self.translation
-            }
+            },
+            TileType::Hexagonal(_) => todo!(),
         }
     }
 
@@ -472,6 +486,7 @@ impl Tilemap {
                 (Vec2 { x, y: y / 2. } + offset).into(),
                 (Vec2 { x: x / 2., y: 0. } + offset).into(),
             ],
+            TileType::Hexagonal(_) => todo!(),
         }
     }
 

@@ -1,9 +1,6 @@
 use bevy::prelude::{Component, Query, ResMut};
 
-use crate::{
-    math::aabb::AabbBox2d,
-    tilemap::tile::TileType,
-};
+use crate::{math::aabb::AabbBox2d, tilemap::tile::TileType};
 
 use super::{
     chunk::RenderChunkStorage,
@@ -31,45 +28,15 @@ pub fn cull(
             }
 
             let camera_aabb = AabbBox2d::from_camera(camera);
+            let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
 
-            match tilemap.tile_type {
-                TileType::Square => cull_square(&camera_aabb, tilemap, &mut render_chunk_storage),
-                TileType::Isometric => {
-                    cull_isometric_diamond(&camera_aabb, tilemap, &mut render_chunk_storage)
+            // TODO Optimize
+            for chunk in chunks.iter_mut() {
+                if let Some(c) = chunk {
+                    if c.aabb.is_intersected(&camera_aabb) {
+                        c.visible = true;
+                    }
                 }
-            }
-        }
-    }
-}
-
-// TODO optimize
-fn cull_square(
-    camera_aabb: &AabbBox2d,
-    tilemap: &ExtractedTilemap,
-    render_chunk_storage: &mut ResMut<RenderChunkStorage>,
-) {
-    let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
-
-    for chunk in chunks.iter_mut() {
-        if let Some(c) = chunk {
-            if c.aabb.is_intersected(camera_aabb) {
-                c.visible = true;
-            }
-        }
-    }
-}
-
-fn cull_isometric_diamond(
-    camera_aabb: &AabbBox2d,
-    tilemap: &ExtractedTilemap,
-    render_chunk_storage: &mut ResMut<RenderChunkStorage>,
-) {
-    let chunks = render_chunk_storage.get_chunks_mut(tilemap.id).unwrap();
-
-    for chunk in chunks.iter_mut() {
-        if let Some(c) = chunk {
-            if c.aabb.is_intersected(camera_aabb) {
-                c.visible = true;
             }
         }
     }

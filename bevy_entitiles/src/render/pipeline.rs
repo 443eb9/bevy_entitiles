@@ -51,7 +51,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             {
                 match key.map_type {
                     TileType::Square => "SQUARE",
-                    TileType::Isometric => "ISO_DIAMOND",
+                    TileType::Isometric => "ISOMETRIC",
+                    TileType::Hexagonal(_) => "HEXAGONAL",
                 }
             }
             .into(),

@@ -1,6 +1,6 @@
 [package]
 name = "bevy_entitiles"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
@@ -92,11 +92,6 @@ path = "../examples/physics_rapier.rs"
 required-features = ["physics_rapier"]
 
 [[example]]
-name = "non_uniform"
-path = "../examples/non_uniform.rs"
-required-features = []
-
-[[example]]
 name = "save_and_load"
 path = "../examples/save_and_load.rs"
 required-features = ["serializing", "algorithm"]
@@ -109,4 +104,9 @@ required-features = ["serializing"]
 [[example]]
 name = "ui"
 path = "../examples/ui.rs"
+required-features = []
+
+[[example]]
+name = "all_kinds"
+path = "../examples/all_kinds.rs"
 required-features = []
