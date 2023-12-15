@@ -1,6 +1,6 @@
 use bevy::prelude::{Component, Query, ResMut};
 
-use crate::{math::aabb::AabbBox2d, tilemap::tile::TileType};
+use crate::math::aabb::AabbBox2d;
 
 use super::{
     chunk::RenderChunkStorage,
