@@ -74,6 +74,8 @@ Platform: 10600KF
 	<img src="./docs/imgs/ui.gif" width="500px">
 </div>
 
+> *Bevy 0.12.1, crate 0.2.4*
+
 ### Pathfinding
 
 The pathfinding algorithm is very fast.
@@ -120,7 +122,7 @@ In the following case, each tile has at least one corresponding color gap with i
 
 - SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
 - [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) I took this crate as the reference and learnt the basis of bevy rendering!
-- [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk) I was confused and have no idea about how to instantiate LDtk entities before I read this crate! I learnt proc macros and many other things from this crate!
+- [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk) I was confused and have no idea about how to instantiate LDtk entities before I read this crate! I also learnt proc macros and many other things from this crate!
 
 ## Versions
 

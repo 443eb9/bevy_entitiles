@@ -41,9 +41,6 @@ pub struct LdtkLoader {
     /// For example, your ldtk file is located at `assets/ldtk/fantastic_map.ldtk`,
     /// so this value will be `ldtk/`.
     pub asset_path_prefix: String,
-    /// The name of the tilemap.
-    /// If you are not going to save this tilemap, then fill this with dummy data.
-    pub tilemap_name: String,
     /// The level to load.
     pub level: Option<u32>,
     /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,

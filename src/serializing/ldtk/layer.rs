@@ -8,9 +8,8 @@ use crate::{
     render::texture::TilemapTexture,
     tilemap::{
         map::{Tilemap, TilemapBuilder},
-        tile::{TileBuilder, TileType, TileUpdater},
+        tile::{TileBuilder, TileType},
     },
-    MAX_LAYER_COUNT,
 };
 
 use super::json::level::{LayerInstance, TileInstance};

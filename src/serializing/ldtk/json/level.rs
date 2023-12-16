@@ -8,7 +8,7 @@ use crate::{transfer_enum, transfer_enum_arr, transfer_field, unwrap_field};
 
 use super::{
     definitions::{LayerType, TilesetRect},
-    LdtkColor,
+    EntityRef, GridPoint, LdtkColor,
 };
 
 /*
@@ -568,30 +568,4 @@ pub enum FieldValue {
     Color(LdtkColor),
     Point(GridPoint),
     EntityRef(EntityRef),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityRef {
-    /// IID of the refered EntityInstance
-    pub entity_iid: String,
-
-    /// IID of the LayerInstance containing the refered EntityInstance
-    pub layer_iid: String,
-
-    /// IID of the Level containing the refered EntityInstance
-    pub level_iid: String,
-
-    /// IID of the World containing the refered EntityInstance
-    pub world_iid: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
-#[serde(rename_all = "camelCase")]
-pub struct GridPoint {
-    /// X grid-based coordinate
-    pub cx: i32,
-
-    /// Y grid-based coordinate
-    pub cy: i32,
 }

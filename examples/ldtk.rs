@@ -74,13 +74,12 @@ fn load(
         }
 
         commands.spawn(LdtkLoader {
-            path: "assets/ldtk/grid_vania.ldtk".to_string(),
+            path: "assets/ldtk/feature_test.ldtk".to_string(),
             asset_path_prefix: "ldtk/".to_string(),
             at_depth: 0,
             filter_mode: FilterMode::Nearest,
             level: None,
             level_spacing: Some(30),
-            tilemap_name: "ldtk".to_string(),
             ignore_unregistered_entities: true,
             use_tileset: Some(0),
             z_index: 0,

@@ -1,12 +1,10 @@
 use bevy::{math::Vec4, reflect::Reflect, render::color::Color};
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use self::{
-    definitions::Definitions,
-    level::{EntityRef, Level},
-};
+use self::{definitions::Definitions, level::Level};
 
 pub mod definitions;
+pub mod field;
 pub mod level;
 pub mod macros;
 
@@ -171,4 +169,30 @@ pub struct World {
 
     /// User defined unique identifier
     pub identifier: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[serde(rename_all = "camelCase")]
+pub struct EntityRef {
+    /// IID of the refered EntityInstance
+    pub entity_iid: String,
+
+    /// IID of the LayerInstance containing the refered EntityInstance
+    pub layer_iid: String,
+
+    /// IID of the Level containing the refered EntityInstance
+    pub level_iid: String,
+
+    /// IID of the World containing the refered EntityInstance
+    pub world_iid: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[serde(rename_all = "camelCase")]
+pub struct GridPoint {
+    /// X grid-based coordinate
+    pub cx: i32,
+
+    /// Y grid-based coordinate
+    pub cy: i32,
 }

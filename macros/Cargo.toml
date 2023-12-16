@@ -2,8 +2,9 @@
 name = "bevy_entitiles_derive"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+repository = "https://github.com/443eb9/bevy_entitiles"
+description = "Derive macros for bevy_entitiles"
 
 [lib]
 proc-macro = true
