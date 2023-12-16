@@ -24,7 +24,7 @@ use bevy_entitiles::{
     serializing::ldtk::{
         app_ext::AppExt,
         entity::LdtkEntity,
-        json::level::{EntityInstance, FieldValue},
+        json::{field::FieldValue, level::EntityInstance},
         r#enum::LdtkEnum,
         LdtkLoader,
     },
@@ -74,7 +74,7 @@ fn load(
         }
 
         commands.spawn(LdtkLoader {
-            path: "assets/ldtk/feature_test.ldtk".to_string(),
+            path: "assets/ldtk/grid_vania.ldtk".to_string(),
             asset_path_prefix: "ldtk/".to_string(),
             at_depth: 0,
             filter_mode: FilterMode::Nearest,

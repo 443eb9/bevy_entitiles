@@ -4,8 +4,7 @@ use serde::{
 };
 
 use crate::{
-    serializing::ldtk::json::LdtkColor, transfer_enum, transfer_enum_arr, transfer_field,
-    unwrap_field,
+    match_field, match_field_enum, serializing::ldtk::json::LdtkColor, transfer_field, unwrap_field,
 };
 
 use super::{definitions::TilesetRect, EntityRef, GridPoint};
@@ -69,14 +68,105 @@ impl<'de> Deserialize<'de> for FieldInstance {
 
                 while let Some(key) = map.next_key()? {
                     match key {
-                        FieldInstanceFields::DefUid => transfer_field!(def_uid, "defUid", map),
-                        FieldInstanceFields::Identifier => {
+                        "defUid" => transfer_field!(def_uid, "defUid", map),
+                        "__identifier" => {
                             transfer_field!(identifier, "__identifier", map)
                         }
-                        FieldInstanceFields::Tile => transfer_field!(tile, "__tile", map),
-                        FieldInstanceFields::Type => transfer_field!(ty, "__type", map),
-                        FieldInstanceFields::Value => transfer_field!(value, "__value", map),
-                        FieldInstanceFields::Skip => {
+                        "__tile" => transfer_field!(tile, "__tile", map),
+                        "__type" => transfer_field!(ty, "__type", map),
+                        "__value" => match ty.unwrap() {
+                            "Int" => match_field!(value, Integer, i32, map),
+                            "Float" => match_field!(value, Float, f32, map),
+                            "Bool" => match_field!(value, Bool, bool, map),
+                            "String" => match_field!(value, String, String, map),
+                            "Multilines" => match_field!(value, String, String, map),
+                            "FilePath" => match_field!(value, String, String, map),
+                            "Color" => match_field!(value, Color, LdtkColor, map),
+                            "Point" => match_field!(value, Point, GridPoint, map),
+                            "EntityRef" => match_field!(value, EntityRef, EntityRef, map),
+                            _ => {
+                                let ty = ty.unwrap();
+                                if ty.starts_with("LocalEnum") {
+                                    match_field_enum!(
+                                        value,
+                                        LocalEnum,
+                                        String,
+                                        ty.split(".").nth(1).unwrap().to_string(),
+                                        map
+                                    );
+                                } else if ty.starts_with("ExternEnum") {
+                                    match_field_enum!(
+                                        value,
+                                        ExternEnum,
+                                        String,
+                                        ty.split(".").nth(1).unwrap().to_string(),
+                                        map
+                                    );
+                                } else if ty.starts_with("Array") {
+                                    let arr_ty =
+                                        ty.split("<").nth(1).unwrap().split(">").nth(0).unwrap();
+                                    if arr_ty.starts_with("LocalEnum") {
+                                        match_field_enum!(
+                                            value,
+                                            LocalEnumArray,
+                                            Vec<String>,
+                                            arr_ty.split(".").nth(1).unwrap().to_string(),
+                                            map
+                                        );
+                                    } else if arr_ty.starts_with("ExternEnum") {
+                                        match_field_enum!(
+                                            value,
+                                            ExternEnumArray,
+                                            Vec<String>,
+                                            arr_ty.split(".").nth(1).unwrap().to_string(),
+                                            map
+                                        );
+                                    } else {
+                                        match arr_ty {
+                                            "Int" => {
+                                                match_field!(value, IntegerArray, Vec<i32>, map)
+                                            }
+                                            "Float" => {
+                                                match_field!(value, FloatArray, Vec<f32>, map)
+                                            }
+                                            "Bool" => {
+                                                match_field!(value, BoolArray, Vec<bool>, map)
+                                            }
+                                            "String" => {
+                                                match_field!(value, StringArray, Vec<String>, map)
+                                            }
+                                            "Multilines" => {
+                                                match_field!(value, StringArray, Vec<String>, map)
+                                            }
+                                            "FilePath" => {
+                                                match_field!(value, StringArray, Vec<String>, map)
+                                            }
+                                            "Color" => {
+                                                match_field!(value, ColorArray, Vec<LdtkColor>, map)
+                                            }
+                                            "Point" => {
+                                                match_field!(value, PointArray, Vec<GridPoint>, map)
+                                            }
+                                            "EntityRef" => {
+                                                match_field!(
+                                                    value,
+                                                    EntityRefArray,
+                                                    Vec<EntityRef>,
+                                                    map
+                                                )
+                                            }
+                                            _ => {
+                                                return Err(A::Error::custom(format!(
+                                                    "Unknown type for field value: {}",
+                                                    ty
+                                                )));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        _ => {
                             map.next_value::<IgnoredAny>()?;
                         }
                     }
@@ -85,35 +175,6 @@ impl<'de> Deserialize<'de> for FieldInstance {
                 let def_uid = unwrap_field!(def_uid, "defUid");
                 let identifier = unwrap_field!(identifier, "__identifier");
                 let tile = unwrap_field!(tile, "__tile");
-                let ty = unwrap_field!(ty, "__type");
-                let value = unwrap_field!(value, "__value");
-
-                let value = match ty {
-                    SpecialFieldType::LocalEnum(name) => {
-                        transfer_enum!(LocalEnum, "local enum", name, value)
-                    }
-                    SpecialFieldType::ExternEnum(name) => {
-                        transfer_enum!(ExternEnum, "extern enum", name, value)
-                    }
-                    SpecialFieldType::Color => {
-                        if let Some(v) = value {
-                            if let FieldValue::String(s) = v {
-                                Some(FieldValue::Color(LdtkColor::from(s)))
-                            } else {
-                                return Err(Error::custom(format!("expected color, got {:?}", v)));
-                            }
-                        } else {
-                            None
-                        }
-                    }
-                    SpecialFieldType::LocalEnumArray(name) => {
-                        transfer_enum_arr!(LocalEnumArray, "string array", name, value)
-                    }
-                    SpecialFieldType::ExternEnumArray(name) => {
-                        transfer_enum_arr!(ExternEnumArray, "string array", name, value)
-                    }
-                    SpecialFieldType::None => value,
-                };
 
                 Ok(FieldInstance {
                     def_uid,
@@ -125,110 +186,6 @@ impl<'de> Deserialize<'de> for FieldInstance {
         }
 
         deserializer.deserialize_struct("FieldInstance", FIELDS, FieldInstanceVisitor)
-    }
-}
-
-pub enum FieldInstanceFields {
-    DefUid,
-    Identifier,
-    Tile,
-    Type,
-    Value,
-    Skip,
-}
-
-impl<'de> Deserialize<'de> for FieldInstanceFields {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        pub struct FieldInstanceFieldsVisitor;
-        impl<'de> Visitor<'de> for FieldInstanceFieldsVisitor {
-            type Value = FieldInstanceFields;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a field instance field")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match v {
-                    "defUid" => Ok(FieldInstanceFields::DefUid),
-                    "__identifier" => Ok(FieldInstanceFields::Identifier),
-                    "__tile" => Ok(FieldInstanceFields::Tile),
-                    "__type" => Ok(FieldInstanceFields::Type),
-                    "__value" => Ok(FieldInstanceFields::Value),
-                    _ => Ok(FieldInstanceFields::Skip),
-                }
-            }
-        }
-
-        deserializer.deserialize_identifier(FieldInstanceFieldsVisitor)
-    }
-}
-
-#[derive(Serialize, Debug)]
-pub enum SpecialFieldType {
-    None,
-    LocalEnum(String),
-    ExternEnum(String),
-
-    LocalEnumArray(String),
-    ExternEnumArray(String),
-    Color,
-}
-
-impl<'de> Deserialize<'de> for SpecialFieldType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        pub struct FieldTypeVisitor;
-        impl<'de> Visitor<'de> for FieldTypeVisitor {
-            type Value = SpecialFieldType;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a field type")
-            }
-
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                if v.starts_with("LocalEnum") {
-                    return Ok(SpecialFieldType::LocalEnum(
-                        v.split(".").last().unwrap().to_string(),
-                    ));
-                }
-                if v.starts_with("ExternEnum") {
-                    return Ok(SpecialFieldType::ExternEnum(
-                        v.split(".").last().unwrap().to_string(),
-                    ));
-                }
-                if v.starts_with("Array") {
-                    let ty = v.split("<").nth(1).unwrap().split(">").nth(0).unwrap();
-                    if ty.starts_with("LocalEnum") {
-                        return Ok(SpecialFieldType::LocalEnumArray(
-                            ty.split(".").last().unwrap().to_string(),
-                        ));
-                    }
-                    if ty.starts_with("ExternEnum") {
-                        return Ok(SpecialFieldType::ExternEnumArray(
-                            ty.split(".").last().unwrap().to_string(),
-                        ));
-                    }
-                }
-
-                match v {
-                    "Color" => Ok(SpecialFieldType::Color),
-                    _ => Ok(SpecialFieldType::None),
-                }
-            }
-        }
-
-        deserializer.deserialize_str(FieldTypeVisitor)
     }
 }
 
@@ -260,4 +217,24 @@ pub enum FieldValue {
     ColorArray(Vec<LdtkColor>),
     PointArray(Vec<GridPoint>),
     EntityRefArray(Vec<EntityRef>),
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_deser() {
+        let json = r#"{
+            "defUid": 1,
+            "__identifier": "test",
+            "__tile": null,
+            "__type": "LocalEnum.Some",
+            "__value": "A"
+        }"#;
+
+        let field_instance: Option<FieldInstance> = serde_json::from_str(json).unwrap();
+
+        dbg!(field_instance);
+    }
 }
