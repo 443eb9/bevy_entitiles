@@ -12,8 +12,8 @@ use crate::{
 };
 
 use super::{
-    layer::UpdateLayer,
-    tile::{TileBuilder, TileType},
+    layer::LayerInserter,
+    tile::{TileBuilder, TileType, TileUpdater},
 };
 
 pub struct TilemapBuilder {
@@ -27,7 +27,7 @@ pub struct TilemapBuilder {
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
     pub translation: Vec2,
-    pub z_order: i32,
+    pub z_index: i32,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
@@ -45,15 +45,15 @@ impl TilemapBuilder {
             texture: None,
             render_chunk_size: 32,
             translation: Vec2::ZERO,
-            z_order: 0,
+            z_index: 0,
             anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
         }
     }
 
-    /// Override z order. Default is 10.
-    /// The higher the value of z_order, the less likely to be covered.
-    pub fn with_z_order(&mut self, z_order: i32) -> &mut Self {
-        self.z_order = z_order;
+    /// Override z index. Default is 0.
+    /// The higher the value of z_index, the less likely to be covered.
+    pub fn with_z_index(&mut self, z_index: i32) -> &mut Self {
+        self.z_index = z_index;
         self
     }
 
@@ -101,7 +101,7 @@ impl TilemapBuilder {
 
     /// Build the tilemap and spawn it into the world.
     /// You can modify the component and insert it back.
-    pub fn build(&self, commands: &mut Commands) -> (Entity, Tilemap) {
+    pub fn build(&self, commands: &mut Commands) -> Tilemap {
         let mut entity = commands.spawn_empty();
         let tilemap = Tilemap {
             id: entity.id(),
@@ -118,12 +118,12 @@ impl TilemapBuilder {
             layer_opacities: Vec4::ONE,
             aabb: AabbBox2d::from_tilemap_builder(&self),
             translation: self.translation,
-            z_order: self.z_order,
+            z_index: self.z_index,
             anim_seqs: self.anim_seqs,
             anim_counts: 0,
         };
         entity.insert((WaitForTextureUsageChange, tilemap.clone()));
-        (entity.id(), tilemap)
+        tilemap
     }
 }
 
@@ -157,7 +157,7 @@ pub struct Tilemap {
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) aabb: AabbBox2d,
     pub(crate) translation: Vec2,
-    pub(crate) z_order: i32,
+    pub(crate) z_index: i32,
     pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub(crate) anim_counts: usize,
 }
@@ -173,7 +173,7 @@ impl Tilemap {
     }
 
     pub(crate) fn get_unchecked(&self, index: UVec2) -> Option<Entity> {
-        self.tiles[self.grid_index_to_linear_index(index)]
+        self.tiles[self.transform_index(index)]
     }
 
     /// Set a tile.
@@ -215,53 +215,47 @@ impl Tilemap {
         index: UVec2,
         tile_builder: &TileBuilder,
     ) {
-        let linear_index = self.grid_index_to_linear_index(index);
-        if let Some(previous) = self.tiles[linear_index] {
+        let vec_idx = self.transform_index(index);
+        if let Some(previous) = self.tiles[vec_idx] {
             commands.entity(previous).despawn();
         }
         let new_tile = tile_builder.build(commands, index, self);
-        self.tiles[linear_index] = Some(new_tile);
+        self.tiles[vec_idx] = Some(new_tile);
     }
 
-    /// Update the `texture_index` of a layer for a tile.
-    /// Leave `texture_index` to `None` if you want to remove the layer.
-    ///
-    /// If the target tile is a `AnimatedTile`, this will changed the layer of the whole animation.
-    /// But this method does nothing if you try to remove the layer of a `AnimatedTile`
-    /// or the target tile only has one layer left.
-    ///
-    /// Use `Tilemap::set()` if you want to change more.
-    pub fn update(
+    pub fn insert_layer(
         &mut self,
         commands: &mut Commands,
         index: UVec2,
-        layer: usize,
-        texture_index: Option<u32>,
+        texture_index: u32,
+        is_top: bool,
+        is_overwrite_if_full: bool,
     ) {
-        if self.is_out_of_tilemap_uvec(index)
-            || self.get(index).is_none()
-            || layer >= MAX_LAYER_COUNT
-        {
+        if let Some(tile) = self.get(index) {
+            commands.entity(tile).insert(LayerInserter {
+                is_top,
+                value: texture_index,
+                is_overwrite_if_full,
+            });
+        }
+    }
+
+    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: &TileUpdater) {
+        if self.get(index).is_none() || updater.layer.unwrap_or_default().0 >= MAX_LAYER_COUNT {
             return;
         }
 
-        self.update_unchecked(commands, index, layer, texture_index);
+        self.update_unchecked(commands, index, updater);
     }
 
+    #[inline]
     pub(crate) fn update_unchecked(
         &mut self,
         commands: &mut Commands,
         index: UVec2,
-        layer: usize,
-        texture_index: Option<u32>,
+        updater: &TileUpdater,
     ) {
-        commands
-            .entity(self.get(index).unwrap())
-            .insert(UpdateLayer {
-                target: layer,
-                value: texture_index.unwrap_or_default(),
-                is_remove: texture_index.is_none(),
-            });
+        commands.entity(self.get(index).unwrap()).insert(*updater);
     }
 
     /// Set the opacity of a layer. Default is 1 for each layer.
@@ -285,7 +279,7 @@ impl Tilemap {
     }
 
     pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, index: UVec2) {
-        let index = self.grid_index_to_linear_index(index);
+        let index = self.transform_index(index);
         commands.entity(self.tiles[index].unwrap()).despawn();
         self.tiles[index] = None;
     }
@@ -345,16 +339,10 @@ impl Tilemap {
     // }
 
     /// Simlar to `Tilemap::fill_rect()`.
-    pub fn update_rect(
-        &mut self,
-        commands: &mut Commands,
-        area: FillArea,
-        layer: usize,
-        texture_index: Option<u32>,
-    ) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: &TileUpdater) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.update(commands, UVec2 { x, y }, layer, texture_index);
+                self.update(commands, UVec2 { x, y }, updater);
             }
         }
     }
@@ -364,8 +352,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         area: FillArea,
-        layer: usize,
-        mut texture_index: impl FnMut(UVec2) -> Option<u32>,
+        mut updater: impl FnMut(UVec2) -> TileUpdater,
         relative_index: bool,
     ) {
         for y in area.origin.y..=area.dest.y {
@@ -373,8 +360,7 @@ impl Tilemap {
                 self.update(
                     commands,
                     UVec2 { x, y },
-                    layer,
-                    texture_index(if relative_index {
+                    &updater(if relative_index {
                         UVec2 { x, y } - area.origin
                     } else {
                         UVec2 { x, y }
@@ -456,7 +442,7 @@ impl Tilemap {
     }
 
     #[inline]
-    pub fn grid_index_to_linear_index(&self, index: UVec2) -> usize {
+    pub fn transform_index(&self, index: UVec2) -> usize {
         (index.y * self.size.x + index.x) as usize
     }
 

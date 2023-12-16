@@ -7,35 +7,30 @@ use bevy::{
         entity::Entity,
         system::{Commands, NonSend, Query, Res},
     },
-    math::{UVec2, Vec2, Vec4},
+    math::{UVec2, Vec2},
     render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
+    utils::hashbrown::HashMap,
 };
 
-use crate::{
-    render::texture::{TilemapTexture, TilemapTextureDescriptor},
-    tilemap::{
-        layer::update_tile_builder_layer,
-        map::{Tilemap, TilemapBuilder},
-        tile::{TileBuilder, TileType},
-    },
-    MAX_LAYER_COUNT,
-};
+use crate::render::texture::{TilemapTexture, TilemapTextureDescriptor};
 
 use self::{
     entity::LdtkEntityIdentMapper,
     json::{
         definitions::{LayerType, TilesetDef},
-        level::{LayerInstance, TileInstance},
+        level::LayerInstance,
         LdtkJson, WorldLayout,
     },
+    layer::LdtkLayers,
 };
 
 pub mod app_ext;
 pub mod entity;
 pub mod r#enum;
 pub mod json;
+pub mod layer;
 
 #[derive(Component)]
 pub struct LdtkLoader {
@@ -67,8 +62,8 @@ pub struct LdtkLoader {
     ///
     /// If you only have one tileset, then you can leave this `None`.
     pub use_tileset: Option<usize>,
-    /// The z order of the tilemap.
-    pub z_order: i32,
+    /// The z index of the tilemap.
+    pub z_index: i32,
 }
 
 pub fn load_ldtk_json(
@@ -89,7 +84,7 @@ pub fn load_ldtk_json(
             Err(e) => panic!("Could not parse file at path: {}!\n{}", loader.path, e),
         };
 
-        load_ldtk(
+        load_levels(
             &mut commands,
             &mut ldtk_data,
             loader,
@@ -100,41 +95,20 @@ pub fn load_ldtk_json(
     }
 }
 
-fn load_ldtk(
+fn load_levels(
     commands: &mut Commands,
     ldtk_data: &mut LdtkJson,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
     ident_mapper: &LdtkEntityIdentMapper,
 ) {
-    // texture
-    let tileset_index = if let Some(idx) = loader.use_tileset {
-        idx
-    } else {
-        // TODO remove this after multiple tilesets are supported
-        assert_eq!(
-            ldtk_data.defs.tilesets.len(),
-            1,
-            "Multiple tilesets are not supported yet!"
-        );
-        0
-    };
-    let tileset = &ldtk_data.defs.tilesets[tileset_index];
-    let texture = load_texture(tileset, &loader, asset_server);
+    let mut tilesets = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
+    ldtk_data.defs.tilesets.iter().for_each(|tileset| {
+        if let Some(texture) = load_texture(tileset, &loader, asset_server) {
+            tilesets.insert(tileset.uid, texture);
+        }
+    });
 
-    assert!(
-        ldtk_data
-            .defs
-            .layers
-            .iter()
-            .filter(|l| l.ty != LayerType::Entities)
-            .count()
-            <= MAX_LAYER_COUNT,
-        "The maximum amount of rendered layers is {}!",
-        MAX_LAYER_COUNT
-    );
-
-    // level
     for (level_index, level) in ldtk_data.levels.iter().enumerate() {
         if level.world_depth != loader.at_depth
             || loader.level.unwrap_or(level_index as u32) != level_index as u32
@@ -144,55 +118,43 @@ fn load_ldtk(
 
         let translation = get_level_translation(&ldtk_data, loader, level_index);
 
-        let level_grid_size = UVec2 {
-            x: (level.px_wid / tileset.tile_grid_size) as u32,
-            y: (level.px_hei / tileset.tile_grid_size) as u32,
+        let level_px = UVec2 {
+            x: level.px_wid as u32,
+            y: level.px_hei as u32,
         };
-        let level_render_size = level_grid_size.as_vec2() * tileset.tile_grid_size as f32;
-
         commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: level.bg_color.into(),
-                custom_size: Some(level_render_size),
+                custom_size: Some(level_px.as_vec2()),
                 ..Default::default()
             },
             transform: Transform::from_translation(
-                (translation + level_render_size / 2.).extend(loader.z_order as f32 - 1.),
+                (translation + level_px.as_vec2() / 2.)
+                    .extend(loader.z_index as f32 - level.layer_instances.len() as f32 - 1.),
             ),
             ..Default::default()
         });
 
-        let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
-            TileType::Square,
-            level_grid_size,
-            tileset.tile_grid_size as f32 * Vec2::ONE,
-            loader.tilemap_name.clone(),
-        )
-        .with_translation(translation)
-        .with_texture(texture.clone())
-        .with_z_order(loader.z_order)
-        .build(commands);
-
-        let mut layer_grid = LdtkLayer::new(level_grid_size);
-        let mut render_layer_index = MAX_LAYER_COUNT - 1;
-        for layer in level.layer_instances.iter() {
+        let mut layer_grid = LdtkLayers::new(
+            level.layer_instances.len(),
+            level_px,
+            &tilesets,
+            translation,
+            loader.z_index,
+        );
+        for (layer_index, layer) in level.layer_instances.iter().enumerate() {
             load_layer(
                 commands,
-                render_layer_index,
+                layer_index,
                 layer,
                 &mut layer_grid,
-                &mut tilemap,
                 &ident_mapper,
                 loader,
                 asset_server,
             );
-            if layer.ty != LayerType::Entities {
-                render_layer_index -= 1;
-            }
         }
 
-        tilemap.set_all(commands, &layer_grid.tiles);
-        commands.entity(tilemap_entity).insert(tilemap);
+        layer_grid.apply_all(commands);
     }
 }
 
@@ -200,12 +162,12 @@ fn load_texture(
     tileset: &TilesetDef,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
-) -> TilemapTexture {
-    let texture = asset_server.load(format!(
-        "{}{}",
-        loader.asset_path_prefix,
-        tileset.rel_path.clone().unwrap()
-    ));
+) -> Option<TilemapTexture> {
+    let Some(path) = tileset.rel_path.as_ref() else {
+        return None;
+    };
+
+    let texture = asset_server.load(format!("{}{}", loader.asset_path_prefix, path));
     let desc = TilemapTextureDescriptor {
         size: UVec2 {
             x: tileset.px_wid as u32,
@@ -217,66 +179,14 @@ fn load_texture(
         },
         filter_mode: loader.filter_mode,
     };
-    TilemapTexture { texture, desc }
-}
-
-pub struct LdtkLayer {
-    pub tiles: Vec<Option<TileBuilder>>,
-    pub size: UVec2,
-}
-
-impl LdtkLayer {
-    pub fn new(size: UVec2) -> Self {
-        Self {
-            tiles: vec![None; (size.x * size.y) as usize],
-            size,
-        }
-    }
-
-    pub fn update(
-        &mut self,
-        layer_index: usize,
-        layer_instance: &LayerInstance,
-        tile_instance: &TileInstance,
-        tilemap: &mut Tilemap,
-    ) {
-        if tile_instance.px[0] < 0 || tile_instance.px[1] < 0 {
-            return;
-        }
-
-        let index = self.linear_index(UVec2 {
-            x: (tile_instance.px[0] / layer_instance.grid_size) as u32,
-            // the y axis is flipped in ldtk
-            y: (layer_instance.c_hei - tile_instance.px[1] / layer_instance.grid_size - 1) as u32,
-        });
-        if index >= self.tiles.len() {
-            return;
-        }
-
-        if let Some(tile) = self.tiles[index].as_mut() {
-            update_tile_builder_layer(tile, layer_index, tile_instance.tile_id as u32);
-            tilemap.set_layer_opacity(layer_index, layer_instance.opacity);
-        } else {
-            let mut builder = TileBuilder::new()
-                .with_layer(layer_index, tile_instance.tile_id as u32)
-                .with_color(Vec4::new(1., 1., 1., tile_instance.alpha));
-            builder.flip = tile_instance.flip as u32;
-            tilemap.set_layer_opacity(layer_index, layer_instance.opacity);
-            self.tiles[index] = Some(builder);
-        }
-    }
-
-    pub fn linear_index(&self, index: UVec2) -> usize {
-        (index.y * self.size.x + index.x) as usize
-    }
+    Some(TilemapTexture { texture, desc })
 }
 
 fn load_layer(
     commands: &mut Commands,
     layer_index: usize,
     layer: &LayerInstance,
-    layer_grid: &mut LdtkLayer,
-    tilemap: &mut Tilemap,
+    layer_grid: &mut LdtkLayers,
     ident_mapper: &LdtkEntityIdentMapper,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
@@ -284,7 +194,7 @@ fn load_layer(
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
-                layer_grid.update(layer_index, layer, tile, tilemap);
+                layer_grid.set(commands, layer_index, layer, tile);
             }
         }
         LayerType::Entities => {
@@ -309,7 +219,7 @@ fn load_layer(
         }
         LayerType::Tiles => {
             for tile in layer.grid_tiles.iter() {
-                layer_grid.update(layer_index, layer, tile, tilemap);
+                layer_grid.set(commands, layer_index, layer, tile);
             }
         }
     }

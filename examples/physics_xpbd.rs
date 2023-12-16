@@ -51,7 +51,7 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Isometric,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
@@ -82,9 +82,9 @@ fn setup(
         false,
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands.entity(tilemap.id()).insert(tilemap);
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },
@@ -116,7 +116,7 @@ fn setup(
         false,
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands.entity(tilemap.id()).insert(tilemap);
 
     // spawn a character
     commands.spawn((

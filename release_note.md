@@ -5,5 +5,6 @@
 - Supported more comprehensively for ui rendering like animations, flips etc.
 
 # What's Fixed:
+- Transparent tilemaps can't be seen above opaque tilemaps.
 
 # Known Issues:

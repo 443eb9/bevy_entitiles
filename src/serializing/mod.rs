@@ -67,7 +67,7 @@ pub struct SerializedTilemap {
     pub layer_opacities: Vec4,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
-    pub z_order: i32,
+    pub z_index: i32,
     pub layers: u32,
     pub anim_seqs: Vec<TileAnimation>,
     pub anim_counts: usize,
@@ -95,7 +95,7 @@ impl SerializedTilemap {
             layer_opacities: tilemap.layer_opacities,
             aabb: tilemap.aabb,
             translation: tilemap.translation,
-            z_order: tilemap.z_order,
+            z_index: tilemap.z_index,
             layers: saver.layers,
             anim_seqs: tilemap.anim_seqs.to_vec(),
             anim_counts: tilemap.anim_counts,
@@ -122,7 +122,7 @@ impl SerializedTilemap {
             tiles: vec![],
             aabb: self.aabb,
             translation: self.translation,
-            z_order: self.z_order,
+            z_index: self.z_index,
             anim_seqs,
             anim_counts: self.anim_counts,
         }
@@ -199,7 +199,6 @@ pub enum TilemapLayer {
 pub struct SerializedTile {
     pub index: UVec2,
     pub texture_indices: IVec4,
-    pub top_layer: usize,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
     pub flip: u32,
@@ -210,7 +209,6 @@ impl SerializedTile {
         Self {
             index: tile.index,
             texture_indices: tile.texture_indices,
-            top_layer: tile.top_layer,
             color: tile.color,
             anim,
             flip: tile.flip,

@@ -9,7 +9,7 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::TilemapBuilder,
-        tile::{TileBuilder, TileFlip, TileType},
+        tile::{TileBuilder, TileFlip, TileType, TileUpdater},
     },
     EntiTilesPlugin,
 };
@@ -27,7 +27,7 @@ fn main() {
 fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 20. },
@@ -92,13 +92,15 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.update_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
-        1,
-        Some(3),
+        &TileUpdater {
+            layer: Some((1, 3)),
+            ..Default::default()
+        },
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands.entity(tilemap.id()).insert(tilemap);
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Isometric,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
@@ -121,9 +123,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &TileBuilder::new().with_layer(0, 0),
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands.entity(tilemap.id()).insert(tilemap);
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },
@@ -140,5 +142,5 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             .with_color(Vec4::new(1., 1., 0., 1.)),
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands.entity(tilemap.id()).insert(tilemap);
 }

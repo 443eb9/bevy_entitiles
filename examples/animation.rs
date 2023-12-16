@@ -33,7 +33,7 @@ fn main() {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 20, y: 20 },
         Vec2 { x: 16., y: 16. },
@@ -68,5 +68,5 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         }),
     );
 
-    commands.entity(tilemap_entity).insert(tilemap);
+    commands.entity(tilemap.id()).insert(tilemap);
 }

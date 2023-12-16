@@ -107,7 +107,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
                 entry_point: "tilemap_fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
-                    blend: Some(BlendState::ALPHA_BLENDING),
+                    blend: Some(BlendState::PREMULTIPLIED_ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
             }),

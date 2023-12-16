@@ -497,6 +497,7 @@ dependencies = [
  "bevy_mod_debugdump",
  "bevy_rapier2d",
  "bevy_xpbd_2d",
+ "radsort",
  "rand",
  "ron",
  "serde",

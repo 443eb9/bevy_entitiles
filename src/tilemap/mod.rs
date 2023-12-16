@@ -1,6 +1,6 @@
 use bevy::app::{Plugin, Update};
 
-use self::layer::layer_updater;
+use self::{layer::layer_inserter, tile::tile_updater};
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
@@ -14,6 +14,6 @@ pub struct EntiTilesTilemapPlugin;
 
 impl Plugin for EntiTilesTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, layer_updater);
+        app.add_systems(Update, (tile_updater, layer_inserter));
     }
 }

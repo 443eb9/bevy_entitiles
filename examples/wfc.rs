@@ -26,7 +26,7 @@ fn main() {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let (tilemap_entity, tilemap) = TilemapBuilder::new(
+    let tilemap = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 50, y: 50 },
         Vec2 { x: 16., y: 16. },
@@ -42,7 +42,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ))
     .build(&mut commands);
 
-    commands.entity(tilemap_entity).insert((
+    commands.entity(tilemap.id()).insert((
         WfcRunner::from_simple_config(
             &tilemap,
             "examples/wfc_config.ron".to_string(),

@@ -9,8 +9,10 @@ use bevy::{
         texture::Image,
         view::ViewUniforms,
     },
-    utils::{nonmax::NonMaxU32, FloatOrd},
+    utils::FloatOrd,
 };
+
+use crate::tilemap::map;
 
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
@@ -58,9 +60,9 @@ pub fn queue(
         });
 
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
-        tilemaps.sort_by(|lhs, rhs| lhs.1.z_order.cmp(&rhs.1.z_order));
+        radsort::sort_by_key(&mut tilemaps, |m| m.1.z_index);
 
-        for (entity, tilemap) in tilemaps_query.iter() {
+        for (entity, tilemap) in tilemaps.iter() {
             bind_groups.queue_uniform_buffers(
                 &tilemap,
                 &render_device,
@@ -104,12 +106,12 @@ pub fn queue(
             };
 
             transparent_phase.add(Transparent2d {
-                sort_key: FloatOrd(tilemap.z_order as f32),
-                entity,
+                sort_key: FloatOrd(tilemap.z_index as f32),
+                entity: *entity,
                 pipeline,
                 draw_function,
                 batch_range: 0..1,
-                dynamic_offset: NonMaxU32::new(0),
+                dynamic_offset: None,
             });
         }
     }

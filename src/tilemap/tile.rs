@@ -1,4 +1,5 @@
 use bevy::{
+    ecs::system::Query,
     math::IVec4,
     prelude::{Commands, Component, Entity, UVec2, Vec4},
 };
@@ -99,7 +100,6 @@ impl TileBuilder {
             tilemap_id: tilemap.id,
             index,
             texture_indices: self.texture_indices,
-            top_layer: 0,
             color: self.color,
             flip: self.flip,
         });
@@ -116,7 +116,6 @@ pub struct Tile {
     pub render_chunk_index: usize,
     pub index: UVec2,
     pub texture_indices: IVec4,
-    pub top_layer: usize,
     pub color: Vec4,
     pub flip: u32,
 }
@@ -125,4 +124,25 @@ pub struct Tile {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnimatedTile {
     pub sequence_index: usize,
+}
+
+#[derive(Default, Component, Clone, Copy)]
+pub struct TileUpdater {
+    pub layer: Option<(usize, u32)>,
+    pub color: Option<Vec4>,
+    pub flip: Option<u32>,
+}
+
+pub fn tile_updater(mut tiles_query: Query<(&mut Tile, &TileUpdater)>) {
+    tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
+        if let Some((layer, texture_index)) = updater.layer {
+            tile.texture_indices[layer] = texture_index as i32;
+        }
+        if let Some(color) = updater.color {
+            tile.color = color;
+        }
+        if let Some(flip) = updater.flip {
+            tile.flip = flip;
+        }
+    });
 }

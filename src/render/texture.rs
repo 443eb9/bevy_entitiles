@@ -212,8 +212,9 @@ impl TilemapTextureDescriptor {
         assert_eq!(
             size % tile_size,
             UVec2::ZERO,
-            "Invalid tilemap texture descriptor! \
-            The size must be divisible by the tile size!"
+            "Invalid tilemap texture descriptor! The size must be divisible by the tile size! \
+            If the spare pixels are not needed and you are not using this texture for ui, \
+            you can \"lie\" to the descriptor by setting the size to fit the tiles."
         );
 
         Self {

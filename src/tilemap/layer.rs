@@ -6,68 +6,64 @@ use bevy::ecs::{
 
 use crate::MAX_LAYER_COUNT;
 
-use super::tile::{AnimatedTile, Tile, TileBuilder};
+use super::tile::Tile;
 
 #[derive(Component)]
-pub struct UpdateLayer {
-    pub target: usize,
+pub struct LayerInserter {
+    pub is_top: bool,
+    pub is_overwrite_if_full: bool,
     pub value: u32,
-    pub is_remove: bool,
 }
 
-pub fn layer_updater(
+pub fn layer_inserter(
     commands: ParallelCommands,
-    mut tile_query: Query<(Entity, &mut Tile, Option<&mut AnimatedTile>, &UpdateLayer)>,
+    mut tiles_query: Query<(Entity, &mut Tile, &LayerInserter)>,
 ) {
-    tile_query
+    tiles_query
         .par_iter_mut()
-        .for_each(|(entity, mut tile, mut animated_tile, updater)| {
-            if updater.is_remove && animated_tile.is_none() {
-                remove_layer(&mut tile, updater.target);
+        .for_each(|(entity, mut tile, inserter)| {
+            if inserter.is_top {
+                insert_top(&mut tile, inserter);
             } else {
-                update_tile_layer(
-                    &mut tile,
-                    animated_tile.as_deref_mut(),
-                    updater.target,
-                    updater.value,
-                );
+                insert_bottom(&mut tile, inserter);
             }
 
             commands.command_scope(|mut c| {
-                c.entity(entity).remove::<UpdateLayer>();
+                c.entity(entity).remove::<LayerInserter>();
             });
-        })
+        });
 }
 
-pub fn remove_layer(tile: &mut Tile, layer: usize) {
-    let (mut top_layer, mut available_layers) = (tile.top_layer, 0);
+fn insert_top(tile: &mut Tile, inserter: &LayerInserter) {
+    let mut j = MAX_LAYER_COUNT;
+    for i in (0..MAX_LAYER_COUNT).rev() {
+        if tile.texture_indices[i] > 0 {
+            if j < MAX_LAYER_COUNT {
+                tile.texture_indices[j] = inserter.value as i32;
+                return;
+            }
+            break;
+        }
+        j -= 1;
+    }
+    if inserter.is_overwrite_if_full {
+        tile.texture_indices[MAX_LAYER_COUNT - 1] = inserter.value as i32;
+    }
+}
+
+fn insert_bottom(tile: &mut Tile, inserter: &LayerInserter) {
+    let mut j = -1;
     for i in 0..MAX_LAYER_COUNT {
-        if tile.texture_indices[i] >= 0 {
-            available_layers += 1;
+        if tile.texture_indices[i] > 0 {
+            if j > 0 {
+                tile.texture_indices[j as usize] = inserter.value as i32;
+                return;
+            }
+            break;
         }
-        if top_layer == tile.top_layer && i != layer {
-            top_layer = i;
-        }
+        j += 1;
     }
-    if available_layers != 1 {
-        tile.top_layer = top_layer;
-        tile.texture_indices[layer] = -1;
-    }
-}
-
-pub fn update_tile_layer(
-    tile: &mut Tile,
-    animated_tile: Option<&mut AnimatedTile>,
-    layer: usize,
-    texture_index: u32,
-) {
-    if animated_tile.is_none() {
-        tile.texture_indices[layer] = texture_index as i32;
-    }
-}
-
-pub fn update_tile_builder_layer(tile: &mut TileBuilder, layer: usize, texture_index: u32) {
-    if tile.anim.is_none() {
-        tile.texture_indices[layer] = texture_index as i32;
+    if inserter.is_overwrite_if_full {
+        tile.texture_indices[0] = inserter.value as i32;
     }
 }

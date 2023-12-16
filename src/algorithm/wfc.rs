@@ -102,7 +102,6 @@ impl WfcRunner {
                 SerializedTile {
                     index: UVec2::ZERO,
                     texture_indices,
-                    top_layer: 0,
                     color: Vec4::ONE,
                     anim: None,
                     flip: 0,

@@ -11,5 +11,5 @@
 - Hexagon Tilemap 2023.12.17
   - ~~Rendering 2023.12.20~~ Done
   - Algorithm 2023.12.17
-- More Comprehensive Ui Support 2023.12.18
+- ~~More Comprehensive Ui Support 2023.12.18~~ Done
 - Advanced LDtk Support 2024.1.5

@@ -28,7 +28,7 @@ fn main() {
 fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let (tilemap_entity, mut tilemap) = TilemapBuilder::new(
+    let mut tilemap = TilemapBuilder::new(
         TileType::Isometric,
         UVec2 { x: 500, y: 500 },
         Vec2 { x: 32., y: 16. },
@@ -58,21 +58,17 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &TileBuilder::new().with_layer(0, 1),
     );
 
-    let mut path_tilemap = PathTilemap::new(tilemap_entity);
+    let mut path_tilemap = PathTilemap::new(tilemap.id());
     path_tilemap.fill_path_rect_custom(&tilemap, FillArea::full(&tilemap), |_| PathTile {
         cost: rand::random::<u32>() % 10,
     });
-
-    commands
-        .entity(tilemap_entity)
-        .insert((tilemap, path_tilemap));
 
     commands.spawn_empty().insert((
         Pathfinder {
             origin: UVec2 { x: 0, y: 0 },
             dest: UVec2 { x: 499, y: 499 },
             allow_diagonal: false,
-            tilemap: tilemap_entity,
+            tilemap: tilemap.id(),
             custom_weight: None,
             max_step: None,
         },
@@ -81,4 +77,8 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             max_step_per_frame: 300,
         },
     ));
+
+    commands
+        .entity(tilemap.id())
+        .insert((tilemap, path_tilemap));
 }

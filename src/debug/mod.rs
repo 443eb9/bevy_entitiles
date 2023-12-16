@@ -24,7 +24,7 @@ pub struct PubTilemap {
     pub tiles: Vec<Option<Entity>>,
     pub aabb: AabbBox2d,
     pub translation: Vec2,
-    pub z_order: i32,
+    pub z_index: i32,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
@@ -44,7 +44,7 @@ impl PubTilemap {
             tiles: value.tiles.clone(),
             aabb: value.aabb,
             translation: value.translation,
-            z_order: value.z_order,
+            z_index: value.z_index,
             anim_seqs: value.anim_seqs,
         }
     }
@@ -64,7 +64,7 @@ impl PubTilemap {
             tiles: vec![],
             aabb: value.aabb,
             translation: value.translation,
-            z_order: value.z_order,
+            z_index: value.z_index,
             anim_seqs: value.anim_seqs,
         }
     }
@@ -83,7 +83,7 @@ impl PubTilemap {
             layer_opacities: self.layer_opacities,
             translation: self.translation,
             aabb: self.aabb,
-            z_order: self.z_order,
+            z_index: self.z_index,
             anim_seqs: self.anim_seqs,
             time: 0.,
         }

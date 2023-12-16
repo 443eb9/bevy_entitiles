@@ -31,8 +31,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Known Issues
 
-*Versions in the end of the line means when the issue will be fixed. `m` means it has already fixed in master branch. Empty if it's not on schedule or the source is unclear.*
-
 - The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
 
 ## Feature Flags
@@ -114,12 +112,9 @@ In the following case, each tile has at least one corresponding color gap with i
 
 ## Limitations
 
-- Supports up to 1 tilesets in one tilemap. (this will no longer exists in the future)
 - Supports up to 4 layers\* in one tilemap.
-- Supports up to 32 animations in one tilemap. (this will no longer exists in the future)
-- Supports up to 32 length of animation sequences.
-
-*\*The layer here is not the same as you see in LDtk, it's the rendered tilemap layer, which does not include the entity layer*
+- Supports up to 64 animations in one tilemap. (this will no longer exists in the future)
+- Supports up to 16 length of animation sequences.
 
 ## Special Thanks & References
 

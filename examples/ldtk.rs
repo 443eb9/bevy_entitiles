@@ -65,7 +65,7 @@ fn load(
         }
 
         commands.spawn(LdtkLoader {
-            path: "bevy_entitiles/assets/ldtk/grid_vania.ldtk".to_string(),
+            path: "assets/ldtk/grid_vania.ldtk".to_string(),
             asset_path_prefix: "ldtk/".to_string(),
             at_depth: 0,
             filter_mode: FilterMode::Nearest,
@@ -74,7 +74,7 @@ fn load(
             tilemap_name: "ldtk".to_string(),
             ignore_unregistered_entities: true,
             use_tileset: Some(0),
-            z_order: 0,
+            z_index: 0,
         });
     }
 }
