@@ -17,6 +17,7 @@ use bevy::{
     render::{render_resource::FilterMode, texture::ImagePlugin, view::Msaa},
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
+    window::{Window, WindowPlugin},
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -37,7 +38,15 @@ mod helpers;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(ImagePlugin::default_nearest()),
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        present_mode: bevy::window::PresentMode::AutoNoVsync,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
         ))
@@ -69,7 +78,7 @@ fn load(
             asset_path_prefix: "ldtk/".to_string(),
             at_depth: 0,
             filter_mode: FilterMode::Nearest,
-            level: Some(0),
+            level: None,
             level_spacing: Some(30),
             tilemap_name: "ldtk".to_string(),
             ignore_unregistered_entities: true,

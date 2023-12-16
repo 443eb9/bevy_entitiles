@@ -70,7 +70,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         UVec2 { x: 1, y: 1 },
         &TileBuilder::new()
             .with_layer(0, 1)
-            .with_flip(TileFlip::Horizontal),
+            .with_flip(1, TileFlip::Horizontal),
     );
 
     tilemap.set(
@@ -78,7 +78,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         UVec2 { x: 1, y: 2 },
         &TileBuilder::new()
             .with_layer(0, 1)
-            .with_flip(TileFlip::Vertical),
+            .with_flip(0, TileFlip::Vertical),
     );
 
     tilemap.set(
@@ -86,14 +86,14 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         UVec2 { x: 1, y: 3 },
         &TileBuilder::new()
             .with_layer(0, 1)
-            .with_flip(TileFlip::Both),
+            .with_flip(0, TileFlip::Both),
     );
 
     tilemap.update_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
         &TileUpdater {
-            layer: Some((1, 3)),
+            texture_index: Some((1, 3)),
             ..Default::default()
         },
     );

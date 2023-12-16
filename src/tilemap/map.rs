@@ -13,7 +13,7 @@ use crate::{
 
 use super::{
     layer::LayerInserter,
-    tile::{TileBuilder, TileType, TileUpdater},
+    tile::{TileBuilder, TileFlip, TileType, TileUpdater},
 };
 
 pub struct TilemapBuilder {
@@ -228,20 +228,24 @@ impl Tilemap {
         commands: &mut Commands,
         index: UVec2,
         texture_index: u32,
+        flip: Option<TileFlip>,
         is_top: bool,
         is_overwrite_if_full: bool,
     ) {
         if let Some(tile) = self.get(index) {
             commands.entity(tile).insert(LayerInserter {
                 is_top,
-                value: texture_index,
+                flip: flip.map(|f| f as u32),
+                texture_index,
                 is_overwrite_if_full,
             });
         }
     }
 
     pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: &TileUpdater) {
-        if self.get(index).is_none() || updater.layer.unwrap_or_default().0 >= MAX_LAYER_COUNT {
+        if self.get(index).is_none()
+            || updater.texture_index.unwrap_or_default().0 >= MAX_LAYER_COUNT
+        {
             return;
         }
 

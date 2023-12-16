@@ -1,5 +1,5 @@
 use bevy::{
-    math::{IVec4, UVec4},
+    math::{IVec4, UVec4, UVec3},
     prelude::{Entity, Mesh, Query, Resource, UVec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -14,7 +14,7 @@ use crate::{math::aabb::AabbBox2d, tilemap::tile::TileType};
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTexture,
-    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
+    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX,
     TILEMAP_MESH_ATTR_TEX_INDICES,
 };
 
@@ -22,11 +22,11 @@ use super::{
 pub struct TileData {
     // when the third component of index is 1,
     // it means this tile is a animated tile
-    // the fourth component is flipping
-    pub index: UVec4,
+    pub index: UVec3,
     // 4 layers
     pub texture_indices: IVec4,
     pub color: Vec4,
+    pub flip: UVec4,
 }
 
 #[derive(Clone)]
@@ -75,11 +75,10 @@ impl TilemapRenderChunk {
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
+        let mut flip = Vec::with_capacity(len * 4);
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
-                grid_indices.extend_from_slice(&[tile.index, tile.index, tile.index, tile.index]);
-
                 if !is_pure_color {
                     texture_indices.extend_from_slice(&[
                         tile.texture_indices,
@@ -103,7 +102,9 @@ impl TilemapRenderChunk {
 
                 v_index += 4;
 
+                grid_indices.extend_from_slice(&[tile.index, tile.index, tile.index, tile.index]);
                 color.extend_from_slice(&[tile.color, tile.color, tile.color, tile.color]);
+                flip.extend_from_slice(&[tile.flip, tile.flip, tile.flip, tile.flip]);
             }
         }
 
@@ -115,6 +116,7 @@ impl TilemapRenderChunk {
         if !is_pure_color {
             self.mesh
                 .insert_attribute(TILEMAP_MESH_ATTR_TEX_INDICES, texture_indices);
+            self.mesh.insert_attribute(TILEMAP_MESH_ATTR_FLIP, flip)
         }
         self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
 
@@ -170,9 +172,10 @@ impl TilemapRenderChunk {
         };
 
         self.tiles[index] = Some(TileData {
-            index: tile_index.extend(tile.flip),
+            index: tile_index,
             texture_indices,
             color: tile.color,
+            flip: tile.flip,
         });
         self.dirty_mesh = true;
     }

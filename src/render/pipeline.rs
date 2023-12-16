@@ -61,8 +61,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         let mut vtx_fmt = vec![
             // position
             VertexFormat::Float32x3,
-            // index + is_animated + flip
-            VertexFormat::Uint32x4,
+            // index + is_animated
+            VertexFormat::Uint32x3,
             // color
             VertexFormat::Float32x4,
         ];
@@ -72,6 +72,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         } else {
             // texture_indices
             vtx_fmt.push(VertexFormat::Sint32x4);
+            // flip
+            vtx_fmt.push(VertexFormat::Uint32x4);
         }
 
         let vertex_layout =

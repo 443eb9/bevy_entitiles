@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::Query,
-    math::IVec4,
+    math::{IVec4, UVec4},
     prelude::{Commands, Component, Entity, UVec2, Vec4},
 };
 
@@ -22,9 +22,22 @@ pub enum TileType {
 #[repr(u32)]
 #[derive(Debug, Clone, Copy)]
 pub enum TileFlip {
+    None = 0b00,
     Horizontal = 0b01,
     Vertical = 0b10,
     Both = 0b11,
+}
+
+impl From<u32> for TileFlip {
+    fn from(value: u32) -> Self {
+        match value {
+            0b00 => Self::None,
+            0b01 => Self::Horizontal,
+            0b10 => Self::Vertical,
+            0b11 => Self::Both,
+            _ => panic!("Invalid flip value! {}", value),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -32,7 +45,7 @@ pub struct TileBuilder {
     pub(crate) texture_indices: IVec4,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
-    pub(crate) flip: u32,
+    pub(crate) flip: UVec4,
 }
 
 impl TileBuilder {
@@ -42,7 +55,7 @@ impl TileBuilder {
             texture_indices: IVec4::NEG_ONE,
             anim: None,
             color: Vec4::ONE,
-            flip: 0,
+            flip: UVec4::ZERO,
         }
     }
 
@@ -78,8 +91,8 @@ impl TileBuilder {
         self
     }
 
-    pub fn with_flip(mut self, flip: TileFlip) -> Self {
-        self.flip |= flip as u32;
+    pub fn with_flip(mut self, layer: usize, flip: TileFlip) -> Self {
+        self.flip[layer] |= flip as u32;
         self
     }
 
@@ -117,7 +130,7 @@ pub struct Tile {
     pub index: UVec2,
     pub texture_indices: IVec4,
     pub color: Vec4,
-    pub flip: u32,
+    pub flip: UVec4,
 }
 
 #[derive(Component, Clone)]
@@ -128,21 +141,21 @@ pub struct AnimatedTile {
 
 #[derive(Default, Component, Clone, Copy)]
 pub struct TileUpdater {
-    pub layer: Option<(usize, u32)>,
+    pub texture_index: Option<(usize, u32)>,
     pub color: Option<Vec4>,
-    pub flip: Option<u32>,
+    pub flip: Option<(usize, u32)>,
 }
 
 pub fn tile_updater(mut tiles_query: Query<(&mut Tile, &TileUpdater)>) {
     tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
-        if let Some((layer, texture_index)) = updater.layer {
+        if let Some((layer, texture_index)) = updater.texture_index {
             tile.texture_indices[layer] = texture_index as i32;
         }
         if let Some(color) = updater.color {
             tile.color = color;
         }
-        if let Some(flip) = updater.flip {
-            tile.flip = flip;
+        if let Some((layer, flip)) = updater.flip {
+            tile.flip[layer] = flip;
         }
     });
 }

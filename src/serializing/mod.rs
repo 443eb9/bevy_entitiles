@@ -1,7 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{IVec4, UVec2, Vec2, Vec4},
+    math::{IVec4, UVec2, Vec2, Vec4, UVec4},
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
@@ -201,7 +201,7 @@ pub struct SerializedTile {
     pub texture_indices: IVec4,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
-    pub flip: u32,
+    pub flip: UVec4,
 }
 
 impl SerializedTile {

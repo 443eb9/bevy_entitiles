@@ -12,8 +12,6 @@ use bevy::{
     utils::FloatOrd,
 };
 
-use crate::tilemap::map;
-
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
     buffer::TilemapUniformBuffers,

@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::Res,
-    math::{IVec4, Vec3Swizzles},
+    math::{IVec4, Vec3Swizzles, UVec4},
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
@@ -48,7 +48,7 @@ pub struct ExtractedTile {
     pub texture_indices: IVec4,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
-    pub flip: u32,
+    pub flip: UVec4,
 }
 
 #[derive(Component)]

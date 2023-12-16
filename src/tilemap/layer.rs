@@ -12,7 +12,8 @@ use super::tile::Tile;
 pub struct LayerInserter {
     pub is_top: bool,
     pub is_overwrite_if_full: bool,
-    pub value: u32,
+    pub texture_index: u32,
+    pub flip: Option<u32>,
 }
 
 pub fn layer_inserter(
@@ -39,7 +40,10 @@ fn insert_top(tile: &mut Tile, inserter: &LayerInserter) {
     for i in (0..MAX_LAYER_COUNT).rev() {
         if tile.texture_indices[i] > 0 {
             if j < MAX_LAYER_COUNT {
-                tile.texture_indices[j] = inserter.value as i32;
+                tile.texture_indices[j] = inserter.texture_index as i32;
+                if let Some(f) = inserter.flip {
+                    tile.flip[j] = f;
+                }
                 return;
             }
             break;
@@ -47,7 +51,7 @@ fn insert_top(tile: &mut Tile, inserter: &LayerInserter) {
         j -= 1;
     }
     if inserter.is_overwrite_if_full {
-        tile.texture_indices[MAX_LAYER_COUNT - 1] = inserter.value as i32;
+        tile.texture_indices[MAX_LAYER_COUNT - 1] = inserter.texture_index as i32;
     }
 }
 
@@ -56,7 +60,10 @@ fn insert_bottom(tile: &mut Tile, inserter: &LayerInserter) {
     for i in 0..MAX_LAYER_COUNT {
         if tile.texture_indices[i] > 0 {
             if j > 0 {
-                tile.texture_indices[j as usize] = inserter.value as i32;
+                tile.texture_indices[j as usize] = inserter.texture_index as i32;
+                if let Some(f) = inserter.flip {
+                    tile.flip[j as usize] = f;
+                }
                 return;
             }
             break;
@@ -64,6 +71,6 @@ fn insert_bottom(tile: &mut Tile, inserter: &LayerInserter) {
         j += 1;
     }
     if inserter.is_overwrite_if_full {
-        tile.texture_indices[0] = inserter.value as i32;
+        tile.texture_indices[0] = inserter.texture_index as i32;
     }
 }

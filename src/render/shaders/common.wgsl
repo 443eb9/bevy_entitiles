@@ -12,10 +12,11 @@ struct VertexInput {
     // it means this tile is a animated tile
     // so the first component of texture_indices is the index of the animation
     // the fourth component is flipping
-    @location(1) index: vec4<u32>,
+    @location(1) index: vec3<u32>,
     @location(2) color: vec4<f32>,
 #ifndef PURE_COLOR
     @location(3) texture_indices: vec4<i32>,
+    @location(4) flip: vec4<u32>,
 #endif
 }
 
@@ -25,8 +26,9 @@ struct VertexOutput {
 #ifndef PURE_COLOR
     // MAX_LAYER_COUNT
     @location(1) uv: vec2<f32>,
-    @location(2) texture_indices: vec4<i32>,
-    @location(3) is_animated: u32,
+    @location(2) flip: vec4<u32>,
+    @location(3) texture_indices: vec4<i32>,
+    @location(4) is_animated: u32,
 #endif
 }
 

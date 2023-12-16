@@ -15,23 +15,6 @@
     #import bevy_entitiles::hexagonal::get_mesh_origin
 #endif
 
-fn get_uv(flip: u32, v_index: u32) -> vec2<f32> {
-    var uvs = array<vec2<f32>, 4>(
-        vec2<f32>(0., 1.),
-        vec2<f32>(0., 0.),
-        vec2<f32>(1., 0.),
-        vec2<f32>(1., 1.),
-    );
-    var uv = uvs[v_index % 4u];
-    if (flip & 1u) != 0u {
-        uv.x = 1. - uv.x;
-    }
-    if (flip & 2u) != 0u {
-        uv.y = 1. - uv.y;
-    }
-    return uv;
-}
-
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
@@ -53,7 +36,14 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 
 #ifndef PURE_COLOR
     output.is_animated = input.index.z;
-    output.uv = get_uv(input.index.w, input.v_index);
+    var uvs = array<vec2<f32>, 4>(
+        vec2<f32>(0., 1.),
+        vec2<f32>(0., 0.),
+        vec2<f32>(1., 0.),
+        vec2<f32>(1., 1.),
+    );
+    output.uv = uvs[input.v_index % 4u];
+    output.flip = input.flip;
 
     if input.index.z == 1u {
         // means that this tile is a animated tile
@@ -82,9 +72,16 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
             continue;
         }
 
+        var uv = input.uv;
+        if (input.flip[i] & 1u) != 0u {
+            uv.x = 1. - uv.x;
+        }
+        if (input.flip[i] & 2u) != 0u {
+            uv.y = 1. - uv.y;
+        }
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
-                                      input.uv, input.texture_indices[i]);
+                                      uv, input.texture_indices[i]);
         color = mix(color, tex_color, tex_color.a * pow(tilemap.layer_opacities[i], 1. / 2.2));
 
         if input.is_animated == 1u {

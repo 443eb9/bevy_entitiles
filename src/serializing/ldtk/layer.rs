@@ -67,22 +67,21 @@ impl<'a> LdtkLayers<'a> {
             let mut builder = TileBuilder::new()
                 .with_layer(0, tile.tile_id as u32)
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
-            builder.flip = tile.flip as u32;
+            builder.flip[0] = tile.flip as u32;
 
             tilemap.set(commands, tile_index, &builder);
             (0..4).into_iter().for_each(|i| {
                 tilemap.set_layer_opacity(i, layer.opacity);
             });
         } else {
-            tilemap.update(
+            tilemap.insert_layer(
                 commands,
                 tile_index,
-                &TileUpdater {
-                    flip: Some(tile.flip as u32),
-                    ..Default::default()
-                },
+                tile.tile_id as u32,
+                Some((tile.flip as u32).into()),
+                true,
+                false,
             );
-            tilemap.insert_layer(commands, tile_index, tile.tile_id as u32, true, false);
         }
     }
 

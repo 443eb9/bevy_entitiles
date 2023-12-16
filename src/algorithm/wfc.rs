@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{IVec4, Vec4},
+    math::{IVec4, Vec4, UVec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     utils::HashSet,
 };
@@ -104,7 +104,7 @@ impl WfcRunner {
                     texture_indices,
                     color: Vec4::ONE,
                     anim: None,
-                    flip: 0,
+                    flip: UVec4::ZERO,
                 }
             })
             .collect();
