@@ -16,6 +16,7 @@ use bevy::{
         renderer::{RenderDevice, RenderQueue},
         texture::GpuImage,
     },
+    sprite::TextureAtlas,
     utils::HashMap,
 };
 
@@ -197,6 +198,17 @@ impl TilemapTexture {
 
     pub fn handle(&self) -> &Handle<Image> {
         &self.texture
+    }
+
+    pub fn as_texture_atlas(&self) -> TextureAtlas {
+        TextureAtlas::from_grid(
+            self.texture.clone(),
+            self.desc.tile_size.as_vec2(),
+            self.desc.size.x as usize,
+            self.desc.size.y as usize,
+            Some(Vec2::ZERO),
+            Some(Vec2::ZERO),
+        )
     }
 }
 

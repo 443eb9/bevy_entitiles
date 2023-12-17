@@ -1,15 +1,15 @@
 use std::fs::read_to_string;
 
 use bevy::{
-    asset::AssetServer,
+    asset::{AssetServer, Assets, Handle},
     ecs::{
         component::Component,
         entity::Entity,
-        system::{Commands, NonSend, Query, Res},
+        system::{Commands, NonSend, Query, Res, ResMut},
     },
-    math::{UVec2, Vec2},
+    math::{UVec2, Vec2, Vec3},
     render::render_resource::FilterMode,
-    sprite::{Sprite, SpriteBundle},
+    sprite::{Sprite, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     transform::components::Transform,
     utils::hashbrown::HashMap,
 };
@@ -27,6 +27,7 @@ use self::{
 };
 
 pub mod app_ext;
+pub mod components;
 pub mod entity;
 pub mod r#enum;
 pub mod json;
@@ -61,6 +62,9 @@ pub struct LdtkLoader {
     pub use_tileset: Option<usize>,
     /// The z index of the tilemap.
     pub z_index: i32,
+    /// The render size for tile atlas.
+    /// Key is thier identifiers.
+    pub atlas_render_size: HashMap<String, Vec2>,
 }
 
 pub fn load_ldtk_json(
@@ -68,6 +72,7 @@ pub fn load_ldtk_json(
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
     ident_mapper: NonSend<LdtkEntityRegistry>,
+    mut atlas_asstes: ResMut<Assets<TextureAtlas>>,
 ) {
     for (entity, loader) in loader_query.iter() {
         let path = std::env::current_dir().unwrap().join(&loader.path);
@@ -87,6 +92,7 @@ pub fn load_ldtk_json(
             loader,
             &asset_server,
             &ident_mapper,
+            &mut atlas_asstes,
         );
         commands.entity(entity).despawn();
     }
@@ -98,11 +104,19 @@ fn load_levels(
     loader: &LdtkLoader,
     asset_server: &AssetServer,
     ident_mapper: &LdtkEntityRegistry,
+    atlas_asstes: &mut Assets<TextureAtlas>,
 ) {
     let mut tilesets = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
+    let mut atlas_handles = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
+    let mut tileset_uid_to_ident = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
+
     ldtk_data.defs.tilesets.iter().for_each(|tileset| {
         if let Some(texture) = load_texture(tileset, &loader, asset_server) {
-            tilesets.insert(tileset.uid, texture);
+            tilesets.insert(tileset.uid, texture.clone());
+            tileset_uid_to_ident.insert(tileset.uid, tileset.identifier.clone());
+
+            let handle = atlas_asstes.add(texture.as_texture_atlas());
+            atlas_handles.insert(tileset.uid, handle);
         }
     });
 
@@ -148,6 +162,9 @@ fn load_levels(
                 &ident_mapper,
                 loader,
                 asset_server,
+                &tilesets,
+                &atlas_handles,
+                &tileset_uid_to_ident,
             );
         }
 
@@ -187,6 +204,9 @@ fn load_layer(
     ident_mapper: &LdtkEntityRegistry,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
+    tilesets: &HashMap<i32, TilemapTexture>,
+    atlas_handles: &HashMap<i32, Handle<TextureAtlas>>,
+    tileset_uid_to_ident: &HashMap<i32, String>,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
@@ -211,7 +231,42 @@ fn load_layer(
                 };
 
                 let mut new_entity = commands.spawn_empty();
-                marker.spawn(&mut new_entity, None, entity, asset_server);
+
+                let sprite_bundle = {
+                    match entity.tile.as_ref() {
+                        Some(atlas) => {
+                            let render_size = loader
+                                .atlas_render_size
+                                .get(&tileset_uid_to_ident[&atlas.tileset_uid])
+                                .unwrap();
+                            let translation = Vec3 {
+                                x: entity.world_x as f32 + (entity.pivot[0] - 0.5) * render_size.x,
+                                y: -entity.world_y as f32 + (entity.pivot[1] - 0.5) * render_size.y,
+                                z: loader.z_index as f32,
+                            };
+
+                            let tileset = tilesets.get(&atlas.tileset_uid).unwrap();
+                            let index = UVec2 {
+                                x: atlas.x_pos as u32 / tileset.desc.tile_size.x,
+                                y: atlas.y_pos as u32 / tileset.desc.tile_size.y,
+                            };
+
+                            Some(SpriteSheetBundle {
+                                sprite: TextureAtlasSprite {
+                                    index: (index.y * tileset.desc.size.x + index.x) as usize,
+                                    custom_size: Some(render_size.clone()),
+                                    ..Default::default()
+                                },
+                                transform: Transform::from_translation(translation),
+                                texture_atlas: atlas_handles[&atlas.tileset_uid].clone(),
+                                ..Default::default()
+                            })
+                        }
+                        None => None,
+                    }
+                };
+
+                marker.spawn(&mut new_entity, sprite_bundle, entity, asset_server);
             }
         }
         LayerType::Tiles => {

@@ -1,7 +1,22 @@
 static LDTK_DEFAULT_ATTR: &str = "ldtk_default";
+static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
 
 pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
+    let attrs = &input.attrs;
+
+    let spawn_sprite_attr = attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == SPAWN_SPRITE_ATTR);
+
+    let spawn_sprite = if spawn_sprite_attr.is_some() {
+        quote::quote!(
+            commands.insert(sprite.unwrap());
+        )
+    } else {
+        quote::quote!()
+    };
+
     let fields = match &input.data {
         syn::Data::Struct(data) => match &data.fields {
             syn::Fields::Named(fields) => &fields.named,
@@ -38,14 +53,16 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
         impl LdtkEntity for #ty {
             fn initialize(
                 commands: &mut bevy::ecs::system::EntityCommands,
-                sprite: Option<bevy_entitiles::serializing::ldtk::entity::LdtkSprite>,
+                sprite: Option<bevy::sprite::SpriteSheetBundle>,
                 entity_instance: &bevy_entitiles::serializing::ldtk::json::level::EntityInstance,
                 asset_server: &bevy::prelude::AssetServer,
-            ) -> Self {
-                Self {
+            ) {
+                #spawn_sprite
+
+                commands.insert(Self {
                     #(#fields_cton)*
                     #default
-                }
+                });
             }
         }
     }

@@ -8,11 +8,12 @@ use bevy::{
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
-        system::{Commands, Query, Res}, bundle::Bundle,
+        system::{Commands, Query, Res},
     },
     input::{keyboard::KeyCode, Input},
+    math::Vec2,
     render::{render_resource::FilterMode, texture::ImagePlugin, view::Msaa},
-    sprite::{TextureAtlas, TextureAtlasSprite},
+    utils::hashbrown::HashMap,
     window::{Window, WindowPlugin},
     DefaultPlugins,
 };
@@ -42,7 +43,7 @@ fn main() {
             EntiTilesDebugPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, load)
+        .add_systems(Update, (load, control))
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
         .register_ldtk_entity::<Item>("Item")
@@ -52,6 +53,10 @@ fn main() {
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
+}
+
+fn control(input: Res<Input<KeyCode>>) {
+    if input.just_pressed(KeyCode::Escape) {}
 }
 
 fn load(
@@ -74,6 +79,10 @@ fn load(
             ignore_unregistered_entities: true,
             use_tileset: Some(0),
             z_index: 0,
+            atlas_render_size: HashMap::from_iter(vec![(
+                "Finalbossblues_icons_full_16".to_string(),
+                Vec2::new(32., 32.),
+            )]),
         });
     }
 }
@@ -99,6 +108,7 @@ pub enum ItemType {
 }
 
 #[derive(Component, LdtkEntity, Default)]
+#[spawn_sprite]
 pub struct Player {
     // this is a wrapper which will be generated
     // when you derive LdtkEnum for your custom enums.
@@ -112,6 +122,7 @@ pub struct Player {
 }
 
 #[derive(Component, LdtkEntity)]
+#[spawn_sprite]
 pub struct Item {
     pub ty: ItemType,
     pub price: i32,
