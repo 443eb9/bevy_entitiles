@@ -274,7 +274,7 @@ pub struct EnumTag {
     pub tile_ids: Vec<i32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TilesetRect {
     /// UID of the tileset

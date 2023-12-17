@@ -17,7 +17,7 @@ use bevy::{
 use crate::render::texture::{TilemapTexture, TilemapTextureDescriptor};
 
 use self::{
-    entity::LdtkEntityIdentMapper,
+    entity::LdtkEntityRegistry,
     json::{
         definitions::{LayerType, TilesetDef},
         level::LayerInstance,
@@ -67,7 +67,7 @@ pub fn load_ldtk_json(
     mut commands: Commands,
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
-    ident_mapper: NonSend<LdtkEntityIdentMapper>,
+    ident_mapper: NonSend<LdtkEntityRegistry>,
 ) {
     for (entity, loader) in loader_query.iter() {
         let path = std::env::current_dir().unwrap().join(&loader.path);
@@ -97,7 +97,7 @@ fn load_levels(
     ldtk_data: &mut LdtkJson,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
-    ident_mapper: &LdtkEntityIdentMapper,
+    ident_mapper: &LdtkEntityRegistry,
 ) {
     let mut tilesets = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
     ldtk_data.defs.tilesets.iter().for_each(|tileset| {
@@ -184,7 +184,7 @@ fn load_layer(
     layer_index: usize,
     layer: &LayerInstance,
     layer_grid: &mut LdtkLayers,
-    ident_mapper: &LdtkEntityIdentMapper,
+    ident_mapper: &LdtkEntityRegistry,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
 ) {
@@ -211,7 +211,7 @@ fn load_layer(
                 };
 
                 let mut new_entity = commands.spawn_empty();
-                marker.spawn(&mut new_entity, entity, asset_server);
+                marker.spawn(&mut new_entity, None, entity, asset_server);
             }
         }
         LayerType::Tiles => {

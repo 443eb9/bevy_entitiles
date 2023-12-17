@@ -1,29 +1,22 @@
+use bevy::math::IVec2;
 use serde::{
     de::{Error, IgnoredAny, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 
 use crate::{
-    match_field, match_field_enum, serializing::ldtk::json::LdtkColor, transfer_field, unwrap_field,
+    match_field, match_field_enum,
+    serializing::ldtk::{json::LdtkColor, r#enum::LdtkEnum},
+    transfer_field, unwrap_field,
 };
 
 use super::{definitions::TilesetRect, EntityRef, GridPoint};
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FieldInstance {
     /// Reference of the Field definition UID
     pub def_uid: i32,
-
-    /// Type of the field, such as Int, Float, String, Enum(my_enum_name), Bool, etc.
-    ///
-    /// NOTE: if you enable the advanced option Use Multilines type,
-    /// you will have "Multilines" instead of "String" when relevant.
-    ///
-    /// This is not required because we can use enum.
-    /// So the type of the `value` = `type`
-    /// #[serde(rename = "__type")]
-    /// pub ty: FieldType,
 
     /// Field definition identifier
     #[serde(rename = "__identifier")]
@@ -217,6 +210,109 @@ pub enum FieldValue {
     ColorArray(Vec<LdtkColor>),
     PointArray(Vec<GridPoint>),
     EntityRefArray(Vec<EntityRef>),
+}
+
+macro_rules! impl_into {
+    ($ty:ty, $variant:ident) => {
+        impl Into<$ty> for FieldInstance {
+            fn into(self) -> $ty {
+                match self.value {
+                    Some(v) => match v {
+                        FieldValue::$variant(x) => x,
+                        _ => panic!("Expected {} value!", stringify!($variant)),
+                    },
+                    None => panic!("Expected value!"),
+                }
+            }
+        }
+    };
+}
+
+macro_rules! impl_into_optional {
+    ($ty:ty, $variant:ident) => {
+        impl Into<Option<$ty>> for FieldInstance {
+            fn into(self) -> Option<$ty> {
+                match self.value {
+                    Some(v) => match v {
+                        FieldValue::$variant(x) => Some(x),
+                        _ => panic!("Expected {} value!", stringify!($variant)),
+                    },
+                    None => None,
+                }
+            }
+        }
+    };
+}
+
+impl_into!(i32, Integer);
+impl_into!(f32, Float);
+impl_into!(bool, Bool);
+impl_into!(String, String);
+impl_into!(LdtkColor, Color);
+impl_into!(GridPoint, Point);
+impl_into!(EntityRef, EntityRef);
+
+impl_into!(Vec<i32>, IntegerArray);
+impl_into!(Vec<f32>, FloatArray);
+impl_into!(Vec<bool>, BoolArray);
+impl_into!(Vec<String>, StringArray);
+impl_into!(Vec<LdtkColor>, ColorArray);
+impl_into!(Vec<GridPoint>, PointArray);
+impl_into!(Vec<EntityRef>, EntityRefArray);
+
+impl_into_optional!(i32, Integer);
+impl_into_optional!(f32, Float);
+impl_into_optional!(bool, Bool);
+impl_into_optional!(String, String);
+impl_into_optional!(LdtkColor, Color);
+impl_into_optional!(GridPoint, Point);
+impl_into_optional!(EntityRef, EntityRef);
+
+impl_into_optional!(Vec<i32>, IntegerArray);
+impl_into_optional!(Vec<f32>, FloatArray);
+impl_into_optional!(Vec<bool>, BoolArray);
+impl_into_optional!(Vec<String>, StringArray);
+impl_into_optional!(Vec<LdtkColor>, ColorArray);
+impl_into_optional!(Vec<GridPoint>, PointArray);
+impl_into_optional!(Vec<EntityRef>, EntityRefArray);
+
+impl Into<IVec2> for FieldInstance {
+    fn into(self) -> IVec2 {
+        match self.value {
+            Some(v) => match v {
+                FieldValue::Point(p) => IVec2 { x: p.cx, y: p.cy },
+                _ => panic!("Expected Point value!"),
+            },
+            None => panic!("Expected value!"),
+        }
+    }
+}
+
+impl Into<Option<IVec2>> for FieldInstance {
+    fn into(self) -> Option<IVec2> {
+        match self.value {
+            Some(v) => match v {
+                FieldValue::Point(p) => Some(IVec2 { x: p.cx, y: p.cy }),
+                _ => panic!("Expected Point value!"),
+            },
+            None => None,
+        }
+    }
+}
+
+enum Test {
+    A,
+    B,
+}
+
+impl LdtkEnum for Test {
+    fn get_identifier(ident: &str) -> Self {
+        match ident {
+            "A" => Test::A,
+            "B" => Test::B,
+            _ => panic!("Unknown identifier: {}", ident),
+        }
+    }
 }
 
 #[cfg(test)]

@@ -23,7 +23,7 @@ use crate::{
 };
 
 use self::{
-    ldtk::{entity::LdtkEntityIdentMapper, load_ldtk_json},
+    ldtk::{entity::LdtkEntityRegistry, load_ldtk_json},
     load::load,
     save::{save, TilemapSaver},
 };
@@ -43,7 +43,7 @@ impl Plugin for EntiTilesSerializingPlugin {
         app.add_systems(Update, (save, load))
             .add_systems(Update, load_ldtk_json);
 
-        app.insert_non_send_resource(LdtkEntityIdentMapper::default());
+        app.insert_non_send_resource(LdtkEntityRegistry::default());
     }
 }
 

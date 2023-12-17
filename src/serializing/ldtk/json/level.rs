@@ -245,7 +245,7 @@ pub struct TileInstance {
  * Entity Instance
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityInstance {
     /// Grid-based coordinates (`[x,y]` format)
