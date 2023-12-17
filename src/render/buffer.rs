@@ -127,7 +127,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
     #[inline]
     fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
-        let component = TilemapUniform {
+        DynamicOffsetComponent::new(self.buffer.push(TilemapUniform {
             translation: extracted.translation,
             tile_render_size: extracted.tile_render_size,
             ext_dir: extracted.ext_dir,
@@ -140,8 +140,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
                 _ => 0.,
             },
             time: extracted.time,
-        };
-        DynamicOffsetComponent::new(self.buffer.push(component))
+        }))
     }
 
     #[inline]

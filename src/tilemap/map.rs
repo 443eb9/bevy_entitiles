@@ -1,5 +1,6 @@
 use bevy::{
-    ecs::component::Component,
+    ecs::{component::Component, query::With, system::Query},
+    hierarchy::DespawnRecursiveExt,
     math::Vec4,
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     render::render_resource::TextureUsages,
@@ -401,12 +402,7 @@ impl Tilemap {
 
     /// Remove the whole tilemap.
     pub fn delete(&mut self, commands: &mut Commands) {
-        for tile in self.tiles.iter() {
-            if let Some(tile) = tile {
-                commands.entity(*tile).despawn();
-            }
-        }
-        commands.entity(self.id).despawn();
+        commands.entity(self.id).despawn_recursive();
     }
 
     /// Get the id of the tilemap.

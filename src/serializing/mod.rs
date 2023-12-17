@@ -1,7 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{IVec4, UVec2, Vec2, Vec4, UVec4},
+    math::{IVec4, UVec2, UVec4, Vec2, Vec4},
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
@@ -23,7 +23,7 @@ use crate::{
 };
 
 use self::{
-    ldtk::{entity::LdtkEntityRegistry, load_ldtk_json},
+    ldtk::{entities::LdtkEntityRegistry, load_ldtk_json, manager::LdtkLevelManager},
     load::load,
     save::{save, TilemapSaver},
 };
@@ -44,6 +44,8 @@ impl Plugin for EntiTilesSerializingPlugin {
             .add_systems(Update, load_ldtk_json);
 
         app.insert_non_send_resource(LdtkEntityRegistry::default());
+
+        app.init_resource::<LdtkLevelManager>();
     }
 }
 

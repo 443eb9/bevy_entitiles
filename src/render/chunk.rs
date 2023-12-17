@@ -1,5 +1,5 @@
 use bevy::{
-    math::{IVec4, UVec4, UVec3},
+    math::{IVec4, UVec3, UVec4},
     prelude::{Entity, Mesh, Query, Resource, UVec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -214,7 +214,9 @@ impl RenderChunkStorage {
         changed_tiles_query: &Query<&mut ExtractedTile>,
     ) {
         for tile in changed_tiles_query.iter() {
-            let tilemap = tilemaps_query.get(tile.tilemap).unwrap();
+            let Ok(tilemap) = tilemaps_query.get(tile.tilemap) else {
+                continue;
+            };
 
             let chunks = {
                 if !self.value.contains_key(&tile.tilemap) {

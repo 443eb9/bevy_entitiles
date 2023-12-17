@@ -8,18 +8,19 @@ use bevy::{
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
-        system::{Commands, Query, Res},
+        system::{Commands, Res, ResMut},
     },
     input::{keyboard::KeyCode, Input},
-    math::Vec2,
-    render::{render_resource::FilterMode, texture::ImagePlugin, view::Msaa},
-    utils::hashbrown::HashMap,
+    render::{texture::ImagePlugin, view::Msaa},
     window::{Window, WindowPlugin},
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    serializing::ldtk::{app_ext::AppExt, entity::LdtkEntity, r#enum::LdtkEnum, LdtkLoader},
-    tilemap::map::Tilemap,
+    math::FillArea,
+    serializing::ldtk::{
+        app_ext::AppExt, entities::LdtkEntity, enums::LdtkEnum, manager::LdtkLevelManager,
+        LdtkLevelIdent,
+    },
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
@@ -51,40 +52,66 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut manager: ResMut<LdtkLevelManager>,
+    asset_server: Res<bevy::asset::AssetServer>,
+) {
     commands.spawn(Camera2dBundle::default());
+    manager
+        .initialize(
+            "assets/ldtk/grid_vania.ldtk".to_string(),
+            "ldtk/".to_string(),
+        )
+        .set_if_ignore_unregistered_entities(true);
+
+    // let mut tilemap = bevy_entitiles::tilemap::map::TilemapBuilder::new(
+    //     bevy_entitiles::tilemap::tile::TileType::Square,
+    //     bevy::math::UVec2 { x: 8, y: 8 },
+    //     bevy::math::Vec2 { x: 16., y: 16. },
+    //     "".to_string(),
+    // )
+    // .with_texture(bevy_entitiles::render::texture::TilemapTexture::new(
+    //     asset_server.load("test_square.png"),
+    //     bevy_entitiles::render::texture::TilemapTextureDescriptor::new(
+    //         bevy::math::UVec2 { x: 32, y: 32 },
+    //         bevy::math::UVec2 { x: 16, y: 16 },
+    //         bevy::render::render_resource::FilterMode::Nearest,
+    //     ),
+    // ))
+    // .build(&mut commands);
+
+    // tilemap.fill_rect(
+    //     &mut commands,
+    //     FillArea::full(&tilemap),
+    //     &bevy_entitiles::tilemap::tile::TileBuilder::new().with_layer(0, 0),
+    // );
+    // commands.entity(tilemap.id()).insert(tilemap);
 }
 
 fn control(input: Res<Input<KeyCode>>) {
     if input.just_pressed(KeyCode::Escape) {}
 }
 
-fn load(
-    mut commands: Commands,
-    input: Res<Input<KeyCode>>,
-    mut tilemaps_query: Query<&mut Tilemap>,
-) {
-    if input.just_pressed(KeyCode::Space) {
-        for mut map in tilemaps_query.iter_mut() {
-            map.delete(&mut commands);
+macro_rules! level_control {
+    ($key:ident, $level:expr, $input:expr, $manager:expr, $commands:expr) => {
+        if $input.pressed(KeyCode::ControlLeft) {
+            if $input.just_pressed(KeyCode::$key) {
+                $manager.unload(&mut $commands, LdtkLevelIdent::Identifier($level));
+            }
+        } else if $input.just_pressed(KeyCode::$key) {
+            $manager.load(&mut $commands, LdtkLevelIdent::Identifier($level));
         }
+    };
+}
 
-        commands.spawn(LdtkLoader {
-            path: "assets/ldtk/grid_vania.ldtk".to_string(),
-            asset_path_prefix: "ldtk/".to_string(),
-            at_depth: 0,
-            filter_mode: FilterMode::Nearest,
-            level: None,
-            level_spacing: Some(30),
-            ignore_unregistered_entities: true,
-            use_tileset: Some(0),
-            z_index: 0,
-            atlas_render_size: HashMap::from_iter(vec![(
-                "Finalbossblues_icons_full_16".to_string(),
-                Vec2::new(32., 32.),
-            )]),
-        });
-    }
+fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<LdtkLevelManager>) {
+    level_control!(Key1, "Entrance", input, manager, commands);
+    level_control!(Key2, "Cross_roads", input, manager, commands);
+    level_control!(Key3, "Water_supply", input, manager, commands);
+    level_control!(Key4, "Ossuary", input, manager, commands);
+    level_control!(Key5, "Garden", input, manager, commands);
+    level_control!(Key6, "Shop_entrance", input, manager, commands);
 }
 
 #[derive(LdtkEnum)]

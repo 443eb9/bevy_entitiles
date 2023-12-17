@@ -1,5 +1,6 @@
 use bevy::{
     ecs::system::Query,
+    hierarchy::BuildChildren,
     math::{IVec4, UVec4},
     prelude::{Commands, Component, Entity, UVec2, Vec4},
 };
@@ -107,6 +108,7 @@ impl TileBuilder {
                     + render_chunk_index_2d.x
             }
         } as usize;
+        
         let mut tile = commands.spawn_empty();
         tile.insert(Tile {
             render_chunk_index,
@@ -119,7 +121,10 @@ impl TileBuilder {
         if let Some(anim) = &self.anim {
             tile.insert(anim.clone());
         }
-        tile.id()
+
+        let tile_entity = tile.id();
+        commands.entity(tilemap.id).add_child(tile_entity);
+        tile_entity
     }
 }
 

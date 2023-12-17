@@ -7,20 +7,22 @@ use bevy::{
         entity::Entity,
         system::{Commands, NonSend, Query, Res, ResMut},
     },
+    hierarchy::BuildChildren,
     math::{UVec2, Vec2, Vec3},
+    prelude::SpatialBundle,
     render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
-    transform::components::Transform,
+    transform::components::{GlobalTransform, Transform},
     utils::hashbrown::HashMap,
 };
 
 use crate::render::texture::{TilemapTexture, TilemapTextureDescriptor};
 
 use self::{
-    entity::LdtkEntityRegistry,
+    entities::LdtkEntityRegistry,
     json::{
         definitions::{LayerType, TilesetDef},
-        level::LayerInstance,
+        level::{LayerInstance, Level},
         LdtkJson, WorldLayout,
     },
     layer::LdtkLayers,
@@ -28,43 +30,30 @@ use self::{
 
 pub mod app_ext;
 pub mod components;
-pub mod entity;
-pub mod r#enum;
+pub mod entities;
+pub mod enums;
 pub mod json;
 pub mod layer;
+pub mod manager;
 
 #[derive(Component)]
 pub struct LdtkLoader {
-    /// The path to the ldtk file relative to the working directory.
-    pub path: String,
-    /// The path to the ldtk file relative to the assets folder.
-    ///
-    /// For example, your ldtk file is located at `assets/ldtk/fantastic_map.ldtk`,
-    /// so this value will be `ldtk/`.
-    pub asset_path_prefix: String,
-    /// The level to load.
-    pub level: Option<u32>,
-    /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,
-    /// and you are going to load all the levels,
-    /// this value will be used to determine the spacing between the levels.
-    pub level_spacing: Option<i32>,
-    /// The `world_depth` of the [`Level`](crate::serializing::ldtk::json::level::Level).
-    pub at_depth: i32,
-    /// The filter mode of the tilemap texture.
-    pub filter_mode: FilterMode,
-    /// If `true`, then the entities with unregistered identifiers will be ignored.
-    /// If `false`, then the program will panic.
-    pub ignore_unregistered_entities: bool,
-    /// Currently, multiple tilesets are not supported yet,
-    /// so this value is to determine which tileset to use.
-    ///
-    /// If you only have one tileset, then you can leave this `None`.
-    pub use_tileset: Option<usize>,
-    /// The z index of the tilemap.
-    pub z_index: i32,
-    /// The render size for tile atlas.
-    /// Key is thier identifiers.
-    pub atlas_render_size: HashMap<String, Vec2>,
+    pub(crate) path: String,
+    pub(crate) asset_path_prefix: String,
+    pub(crate) level: LdtkLevelIdent,
+    pub(crate) level_spacing: Option<i32>,
+    pub(crate) filter_mode: FilterMode,
+    pub(crate) ignore_unregistered_entities: bool,
+    pub(crate) z_index: i32,
+    pub(crate) atlas_render_size: HashMap<String, Vec2>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub enum LdtkLevelIdent {
+    Index(u32),
+    Identifier(&'static str),
+    #[default]
+    None,
 }
 
 pub fn load_ldtk_json(
@@ -93,8 +82,11 @@ pub fn load_ldtk_json(
             &asset_server,
             &ident_mapper,
             &mut atlas_asstes,
+            entity,
         );
-        commands.entity(entity).despawn();
+
+        commands.entity(entity).insert(SpatialBundle::default());
+        commands.entity(entity).remove::<LdtkLoader>();
     }
 }
 
@@ -105,6 +97,7 @@ fn load_levels(
     asset_server: &AssetServer,
     ident_mapper: &LdtkEntityRegistry,
     atlas_asstes: &mut Assets<TextureAtlas>,
+    level_entity: Entity,
 ) {
     let mut tilesets = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
     let mut atlas_handles = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
@@ -121,10 +114,18 @@ fn load_levels(
     });
 
     for (level_index, level) in ldtk_data.levels.iter().enumerate() {
-        if level.world_depth != loader.at_depth
-            || loader.level.unwrap_or(level_index as u32) != level_index as u32
-        {
-            continue;
+        match loader.level {
+            LdtkLevelIdent::Index(index) => {
+                if index as usize != level_index {
+                    continue;
+                }
+            }
+            LdtkLevelIdent::Identifier(ref identifier) => {
+                if identifier != &level.identifier {
+                    continue;
+                }
+            }
+            LdtkLevelIdent::None => {}
         }
 
         let translation = get_level_translation(&ldtk_data, loader, level_index);
@@ -133,20 +134,19 @@ fn load_levels(
             x: level.px_wid as u32,
             y: level.px_hei as u32,
         };
-        commands.spawn(SpriteBundle {
-            sprite: Sprite {
-                color: level.bg_color.into(),
-                custom_size: Some(level_px.as_vec2()),
-                ..Default::default()
-            },
-            transform: Transform::from_translation(
-                (translation + level_px.as_vec2() / 2.)
-                    .extend(loader.z_index as f32 - level.layer_instances.len() as f32 - 1.),
-            ),
-            ..Default::default()
-        });
+
+        load_background(
+            commands,
+            level_entity,
+            level,
+            loader,
+            translation,
+            level_px,
+            asset_server,
+        );
 
         let mut layer_grid = LdtkLayers::new(
+            level_entity,
             level.layer_instances.len(),
             level_px,
             &tilesets,
@@ -156,6 +156,7 @@ fn load_levels(
         for (layer_index, layer) in level.layer_instances.iter().enumerate() {
             load_layer(
                 commands,
+                level_entity,
                 layer_index,
                 layer,
                 &mut layer_grid,
@@ -169,6 +170,8 @@ fn load_levels(
         }
 
         layer_grid.apply_all(commands);
+
+        break;
     }
 }
 
@@ -196,8 +199,41 @@ fn load_texture(
     Some(TilemapTexture { texture, desc })
 }
 
+fn load_background(
+    commands: &mut Commands,
+    level_entity: Entity,
+    level: &Level,
+    loader: &LdtkLoader,
+    translation: Vec2,
+    level_px: UVec2,
+    asset_server: &AssetServer,
+) {
+    let texture = match level.bg_rel_path.as_ref() {
+        Some(path) => asset_server.load(format!("{}{}", loader.asset_path_prefix, path)),
+        None => Handle::default(),
+    };
+
+    let bg_entity = commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                color: level.bg_color.into(),
+                custom_size: Some(level_px.as_vec2()),
+                ..Default::default()
+            },
+            texture,
+            transform: Transform::from_translation(
+                (translation + level_px.as_vec2() / 2.)
+                    .extend(loader.z_index as f32 - level.layer_instances.len() as f32 - 1.),
+            ),
+            ..Default::default()
+        })
+        .id();
+    commands.entity(level_entity).add_child(bg_entity);
+}
+
 fn load_layer(
     commands: &mut Commands,
+    level_entity: Entity,
     layer_index: usize,
     layer: &LayerInstance,
     layer_grid: &mut LdtkLayers,
@@ -216,13 +252,13 @@ fn load_layer(
         }
         LayerType::Entities => {
             for entity in layer.entity_instances.iter() {
-                let marker = {
+                let phantom_entity = {
                     if let Some(m) = ident_mapper.get(&entity.identifier) {
                         m
                     } else if !loader.ignore_unregistered_entities {
                         panic!(
                             "Could not find entity type with entity identifier: {}! \
-                            You need to register it using App::register_ldtk_entity() first!",
+                            You need to register it using App::register_ldtk_entity::<T>() first!",
                             entity.identifier
                         );
                     } else {
@@ -238,12 +274,20 @@ fn load_layer(
                             let render_size = loader
                                 .atlas_render_size
                                 .get(&tileset_uid_to_ident[&atlas.tileset_uid])
-                                .unwrap();
-                            let translation = Vec3 {
-                                x: entity.world_x as f32 + (entity.pivot[0] - 0.5) * render_size.x,
-                                y: -entity.world_y as f32 + (entity.pivot[1] - 0.5) * render_size.y,
-                                z: loader.z_index as f32,
+                                .cloned()
+                                .unwrap_or(tilesets[&atlas.tileset_uid].desc.tile_size.as_vec2());
+
+                            let entity_rel_pos = Vec2 {
+                                x: entity.world_x as f32,
+                                y: -entity.world_y as f32 - render_size.y,
                             };
+                            let pivot_offset = Vec2 {
+                                x: render_size.x * (entity.pivot[0] - 0.5),
+                                y: render_size.y * (entity.pivot[1] + 0.5),
+                            };
+
+                            let sprite_trans = (entity_rel_pos + pivot_offset)
+                                .extend(loader.z_index as f32 - layer_index as f32 - 1.);
 
                             let tileset = tilesets.get(&atlas.tileset_uid).unwrap();
                             let index = UVec2 {
@@ -257,7 +301,7 @@ fn load_layer(
                                     custom_size: Some(render_size.clone()),
                                     ..Default::default()
                                 },
-                                transform: Transform::from_translation(translation),
+                                transform: Transform::from_translation(sprite_trans),
                                 texture_atlas: atlas_handles[&atlas.tileset_uid].clone(),
                                 ..Default::default()
                             })
@@ -266,7 +310,10 @@ fn load_layer(
                     }
                 };
 
-                marker.spawn(&mut new_entity, sprite_bundle, entity, asset_server);
+                phantom_entity.spawn(&mut new_entity, sprite_bundle, entity, asset_server);
+
+                let new_entity = new_entity.id();
+                commands.entity(level_entity).add_child(new_entity);
             }
         }
         LayerType::Tiles => {
@@ -278,11 +325,9 @@ fn load_layer(
 }
 
 fn get_level_translation(ldtk_data: &LdtkJson, loader: &LdtkLoader, index: usize) -> Vec2 {
-    // TODO change this after LDtk update
     let level = &ldtk_data.levels[index];
     match ldtk_data.world_layout.unwrap() {
-        WorldLayout::Free => todo!(),
-        WorldLayout::GridVania => Vec2 {
+        WorldLayout::GridVania | WorldLayout::Free => Vec2 {
             x: level.world_x as f32,
             y: (-level.world_y - level.px_hei) as f32,
         },

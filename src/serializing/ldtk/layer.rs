@@ -1,5 +1,6 @@
 use bevy::{
-    ecs::system::Commands,
+    ecs::{entity::Entity, system::Commands},
+    hierarchy::BuildChildren,
     math::{IVec2, UVec2, Vec2, Vec4},
     utils::HashMap,
 };
@@ -15,6 +16,7 @@ use crate::{
 use super::json::level::{LayerInstance, TileInstance};
 
 pub struct LdtkLayers<'a> {
+    pub level_entity: Entity,
     pub layers: Vec<Option<Tilemap>>,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
     pub px_size: UVec2,
@@ -24,6 +26,7 @@ pub struct LdtkLayers<'a> {
 
 impl<'a> LdtkLayers<'a> {
     pub fn new(
+        level_entity: Entity,
         total_layers: usize,
         px_size: UVec2,
         tilesets: &'a HashMap<i32, TilemapTexture>,
@@ -31,6 +34,7 @@ impl<'a> LdtkLayers<'a> {
         base_z_index: i32,
     ) -> Self {
         Self {
+            level_entity,
             layers: vec![None; total_layers],
             tilesets,
             px_size,
@@ -109,6 +113,8 @@ impl<'a> LdtkLayers<'a> {
         .with_translation(self.translation)
         .with_z_index(self.base_z_index - layer_index as i32)
         .build(commands);
+
+        commands.entity(self.level_entity).add_child(tilemap.id());
 
         self.layers[layer_index] = Some(tilemap);
         self.layers[layer_index].as_mut().unwrap()

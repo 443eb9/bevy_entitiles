@@ -1,6 +1,6 @@
 use bevy::{app::App, ecs::bundle::Bundle};
 
-use super::entity::{LdtkEntity, LdtkEntityRegistry, PhantomLdtkEntity};
+use super::entities::{LdtkEntity, LdtkEntityRegistry, PhantomLdtkEntity};
 
 pub trait AppExt {
     fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) -> &mut App;

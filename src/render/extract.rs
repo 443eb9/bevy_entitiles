@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::Res,
-    math::{IVec4, Vec3Swizzles, UVec4},
+    math::{IVec4, UVec4, Vec3Swizzles},
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
