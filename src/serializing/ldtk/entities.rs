@@ -4,7 +4,7 @@ use bevy::{
     asset::AssetServer,
     ecs::{bundle::Bundle, entity::Entity, system::EntityCommands},
     sprite::SpriteSheetBundle,
-    utils::HashMap, hierarchy::BuildChildren,
+    utils::HashMap,
 };
 
 use super::json::field::FieldInstance;

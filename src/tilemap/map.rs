@@ -38,12 +38,12 @@ pub struct TilemapTransform {
 impl TilemapTransform {
     #[inline]
     pub fn transform_point(&self, point: Vec2) -> Vec2 {
-        self.apply_rotation(self.apply_translation(point))
+        self.apply_translation(self.apply_rotation(point))
     }
 
     pub fn transform_aabb(&self, aabb: AabbBox2d) -> AabbBox2d {
-        let min = self.apply_translation(self.apply_rotation(aabb.min));
-        let max = self.apply_translation(self.apply_rotation(aabb.max));
+        let min = self.transform_point(aabb.min);
+        let max = self.transform_point(aabb.max);
 
         match self.rotation {
             TilemapRotation::None => AabbBox2d { min, max },
@@ -525,24 +525,41 @@ impl Tilemap {
     }
 
     #[inline]
-    pub fn get_tile_convex_hull(&self, index: UVec2) -> [Vec2; 4] {
+    pub fn get_tile_convex_hull(&self, index: UVec2) -> Vec<Vec2> {
         let offset = self.index_to_world(index);
         let (x, y) = (self.tile_slot_size.x, self.tile_slot_size.y);
-        match self.tile_type {
-            TileType::Square => [
-                (Vec2 { x: 0., y: 0. } + offset).into(),
-                (Vec2 { x: 0., y } + offset).into(),
-                (Vec2 { x, y } + offset).into(),
-                (Vec2 { x, y: 0. } + offset).into(),
+        let res = match self.tile_type {
+            TileType::Square => vec![
+                Vec2 { x: 0., y: 0. },
+                Vec2 { x: 0., y },
+                Vec2 { x, y },
+                Vec2 { x, y: 0. },
             ],
-            TileType::Isometric => [
-                (Vec2 { x: 0., y: y / 2. } + offset).into(),
-                (Vec2 { x: x / 2., y } + offset).into(),
-                (Vec2 { x, y: y / 2. } + offset).into(),
-                (Vec2 { x: x / 2., y: 0. } + offset).into(),
+            TileType::Isometric => vec![
+                Vec2 { x: 0., y: y / 2. },
+                Vec2 { x: x / 2., y },
+                Vec2 { x, y: y / 2. },
+                Vec2 { x: x / 2., y: 0. },
             ],
-            TileType::Hexagonal(_) => todo!(),
-        }
+            TileType::Hexagonal(c) => {
+                let c = c as f32;
+                let Vec2 { x: a, y: b } = self.tile_render_size;
+                let half = (b - c) / 2.;
+
+                vec![
+                    Vec2 { x: 0., y: half },
+                    Vec2 { x: 0., y: half + c },
+                    Vec2 { x: a / 2., y: b },
+                    Vec2 { x: a, y: half + c },
+                    Vec2 { x: a, y: half },
+                    Vec2 { x: a / 2., y: 0. },
+                ]
+            }
+        };
+
+        res.into_iter()
+            .map(|p| self.transform.apply_rotation(p) + offset)
+            .collect()
     }
 
     /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
