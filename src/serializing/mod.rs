@@ -23,7 +23,10 @@ use crate::{
 };
 
 use self::{
-    ldtk::{entities::LdtkEntityRegistry, load_ldtk_json, manager::LdtkLevelManager},
+    ldtk::{
+        entities::LdtkEntityRegistry, events::LdtkEvent, load_ldtk_json, manager::LdtkLevelManager,
+        unload_ldtk_level,
+    },
     load::load,
     save::{save, TilemapSaver},
 };
@@ -41,11 +44,13 @@ pub struct EntiTilesSerializingPlugin;
 impl Plugin for EntiTilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, (save, load))
-            .add_systems(Update, load_ldtk_json);
+            .add_systems(Update, (load_ldtk_json, unload_ldtk_level));
 
         app.insert_non_send_resource(LdtkEntityRegistry::default());
 
         app.init_resource::<LdtkLevelManager>();
+
+        app.add_event::<LdtkEvent>();
     }
 }
 

@@ -8,6 +8,7 @@ use bevy::{
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
+        event::EventReader,
         system::{Commands, Res, ResMut},
     },
     input::{keyboard::KeyCode, Input},
@@ -17,7 +18,8 @@ use bevy::{
 use bevy_entitiles::{
     math::FillArea,
     serializing::ldtk::{
-        app_ext::AppExt, entities::LdtkEntity, enums::LdtkEnum, manager::LdtkLevelManager,
+        app_ext::AppExt, entities::LdtkEntity, enums::LdtkEnum, events::LdtkEvent,
+        manager::LdtkLevelManager,
     },
     EntiTilesPlugin,
 };
@@ -34,7 +36,7 @@ fn main() {
             EntiTilesDebugPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (load, control))
+        .add_systems(Update, (load, control, events))
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
         .register_ldtk_entity::<Item>("Item")
@@ -75,6 +77,7 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
     level_control!(Key4, "Ossuary", input, manager, commands);
     level_control!(Key5, "Garden", input, manager, commands);
     level_control!(Key6, "Shop_entrance", input, manager, commands);
+    level_control!(Key7, "phantom level", input, manager, commands);
 
     if input.just_pressed(KeyCode::Space) {
         manager.unload_all(&mut commands);
@@ -83,13 +86,21 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
     if input.just_pressed(KeyCode::Key0) {
         manager.load_many(
             &mut commands,
-            &[
-                "Entrance",
-                "Cross_roads",
-                "Water_supply",
-                "Ossuary",
-            ],
+            &["Entrance", "Cross_roads", "Water_supply", "Ossuary"],
         );
+    }
+}
+
+fn events(mut ldtk_events: EventReader<LdtkEvent>) {
+    for event in ldtk_events.read() {
+        match event {
+            LdtkEvent::LevelLoaded(level) => {
+                println!("Level loaded: {}", level.identifier);
+            }
+            LdtkEvent::LevelUnloaded(level) => {
+                println!("Level unloaded: {}", level.identifier);
+            }
+        }
     }
 }
 

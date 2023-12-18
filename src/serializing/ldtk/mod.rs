@@ -5,15 +5,17 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
+        event::EventWriter,
+        query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
     },
-    hierarchy::BuildChildren,
+    hierarchy::{BuildChildren, DespawnRecursiveExt},
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
     render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     transform::components::Transform,
-    utils::{hashbrown::HashMap, HashSet},
+    utils::hashbrown::HashMap, log::error,
 };
 
 use crate::{
@@ -22,7 +24,9 @@ use crate::{
 };
 
 use self::{
+    components::LdtkLoadedLevel,
     entities::LdtkEntityRegistry,
+    events::{LdtkEvent, LevelEvent},
     json::{
         definitions::{LayerType, TilesetDef},
         level::{LayerInstance, Level},
@@ -35,6 +39,7 @@ pub mod app_ext;
 pub mod components;
 pub mod entities;
 pub mod enums;
+pub mod events;
 pub mod json;
 pub mod layer;
 pub mod manager;
@@ -43,12 +48,29 @@ pub mod manager;
 pub struct LdtkLoader {
     pub(crate) path: String,
     pub(crate) asset_path_prefix: String,
-    pub(crate) level: HashSet<String>,
+    pub(crate) level: String,
     pub(crate) level_spacing: Option<i32>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) atlas_render_size: HashMap<String, Vec2>,
+}
+
+#[derive(Component)]
+pub struct LdtkUnloader;
+
+pub fn unload_ldtk_level(
+    mut commands: Commands,
+    mut query: Query<(Entity, &LdtkLoadedLevel), With<LdtkUnloader>>,
+    mut ldtk_events: EventWriter<LdtkEvent>,
+) {
+    query.iter_mut().for_each(|(entity, level)| {
+        ldtk_events.send(LdtkEvent::LevelUnloaded(LevelEvent {
+            identifier: level.identifier.clone(),
+            iid: level.iid.clone(),
+        }));
+        commands.entity(entity).despawn_recursive();
+    });
 }
 
 pub fn load_ldtk_json(
@@ -57,6 +79,7 @@ pub fn load_ldtk_json(
     asset_server: Res<AssetServer>,
     ident_mapper: NonSend<LdtkEntityRegistry>,
     mut atlas_asstes: ResMut<Assets<TextureAtlas>>,
+    mut ldtk_events: EventWriter<LdtkEvent>,
 ) {
     for (entity, loader) in loader_query.iter() {
         let path = std::env::current_dir().unwrap().join(&loader.path);
@@ -70,7 +93,7 @@ pub fn load_ldtk_json(
             Err(e) => panic!("Could not parse file at path: {}!\n{}", loader.path, e),
         };
 
-        load_levels(
+        let loaded = load_levels(
             &mut commands,
             &mut ldtk_data,
             loader,
@@ -78,10 +101,16 @@ pub fn load_ldtk_json(
             &ident_mapper,
             &mut atlas_asstes,
             entity,
+            &mut ldtk_events,
         );
 
-        commands.entity(entity).insert(SpatialBundle::default());
-        commands.entity(entity).remove::<LdtkLoader>();
+        let mut e_cmd = commands.entity(entity);
+        if let Some(loaded) = loaded {
+            e_cmd.insert((SpatialBundle::default(), loaded));
+        } else {
+            error!("Failed to load level: {}!", loader.level);
+        }
+        e_cmd.remove::<LdtkLoader>();
     }
 }
 
@@ -93,7 +122,8 @@ fn load_levels(
     ident_mapper: &LdtkEntityRegistry,
     atlas_asstes: &mut Assets<TextureAtlas>,
     level_entity: Entity,
-) {
+    ldtk_events: &mut EventWriter<LdtkEvent>,
+) -> Option<LdtkLoadedLevel> {
     let mut tilesets = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
     let mut atlas_handles = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
     let mut tileset_uid_to_ident = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
@@ -108,11 +138,12 @@ fn load_levels(
         }
     });
 
-    for (level_index, level) in ldtk_data.levels.iter().enumerate() {
-        if !loader.level.contains(&level.identifier) {
-            continue;
-        }
-
+    for (level_index, level) in ldtk_data
+        .levels
+        .iter()
+        .filter(|l| l.identifier == loader.level)
+        .enumerate()
+    {
         let translation = get_level_translation(&ldtk_data, loader, level_index);
 
         let level_px = UVec2 {
@@ -155,9 +186,18 @@ fn load_levels(
         }
 
         layer_grid.apply_all(commands);
+        ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
+            identifier: level.identifier.clone(),
+            iid: level.iid.clone(),
+        }));
 
-        break;
+        return Some(LdtkLoadedLevel {
+            identifier: level.identifier.clone(),
+            iid: level.iid.clone(),
+        });
     }
+
+    None
 }
 
 fn load_texture(

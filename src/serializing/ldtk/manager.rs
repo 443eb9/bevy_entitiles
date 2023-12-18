@@ -3,14 +3,13 @@ use bevy::{
         entity::Entity,
         system::{Commands, Resource},
     },
-    hierarchy::DespawnRecursiveExt,
     log::error,
     math::Vec2,
     render::render_resource::FilterMode,
-    utils::{HashMap, HashSet},
+    utils::HashMap,
 };
 
-use super::LdtkLoader;
+use super::{LdtkLoader, LdtkUnloader};
 
 #[derive(Resource, Default)]
 pub struct LdtkLevelManager {
@@ -85,7 +84,7 @@ impl LdtkLevelManager {
             error!("Trying to load {:?} that is already loaded!", level);
         } else {
             let mut loader = self.generate_loader();
-            loader.level.insert(level.clone());
+            loader.level = level.clone();
             self.loaded_levels
                 .insert(level, commands.spawn(loader).id());
         }
@@ -109,7 +108,7 @@ impl LdtkLevelManager {
                 error!("Trying to load {:?} that is already loaded!", level);
             } else {
                 let mut loader = self.generate_loader();
-                loader.level.insert(level.clone());
+                loader.level = level.clone();
                 self.loaded_levels
                     .insert(level, commands.spawn(loader).id());
             }
@@ -129,7 +128,7 @@ impl LdtkLevelManager {
     pub fn unload(&mut self, commands: &mut Commands, level: &'static str) {
         let level = level.to_string();
         if let Some(l) = self.loaded_levels.get(&level) {
-            commands.entity(*l).despawn_recursive();
+            commands.entity(*l).insert(LdtkUnloader);
             self.loaded_levels.remove(&level);
         } else {
             error!("Trying to unload {:?} that is not loaded!", level);
@@ -138,7 +137,7 @@ impl LdtkLevelManager {
 
     pub fn unload_all(&mut self, commands: &mut Commands) {
         for (_, l) in self.loaded_levels.iter() {
-            commands.entity(*l).despawn_recursive();
+            commands.entity(*l).insert(LdtkUnloader);
         }
         self.loaded_levels.clear();
     }
@@ -158,7 +157,7 @@ impl LdtkLevelManager {
             path: self.file_path.clone(),
             asset_path_prefix: self.asset_path_prefix.clone(),
             filter_mode: self.filter_mode,
-            level: HashSet::new(),
+            level: "".to_string(),
             level_spacing: self.level_spacing,
             ignore_unregistered_entities: self.ignore_unregistered_entities,
             z_index: self.z_index,

@@ -5,7 +5,7 @@ use bevy::{
     ecs::system::{Commands, Res, ResMut},
     hierarchy::BuildChildren,
     math::UVec2,
-    render::{color::Color, render_resource::FilterMode, texture::ImagePlugin},
+    render::{color::Color, texture::ImagePlugin},
     ui::{
         node_bundles::{MaterialNodeBundle, NodeBundle},
         Style, Val,
@@ -13,11 +13,8 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    render::{
-        buffer::TileAnimation,
-        texture::{TilemapTexture, TilemapTextureDescriptor},
-    },
-    tilemap::{map::TilemapRotation, tile::TileFlip},
+    render::buffer::TileAnimation,
+    tilemap::tile::TileFlip,
     ui::{
         UiTileBuilder, UiTileMaterial, UiTileMaterialRegistry, UiTilemapTexture,
         UiTilemapTextureDescriptor,
