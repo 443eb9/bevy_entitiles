@@ -4,7 +4,6 @@ use crate::tilemap::map::Tilemap;
 
 pub mod aabb;
 pub mod extension;
-pub mod tilemap;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FillArea {

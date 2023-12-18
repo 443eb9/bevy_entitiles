@@ -54,6 +54,9 @@ impl Plugin for EntiTilesRendererPlugin {
         load_internal_asset!(app, HEXAGONAL, "shaders/hexagonal.wgsl", Shader::from_wgsl);
         load_internal_asset!(app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
 
+        // TODO enable this after the panic issue is solved
+        // app.add_systems(Update, culling::cull_tilemaps);
+
         load_internal_asset!(
             app,
             TILEMAP_SHADER,
@@ -74,7 +77,7 @@ impl Plugin for EntiTilesRendererPlugin {
             )
             .add_systems(
                 Render,
-                (prepare::prepare, culling::cull).in_set(RenderSet::Prepare),
+                (prepare::prepare, culling::cull_chunks).in_set(RenderSet::Prepare),
             )
             .add_systems(Render, queue::queue.in_set(RenderSet::Queue));
 

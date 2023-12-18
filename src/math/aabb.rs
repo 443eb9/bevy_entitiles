@@ -100,11 +100,23 @@ impl AabbBox2d {
                     max: center + tilemap_render_size / 2.,
                 }
             }
-            // TODO
-            TileType::Hexagonal(_) => AabbBox2d {
-                min: Vec2::ZERO,
-                max: Vec2::ZERO,
-            },
+            TileType::Hexagonal(c) => {
+                let c = c as f32;
+                let Vec2 { x: m, y: n } = builder.size.as_vec2();
+                let Vec2 { x: a, y: b } = builder.tile_slot_size;
+
+                let min = Vec2 {
+                    x: -(n / 2. - 0.5) * a,
+                    y: 0.,
+                } + builder.translation
+                    - pivot_offset;
+                let max = Vec2 {
+                    x: m * a,
+                    y: (b + c) / 2. * n + (b - c) / 2.,
+                } + builder.translation
+                    - pivot_offset;
+                AabbBox2d { min, max }
+            }
         }
     }
 
