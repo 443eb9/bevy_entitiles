@@ -1,5 +1,3 @@
-use std::f32::consts::{FRAC_PI_2, PI};
-
 use bevy::{
     ecs::component::Component,
     hierarchy::DespawnRecursiveExt,

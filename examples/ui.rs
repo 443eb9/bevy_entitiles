@@ -17,8 +17,11 @@ use bevy_entitiles::{
         buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
-    tilemap::tile::TileFlip,
-    ui::{UiTileBuilder, UiTileMaterial, UiTileMaterialRegistry},
+    tilemap::{map::TilemapRotation, tile::TileFlip},
+    ui::{
+        UiTileBuilder, UiTileMaterial, UiTileMaterialRegistry, UiTilemapTexture,
+        UiTilemapTextureDescriptor,
+    },
     EntiTilesPlugin,
 };
 
@@ -40,13 +43,9 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    let texture = TilemapTexture::new(
+    let texture = UiTilemapTexture::new(
         asset_server.load("test_square.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 16, y: 16 },
-            FilterMode::Nearest,
-        ),
+        UiTilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 16, y: 16 }),
     );
 
     // call this if you want to register all static atlas tiles.

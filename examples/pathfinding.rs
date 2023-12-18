@@ -9,7 +9,7 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         algorithm::path::PathTilemap,
-        map::TilemapBuilder,
+        map::{TilemapBuilder, TilemapRotation},
         tile::{TileBuilder, TileType},
     },
     EntiTilesPlugin,
@@ -41,6 +41,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             UVec2 { x: 32, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .with_pivot(Vec2 { x: 0.5, y: 0. })
     .with_render_chunk_size(64)

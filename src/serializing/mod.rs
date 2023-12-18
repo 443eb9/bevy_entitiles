@@ -16,7 +16,7 @@ use crate::{
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
-        map::{Tilemap, TilemapTransform},
+        map::{Tilemap, TilemapRotation, TilemapTransform},
         tile::{AnimatedTile, Tile, TileType},
     },
     MAX_ANIM_COUNT,
@@ -88,7 +88,8 @@ impl SerializedTilemap {
             texture: if let Some(tex) = &saver.texture_path {
                 Some(SerializedTilemapTexture {
                     path: tex.clone(),
-                    desc: tilemap.texture.clone().unwrap().desc.into(),
+                    desc: tilemap.texture.as_ref().unwrap().desc.clone().into(),
+                    rotation: tilemap.texture.as_ref().unwrap().rotation,
                 })
             } else {
                 None
@@ -132,6 +133,7 @@ impl SerializedTilemap {
 pub struct SerializedTilemapTexture {
     pub path: String,
     pub desc: SerializedTilemapDescriptor,
+    pub rotation: TilemapRotation,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

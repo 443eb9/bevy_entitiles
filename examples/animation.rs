@@ -14,7 +14,7 @@ use bevy_entitiles::{
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
-        map::TilemapBuilder,
+        map::{TilemapBuilder, TilemapRotation},
         tile::{AnimatedTile, TileBuilder, TileType},
     },
     EntiTilesPlugin,
@@ -46,6 +46,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             UVec2 { x: 16, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .build(&mut commands);
 

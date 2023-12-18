@@ -43,7 +43,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         vec2<f32>(1., 0.),
         vec2<f32>(1., 1.),
     );
-    output.uv = uvs[input.v_index % 4u];
+    output.uv = uvs[(input.v_index + tilemap.uv_rot) % 4u];
     output.flip = input.flip;
 
     if input.index.z == 1u {
@@ -90,6 +90,5 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
         }
     }
     return color * input.color;
-    // return vec4<f32>(input.uv_a, 0., 1.);
 #endif
 }

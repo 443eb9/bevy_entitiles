@@ -22,7 +22,7 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
-        map::TilemapBuilder,
+        map::{TilemapBuilder, TilemapRotation},
         physics::TileCollision,
         tile::{TileBuilder, TileType},
     },
@@ -65,6 +65,7 @@ fn setup(
             UVec2 { x: 32, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .with_z_index(-1)
     .build(&mut commands);
@@ -100,6 +101,7 @@ fn setup(
             UVec2 { x: 16, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .build(&mut commands);
 

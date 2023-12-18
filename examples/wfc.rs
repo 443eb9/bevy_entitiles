@@ -9,7 +9,10 @@ use bevy_entitiles::{
     algorithm::wfc::{AsyncWfcRunner, WfcRunner},
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
-    tilemap::{map::TilemapBuilder, tile::TileType},
+    tilemap::{
+        map::{TilemapBuilder, TilemapRotation},
+        tile::TileType,
+    },
     EntiTilesPlugin,
 };
 use helpers::EntiTilesDebugPlugin;
@@ -39,6 +42,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             UVec2 { x: 16, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .build(&mut commands);
 

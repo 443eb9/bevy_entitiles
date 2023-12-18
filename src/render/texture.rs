@@ -20,7 +20,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::tilemap::map::{Tilemap, WaitForTextureUsageChange};
+use crate::tilemap::map::{Tilemap, TilemapRotation, WaitForTextureUsageChange};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -181,11 +181,20 @@ impl TilemapTexturesStorage {
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
+    pub(crate) rotation: TilemapRotation,
 }
 
 impl TilemapTexture {
-    pub fn new(texture: Handle<Image>, desc: TilemapTextureDescriptor) -> Self {
-        Self { texture, desc }
+    pub fn new(
+        texture: Handle<Image>,
+        desc: TilemapTextureDescriptor,
+        rotation: TilemapRotation,
+    ) -> Self {
+        Self {
+            texture,
+            desc,
+            rotation,
+        }
     }
 
     pub fn clone_weak(&self) -> Handle<Image> {

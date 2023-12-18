@@ -108,6 +108,7 @@ impl TileAnimation {
 pub struct TilemapUniform {
     pub translation: Vec2,
     pub rotation: Mat2,
+    pub uv_rotation: u32,
     pub tile_render_size: Vec2,
     pub ext_dir: Vec2,
     pub tile_slot_size: Vec2,
@@ -128,9 +129,17 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
     #[inline]
     fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
+        let uv_rotation = {
+            if let Some(tex) = extracted.texture.as_ref() {
+                tex.rotation as u32 / 90
+            } else {
+                0
+            }
+        };
         DynamicOffsetComponent::new(self.buffer.push(TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
+            uv_rotation,
             tile_render_size: extracted.tile_render_size,
             ext_dir: extracted.ext_dir,
             tile_slot_size: extracted.tile_slot_size,

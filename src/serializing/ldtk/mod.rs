@@ -16,7 +16,10 @@ use bevy::{
     utils::{hashbrown::HashMap, HashSet},
 };
 
-use crate::render::texture::{TilemapTexture, TilemapTextureDescriptor};
+use crate::{
+    render::texture::{TilemapTexture, TilemapTextureDescriptor},
+    tilemap::map::TilemapRotation,
+};
 
 use self::{
     entities::LdtkEntityRegistry,
@@ -178,7 +181,11 @@ fn load_texture(
         },
         filter_mode: loader.filter_mode,
     };
-    Some(TilemapTexture { texture, desc })
+    Some(TilemapTexture {
+        texture,
+        desc,
+        rotation: TilemapRotation::None,
+    })
 }
 
 fn load_background(

@@ -13,13 +13,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::{
-    render::{
-        buffer::TileAnimation,
-        texture::{TilemapTexture, TilemapTextureDescriptor},
-    },
-    tilemap::tile::TileFlip,
-};
+use crate::{render::buffer::TileAnimation, tilemap::tile::TileFlip};
 
 pub const UI_TILES_SHADER: Handle<Shader> = Handle::weak_from_u128(213513554364645316312);
 
@@ -35,6 +29,33 @@ impl Plugin for EntiTilesUiPlugin {
     }
 }
 
+pub struct UiTilemapTexture {
+    pub(crate) texture: Handle<Image>,
+    pub(crate) desc: UiTilemapTextureDescriptor,
+}
+
+impl UiTilemapTexture {
+    pub fn new(texture: Handle<Image>, desc: UiTilemapTextureDescriptor) -> Self {
+        Self { texture, desc }
+    }
+
+    #[inline]
+    pub fn handle(&self) -> &Handle<Image> {
+        &self.texture
+    }
+}
+
+pub struct UiTilemapTextureDescriptor {
+    pub(crate) size: UVec2,
+    pub(crate) tile_size: UVec2,
+}
+
+impl UiTilemapTextureDescriptor {
+    pub fn new(size: UVec2, tile_size: UVec2) -> Self {
+        Self { size, tile_size }
+    }
+}
+
 #[derive(Resource, Default)]
 pub struct UiTileMaterialRegistry {
     materials: HashMap<Handle<Image>, Vec<Handle<UiTileMaterial>>>,
@@ -44,11 +65,11 @@ impl UiTileMaterialRegistry {
     pub fn register(
         &mut self,
         assets: &mut ResMut<Assets<UiTileMaterial>>,
-        texture: &TilemapTexture,
+        texture: &UiTilemapTexture,
         builder: &UiTileBuilder,
     ) {
         self.materials
-            .entry(texture.clone_weak())
+            .entry(texture.texture.clone_weak())
             .or_default()
             .push(assets.add(UiTileMaterial {
                 texture: texture.texture.clone(),
@@ -59,7 +80,7 @@ impl UiTileMaterialRegistry {
     pub fn register_many(
         &mut self,
         assets: &mut ResMut<Assets<UiTileMaterial>>,
-        texture: &TilemapTexture,
+        texture: &UiTilemapTexture,
         builders: Vec<UiTileBuilder>,
     ) {
         let count = texture.desc.size / texture.desc.tile_size;
@@ -124,7 +145,7 @@ impl UiTileBuilder {
         self
     }
 
-    pub fn build(&self, desc: &TilemapTextureDescriptor) -> UiTileUniform {
+    pub fn build(&self, desc: &UiTilemapTextureDescriptor) -> UiTileUniform {
         UiTileUniform {
             color: self.color,
             atlas_size: desc.tile_size.as_vec2(),
@@ -136,7 +157,7 @@ impl UiTileBuilder {
         }
     }
 
-    pub fn fill_grid_with_atlas(&self, desc: &TilemapTextureDescriptor) -> Vec<Self> {
+    pub fn fill_grid_with_atlas(&self, desc: &UiTilemapTextureDescriptor) -> Vec<Self> {
         let count = desc.size / desc.tile_size;
         let mut builders = Vec::with_capacity(count.x as usize * count.y as usize);
         for y in 0..count.y {

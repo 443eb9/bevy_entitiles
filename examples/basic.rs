@@ -8,7 +8,7 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
-        map::TilemapBuilder,
+        map::{TilemapBuilder, TilemapRotation},
         tile::{TileBuilder, TileFlip, TileType, TileUpdater},
     },
     EntiTilesPlugin,
@@ -40,6 +40,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             UVec2 { x: 16, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .build(&mut commands);
 
@@ -113,6 +114,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             UVec2 { x: 32, y: 16 },
             FilterMode::Nearest,
         ),
+        TilemapRotation::None,
     ))
     .with_translation(Vec2 { x: -400., y: 0. })
     .build(&mut commands);

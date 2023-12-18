@@ -89,7 +89,10 @@ pub fn load(
     mut commands: Commands,
     #[cfg(feature = "algorithm")] tilemaps_query: Query<
         (Entity, &TilemapLoader),
-        (Without<Tilemap>, Without<crate::tilemap::algorithm::path::PathTilemap>),
+        (
+            Without<Tilemap>,
+            Without<crate::tilemap::algorithm::path::PathTilemap>,
+        ),
     >,
     #[cfg(not(feature = "algorithm"))] tilemaps_query: Query<
         (Entity, &TilemapLoader),
@@ -110,6 +113,7 @@ pub fn load(
             Some(TilemapTexture {
                 texture: asset_server.load(tex.path.clone()),
                 desc: tex.desc.clone().into(),
+                rotation: tex.rotation,
             })
         } else {
             None
