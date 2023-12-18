@@ -18,7 +18,7 @@
 @vertex
 fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var output: VertexOutput;
-    let mesh_origin = get_mesh_origin(input);
+    var mesh_origin = get_mesh_origin(input);
     
     var translations = array<vec2<f32>, 4>(
         vec2<f32>(0., 0.),
@@ -26,10 +26,11 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
         vec2<f32>(1., 1.),
         vec2<f32>(1., 0.),
     );
-    
-    var position_model = (translations[input.v_index % 4u] - tilemap.pivot)
-                          * tilemap.tile_render_size + mesh_origin;
-    var position_world = vec4<f32>(tilemap.translation + position_model, 0., 1.);
+
+    var render_size = tilemap.tile_render_size;
+
+    var position_model = (translations[input.v_index % 4u] - tilemap.pivot) * render_size + mesh_origin;
+    var position_world = vec4<f32>((tilemap.rot_mat * position_model) + tilemap.translation, 0., 1.);
 
     output.position = view.view_proj * position_world;
     output.color = pow(input.color, vec4<f32>(2.2));

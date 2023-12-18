@@ -58,7 +58,7 @@ pub fn queue(
         });
 
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
-        radsort::sort_by_key(&mut tilemaps, |m| m.1.z_index);
+        radsort::sort_by_key(&mut tilemaps, |m| m.1.transform.z_index);
 
         for (entity, tilemap) in tilemaps.iter() {
             bind_groups.queue_uniform_buffers(
@@ -103,7 +103,7 @@ pub fn queue(
             };
 
             transparent_phase.add(Transparent2d {
-                sort_key: FloatOrd(tilemap.z_index as f32),
+                sort_key: FloatOrd(tilemap.transform.z_index as f32),
                 entity: *entity,
                 pipeline,
                 draw_function,

@@ -26,12 +26,10 @@ impl AabbBox2d {
         match tilemap.tile_type {
             TileType::Square => {
                 let chunk_render_size = tilemap.tile_slot_size * tilemap.render_chunk_size as f32;
-                AabbBox2d {
-                    min: chunk_index.as_vec2() * chunk_render_size + tilemap.translation
-                        - pivot_offset,
-                    max: (chunk_index + 1).as_vec2() * chunk_render_size + tilemap.translation
-                        - pivot_offset,
-                }
+                tilemap.transform.transform_aabb(AabbBox2d {
+                    min: chunk_index.as_vec2() * chunk_render_size - pivot_offset,
+                    max: (chunk_index + 1).as_vec2() * chunk_render_size - pivot_offset,
+                })
             }
             TileType::Isometric => {
                 let chunk_index = chunk_index.as_vec2();
@@ -42,13 +40,12 @@ impl AabbBox2d {
                 let center = Vec2 {
                     x: center_x,
                     y: center_y,
-                } + tilemap.translation
-                    - pivot_offset;
+                } - pivot_offset;
 
-                AabbBox2d {
+                tilemap.transform.transform_aabb(AabbBox2d {
                     min: center - half_chunk_render_size,
                     max: center + half_chunk_render_size,
-                }
+                })
             }
             TileType::Hexagonal(c) => {
                 /*
@@ -60,15 +57,15 @@ impl AabbBox2d {
                 let n = tilemap.render_chunk_size as f32;
 
                 let min = Vec2 {
-                    x: a * x * n - a / 2. * y * n - n / 2. * a - a / 2.,
+                    x: a * x * n - a / 2. * y * n - (n / 2. - 1.) * a - a / 2.,
                     y: (b + c) / 2. * y * n,
-                } + tilemap.translation;
+                };
                 let max = Vec2 {
-                    x: a * x * n - a / 2. * y * n + 1.5 * a * n - a / 2.,
+                    x: a * x * n - a / 2. * y * n + 1. * a * n,
                     y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
-                } + tilemap.translation;
+                };
 
-                AabbBox2d { min, max }
+                tilemap.transform.transform_aabb(AabbBox2d { min, max })
             }
         }
     }
@@ -79,10 +76,10 @@ impl AabbBox2d {
         match builder.tile_type {
             TileType::Square => {
                 let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
-                AabbBox2d {
-                    min: builder.translation - pivot_offset,
-                    max: tilemap_render_size + builder.translation - pivot_offset,
-                }
+                builder.transform.transform_aabb(AabbBox2d {
+                    min: pivot_offset,
+                    max: tilemap_render_size - pivot_offset,
+                })
             }
             TileType::Isometric => {
                 let half_size = builder.size.as_vec2() / 2.;
@@ -92,13 +89,12 @@ impl AabbBox2d {
                 let center = Vec2 {
                     x: center_x,
                     y: center_y,
-                } + builder.translation
-                    - pivot_offset;
+                } - pivot_offset;
 
-                AabbBox2d {
+                builder.transform.transform_aabb(AabbBox2d {
                     min: center - tilemap_render_size / 2.,
                     max: center + tilemap_render_size / 2.,
-                }
+                })
             }
             TileType::Hexagonal(c) => {
                 let c = c as f32;
@@ -108,14 +104,13 @@ impl AabbBox2d {
                 let min = Vec2 {
                     x: -(n / 2. - 0.5) * a,
                     y: 0.,
-                } + builder.translation
-                    - pivot_offset;
+                } - pivot_offset;
                 let max = Vec2 {
                     x: m * a,
                     y: (b + c) / 2. * n + (b - c) / 2.,
-                } + builder.translation
-                    - pivot_offset;
-                AabbBox2d { min, max }
+                } - pivot_offset;
+
+                builder.transform.transform_aabb(AabbBox2d { min, max })
             }
         }
     }

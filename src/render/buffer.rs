@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::entity::Entity,
-    math::{UVec4, Vec4},
+    math::{Mat2, UVec4, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -107,6 +107,7 @@ impl TileAnimation {
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
     pub translation: Vec2,
+    pub rotation: Mat2,
     pub tile_render_size: Vec2,
     pub ext_dir: Vec2,
     pub tile_slot_size: Vec2,
@@ -128,7 +129,8 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
     #[inline]
     fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
         DynamicOffsetComponent::new(self.buffer.push(TilemapUniform {
-            translation: extracted.translation,
+            translation: extracted.transform.translation,
+            rotation: extracted.transform.get_rotation_matrix(),
             tile_render_size: extracted.tile_render_size,
             ext_dir: extracted.ext_dir,
             tile_slot_size: extracted.tile_slot_size,

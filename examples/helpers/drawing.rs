@@ -23,7 +23,9 @@ pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
             0.,
             Vec2::new(tilemap.aabb.width(), tilemap.aabb.height()),
             Color::RED,
-        )
+        );
+        gizmos.circle_2d(tilemap.aabb.min, 5., Color::ORANGE);
+        gizmos.circle_2d(tilemap.aabb.max, 5., Color::CYAN);
     }
 }
 

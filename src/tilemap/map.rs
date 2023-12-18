@@ -1,7 +1,9 @@
+use std::f32::consts::{FRAC_PI_2, PI};
+
 use bevy::{
     ecs::component::Component,
     hierarchy::DespawnRecursiveExt,
-    math::Vec4,
+    math::{Mat2, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     render::render_resource::TextureUsages,
 };
@@ -17,6 +19,68 @@ use super::{
     tile::{TileBuilder, TileFlip, TileType, TileUpdater},
 };
 
+#[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub enum TilemapRotation {
+    #[default]
+    None = 0,
+    Cw90 = 90,
+    Cw180 = 180,
+    Cw270 = 270,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilemapTransform {
+    pub translation: Vec2,
+    pub z_index: i32,
+    pub rotation: TilemapRotation,
+}
+
+impl TilemapTransform {
+    #[inline]
+    pub fn transform_point(&self, point: Vec2) -> Vec2 {
+        self.apply_rotation(self.apply_translation(point))
+    }
+
+    pub fn transform_aabb(&self, aabb: AabbBox2d) -> AabbBox2d {
+        let min = self.apply_translation(self.apply_rotation(aabb.min));
+        let max = self.apply_translation(self.apply_rotation(aabb.max));
+
+        match self.rotation {
+            TilemapRotation::None => AabbBox2d { min, max },
+            TilemapRotation::Cw90 => AabbBox2d::new(max.x, min.y, min.x, max.y),
+            TilemapRotation::Cw180 => AabbBox2d::new(max.x, max.y, min.x, min.y),
+            TilemapRotation::Cw270 => AabbBox2d::new(min.x, max.y, max.x, min.y),
+        }
+    }
+
+    #[inline]
+    pub fn get_rotation_matrix(&self) -> Mat2 {
+        match self.rotation {
+            TilemapRotation::None => Mat2::from_cols_array(&[1., 0., 0., 1.]),
+            TilemapRotation::Cw90 => Mat2::from_cols_array(&[0., 1., -1., 0.]),
+            TilemapRotation::Cw180 => Mat2::from_cols_array(&[-1., 0., 0., -1.]),
+            TilemapRotation::Cw270 => Mat2::from_cols_array(&[0., -1., 1., 0.]),
+        }
+    }
+
+    #[inline]
+    pub fn apply_rotation(&self, point: Vec2) -> Vec2 {
+        match self.rotation {
+            TilemapRotation::None => point,
+            TilemapRotation::Cw90 => Vec2::new(-point.y, point.x),
+            TilemapRotation::Cw180 => Vec2::new(-point.x, -point.y),
+            TilemapRotation::Cw270 => Vec2::new(point.y, -point.x),
+        }
+    }
+
+    #[inline]
+    pub fn apply_translation(&self, point: Vec2) -> Vec2 {
+        point + self.translation
+    }
+}
+
 pub struct TilemapBuilder {
     pub name: String,
     pub tile_type: TileType,
@@ -27,8 +91,7 @@ pub struct TilemapBuilder {
     pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
-    pub translation: Vec2,
-    pub z_index: i32,
+    pub transform: TilemapTransform,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
@@ -45,8 +108,7 @@ impl TilemapBuilder {
             pivot: Vec2::ZERO,
             texture: None,
             render_chunk_size: 32,
-            translation: Vec2::ZERO,
-            z_index: 0,
+            transform: TilemapTransform::default(),
             anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
         }
     }
@@ -54,7 +116,7 @@ impl TilemapBuilder {
     /// Override z index. Default is 0.
     /// The higher the value of z_index, the less likely to be covered.
     pub fn with_z_index(&mut self, z_index: i32) -> &mut Self {
-        self.z_index = z_index;
+        self.transform.z_index = z_index;
         self
     }
 
@@ -66,7 +128,13 @@ impl TilemapBuilder {
 
     /// Override translation. Default is `Vec2::ZERO`.
     pub fn with_translation(&mut self, translation: Vec2) -> &mut Self {
-        self.translation = translation;
+        self.transform.translation = translation;
+        self
+    }
+
+    /// Override rotation. Default is `TilemapRotation::None`.
+    pub fn with_rotation(&mut self, rotation: TilemapRotation) -> &mut Self {
+        self.transform.rotation = rotation;
         self
     }
 
@@ -118,8 +186,7 @@ impl TilemapBuilder {
             texture: self.texture.clone(),
             layer_opacities: Vec4::ONE,
             aabb: AabbBox2d::from_tilemap_builder(&self),
-            translation: self.translation,
-            z_index: self.z_index,
+            transform: self.transform,
             anim_seqs: self.anim_seqs,
             anim_counts: 0,
         };
@@ -157,8 +224,7 @@ pub struct Tilemap {
     pub(crate) layer_opacities: Vec4,
     pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) aabb: AabbBox2d,
-    pub(crate) translation: Vec2,
-    pub(crate) z_index: i32,
+    pub(crate) transform: TilemapTransform,
     pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub(crate) anim_counts: usize,
 }
@@ -417,27 +483,31 @@ impl Tilemap {
         self.name.clone()
     }
 
+    #[inline]
+    pub fn transform(&self) -> TilemapTransform {
+        self.transform
+    }
+
     /// Get the world position of the center of a slot.
     #[inline]
     pub fn index_to_world(&self, index: UVec2) -> Vec2 {
         let index = index.as_vec2();
         match self.tile_type {
-            TileType::Square => (index - self.pivot) * self.tile_slot_size + self.translation,
-            TileType::Isometric => {
+            TileType::Square => self
+                .transform
+                .transform_point((index - self.pivot) * self.tile_slot_size),
+            TileType::Isometric => self.transform.transform_point(
                 (Vec2 {
                     x: (index.x - index.y - 1.),
                     y: (index.x + index.y),
                 } / 2.
                     - self.pivot)
-                    * self.tile_slot_size
-                    + self.translation
-            }
-            TileType::Hexagonal(legs) => {
-                Vec2 {
-                    x: self.tile_slot_size.x * (index.x - 0.5 * index.y - self.pivot.x),
-                    y: (self.tile_slot_size.y + legs as f32) / 2. * (index.y - self.pivot.y),
-                } + self.translation
-            }
+                    * self.tile_slot_size,
+            ),
+            TileType::Hexagonal(legs) => self.transform.transform_point(Vec2 {
+                x: self.tile_slot_size.x * (index.x - 0.5 * index.y - self.pivot.x),
+                y: (self.tile_slot_size.y + legs as f32) / 2. * (index.y - self.pivot.y),
+            }),
         }
     }
 
