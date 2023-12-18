@@ -84,7 +84,7 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
     }
 
     if input.just_pressed(KeyCode::Key0) {
-        manager.load_many(
+        manager.try_load_many(
             &mut commands,
             &["Entrance", "Cross_roads", "Water_supply", "Ossuary"],
         );
@@ -128,6 +128,8 @@ pub enum ItemType {
 
 #[derive(Component, LdtkEntity, Default)]
 #[spawn_sprite]
+// this means the entity will not disappear when the level is unloaded
+#[global_entity]
 pub struct Player {
     // this is a wrapper which will be generated
     // when you derive LdtkEnum for your custom enums.

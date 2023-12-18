@@ -100,6 +100,10 @@ impl LdtkLevelManager {
         }
     }
 
+    /// # Warning!
+    /// 
+    /// This method will cause panic if you have already loaded levels before.
+    /// **Even if you have unloaded them!!**
     pub fn load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) {
         self.check_initialized();
         levels.iter().for_each(|level| {
@@ -115,6 +119,10 @@ impl LdtkLevelManager {
         });
     }
 
+    /// # Warning!
+    /// 
+    /// This method will cause panic if you have already loaded levels before.
+    /// **Even if you have unloaded them!!**
     pub fn try_load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) -> bool {
         self.check_initialized();
         if self.loaded_levels.is_empty() {

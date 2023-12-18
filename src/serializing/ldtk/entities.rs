@@ -2,9 +2,9 @@ use std::marker::PhantomData;
 
 use bevy::{
     asset::AssetServer,
-    ecs::{bundle::Bundle, system::EntityCommands},
+    ecs::{bundle::Bundle, entity::Entity, system::EntityCommands},
     sprite::SpriteSheetBundle,
-    utils::HashMap,
+    utils::HashMap, hierarchy::BuildChildren,
 };
 
 use super::json::field::FieldInstance;
@@ -13,6 +13,7 @@ pub type LdtkEntityRegistry = HashMap<String, Box<dyn PhantomLdtkEntityTrait>>;
 
 pub trait LdtkEntity {
     fn initialize(
+        level_entity: Entity,
         commands: &mut EntityCommands,
         sprite: Option<SpriteSheetBundle>,
         fields: &HashMap<String, FieldInstance>,
@@ -35,6 +36,7 @@ impl<T: LdtkEntity + Bundle> PhantomLdtkEntity<T> {
 pub trait PhantomLdtkEntityTrait {
     fn spawn(
         &self,
+        level_entity: Entity,
         commands: &mut EntityCommands,
         sprite: Option<SpriteSheetBundle>,
         fields: &HashMap<String, FieldInstance>,
@@ -45,11 +47,12 @@ pub trait PhantomLdtkEntityTrait {
 impl<T: LdtkEntity + Bundle> PhantomLdtkEntityTrait for PhantomLdtkEntity<T> {
     fn spawn(
         &self,
+        level_entity: Entity,
         commands: &mut EntityCommands,
         sprite: Option<SpriteSheetBundle>,
         fields: &HashMap<String, FieldInstance>,
         asset_server: &AssetServer,
     ) {
-        T::initialize(commands, sprite, fields, asset_server);
+        T::initialize(level_entity, commands, sprite, fields, asset_server);
     }
 }

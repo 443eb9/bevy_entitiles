@@ -10,12 +10,13 @@ use bevy::{
         system::{Commands, NonSend, Query, Res, ResMut},
     },
     hierarchy::{BuildChildren, DespawnRecursiveExt},
+    log::error,
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
     render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
     transform::components::Transform,
-    utils::hashbrown::HashMap, log::error,
+    utils::hashbrown::HashMap,
 };
 
 use crate::{
@@ -138,12 +139,12 @@ fn load_levels(
         }
     });
 
-    for (level_index, level) in ldtk_data
-        .levels
-        .iter()
-        .filter(|l| l.identifier == loader.level)
-        .enumerate()
-    {
+    for (level_index, level) in ldtk_data.levels.iter().enumerate() {
+        // this cannot cannot be replaced by filter(), because the level_index matters.
+        if level.identifier != loader.level {
+            continue;
+        }
+
         let translation = get_level_translation(&ldtk_data, loader, level_index);
 
         let level_px = UVec2 {
@@ -344,10 +345,13 @@ fn load_layer(
                     .iter()
                     .map(|field| (field.identifier.clone(), field.clone()))
                     .collect();
-                phantom_entity.spawn(&mut new_entity, sprite_bundle, &mut fields, asset_server);
-
-                let new_entity = new_entity.id();
-                commands.entity(level_entity).add_child(new_entity);
+                phantom_entity.spawn(
+                    level_entity,
+                    &mut new_entity,
+                    sprite_bundle,
+                    &mut fields,
+                    asset_server,
+                );
             }
         }
         LayerType::Tiles => {
