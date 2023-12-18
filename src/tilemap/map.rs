@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{component::Component, query::With, system::Query},
+    ecs::component::Component,
     hierarchy::DespawnRecursiveExt,
     math::Vec4,
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},

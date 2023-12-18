@@ -177,7 +177,7 @@ impl TilemapTexturesStorage {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,

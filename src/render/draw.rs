@@ -96,32 +96,23 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapUniformBufferBin
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = (
-        Read<ExtractedTilemap>,
-        Read<DynamicOffsetComponent<TilemapUniform>>,
-    );
+    type ItemWorldQuery = Read<DynamicOffsetComponent<TilemapUniform>>;
 
     #[inline]
     fn render<'w>(
         _item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        (tilemap, uniform_data): ROQueryItem<'w, Self::ItemWorldQuery>,
+        uniform_data: ROQueryItem<'w, Self::ItemWorldQuery>,
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(tilemap_uniform_bind_group) = bind_groups
-            .into_inner()
-            .tilemap_uniform_buffers
-            .get(&tilemap.id)
+        if let Some(tilemap_uniform_bind_group) =
+            bind_groups.into_inner().tilemap_uniform_buffer.as_ref()
         {
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index()]);
             RenderCommandResult::Success
         } else {
-            error!(
-                "Failed to get tilemap uniform bind group! \
-                It' ok if you see this once per tilemap. \
-                But if you continously see this error, then something's going wrong!"
-            );
+            error!("Failed to get tilemap uniform bind group!");
             RenderCommandResult::Failure
         }
     }

@@ -8,12 +8,12 @@ use bevy::{
         system::{Commands, NonSend, Query, Res, ResMut},
     },
     hierarchy::BuildChildren,
-    math::{UVec2, Vec2, Vec3},
+    math::{UVec2, Vec2},
     prelude::SpatialBundle,
     render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
-    transform::components::{GlobalTransform, Transform},
-    utils::hashbrown::HashMap,
+    transform::components::Transform,
+    utils::{hashbrown::HashMap, HashSet},
 };
 
 use crate::render::texture::{TilemapTexture, TilemapTextureDescriptor};
@@ -40,20 +40,12 @@ pub mod manager;
 pub struct LdtkLoader {
     pub(crate) path: String,
     pub(crate) asset_path_prefix: String,
-    pub(crate) level: LdtkLevelIdent,
+    pub(crate) level: HashSet<String>,
     pub(crate) level_spacing: Option<i32>,
     pub(crate) filter_mode: FilterMode,
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) atlas_render_size: HashMap<String, Vec2>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub enum LdtkLevelIdent {
-    Index(u32),
-    Identifier(&'static str),
-    #[default]
-    None,
 }
 
 pub fn load_ldtk_json(
@@ -114,18 +106,8 @@ fn load_levels(
     });
 
     for (level_index, level) in ldtk_data.levels.iter().enumerate() {
-        match loader.level {
-            LdtkLevelIdent::Index(index) => {
-                if index as usize != level_index {
-                    continue;
-                }
-            }
-            LdtkLevelIdent::Identifier(ref identifier) => {
-                if identifier != &level.identifier {
-                    continue;
-                }
-            }
-            LdtkLevelIdent::None => {}
+        if !loader.level.contains(&level.identifier) {
+            continue;
         }
 
         let translation = get_level_translation(&ldtk_data, loader, level_index);
@@ -310,7 +292,12 @@ fn load_layer(
                     }
                 };
 
-                phantom_entity.spawn(&mut new_entity, sprite_bundle, entity, asset_server);
+                let mut fields = entity
+                    .field_instances
+                    .iter()
+                    .map(|field| (field.identifier.clone(), field.clone()))
+                    .collect();
+                phantom_entity.spawn(&mut new_entity, sprite_bundle, &mut fields, asset_server);
 
                 let new_entity = new_entity.id();
                 commands.entity(level_entity).add_child(new_entity);

@@ -62,7 +62,6 @@ pub fn queue(
 
         for (entity, tilemap) in tilemaps.iter() {
             bind_groups.queue_uniform_buffers(
-                &tilemap,
                 &render_device,
                 &mut uniform_buffers,
                 &entitile_pipeline,

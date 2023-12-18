@@ -12,14 +12,12 @@ use bevy::{
     },
     input::{keyboard::KeyCode, Input},
     render::{texture::ImagePlugin, view::Msaa},
-    window::{Window, WindowPlugin},
     DefaultPlugins,
 };
 use bevy_entitiles::{
     math::FillArea,
     serializing::ldtk::{
         app_ext::AppExt, entities::LdtkEntity, enums::LdtkEnum, manager::LdtkLevelManager,
-        LdtkLevelIdent,
     },
     EntiTilesPlugin,
 };
@@ -31,15 +29,7 @@ mod helpers;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins
-                .set(ImagePlugin::default_nearest())
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        present_mode: bevy::window::PresentMode::AutoNoVsync,
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                }),
+            DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
         ))
@@ -52,11 +42,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut manager: ResMut<LdtkLevelManager>,
-    asset_server: Res<bevy::asset::AssetServer>,
-) {
+fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     commands.spawn(Camera2dBundle::default());
     manager
         .initialize(
@@ -64,29 +50,6 @@ fn setup(
             "ldtk/".to_string(),
         )
         .set_if_ignore_unregistered_entities(true);
-
-    // let mut tilemap = bevy_entitiles::tilemap::map::TilemapBuilder::new(
-    //     bevy_entitiles::tilemap::tile::TileType::Square,
-    //     bevy::math::UVec2 { x: 8, y: 8 },
-    //     bevy::math::Vec2 { x: 16., y: 16. },
-    //     "".to_string(),
-    // )
-    // .with_texture(bevy_entitiles::render::texture::TilemapTexture::new(
-    //     asset_server.load("test_square.png"),
-    //     bevy_entitiles::render::texture::TilemapTextureDescriptor::new(
-    //         bevy::math::UVec2 { x: 32, y: 32 },
-    //         bevy::math::UVec2 { x: 16, y: 16 },
-    //         bevy::render::render_resource::FilterMode::Nearest,
-    //     ),
-    // ))
-    // .build(&mut commands);
-
-    // tilemap.fill_rect(
-    //     &mut commands,
-    //     FillArea::full(&tilemap),
-    //     &bevy_entitiles::tilemap::tile::TileBuilder::new().with_layer(0, 0),
-    // );
-    // commands.entity(tilemap.id()).insert(tilemap);
 }
 
 fn control(input: Res<Input<KeyCode>>) {
@@ -97,10 +60,10 @@ macro_rules! level_control {
     ($key:ident, $level:expr, $input:expr, $manager:expr, $commands:expr) => {
         if $input.pressed(KeyCode::ControlLeft) {
             if $input.just_pressed(KeyCode::$key) {
-                $manager.unload(&mut $commands, LdtkLevelIdent::Identifier($level));
+                $manager.unload(&mut $commands, $level);
             }
         } else if $input.just_pressed(KeyCode::$key) {
-            $manager.load(&mut $commands, LdtkLevelIdent::Identifier($level));
+            $manager.try_load(&mut $commands, $level);
         }
     };
 }
@@ -112,8 +75,26 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
     level_control!(Key4, "Ossuary", input, manager, commands);
     level_control!(Key5, "Garden", input, manager, commands);
     level_control!(Key6, "Shop_entrance", input, manager, commands);
+
+    if input.just_pressed(KeyCode::Space) {
+        manager.unload_all(&mut commands);
+    }
+
+    if input.just_pressed(KeyCode::Key0) {
+        manager.load_many(
+            &mut commands,
+            &[
+                "Entrance",
+                "Cross_roads",
+                "Water_supply",
+                "Ossuary",
+            ],
+        );
+    }
 }
 
+// values here may show unreachable pattern warning
+// It doesn't matter, and I don't know how to fix it
 #[derive(LdtkEnum)]
 pub enum ItemType {
     Meat,
@@ -142,6 +123,7 @@ pub struct Player {
     // There are also another two wrappers:
     // ItemTypeOption and Item TypeOptionVec
     pub inventory: ItemTypeVec,
+    #[ldtk_name = "HP"]
     pub hp: i32,
     // this will be deafult as it not exists in the ldtk file
     #[ldtk_default]
@@ -151,6 +133,7 @@ pub struct Player {
 #[derive(Component, LdtkEntity)]
 #[spawn_sprite]
 pub struct Item {
+    #[ldtk_name = "type"]
     pub ty: ItemType,
     pub price: i32,
     pub count: i32,

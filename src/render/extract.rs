@@ -21,7 +21,7 @@ use crate::{
 
 use super::{buffer::TileAnimation, texture::TilemapTexture};
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct ExtractedTilemap {
     pub id: Entity,
     pub tile_type: TileType,
@@ -64,7 +64,7 @@ pub fn extract_tilemaps(
     tilemaps_query: Extract<Query<(Entity, &Tilemap)>>,
     time: Extract<Res<Time>>,
 ) {
-    let mut extracted_tilemaps: Vec<(Entity, ExtractedTilemap)> = vec![];
+    let mut extracted_tilemaps = vec![];
     for (entity, tilemap) in tilemaps_query.iter() {
         extracted_tilemaps.push((
             entity,

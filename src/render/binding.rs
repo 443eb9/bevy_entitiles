@@ -30,7 +30,7 @@ pub struct TilemapViewBindGroup {
 
 #[derive(Resource, Default)]
 pub struct TilemapBindGroups {
-    pub tilemap_uniform_buffers: EntityHashMap<Entity, BindGroup>,
+    pub tilemap_uniform_buffer: Option<BindGroup>,
     pub tilemap_storage_buffers: EntityHashMap<Entity, BindGroup>,
     pub colored_textures: HashMap<Handle<Image>, BindGroup>,
 }
@@ -38,12 +38,11 @@ pub struct TilemapBindGroups {
 impl TilemapBindGroups {
     pub fn queue_uniform_buffers(
         &mut self,
-        tilemap: &ExtractedTilemap,
         render_device: &RenderDevice,
         uniform_buffers: &mut TilemapUniformBuffers,
         entitile_pipeline: &EntiTilesPipeline,
     ) {
-        if self.tilemap_uniform_buffers.get(&tilemap.id).is_some() {
+        if self.tilemap_uniform_buffer.is_some() {
             return;
         }
 
@@ -51,17 +50,14 @@ impl TilemapBindGroups {
             return;
         };
 
-        self.tilemap_uniform_buffers.insert(
-            tilemap.id,
-            render_device.create_bind_group(
-                Some("tilemap_uniform_buffers_bind_group"),
-                &entitile_pipeline.uniform_buffers_layout,
-                &[BindGroupEntry {
-                    binding: 0,
-                    resource: uniform_buffer,
-                }],
-            ),
-        );
+        self.tilemap_uniform_buffer = Some(render_device.create_bind_group(
+            Some("tilemap_uniform_buffers_bind_group"),
+            &entitile_pipeline.uniform_buffers_layout,
+            &[BindGroupEntry {
+                binding: 0,
+                resource: uniform_buffer,
+            }],
+        ));
     }
 
     pub fn queue_storage_buffers(
