@@ -2,6 +2,7 @@ static LDTK_DEFAULT_ATTR: &str = "ldtk_default";
 static LDTK_NAME_ATTR: &str = "ldtk_name";
 static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
 static GLOBAL_ENTITY_ATTR: &str = "global_entity";
+static CALLBACK_ATTR: &str = "callback";
 
 pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
@@ -13,7 +14,9 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     let spawn_sprite = {
         if spawn_sprite_attr.is_some() {
             quote::quote!(
-                commands.insert(sprite.unwrap());
+                if let Some(bundle) = entity_instance.generate_sprite(ldtk_textures) {
+                    commands.insert(bundle);
+                }
             )
         } else {
             quote::quote!()
@@ -32,6 +35,27 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 let new_entity = commands.id();
                 commands.commands().entity(level_entity).add_child(new_entity);
             )
+        }
+    };
+
+    let callback_attr = attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
+    let callback = {
+        if let Some(attr) = callback_attr {
+            match &attr.meta {
+                syn::Meta::List(meta) => {
+                    let func = &meta.tokens;
+                    quote::quote!(
+                        #func(level_entity, commands, entity_instance, fields, asset_server, ldtk_textures);
+                    )
+                },
+                _ => {
+                    panic!("Callback attribute must be a list of functions!");
+                }
+            }
+        } else {
+            quote::quote!()
         }
     };
 
@@ -81,10 +105,12 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
             fn initialize(
                 level_entity: bevy::ecs::entity::Entity,
                 commands: &mut bevy::ecs::system::EntityCommands,
-                sprite: Option<bevy::sprite::SpriteSheetBundle>,
+                entity_instance: &bevy_entitiles::serializing::ldtk::json::level::EntityInstance,
                 fields: &bevy::utils::HashMap<String, bevy_entitiles::serializing::ldtk::json::field::FieldInstance>,
                 asset_server: &bevy::prelude::AssetServer,
+                ldtk_textures: &bevy_entitiles::serializing::ldtk::resources::LdtkTextures,
             ) {
+                #callback
                 #spawn_sprite
                 #global_entity
 

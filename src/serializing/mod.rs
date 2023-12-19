@@ -24,7 +24,10 @@ use crate::{
 
 use self::{
     ldtk::{
-        entities::LdtkEntityRegistry, events::LdtkEvent, load_ldtk_json, manager::LdtkLevelManager,
+        entities::LdtkEntityRegistry,
+        events::LdtkEvent,
+        load_ldtk_json,
+        resources::{LdtkLevelManager, LdtkTextures},
         unload_ldtk_level,
     },
     load::load,
@@ -48,7 +51,8 @@ impl Plugin for EntiTilesSerializingPlugin {
 
         app.insert_non_send_resource(LdtkEntityRegistry::default());
 
-        app.init_resource::<LdtkLevelManager>();
+        app.init_resource::<LdtkLevelManager>()
+            .init_resource::<LdtkTextures>();
 
         app.add_event::<LdtkEvent>();
     }

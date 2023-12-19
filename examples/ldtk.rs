@@ -5,25 +5,33 @@
 
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
+    asset::AssetServer,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
+        entity::Entity,
         event::EventReader,
-        system::{Commands, Res, ResMut},
+        system::{Commands, EntityCommands, Res, ResMut},
     },
     input::{keyboard::KeyCode, Input},
     render::{texture::ImagePlugin, view::Msaa},
+    utils::HashMap,
     DefaultPlugins,
 };
 use bevy_entitiles::{
     math::FillArea,
     serializing::ldtk::{
-        app_ext::AppExt, entities::LdtkEntity, enums::LdtkEnum, events::LdtkEvent,
-        manager::LdtkLevelManager,
+        app_ext::AppExt,
+        entities::LdtkEntity,
+        enums::LdtkEnum,
+        events::LdtkEvent,
+        json::{field::FieldInstance, level::EntityInstance},
+        resources::{LdtkLevelManager, LdtkTextures},
     },
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
+use bevy_xpbd_2d::{components::Collider, plugins::PhysicsDebugPlugin};
 use helpers::EntiTilesDebugPlugin;
 
 mod helpers;
@@ -34,6 +42,7 @@ fn main() {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
+            PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (load, control, events))
@@ -50,8 +59,8 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
         .initialize(
             // replace the filename with grid_vania.ldtk before running
             // this file uses finalbossblues-icons_full_16 and it only exists
-            // in my local disk. 
-            "assets/ldtk/ignorgrid_vania.ldtk".to_string(),
+            // in my local disk.
+            "assets/ldtk/ignoregrid_vania.ldtk".to_string(),
             "ldtk/".to_string(),
         )
         .set_if_ignore_unregistered_entities(true);
@@ -92,6 +101,10 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
             &["Entrance", "Cross_roads", "Water_supply", "Ossuary"],
         );
     }
+
+    if input.just_pressed(KeyCode::Key8) {
+        manager.switch(&mut commands, "Entrance");
+    }
 }
 
 fn events(mut ldtk_events: EventReader<LdtkEvent>) {
@@ -105,6 +118,38 @@ fn events(mut ldtk_events: EventReader<LdtkEvent>) {
             }
         }
     }
+}
+
+// this function will be called when the player entity is GOING TO BE spawned
+// which means the entity still has no components
+// you can consider this as a "extension"
+// you don't need to impl the entire LdtkEntity trait but still able to do something
+// that are not supported by generated code
+fn player_spawn(
+    // the level entity which will become the parent of this entity
+    // if you don't use the #[global_entity] attribute
+    _level_entity: Entity,
+    // the entity commands for the entity
+    commands: &mut EntityCommands,
+    // all the data from ldtk
+    entity_instance: &EntityInstance,
+    // the fields of this entity you can access them using their identifiers(ldtk side)
+    // generally you don't need to use this, and this fields will be applyed to the entity later
+    // with generated code
+    _fields: &HashMap<String, FieldInstance>,
+    // the asset server
+    _asset_server: &AssetServer,
+    // the textures from ldtk. They are already registered into assets.
+    // you can use them to spawn new sprites.
+    _ldtk_textures: &LdtkTextures,
+) {
+    // this is takes params that are exactly the same as the LdtkEntity trait
+    // you can use this to add more fancy stuff to your entity
+    // like adding a collider:
+    commands.insert(Collider::cuboid(
+        entity_instance.width as f32,
+        entity_instance.height as f32,
+    ));
 }
 
 // values here may show unreachable pattern warning
@@ -133,6 +178,7 @@ pub enum ItemType {
 #[spawn_sprite]
 // this means the entity will not disappear when the level is unloaded
 #[global_entity]
+#[callback(player_spawn)]
 pub struct Player {
     // this is a wrapper which will be generated
     // when you derive LdtkEnum for your custom enums.

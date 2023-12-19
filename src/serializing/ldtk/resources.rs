@@ -1,13 +1,16 @@
 use bevy::{
+    asset::Handle,
     ecs::{
         entity::Entity,
         system::{Commands, Resource},
     },
     log::error,
-    math::Vec2,
     render::render_resource::FilterMode,
+    sprite::TextureAtlas,
     utils::HashMap,
 };
+
+use crate::render::texture::TilemapTexture;
 
 use super::{LdtkLoader, LdtkUnloader};
 
@@ -19,7 +22,6 @@ pub struct LdtkLevelManager {
     filter_mode: FilterMode,
     ignore_unregistered_entities: bool,
     z_index: i32,
-    atlas_render_size: HashMap<String, Vec2>,
 
     loaded_levels: HashMap<String, Entity>,
 }
@@ -64,12 +66,6 @@ impl LdtkLevelManager {
         self
     }
 
-    /// The render size for tile atlas.
-    pub fn set_atlas_render_size(&mut self, identifier: String, size: Vec2) -> &mut Self {
-        self.atlas_render_size.insert(identifier, size);
-        self
-    }
-
     pub fn load(&mut self, commands: &mut Commands, level: &'static str) {
         self.check_initialized();
         let level = level.to_string();
@@ -100,8 +96,18 @@ impl LdtkLevelManager {
         }
     }
 
+    pub fn switch(&mut self, commands: &mut Commands, level: &'static str) {
+        self.check_initialized();
+        if self.loaded_levels.contains_key(&level.to_string()) {
+            error!("Trying to load {:?} that is already loaded!", level);
+        } else {
+            self.unload_all(commands);
+            self.load(commands, level);
+        }
+    }
+
     /// # Warning!
-    /// 
+    ///
     /// This method will cause panic if you have already loaded levels before.
     /// **Even if you have unloaded them!!**
     pub fn load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) {
@@ -120,7 +126,7 @@ impl LdtkLevelManager {
     }
 
     /// # Warning!
-    /// 
+    ///
     /// This method will cause panic if you have already loaded levels before.
     /// **Even if you have unloaded them!!**
     pub fn try_load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) -> bool {
@@ -169,7 +175,30 @@ impl LdtkLevelManager {
             level_spacing: self.level_spacing,
             ignore_unregistered_entities: self.ignore_unregistered_entities,
             z_index: self.z_index,
-            atlas_render_size: self.atlas_render_size.clone(),
         }
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct LdtkTextures {
+    pub(crate) tilesets: HashMap<i32, TilemapTexture>,
+    pub(crate) atlas_handles: HashMap<i32, Handle<TextureAtlas>>,
+}
+
+impl LdtkTextures {
+    pub fn insert_tileset(&mut self, id: i32, tileset: TilemapTexture) {
+        self.tilesets.insert(id, tileset);
+    }
+
+    pub fn insert_atlas(&mut self, id: i32, atlas: Handle<TextureAtlas>) {
+        self.atlas_handles.insert(id, atlas);
+    }
+
+    pub fn get_tileset(&self, id: i32) -> Option<&TilemapTexture> {
+        self.tilesets.get(&id)
+    }
+
+    pub fn get_atlas(&self, id: i32) -> Option<&Handle<TextureAtlas>> {
+        self.atlas_handles.get(&id)
     }
 }

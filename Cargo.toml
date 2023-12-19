@@ -100,7 +100,7 @@ required-features = ["serializing", "algorithm"]
 [[example]]
 name = "ldtk"
 path = "examples/ldtk.rs"
-required-features = ["serializing"]
+required-features = ["serializing", "physics_xpbd"]
 
 [[example]]
 name = "ui"

@@ -14,9 +14,8 @@ use bevy::{
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
     render::render_resource::FilterMode,
-    sprite::{Sprite, SpriteBundle, SpriteSheetBundle, TextureAtlas, TextureAtlasSprite},
+    sprite::{Sprite, SpriteBundle, TextureAtlas},
     transform::components::Transform,
-    utils::hashbrown::HashMap,
 };
 
 use crate::{
@@ -34,6 +33,7 @@ use self::{
         LdtkJson, WorldLayout,
     },
     layer::LdtkLayers,
+    resources::LdtkTextures,
 };
 
 pub mod app_ext;
@@ -43,7 +43,7 @@ pub mod enums;
 pub mod events;
 pub mod json;
 pub mod layer;
-pub mod manager;
+pub mod resources;
 
 #[derive(Component)]
 pub struct LdtkLoader {
@@ -54,7 +54,6 @@ pub struct LdtkLoader {
     pub(crate) filter_mode: FilterMode,
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
-    pub(crate) atlas_render_size: HashMap<String, Vec2>,
 }
 
 #[derive(Component)]
@@ -81,6 +80,7 @@ pub fn load_ldtk_json(
     ident_mapper: NonSend<LdtkEntityRegistry>,
     mut atlas_asstes: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
+    mut ldtk_textures: ResMut<LdtkTextures>,
 ) {
     for (entity, loader) in loader_query.iter() {
         let path = std::env::current_dir().unwrap().join(&loader.path);
@@ -103,6 +103,7 @@ pub fn load_ldtk_json(
             &mut atlas_asstes,
             entity,
             &mut ldtk_events,
+            &mut ldtk_textures,
         );
 
         let mut e_cmd = commands.entity(entity);
@@ -124,18 +125,14 @@ fn load_levels(
     atlas_asstes: &mut Assets<TextureAtlas>,
     level_entity: Entity,
     ldtk_events: &mut EventWriter<LdtkEvent>,
+    ldtk_textures: &mut LdtkTextures,
 ) -> Option<LdtkLoadedLevel> {
-    let mut tilesets = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
-    let mut atlas_handles = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
-    let mut tileset_uid_to_ident = HashMap::with_capacity(ldtk_data.defs.tilesets.len());
-
     ldtk_data.defs.tilesets.iter().for_each(|tileset| {
         if let Some(texture) = load_texture(tileset, &loader, asset_server) {
-            tilesets.insert(tileset.uid, texture.clone());
-            tileset_uid_to_ident.insert(tileset.uid, tileset.identifier.clone());
+            ldtk_textures.insert_tileset(tileset.uid, texture.clone());
 
             let handle = atlas_asstes.add(texture.as_texture_atlas());
-            atlas_handles.insert(tileset.uid, handle);
+            ldtk_textures.insert_atlas(tileset.uid, handle);
         }
     });
 
@@ -166,7 +163,7 @@ fn load_levels(
             level_entity,
             level.layer_instances.len(),
             level_px,
-            &tilesets,
+            ldtk_textures,
             translation,
             loader.z_index,
         );
@@ -180,9 +177,7 @@ fn load_levels(
                 &ident_mapper,
                 loader,
                 asset_server,
-                &tilesets,
-                &atlas_handles,
-                &tileset_uid_to_ident,
+                ldtk_textures,
             );
         }
 
@@ -270,9 +265,7 @@ fn load_layer(
     ident_mapper: &LdtkEntityRegistry,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
-    tilesets: &HashMap<i32, TilemapTexture>,
-    atlas_handles: &HashMap<i32, Handle<TextureAtlas>>,
-    tileset_uid_to_ident: &HashMap<i32, String>,
+    ldtk_textures: &LdtkTextures,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
@@ -281,15 +274,15 @@ fn load_layer(
             }
         }
         LayerType::Entities => {
-            for entity in layer.entity_instances.iter() {
+            for entity_instance in layer.entity_instances.iter() {
                 let phantom_entity = {
-                    if let Some(m) = ident_mapper.get(&entity.identifier) {
+                    if let Some(m) = ident_mapper.get(&entity_instance.identifier) {
                         m
                     } else if !loader.ignore_unregistered_entities {
                         panic!(
                             "Could not find entity type with entity identifier: {}! \
                             You need to register it using App::register_ldtk_entity::<T>() first!",
-                            entity.identifier
+                            entity_instance.identifier
                         );
                     } else {
                         return;
@@ -298,49 +291,7 @@ fn load_layer(
 
                 let mut new_entity = commands.spawn_empty();
 
-                let sprite_bundle = {
-                    match entity.tile.as_ref() {
-                        Some(atlas) => {
-                            let render_size = loader
-                                .atlas_render_size
-                                .get(&tileset_uid_to_ident[&atlas.tileset_uid])
-                                .cloned()
-                                .unwrap_or(tilesets[&atlas.tileset_uid].desc.tile_size.as_vec2());
-
-                            let entity_rel_pos = Vec2 {
-                                x: entity.world_x as f32,
-                                y: -entity.world_y as f32 - render_size.y,
-                            };
-                            let pivot_offset = Vec2 {
-                                x: render_size.x * (entity.pivot[0] - 0.5),
-                                y: render_size.y * (entity.pivot[1] + 0.5),
-                            };
-
-                            let sprite_trans = (entity_rel_pos + pivot_offset)
-                                .extend(loader.z_index as f32 - layer_index as f32 - 1.);
-
-                            let tileset = tilesets.get(&atlas.tileset_uid).unwrap();
-                            let index = UVec2 {
-                                x: atlas.x_pos as u32 / tileset.desc.tile_size.x,
-                                y: atlas.y_pos as u32 / tileset.desc.tile_size.y,
-                            };
-
-                            Some(SpriteSheetBundle {
-                                sprite: TextureAtlasSprite {
-                                    index: (index.y * tileset.desc.size.x + index.x) as usize,
-                                    custom_size: Some(render_size.clone()),
-                                    ..Default::default()
-                                },
-                                transform: Transform::from_translation(sprite_trans),
-                                texture_atlas: atlas_handles[&atlas.tileset_uid].clone(),
-                                ..Default::default()
-                            })
-                        }
-                        None => None,
-                    }
-                };
-
-                let mut fields = entity
+                let mut fields = entity_instance
                     .field_instances
                     .iter()
                     .map(|field| (field.identifier.clone(), field.clone()))
@@ -348,9 +299,10 @@ fn load_layer(
                 phantom_entity.spawn(
                     level_entity,
                     &mut new_entity,
-                    sprite_bundle,
+                    entity_instance,
                     &mut fields,
                     asset_server,
+                    ldtk_textures,
                 );
             }
         }

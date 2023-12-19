@@ -13,7 +13,10 @@ use crate::{
     },
 };
 
-use super::json::level::{LayerInstance, TileInstance};
+use super::{
+    json::level::{LayerInstance, TileInstance},
+    resources::LdtkTextures,
+};
 
 pub struct LdtkLayers<'a> {
     pub level_entity: Entity,
@@ -29,14 +32,14 @@ impl<'a> LdtkLayers<'a> {
         level_entity: Entity,
         total_layers: usize,
         px_size: UVec2,
-        tilesets: &'a HashMap<i32, TilemapTexture>,
+        ldtk_textures: &'a LdtkTextures,
         translation: Vec2,
         base_z_index: i32,
     ) -> Self {
         Self {
             level_entity,
             layers: vec![None; total_layers],
-            tilesets,
+            tilesets: &ldtk_textures.tilesets,
             px_size,
             translation,
             base_z_index,
