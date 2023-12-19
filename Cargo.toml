@@ -5,9 +5,6 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
 description = "A 2d tilemap library for bevy. With many useful algorithms/tools built in."
-exclude = [
-    "macros"
-]
 
 [profile.dev]
 opt-level = 1
@@ -35,7 +32,6 @@ serde = { version = "1.0.192", optional = true }
 bevy_xpbd_2d = { version = "0.3.2", optional = true }
 bevy_rapier2d = { version = "0.23.0", optional = true }
 serde_json = { version = "1.0.108", optional = true }
-bevy_entitiles_derive = { version = "0.1.0", optional = true, path = "macros" }
 radsort = "0.1.0"
 
 [dev-dependencies]
@@ -54,6 +50,7 @@ bevy = { version = "0.12.1", default-features = false, features = [
     "multi-threaded",
 ] }
 bevy_mod_debugdump = "0.9.0"
+bevy_entitiles_derive = { path = "macros" }
 
 [features]
 default = []
@@ -62,12 +59,7 @@ debug = []
 debug_verbose = ["debug"]
 physics_rapier = ["dep:bevy_rapier2d"]
 physics_xpbd = ["dep:bevy_xpbd_2d"]
-serializing = [
-    "dep:ron",
-    "dep:serde",
-    "dep:serde_json",
-    "dep:bevy_entitiles_derive",
-]
+serializing = ["dep:ron", "dep:serde", "dep:serde_json"]
 ui = []
 
 [[example]]
