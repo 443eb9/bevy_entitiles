@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use bevy::{
     prelude::{Plugin, Update},
-    utils::HashMap,
+    utils::HashMap, reflect::Reflect,
 };
 
 use self::{
@@ -34,7 +34,7 @@ pub trait HeapElement {
     fn get_index(&self) -> usize;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct LookupHeap<KHeap, KMap, V>
 where
     KHeap: Ord + Copy + Debug,

@@ -1,14 +1,14 @@
-use bevy::ecs::{
+use bevy::{ecs::{
     component::Component,
     entity::Entity,
     system::{ParallelCommands, Query},
-};
+}, reflect::Reflect};
 
 use crate::MAX_LAYER_COUNT;
 
 use super::tile::Tile;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct LayerInserter {
     pub is_top: bool,
     pub is_overwrite_if_full: bool,

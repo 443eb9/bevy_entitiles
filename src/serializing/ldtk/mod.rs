@@ -215,7 +215,7 @@ fn load_texture(
             x: tileset.tile_grid_size as u32,
             y: tileset.tile_grid_size as u32,
         },
-        filter_mode: loader.filter_mode,
+        filter_mode: loader.filter_mode.into(),
     };
     Some(TilemapTexture {
         texture,

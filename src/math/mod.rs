@@ -1,11 +1,11 @@
-use bevy::prelude::UVec2;
+use bevy::{prelude::UVec2, reflect::Reflect};
 
 use crate::tilemap::map::Tilemap;
 
 pub mod aabb;
 pub mod extension;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub struct FillArea {
     pub(crate) origin: UVec2,
     pub(crate) extent: UVec2,

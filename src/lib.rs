@@ -7,6 +7,7 @@ pub mod algorithm;
 #[cfg(feature = "debug")]
 pub mod debug;
 pub mod math;
+pub mod reflect;
 pub mod render;
 #[cfg(feature = "serializing")]
 pub mod serializing;

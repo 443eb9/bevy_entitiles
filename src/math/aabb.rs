@@ -1,11 +1,11 @@
-use bevy::prelude::{UVec2, Vec2};
+use bevy::{prelude::{UVec2, Vec2}, reflect::Reflect};
 
 use crate::{
     render::extract::{ExtractedTilemap, ExtractedView},
     tilemap::{map::TilemapBuilder, tile::TileType},
 };
 
-#[derive(Clone, Copy, Default, Debug)]
+#[derive(Clone, Copy, Default, Debug, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AabbBox2d {
     pub min: Vec2,

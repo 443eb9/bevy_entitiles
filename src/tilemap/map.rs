@@ -3,7 +3,7 @@ use bevy::{
     hierarchy::DespawnRecursiveExt,
     math::{Mat2, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
-    render::render_resource::TextureUsages,
+    render::render_resource::TextureUsages, reflect::Reflect,
 };
 
 use crate::{
@@ -17,7 +17,7 @@ use super::{
     tile::{TileBuilder, TileFlip, TileType, TileUpdater},
 };
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TilemapRotation {
     #[default]
@@ -27,7 +27,7 @@ pub enum TilemapRotation {
     Cw270 = 270,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapTransform {
     pub translation: Vec2,
@@ -194,7 +194,7 @@ impl TilemapBuilder {
 }
 
 #[cfg(feature = "serializing")]
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Reflect)]
 pub struct TilemapPattern {
     pub size: UVec2,
     pub tiles: Vec<Option<crate::serializing::SerializedTile>>,
@@ -207,7 +207,7 @@ impl TilemapPattern {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Reflect)]
 pub struct Tilemap {
     pub(crate) id: Entity,
     pub(crate) name: String,

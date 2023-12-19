@@ -1,7 +1,7 @@
 use bevy::{
     ecs::query::Without,
     prelude::{Component, Entity, ParallelCommands, Query, UVec2},
-    utils::HashSet,
+    utils::HashSet, reflect::Reflect,
 };
 
 use crate::{
@@ -11,12 +11,12 @@ use crate::{
 
 use super::{HeapElement, LookupHeap};
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Reflect)]
 pub struct PathTile {
     pub cost: u32,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct Pathfinder {
     pub origin: UVec2,
     pub dest: UVec2,
@@ -26,12 +26,12 @@ pub struct Pathfinder {
     pub max_step: Option<u32>,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct AsyncPathfinder {
     pub max_step_per_frame: u32,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Reflect)]
 pub struct Path {
     path: Vec<UVec2>,
     current_step: usize,
@@ -66,7 +66,7 @@ impl Path {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub struct PathNode {
     pub index: UVec2,
     pub heap_index: usize,
@@ -112,7 +112,7 @@ impl HeapElement for PathNode {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct PathGrid {
     pub allow_diagonal: bool,
     pub dest: UVec2,

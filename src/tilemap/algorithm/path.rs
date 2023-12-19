@@ -1,14 +1,14 @@
 use bevy::{
     ecs::{component::Component, entity::Entity},
     math::UVec2,
-    utils::HashMap,
+    utils::HashMap, reflect::Reflect,
 };
 
 use crate::{algorithm::pathfinding::PathTile, math::FillArea};
 
 use crate::tilemap::map::Tilemap;
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct PathTilemap {
     #[allow(unused)]
     // TODO: do something with this.

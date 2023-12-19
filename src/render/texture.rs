@@ -6,6 +6,7 @@ use bevy::{
     },
     math::Vec2,
     prelude::{Image, UVec2},
+    reflect::Reflect,
     render::{
         render_asset::RenderAssets,
         render_resource::{
@@ -20,7 +21,10 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::tilemap::map::{Tilemap, TilemapRotation, WaitForTextureUsageChange};
+use crate::{
+    reflect::ReflectFilterMode,
+    tilemap::map::{Tilemap, TilemapRotation, WaitForTextureUsageChange},
+};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -74,9 +78,9 @@ impl TilemapTexturesStorage {
                 address_mode_u: AddressMode::ClampToEdge,
                 address_mode_v: AddressMode::ClampToEdge,
                 address_mode_w: AddressMode::ClampToEdge,
-                mag_filter: desc.filter_mode,
-                min_filter: desc.filter_mode,
-                mipmap_filter: desc.filter_mode,
+                mag_filter: desc.filter_mode.into(),
+                min_filter: desc.filter_mode.into(),
+                mipmap_filter: desc.filter_mode.into(),
                 lod_min_clamp: 0.,
                 lod_max_clamp: f32::MAX,
                 compare: None,
@@ -177,7 +181,7 @@ impl TilemapTexturesStorage {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, Reflect)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
@@ -221,11 +225,11 @@ impl TilemapTexture {
     }
 }
 
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq, Reflect)]
 pub struct TilemapTextureDescriptor {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
-    pub(crate) filter_mode: FilterMode,
+    pub(crate) filter_mode: ReflectFilterMode,
 }
 
 impl TilemapTextureDescriptor {
@@ -241,7 +245,7 @@ impl TilemapTextureDescriptor {
         Self {
             size,
             tile_size,
-            filter_mode,
+            filter_mode: filter_mode.into(),
         }
     }
 }

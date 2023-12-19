@@ -2,7 +2,7 @@ use bevy::{
     ecs::system::Query,
     hierarchy::BuildChildren,
     math::{IVec4, UVec4},
-    prelude::{Commands, Component, Entity, UVec2, Vec4},
+    prelude::{Commands, Component, Entity, UVec2, Vec4}, reflect::Reflect,
 };
 
 use crate::MAX_LAYER_COUNT;
@@ -11,7 +11,7 @@ use super::map::Tilemap;
 
 /// Defines the shape of tiles in a tilemap.
 /// Check the `Coordinate Systems` chapter in README.md to see the details.
-#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug)]
+#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TileType {
     #[default]
@@ -21,7 +21,7 @@ pub enum TileType {
 }
 
 #[repr(u32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub enum TileFlip {
     None = 0b00,
     Horizontal = 0b01,
@@ -128,7 +128,7 @@ impl TileBuilder {
     }
 }
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Reflect)]
 pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
@@ -138,13 +138,13 @@ pub struct Tile {
     pub flip: UVec4,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnimatedTile {
     pub sequence_index: usize,
 }
 
-#[derive(Default, Component, Clone, Copy)]
+#[derive(Default, Component, Clone, Copy, Reflect)]
 pub struct TileUpdater {
     pub texture_index: Option<(usize, u32)>,
     pub color: Option<Vec4>,

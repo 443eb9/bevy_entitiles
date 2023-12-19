@@ -4,6 +4,7 @@ use bevy::{
     ecs::entity::Entity,
     math::{Mat2, UVec4, Vec4},
     prelude::{Component, Resource, Vec2},
+    reflect::Reflect,
     render::{
         render_resource::{
             encase::{internal::WriteInto, rts_array::Length},
@@ -59,7 +60,7 @@ impl<T: ShaderType> DynamicOffsetComponent<T> {
     }
 }
 
-#[derive(ShaderType, Debug, Clone, Copy, Default)]
+#[derive(ShaderType, Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileAnimation {
     // because array stride must be a multiple of 16 bytes

@@ -4,7 +4,7 @@ use bevy::{
     prelude::{Component, Query, ResMut},
     render::camera::OrthographicProjection,
     transform::components::Transform,
-    window::Window,
+    window::Window, reflect::Reflect,
 };
 
 use crate::{math::aabb::AabbBox2d, tilemap::map::Tilemap};
@@ -14,7 +14,7 @@ use super::{
     extract::{ExtractedTilemap, ExtractedView},
 };
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct VisibleTilemap;
 
 pub fn cull_tilemaps(

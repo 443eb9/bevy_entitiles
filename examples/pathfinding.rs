@@ -1,3 +1,7 @@
+// this exmaple will cost huge time to start
+// but performs well in the game
+// I'm not sure why this will happen
+
 use bevy::{
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
@@ -51,12 +55,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &mut commands,
         FillArea::full(&tilemap),
         &TileBuilder::new().with_layer(0, 0),
-    );
-
-    tilemap.fill_rect(
-        &mut commands,
-        FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
-        &TileBuilder::new().with_layer(0, 1),
     );
 
     let mut path_tilemap = PathTilemap::new(tilemap.id());

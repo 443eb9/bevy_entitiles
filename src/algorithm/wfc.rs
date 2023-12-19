@@ -5,7 +5,7 @@ use bevy::{
     ecs::{entity::Entity, query::Without},
     math::{IVec4, Vec4, UVec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
-    utils::HashSet,
+    utils::HashSet, reflect::Reflect,
 };
 use rand::{
     distributions::{Uniform, WeightedIndex},
@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-#[derive(Default, Clone, PartialEq, Eq, Debug)]
+#[derive(Default, Clone, PartialEq, Eq, Debug, Reflect)]
 pub enum WfcMode {
     #[default]
     /// Randomly pick one from the possibilities.
@@ -34,14 +34,14 @@ pub enum WfcMode {
     CustomSampler,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Reflect)]
 pub enum WfcType {
     SingleTile(Vec<SerializedTile>),
     MapPattern(Vec<TilemapPattern>),
 }
 
 /// The order of the directions in config should be: up, right, left, down.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct WfcRunner {
     rule: Vec<[u128; 4]>,
     mode: WfcMode,
@@ -245,7 +245,7 @@ impl WfcRunner {
 
 /// This will sharply increase the time cost.
 /// Use it only when you **REALLY** want to visualize the process.
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct AsyncWfcRunner;
 
 #[derive(Debug, Clone, Copy)]
