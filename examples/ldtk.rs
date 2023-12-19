@@ -1,6 +1,6 @@
 /*
- * NOTICE!
- * LDtk assets are not included!!
+ * The icon set finalbossblues-icons_full_16 is not allowed to be redistributed.
+ * So all those icons in the map will be white.
  */
 
 use bevy::{
@@ -48,7 +48,10 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     commands.spawn(Camera2dBundle::default());
     manager
         .initialize(
-            "assets/ldtk/grid_vania.ldtk".to_string(),
+            // replace the filename with grid_vania.ldtk before running
+            // this file uses finalbossblues-icons_full_16 and it only exists
+            // in my local disk. 
+            "assets/ldtk/ignorgrid_vania.ldtk".to_string(),
             "ldtk/".to_string(),
         )
         .set_if_ignore_unregistered_entities(true);

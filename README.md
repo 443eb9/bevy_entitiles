@@ -125,6 +125,10 @@ In the following case, each tile has at least one corresponding color gap with i
 - [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) I took this crate as the reference and learnt the basis of bevy rendering!
 - [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk) I was confused and have no idea about how to instantiate LDtk entities before I read this crate! I also learnt proc macros and many other things from this crate!
 
+## Assets
+
+- [SunnyLand_by_Ansimuz-extended.png](https://ansimuz.itch.io/sunny-land-pixel-game-art)
+
 ## Versions
 
 | Bevy ver | EntiTiles ver | LDtk ver      |
