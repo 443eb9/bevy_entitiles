@@ -48,6 +48,14 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Coordinate Systems
 
+The x and y axes in the tilemaps are the index axes. And those x and y on a single tile means the actual mesh size. Which you can control using `tile_render_size`.
+
+<div>
+	<img src="./docs/imgs/coordinate_systems.jpg" width="500px">
+</div>
+
+*`legs` here are mathematically incorrect, please consider it as a new concept.*
+
 ## Show Cases & Performance
 
 Platform: 10600KF

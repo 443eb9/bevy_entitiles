@@ -3,10 +3,7 @@ use bevy::{
     hierarchy::BuildChildren,
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
-    transform::{
-        components::{GlobalTransform, Transform},
-        TransformBundle,
-    },
+    transform::{components::Transform, TransformBundle},
     utils::HashMap,
 };
 
