@@ -21,7 +21,7 @@ use crate::{
 };
 
 use self::{
-    components::LdtkLoadedLevel,
+    components::{EntityIid, LdtkLoadedLevel, LevelIid},
     entities::LdtkEntityRegistry,
     events::{LdtkEvent, LevelEvent},
     json::{
@@ -91,7 +91,11 @@ pub fn load_ldtk_json(
 
         let mut e_cmd = commands.entity(entity);
         if let Some(loaded) = loaded {
-            e_cmd.insert((SpatialBundle::default(), loaded));
+            e_cmd.insert((
+                SpatialBundle::default(),
+                LevelIid(loaded.iid.clone()),
+                loaded,
+            ));
         } else {
             error!("Failed to load level: {}!", loader.level);
         }
@@ -288,7 +292,7 @@ fn load_layer(
                     }
                 };
 
-                let mut new_entity = commands.spawn_empty();
+                let mut new_entity = commands.spawn(EntityIid(entity_instance.iid.clone()));
 
                 let mut fields = entity_instance
                     .field_instances

@@ -17,6 +17,7 @@ use crate::{
 };
 
 use super::{
+    components::LayerIid,
     json::level::{LayerInstance, TileInstance},
     physics::LdtkPhysicsLayer,
     resources::LdtkTextures,
@@ -121,7 +122,9 @@ impl<'a> LdtkLayers<'a> {
         .with_z_index(self.base_z_index - layer_index as i32)
         .build(commands);
 
-        commands.entity(tilemap.id).insert(SpatialBundle::default());
+        commands
+            .entity(tilemap.id)
+            .insert((SpatialBundle::default(), LayerIid(layer.iid.clone())));
         commands.entity(self.level_entity).add_child(tilemap.id());
 
         self.layers[layer_index] = Some(tilemap);

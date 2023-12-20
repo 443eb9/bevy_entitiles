@@ -1,10 +1,30 @@
 static LDTK_NAME_ATTR: &str = "ldtk_name";
+static WRAPPER_DERIVE_ATTR: &str = "wrapper_derive";
 
 pub fn expand_ldtk_enum_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = &input.ident;
     let variants = match input.data {
         syn::Data::Enum(data) => data.variants,
         _ => panic!("LdtkEnum can only be derived for enums"),
+    };
+
+    let derive_attrs = &input
+        .attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == WRAPPER_DERIVE_ATTR);
+    let derives = {
+        if let Some(attr) = derive_attrs {
+            let syn::Meta::List(meta) = &attr.meta else {
+                panic!("Derive attribute must be a list of derives!");
+            };
+
+            let tokens = &meta.tokens;
+            quote::quote!(
+                #[derive(#tokens)]
+            )
+        } else {
+            quote::quote!()
+        }
     };
 
     let mut variants_cton = Vec::new();
@@ -27,7 +47,7 @@ pub fn expand_ldtk_enum_derive(input: syn::DeriveInput) -> proc_macro::TokenStre
         syn::Ident::new(&format!("{}Vec", ty), ty.span()),
         syn::Ident::new(&format!("{}OptionVec", ty), ty.span()),
     ];
-    let wrappers = create_wrappers(ty, &wrapper_indets);
+    let wrappers = create_wrappers(ty, &wrapper_indets, &derives);
 
     let impl_intos = vec![
         impl_into_enum(ty),
@@ -75,7 +95,7 @@ fn expand_enum_variant_rename(
 
 fn expand_enum_variant(variant_name: &syn::Ident) -> proc_macro2::TokenStream {
     quote::quote!(
-        #variant_name => Self::#variant_name,
+        stringify!(#variant_name) => Self::#variant_name,
     )
     .into()
 }
@@ -83,6 +103,7 @@ fn expand_enum_variant(variant_name: &syn::Ident) -> proc_macro2::TokenStream {
 fn create_wrappers(
     ty: &syn::Ident,
     wrapper_idents: &Vec<syn::Ident>,
+    derives: &proc_macro2::TokenStream,
 ) -> Vec<proc_macro2::TokenStream> {
     let mut wrappers = Vec::new();
 
@@ -91,11 +112,11 @@ fn create_wrappers(
     let ident_opt_vec = &wrapper_idents[2];
 
     wrappers.push(quote::quote!(
-        #[derive(Default)]
+        #derives
         pub struct #ident_opt(pub Option<#ty>);
-        #[derive(Default)]
+        #derives
         pub struct #ident_vec(pub Vec<#ty>);
-        #[derive(Default)]
+        #derives
         pub struct #ident_opt_vec(pub Option<Vec<#ty>>);
     ));
 

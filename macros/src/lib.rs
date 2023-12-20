@@ -9,7 +9,7 @@ pub fn derive_ldtk_entitiles(input: proc_macro::TokenStream) -> proc_macro::Toke
     ldtk_entity::expand_ldtk_entity_derive(syn::parse(input).unwrap())
 }
 
-#[proc_macro_derive(LdtkEnum, attributes(ldtk_name))]
+#[proc_macro_derive(LdtkEnum, attributes(ldtk_name, wrapper_derive))]
 pub fn derive_ldtk_enums(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     ldtk_enum::expand_ldtk_enum_derive(syn::parse(input).unwrap())
 }

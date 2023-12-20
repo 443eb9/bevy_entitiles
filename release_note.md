@@ -1,12 +1,7 @@
 # What's New:
 
-### Further LDtk support!!!
-### Hexagonal tilemaps supported!
-- Slightly cleaned up the code for pathfinding and wfc. (the result of wfc will be different from the previous versions!!)
-- Supported more comprehensively for ui rendering like animations, flips etc.
-- Individual flipping for each layers.
-- Supported modifying the direction of axes for the tilemap.
-- Supported tilemap rotation.
+- Procedural collider generation for LDtk maps.
+- Custom derive for enum wrappers.
 
 # What's Fixed:
-- Transparent tilemaps can't be seen above opaque tilemaps.
+- LdtkEnum parsing incorrectly.

@@ -1,7 +1,19 @@
-use bevy::ecs::component::Component;
+use bevy::{ecs::component::Component, reflect::Reflect};
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct LdtkLoadedLevel {
     pub identifier: String,
     pub iid: String,
 }
+
+#[derive(Component, Reflect)]
+pub struct EntityIid(pub String);
+
+#[derive(Component, Reflect)]
+pub struct LayerIid(pub String);
+
+#[derive(Component, Reflect)]
+pub struct LevelIid(pub String);
+
+#[derive(Component, Reflect)]
+pub struct WorldIid(pub String);

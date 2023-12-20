@@ -14,25 +14,26 @@ use bevy::{
         system::{Commands, EntityCommands, Res, ResMut},
     },
     input::{keyboard::KeyCode, Input},
+    reflect::Reflect,
     render::{texture::ImagePlugin, view::Msaa},
     utils::HashMap,
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::FillArea,
     serializing::ldtk::{
         app_ext::AppExt,
         entities::LdtkEntity,
         enums::LdtkEnum,
         events::LdtkEvent,
-        json::{field::FieldInstance, level::EntityInstance},
+        json::{field::FieldInstance, level::EntityInstance, EntityRef},
         physics::LdtkPhysicsLayer,
         resources::{LdtkLevelManager, LdtkTextures},
     },
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
-use bevy_xpbd_2d::{components::Collider, plugins::PhysicsDebugPlugin};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_xpbd_2d::components::Collider;
 use helpers::EntiTilesDebugPlugin;
 
 mod helpers;
@@ -43,14 +44,19 @@ fn main() {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
-            PhysicsDebugPlugin::default(),
+            // PhysicsDebugPlugin::default(),
+            WorldInspectorPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (load, control, events))
+        .register_type::<Teleport>()
+        .register_type::<Player>()
+        .register_type::<Item>()
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
+        .register_ldtk_entity::<Teleport>("Teleport")
         .run();
 }
 
@@ -165,7 +171,8 @@ fn player_spawn(
 
 // values here may show unreachable pattern warning
 // It doesn't matter, and I don't know how to fix it
-#[derive(LdtkEnum)]
+#[derive(LdtkEnum, Reflect, Clone, Copy, Debug)]
+#[wrapper_derive(Reflect, Default)]
 pub enum ItemType {
     Meat,
     Gold,
@@ -185,7 +192,7 @@ pub enum ItemType {
     VorpalBlade,
 }
 
-#[derive(Component, LdtkEntity, Default)]
+#[derive(Component, LdtkEntity, Default, Reflect)]
 #[spawn_sprite]
 // this means the entity will not disappear when the level is unloaded
 #[global_entity]
@@ -203,11 +210,17 @@ pub struct Player {
     pub mp: i32,
 }
 
-#[derive(Component, LdtkEntity)]
+#[derive(Component, LdtkEntity, Reflect)]
 #[spawn_sprite]
 pub struct Item {
     #[ldtk_name = "type"]
     pub ty: ItemType,
     pub price: i32,
     pub count: i32,
+}
+
+#[derive(Component, LdtkEntity, Reflect)]
+#[spawn_sprite]
+pub struct Teleport {
+    pub destination: EntityRef,
 }
