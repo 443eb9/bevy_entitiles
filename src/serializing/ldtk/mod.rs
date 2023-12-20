@@ -1,5 +1,3 @@
-use std::fs::read_to_string;
-
 use bevy::{
     asset::{AssetServer, Assets, Handle},
     ecs::{
@@ -13,7 +11,6 @@ use bevy::{
     log::error,
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
-    render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle, TextureAtlas},
     transform::components::Transform,
 };
@@ -33,7 +30,8 @@ use self::{
         LdtkJson, WorldLayout,
     },
     layer::LdtkLayers,
-    resources::LdtkTextures,
+    physics::analyze_physics_layer,
+    resources::{LdtkLevelManager, LdtkTextures},
 };
 
 pub mod app_ext;
@@ -43,17 +41,12 @@ pub mod enums;
 pub mod events;
 pub mod json;
 pub mod layer;
+pub mod physics;
 pub mod resources;
 
 #[derive(Component)]
 pub struct LdtkLoader {
-    pub(crate) path: String,
-    pub(crate) asset_path_prefix: String,
     pub(crate) level: String,
-    pub(crate) level_spacing: Option<i32>,
-    pub(crate) filter_mode: FilterMode,
-    pub(crate) ignore_unregistered_entities: bool,
-    pub(crate) z_index: i32,
 }
 
 #[derive(Component)]
@@ -81,22 +74,12 @@ pub fn load_ldtk_json(
     mut atlas_asstes: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
     mut ldtk_textures: ResMut<LdtkTextures>,
+    mut manager: ResMut<LdtkLevelManager>,
 ) {
     for (entity, loader) in loader_query.iter() {
-        let path = std::env::current_dir().unwrap().join(&loader.path);
-        let str_raw = match read_to_string(&path) {
-            Ok(data) => data,
-            Err(e) => panic!("Could not read file at path: {:?}!\n{}", path, e),
-        };
-
-        let mut ldtk_data = match serde_json::from_str::<LdtkJson>(&str_raw) {
-            Ok(data) => data,
-            Err(e) => panic!("Could not parse file at path: {}!\n{}", loader.path, e),
-        };
-
         let loaded = load_levels(
             &mut commands,
-            &mut ldtk_data,
+            &mut manager,
             loader,
             &asset_server,
             &ident_mapper,
@@ -118,7 +101,7 @@ pub fn load_ldtk_json(
 
 fn load_levels(
     commands: &mut Commands,
-    ldtk_data: &mut LdtkJson,
+    manager: &mut LdtkLevelManager,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
     ident_mapper: &LdtkEntityRegistry,
@@ -127,8 +110,9 @@ fn load_levels(
     ldtk_events: &mut EventWriter<LdtkEvent>,
     ldtk_textures: &mut LdtkTextures,
 ) -> Option<LdtkLoadedLevel> {
+    let ldtk_data = manager.get_cached_data();
     ldtk_data.defs.tilesets.iter().for_each(|tileset| {
-        if let Some(texture) = load_texture(tileset, &loader, asset_server) {
+        if let Some(texture) = load_texture(tileset, asset_server, &manager) {
             ldtk_textures.insert_tileset(tileset.uid, texture.clone());
 
             let handle = atlas_asstes.add(texture.as_texture_atlas());
@@ -142,7 +126,7 @@ fn load_levels(
             continue;
         }
 
-        let translation = get_level_translation(&ldtk_data, loader, level_index);
+        let translation = get_level_translation(&ldtk_data, level_index, &manager);
 
         let level_px = UVec2 {
             x: level.px_wid as u32,
@@ -153,21 +137,29 @@ fn load_levels(
             commands,
             level_entity,
             level,
-            loader,
             translation,
             level_px,
             asset_server,
+            &manager,
         );
 
+        let mut collider_aabbs = None;
         let mut layer_grid = LdtkLayers::new(
             level_entity,
             level.layer_instances.len(),
             level_px,
             ldtk_textures,
             translation,
-            loader.z_index,
+            manager.z_index,
         );
         for (layer_index, layer) in level.layer_instances.iter().enumerate() {
+            if let Some(phy) = manager.physics_layer.as_ref() {
+                if layer.identifier == phy.identifier {
+                    collider_aabbs = Some(analyze_physics_layer(layer, phy));
+                    continue;
+                }
+            }
+
             load_layer(
                 commands,
                 level_entity,
@@ -175,12 +167,19 @@ fn load_levels(
                 layer,
                 &mut layer_grid,
                 &ident_mapper,
-                loader,
                 asset_server,
                 ldtk_textures,
+                &manager,
             );
         }
 
+        if let Some(aabbs) = collider_aabbs {
+            layer_grid.apply_physics_layer(
+                commands,
+                manager.physics_layer.as_ref().unwrap(),
+                aabbs,
+            );
+        }
         layer_grid.apply_all(commands);
         ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
             identifier: level.identifier.clone(),
@@ -198,14 +197,14 @@ fn load_levels(
 
 fn load_texture(
     tileset: &TilesetDef,
-    loader: &LdtkLoader,
     asset_server: &AssetServer,
+    manager: &LdtkLevelManager,
 ) -> Option<TilemapTexture> {
     let Some(path) = tileset.rel_path.as_ref() else {
         return None;
     };
 
-    let texture = asset_server.load(format!("{}{}", loader.asset_path_prefix, path));
+    let texture = asset_server.load(format!("{}{}", manager.asset_path_prefix, path));
     let desc = TilemapTextureDescriptor {
         size: UVec2 {
             x: tileset.px_wid as u32,
@@ -215,7 +214,7 @@ fn load_texture(
             x: tileset.tile_grid_size as u32,
             y: tileset.tile_grid_size as u32,
         },
-        filter_mode: loader.filter_mode.into(),
+        filter_mode: manager.filter_mode.into(),
     };
     Some(TilemapTexture {
         texture,
@@ -228,13 +227,13 @@ fn load_background(
     commands: &mut Commands,
     level_entity: Entity,
     level: &Level,
-    loader: &LdtkLoader,
     translation: Vec2,
     level_px: UVec2,
     asset_server: &AssetServer,
+    manager: &LdtkLevelManager,
 ) {
     let texture = match level.bg_rel_path.as_ref() {
-        Some(path) => asset_server.load(format!("{}{}", loader.asset_path_prefix, path)),
+        Some(path) => asset_server.load(format!("{}{}", manager.asset_path_prefix, path)),
         None => Handle::default(),
     };
 
@@ -248,7 +247,7 @@ fn load_background(
             texture,
             transform: Transform::from_translation(
                 (translation + level_px.as_vec2() / 2.)
-                    .extend(loader.z_index as f32 - level.layer_instances.len() as f32 - 1.),
+                    .extend(manager.z_index as f32 - level.layer_instances.len() as f32 - 1.),
             ),
             ..Default::default()
         })
@@ -263,9 +262,9 @@ fn load_layer(
     layer: &LayerInstance,
     layer_grid: &mut LdtkLayers,
     ident_mapper: &LdtkEntityRegistry,
-    loader: &LdtkLoader,
     asset_server: &AssetServer,
     ldtk_textures: &LdtkTextures,
+    manager: &LdtkLevelManager,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
@@ -278,7 +277,7 @@ fn load_layer(
                 let phantom_entity = {
                     if let Some(m) = ident_mapper.get(&entity_instance.identifier) {
                         m
-                    } else if !loader.ignore_unregistered_entities {
+                    } else if !manager.ignore_unregistered_entities {
                         panic!(
                             "Could not find entity type with entity identifier: {}! \
                             You need to register it using App::register_ldtk_entity::<T>() first!",
@@ -314,7 +313,7 @@ fn load_layer(
     }
 }
 
-fn get_level_translation(ldtk_data: &LdtkJson, loader: &LdtkLoader, index: usize) -> Vec2 {
+fn get_level_translation(ldtk_data: &LdtkJson, index: usize, manager: &LdtkLevelManager) -> Vec2 {
     let level = &ldtk_data.levels[index];
     match ldtk_data.world_layout.unwrap() {
         WorldLayout::GridVania | WorldLayout::Free => Vec2 {
@@ -324,7 +323,7 @@ fn get_level_translation(ldtk_data: &LdtkJson, loader: &LdtkLoader, index: usize
         WorldLayout::LinearHorizontal => {
             let mut offset = 0;
             for i in 0..index {
-                offset += ldtk_data.levels[i].px_wid + loader.level_spacing.unwrap();
+                offset += ldtk_data.levels[i].px_wid + manager.level_spacing.unwrap();
             }
             Vec2 {
                 x: offset as f32,
@@ -334,7 +333,7 @@ fn get_level_translation(ldtk_data: &LdtkJson, loader: &LdtkLoader, index: usize
         WorldLayout::LinearVertical => {
             let mut offset = 0;
             for i in 0..index {
-                offset += ldtk_data.levels[i].px_hei + loader.level_spacing.unwrap();
+                offset += ldtk_data.levels[i].px_hei + manager.level_spacing.unwrap();
             }
             Vec2 {
                 x: 0.,

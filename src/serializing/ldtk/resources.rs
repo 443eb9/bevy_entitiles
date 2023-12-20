@@ -1,3 +1,5 @@
+use std::fs::read_to_string;
+
 use bevy::{
     asset::Handle,
     ecs::{
@@ -12,18 +14,19 @@ use bevy::{
 
 use crate::render::texture::TilemapTexture;
 
-use super::{LdtkLoader, LdtkUnloader};
+use super::{json::LdtkJson, physics::LdtkPhysicsLayer, LdtkLoader, LdtkUnloader};
 
 #[derive(Resource, Default)]
 pub struct LdtkLevelManager {
-    file_path: String,
-    asset_path_prefix: String,
-    level_spacing: Option<i32>,
-    filter_mode: FilterMode,
-    ignore_unregistered_entities: bool,
-    z_index: i32,
-
-    loaded_levels: HashMap<String, Entity>,
+    pub(crate) file_path: String,
+    pub(crate) asset_path_prefix: String,
+    pub(crate) ldtk_json: Option<LdtkJson>,
+    pub(crate) level_spacing: Option<i32>,
+    pub(crate) filter_mode: FilterMode,
+    pub(crate) ignore_unregistered_entities: bool,
+    pub(crate) z_index: i32,
+    pub(crate) loaded_levels: HashMap<String, Entity>,
+    pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
 }
 
 impl LdtkLevelManager {
@@ -36,7 +39,22 @@ impl LdtkLevelManager {
     pub fn initialize(&mut self, file_path: String, asset_path_prefix: String) -> &mut Self {
         self.file_path = file_path;
         self.asset_path_prefix = asset_path_prefix;
+        self.reload_json();
         self
+    }
+
+    /// Reloads the ldtk file and refresh the level cache.
+    pub fn reload_json(&mut self) {
+        let path = std::env::current_dir().unwrap().join(&self.file_path);
+        let str_raw = match read_to_string(&path) {
+            Ok(data) => data,
+            Err(e) => panic!("Could not read file at path: {:?}!\n{}", path, e),
+        };
+
+        self.ldtk_json = match serde_json::from_str::<LdtkJson>(&str_raw) {
+            Ok(data) => Some(data),
+            Err(e) => panic!("Could not parse file at path: {}!\n{}", self.file_path, e),
+        };
     }
 
     /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,
@@ -44,6 +62,16 @@ impl LdtkLevelManager {
     /// this value will be used to determine the spacing between the levels.
     pub fn set_level_spacing(&mut self, level_spacing: i32) -> &mut Self {
         self.level_spacing = Some(level_spacing);
+        self
+    }
+
+    /// The identifier of the physics layer.
+    /// Set this to allow the algorithm to figure out the colliders.
+    /// The layer you specify must be an int grid, or the program will panic.
+    ///
+    /// The `air_value` is the value of the tiles in the int grid which will be considered as air.
+    pub fn set_physics_layer(&mut self, physics: LdtkPhysicsLayer) -> &mut Self {
+        self.physics_layer = Some(physics);
         self
     }
 
@@ -64,6 +92,11 @@ impl LdtkLevelManager {
     pub fn set_base_z_index(&mut self, z_index: i32) -> &mut Self {
         self.z_index = z_index;
         self
+    }
+
+    pub fn get_cached_data(&self) -> &LdtkJson {
+        self.check_initialized();
+        self.ldtk_json.as_ref().unwrap()
     }
 
     pub fn load(&mut self, commands: &mut Commands, level: &'static str) {
@@ -96,7 +129,7 @@ impl LdtkLevelManager {
         }
     }
 
-    pub fn switch(&mut self, commands: &mut Commands, level: &'static str) {
+    pub fn switch_to(&mut self, commands: &mut Commands, level: &'static str) {
         self.check_initialized();
         if self.loaded_levels.contains_key(&level.to_string()) {
             error!("Trying to load {:?} that is already loaded!", level);
@@ -160,21 +193,19 @@ impl LdtkLevelManager {
         self.loaded_levels.contains_key(&level)
     }
 
+    pub fn is_initialized(&self) -> bool {
+        self.ldtk_json.is_some()
+    }
+
     fn check_initialized(&self) {
-        if self.file_path.is_empty() {
+        if !self.is_initialized() {
             panic!("LdtkLevelManager is not initialized!");
         }
     }
 
     fn generate_loader(&self) -> LdtkLoader {
         LdtkLoader {
-            path: self.file_path.clone(),
-            asset_path_prefix: self.asset_path_prefix.clone(),
-            filter_mode: self.filter_mode,
             level: "".to_string(),
-            level_spacing: self.level_spacing,
-            ignore_unregistered_entities: self.ignore_unregistered_entities,
-            z_index: self.z_index,
         }
     }
 }

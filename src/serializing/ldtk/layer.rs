@@ -2,10 +2,16 @@ use bevy::{
     ecs::{entity::Entity, system::Commands},
     hierarchy::BuildChildren,
     math::{IVec2, UVec2, Vec2, Vec4},
+    prelude::SpatialBundle,
+    transform::{
+        components::{GlobalTransform, Transform},
+        TransformBundle,
+    },
     utils::HashMap,
 };
 
 use crate::{
+    math::aabb::AabbBox2d,
     render::texture::TilemapTexture,
     tilemap::{
         map::{Tilemap, TilemapBuilder},
@@ -15,6 +21,7 @@ use crate::{
 
 use super::{
     json::level::{LayerInstance, TileInstance},
+    physics::LdtkPhysicsLayer,
     resources::LdtkTextures,
 };
 
@@ -117,6 +124,7 @@ impl<'a> LdtkLayers<'a> {
         .with_z_index(self.base_z_index - layer_index as i32)
         .build(commands);
 
+        commands.entity(tilemap.id).insert(SpatialBundle::default());
         commands.entity(self.level_entity).add_child(tilemap.id());
 
         self.layers[layer_index] = Some(tilemap);
@@ -129,5 +137,66 @@ impl<'a> LdtkLayers<'a> {
                 commands.entity(tm.id).insert(tm);
             }
         }
+    }
+
+    pub fn apply_physics_layer(
+        &mut self,
+        commands: &mut Commands,
+        physics: &LdtkPhysicsLayer,
+        aabbs: Vec<(UVec2, UVec2)>,
+    ) {
+        let physics_map = self
+            .layers
+            .iter()
+            .find(|map| {
+                if let Some(map) = map {
+                    map.name == physics.parent
+                } else {
+                    false
+                }
+            })
+            .unwrap_or_else(|| {
+                panic!(
+                    "Missing parent {} for physics layer {}!",
+                    physics.parent, physics.identifier
+                )
+            })
+            .as_ref()
+            .unwrap_or_else(|| {
+                panic!(
+                    "The parent layer {} for physics layer {} is not a rendered layer!",
+                    physics.parent, physics.identifier
+                )
+            });
+        aabbs
+            .into_iter()
+            .map(|(min, max)| {
+                let min = physics_map.index_inf_to_world(IVec2 {
+                    x: min.x as i32,
+                    y: (physics_map.size.y - 1 - min.y + 1) as i32,
+                });
+                let max = physics_map.index_inf_to_world(IVec2 {
+                    x: (max.x + 1) as i32,
+                    y: (physics_map.size.y - 1 - max.y) as i32,
+                });
+                AabbBox2d { min, max }
+            })
+            .for_each(|aabb| {
+                let mut collider = commands.spawn(TransformBundle {
+                    local: Transform::from_translation(aabb.center().extend(0.)),
+                    ..Default::default()
+                });
+                collider.set_parent(physics_map.id);
+                #[cfg(feature = "physics_xpbd")]
+                collider.insert(bevy_xpbd_2d::components::Collider::cuboid(
+                    aabb.width(),
+                    aabb.height(),
+                ));
+                #[cfg(feature = "physics_rapier")]
+                collider.insert(bevy_rapier2d::geometry::Collider::cuboid(
+                    aabb.width() / 2.,
+                    aabb.height() / 2.,
+                ));
+            });
     }
 }

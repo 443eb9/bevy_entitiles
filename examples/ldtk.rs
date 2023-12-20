@@ -26,6 +26,7 @@ use bevy_entitiles::{
         enums::LdtkEnum,
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance},
+        physics::LdtkPhysicsLayer,
         resources::{LdtkLevelManager, LdtkTextures},
     },
     EntiTilesPlugin,
@@ -63,6 +64,11 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             "assets/ldtk/ignoregrid_vania.ldtk".to_string(),
             "ldtk/".to_string(),
         )
+        .set_physics_layer(LdtkPhysicsLayer {
+            identifier: "PhysicsColliders".to_string(),
+            air_value: 0,
+            parent: "Collisions".to_string(),
+        })
         .set_if_ignore_unregistered_entities(true);
 }
 
@@ -77,7 +83,7 @@ macro_rules! level_control {
                 $manager.unload(&mut $commands, $level);
             }
         } else if $input.just_pressed(KeyCode::$key) {
-            $manager.try_load(&mut $commands, $level);
+            $manager.switch_to(&mut $commands, $level);
         }
     };
 }
@@ -102,8 +108,13 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
         );
     }
 
+    if input.just_pressed(KeyCode::Return) {
+        manager.reload_json();
+        println!("Hot reloaded!")
+    }
+
     if input.just_pressed(KeyCode::Key8) {
-        manager.switch(&mut commands, "Entrance");
+        manager.try_load(&mut commands, "Entrance");
     }
 }
 

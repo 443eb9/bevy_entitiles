@@ -3,7 +3,8 @@ use bevy::{
     hierarchy::DespawnRecursiveExt,
     math::{Mat2, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
-    render::render_resource::TextureUsages, reflect::Reflect,
+    reflect::Reflect,
+    render::render_resource::TextureUsages,
 };
 
 use crate::{
@@ -489,6 +490,14 @@ impl Tilemap {
     /// Get the world position of the center of a slot.
     #[inline]
     pub fn index_to_world(&self, index: UVec2) -> Vec2 {
+        self.index_inf_to_world(index.as_ivec2())
+    }
+
+    /// Get the world position of the center of a slot.
+    /// 
+    /// This method does not limit the index to the tilemap size.
+    #[inline]
+    pub fn index_inf_to_world(&self, index: IVec2) -> Vec2 {
         let index = index.as_vec2();
         match self.tile_type {
             TileType::Square => self
