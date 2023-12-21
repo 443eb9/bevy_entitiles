@@ -8,7 +8,7 @@ use bevy::{
 
 use super::{
     json::{field::FieldInstance, level::EntityInstance},
-    resources::LdtkTextures,
+    resources::LdtkLevelManager,
 };
 
 pub type LdtkEntityRegistry = HashMap<String, Box<dyn PhantomLdtkEntityTrait>>;
@@ -20,7 +20,7 @@ pub trait LdtkEntity {
         entity_instance: &EntityInstance,
         fields: &HashMap<String, FieldInstance>,
         asset_server: &AssetServer,
-        ldtk_textures: &LdtkTextures,
+        ldtk_manager: &LdtkLevelManager,
     );
 }
 
@@ -44,7 +44,7 @@ pub trait PhantomLdtkEntityTrait {
         entity_instance: &EntityInstance,
         fields: &HashMap<String, FieldInstance>,
         asset_server: &AssetServer,
-        ldtk_textures: &LdtkTextures,
+        ldtk_manager: &LdtkLevelManager,
     );
 }
 
@@ -56,7 +56,7 @@ impl<T: LdtkEntity + Bundle> PhantomLdtkEntityTrait for PhantomLdtkEntity<T> {
         entity_instance: &EntityInstance,
         fields: &HashMap<String, FieldInstance>,
         asset_server: &AssetServer,
-        ldtk_textures: &LdtkTextures,
+        ldtk_manager: &LdtkLevelManager,
     ) {
         T::initialize(
             level_entity,
@@ -64,7 +64,7 @@ impl<T: LdtkEntity + Bundle> PhantomLdtkEntityTrait for PhantomLdtkEntity<T> {
             entity_instance,
             fields,
             asset_server,
-            ldtk_textures,
+            ldtk_manager,
         );
     }
 }

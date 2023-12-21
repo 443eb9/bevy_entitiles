@@ -30,18 +30,18 @@ impl Into<Color> for LdtkColor {
     }
 }
 
+impl Into<Vec4> for LdtkColor {
+    fn into(self) -> Vec4 {
+        Vec4::new(self.r, self.g, self.b, 1.)
+    }
+}
+
 impl<'de> Deserialize<'de> for LdtkColor {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         deserializer.deserialize_str(LdtkColorVisitor)
-    }
-}
-
-impl Into<Vec4> for LdtkColor {
-    fn into(self) -> Vec4 {
-        Vec4::new(self.r, self.g, self.b, 1.)
     }
 }
 

@@ -3,6 +3,7 @@ static LDTK_NAME_ATTR: &str = "ldtk_name";
 static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
 static GLOBAL_ENTITY_ATTR: &str = "global_entity";
 static CALLBACK_ATTR: &str = "callback";
+static LDTK_TAG_ATTR: &str = "ldtk_tag";
 
 pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
@@ -14,9 +15,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     let spawn_sprite = {
         if spawn_sprite_attr.is_some() {
             quote::quote!(
-                if let Some(bundle) = entity_instance.generate_sprite(ldtk_textures) {
-                    commands.insert(bundle);
-                }
+                entity_instance.generate_sprite(commands, ldtk_manager);
             )
         } else {
             quote::quote!()
@@ -47,9 +46,9 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 syn::Meta::List(meta) => {
                     let func = &meta.tokens;
                     quote::quote!(
-                        #func(level_entity, commands, entity_instance, fields, asset_server, ldtk_textures);
+                        #func(level_entity, commands, entity_instance, fields, asset_server, ldtk_manager);
                     )
-                },
+                }
                 _ => {
                     panic!("Callback attribute must be a list of functions!");
                 }
@@ -59,45 +58,65 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
         }
     };
 
-    let fields = match &input.data {
-        syn::Data::Struct(data) => match &data.fields {
-            syn::Fields::Named(fields) => &fields.named,
-            _ => panic!("LdtkEntity can only be derived for structs with named fields"),
-        },
-        _ => panic!("LdtkEntity can only be derived for structs"),
-    };
-    let mut fields_cton = Vec::new();
+    let tag = attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == LDTK_TAG_ATTR);
 
-    for field in fields.iter() {
-        let field_name = field.ident.as_ref().unwrap();
-        let field_type = &field.ty;
+    let ctor = if tag.is_none() {
+        let fields = match &input.data {
+            syn::Data::Struct(data) => match &data.fields {
+                syn::Fields::Named(fields) => &fields.named,
+                _ => panic!(
+                    "LdtkEntity can only be derived for structs with named fields! \
+                Or add #[ldtk_tag] for struct without named fields!"
+                ),
+            },
+            _ => panic!("LdtkEntity can only be derived for structs"),
+        };
+        let mut fields_cton = Vec::new();
 
-        let attr = field
-            .attrs
-            .iter()
-            .find(|attr| attr.path().get_ident().unwrap() == LDTK_DEFAULT_ATTR);
-        if attr.is_some() {
-            continue;
+        for field in fields.iter() {
+            let field_name = field.ident.as_ref().unwrap();
+            let field_type = &field.ty;
+
+            let attr = field
+                .attrs
+                .iter()
+                .find(|attr| attr.path().get_ident().unwrap() == LDTK_DEFAULT_ATTR);
+            if attr.is_some() {
+                continue;
+            }
+
+            let attr = field
+                .attrs
+                .iter()
+                .find(|attr| attr.path().get_ident().unwrap() == LDTK_NAME_ATTR);
+            if let Some(attr) = attr {
+                fields_cton.push(expand_entity_fields_rename(
+                    field_name, field_type, &attr.meta,
+                ));
+                continue;
+            }
+
+            fields_cton.push(expand_entity_fields(field_name, field_type));
         }
 
-        let attr = field
-            .attrs
-            .iter()
-            .find(|attr| attr.path().get_ident().unwrap() == LDTK_NAME_ATTR);
-        if let Some(attr) = attr {
-            fields_cton.push(expand_entity_fields_rename(
-                field_name, field_type, &attr.meta,
-            ));
-            continue;
-        }
+        let default = if fields_cton.len() < fields.len() {
+            quote::quote!(..Default::default())
+        } else {
+            quote::quote!()
+        };
 
-        fields_cton.push(expand_entity_fields(field_name, field_type));
-    }
-
-    let default = if fields_cton.len() < fields.len() {
-        quote::quote!(..Default::default())
+        quote::quote!(
+            Self {
+                #(#fields_cton)*
+                #default
+            }
+        )
     } else {
-        quote::quote!()
+        quote::quote!(
+            Self
+        )
     };
 
     quote::quote! {
@@ -108,16 +127,13 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 entity_instance: &bevy_entitiles::serializing::ldtk::json::level::EntityInstance,
                 fields: &bevy::utils::HashMap<String, bevy_entitiles::serializing::ldtk::json::field::FieldInstance>,
                 asset_server: &bevy::prelude::AssetServer,
-                ldtk_textures: &bevy_entitiles::serializing::ldtk::resources::LdtkTextures,
+                ldtk_manager: &bevy_entitiles::serializing::ldtk::resources::LdtkLevelManager,
             ) {
                 #callback
                 #spawn_sprite
                 #global_entity
 
-                commands.insert(Self {
-                    #(#fields_cton)*
-                    #default
-                });
+                commands.insert(#ctor);
             }
         }
     }

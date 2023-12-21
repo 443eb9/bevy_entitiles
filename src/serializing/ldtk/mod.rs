@@ -1,5 +1,6 @@
 use bevy::{
-    asset::{AssetServer, Assets, Handle},
+    app::{Plugin, Update},
+    asset::{load_internal_asset, AssetServer, Assets, Handle},
     ecs::{
         component::Component,
         entity::Entity,
@@ -11,13 +12,9 @@ use bevy::{
     log::error,
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
-    sprite::{Sprite, SpriteBundle, TextureAtlas},
+    render::{mesh::Mesh, render_resource::Shader},
+    sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlas},
     transform::components::Transform,
-};
-
-use crate::{
-    render::texture::{TilemapTexture, TilemapTextureDescriptor},
-    tilemap::map::TilemapRotation,
 };
 
 use self::{
@@ -25,13 +22,14 @@ use self::{
     entities::LdtkEntityRegistry,
     events::{LdtkEvent, LevelEvent},
     json::{
-        definitions::{LayerType, TilesetDef},
+        definitions::LayerType,
         level::{LayerInstance, Level},
         LdtkJson, WorldLayout,
     },
     layer::LdtkLayers,
     physics::analyze_physics_layer,
-    resources::{LdtkLevelManager, LdtkTextures},
+    resources::LdtkLevelManager,
+    sprites::LdtkEntityMaterial,
 };
 
 pub mod app_ext;
@@ -43,6 +41,32 @@ pub mod json;
 pub mod layer;
 pub mod physics;
 pub mod resources;
+pub mod sprites;
+
+pub const ENTITY_SPRITE_SHADER: Handle<Shader> = Handle::weak_from_u128(89874656485416351634163551);
+
+pub struct EntiTilesLdtkPlugin;
+
+impl Plugin for EntiTilesLdtkPlugin {
+    fn build(&self, app: &mut bevy::prelude::App) {
+        load_internal_asset!(
+            app,
+            ENTITY_SPRITE_SHADER,
+            "entity_sprite.wgsl",
+            Shader::from_wgsl
+        );
+
+        app.add_plugins(Material2dPlugin::<LdtkEntityMaterial>::default());
+
+        app.add_systems(Update, (load_ldtk_json, unload_ldtk_level));
+
+        app.insert_non_send_resource(LdtkEntityRegistry::default());
+
+        app.init_resource::<LdtkLevelManager>();
+
+        app.add_event::<LdtkEvent>();
+    }
+}
 
 #[derive(Component)]
 pub struct LdtkLoader {
@@ -71,11 +95,19 @@ pub fn load_ldtk_json(
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
     ident_mapper: NonSend<LdtkEntityRegistry>,
-    mut atlas_asstes: ResMut<Assets<TextureAtlas>>,
+    mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
-    mut ldtk_textures: ResMut<LdtkTextures>,
     mut manager: ResMut<LdtkLevelManager>,
+    mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
 ) {
+    manager.initialize_assets(
+        &asset_server,
+        &mut atlas_assets,
+        &mut entity_material_assets,
+        &mut mesh_assets,
+    );
+
     for (entity, loader) in loader_query.iter() {
         let loaded = load_levels(
             &mut commands,
@@ -83,10 +115,8 @@ pub fn load_ldtk_json(
             loader,
             &asset_server,
             &ident_mapper,
-            &mut atlas_asstes,
             entity,
             &mut ldtk_events,
-            &mut ldtk_textures,
         );
 
         let mut e_cmd = commands.entity(entity);
@@ -109,20 +139,10 @@ fn load_levels(
     loader: &LdtkLoader,
     asset_server: &AssetServer,
     ident_mapper: &LdtkEntityRegistry,
-    atlas_asstes: &mut Assets<TextureAtlas>,
     level_entity: Entity,
     ldtk_events: &mut EventWriter<LdtkEvent>,
-    ldtk_textures: &mut LdtkTextures,
 ) -> Option<LdtkLoadedLevel> {
     let ldtk_data = manager.get_cached_data();
-    ldtk_data.defs.tilesets.iter().for_each(|tileset| {
-        if let Some(texture) = load_texture(tileset, asset_server, &manager) {
-            ldtk_textures.insert_tileset(tileset.uid, texture.clone());
-
-            let handle = atlas_asstes.add(texture.as_texture_atlas());
-            ldtk_textures.insert_atlas(tileset.uid, handle);
-        }
-    });
 
     for (level_index, level) in ldtk_data.levels.iter().enumerate() {
         // this cannot cannot be replaced by filter(), because the level_index matters.
@@ -152,7 +172,7 @@ fn load_levels(
             level_entity,
             level.layer_instances.len(),
             level_px,
-            ldtk_textures,
+            &manager.data_mapper,
             translation,
             manager.z_index,
         );
@@ -172,7 +192,6 @@ fn load_levels(
                 &mut layer_grid,
                 &ident_mapper,
                 asset_server,
-                ldtk_textures,
                 &manager,
             );
         }
@@ -197,34 +216,6 @@ fn load_levels(
     }
 
     None
-}
-
-fn load_texture(
-    tileset: &TilesetDef,
-    asset_server: &AssetServer,
-    manager: &LdtkLevelManager,
-) -> Option<TilemapTexture> {
-    let Some(path) = tileset.rel_path.as_ref() else {
-        return None;
-    };
-
-    let texture = asset_server.load(format!("{}{}", manager.asset_path_prefix, path));
-    let desc = TilemapTextureDescriptor {
-        size: UVec2 {
-            x: tileset.px_wid as u32,
-            y: tileset.px_hei as u32,
-        },
-        tile_size: UVec2 {
-            x: tileset.tile_grid_size as u32,
-            y: tileset.tile_grid_size as u32,
-        },
-        filter_mode: manager.filter_mode.into(),
-    };
-    Some(TilemapTexture {
-        texture,
-        desc,
-        rotation: TilemapRotation::None,
-    })
 }
 
 fn load_background(
@@ -267,7 +258,6 @@ fn load_layer(
     layer_grid: &mut LdtkLayers,
     ident_mapper: &LdtkEntityRegistry,
     asset_server: &AssetServer,
-    ldtk_textures: &LdtkTextures,
     manager: &LdtkLevelManager,
 ) {
     match layer.ty {
@@ -305,7 +295,7 @@ fn load_layer(
                     entity_instance,
                     &mut fields,
                     asset_server,
-                    ldtk_textures,
+                    manager,
                 );
             }
         }

@@ -5,7 +5,7 @@
 
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
@@ -15,7 +15,8 @@ use bevy::{
     },
     input::{keyboard::KeyCode, Input},
     reflect::Reflect,
-    render::{texture::ImagePlugin, view::Msaa},
+    render::{mesh::Mesh, texture::ImagePlugin, view::Msaa},
+    sprite::TextureAtlas,
     utils::HashMap,
     DefaultPlugins,
 };
@@ -27,7 +28,8 @@ use bevy_entitiles::{
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
         physics::LdtkPhysicsLayer,
-        resources::{LdtkLevelManager, LdtkTextures},
+        resources::LdtkLevelManager,
+        sprites::LdtkEntityMaterial,
     },
     EntiTilesPlugin,
 };
@@ -48,7 +50,7 @@ fn main() {
             WorldInspectorPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (load, control, events))
+        .add_systems(Update, (load, control, events, hot_reload))
         .register_type::<Teleport>()
         .register_type::<Player>()
         .register_type::<Item>()
@@ -57,6 +59,7 @@ fn main() {
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
         .register_ldtk_entity::<Teleport>("Teleport")
+        .register_ldtk_entity::<Ladder>("Ladder")
         .run();
 }
 
@@ -114,13 +117,28 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
         );
     }
 
-    if input.just_pressed(KeyCode::Return) {
-        manager.reload_json();
-        println!("Hot reloaded!")
-    }
-
     if input.just_pressed(KeyCode::Key8) {
         manager.try_load(&mut commands, "Entrance");
+    }
+}
+
+fn hot_reload(
+    input: Res<Input<KeyCode>>,
+    mut manager: ResMut<LdtkLevelManager>,
+    asset_server: Res<AssetServer>,
+    mut atlas_assets: ResMut<Assets<TextureAtlas>>,
+    mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+) {
+    if input.just_pressed(KeyCode::Return) {
+        manager.reload_json();
+        manager.reload_assets(
+            &asset_server,
+            &mut atlas_assets,
+            &mut entity_material_assets,
+            &mut mesh_assets,
+        );
+        println!("Hot reloaded!")
     }
 }
 
@@ -158,7 +176,7 @@ fn player_spawn(
     _asset_server: &AssetServer,
     // the textures from ldtk. They are already registered into assets.
     // you can use them to spawn new sprites.
-    _ldtk_textures: &LdtkTextures,
+    _ldtk_textures: &LdtkLevelManager,
 ) {
     // this is takes params that are exactly the same as the LdtkEntity trait
     // you can use this to add more fancy stuff to your entity
@@ -209,6 +227,11 @@ pub struct Player {
     #[ldtk_default]
     pub mp: i32,
 }
+
+#[derive(Component, LdtkEntity, Reflect)]
+#[spawn_sprite]
+#[ldtk_tag]
+pub struct Ladder;
 
 #[derive(Component, LdtkEntity, Reflect)]
 #[spawn_sprite]

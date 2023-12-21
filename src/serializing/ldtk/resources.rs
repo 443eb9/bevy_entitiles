@@ -1,20 +1,222 @@
 use std::fs::read_to_string;
 
 use bevy::{
-    asset::Handle,
+    asset::{AssetServer, Assets, Handle},
     ecs::{
         entity::Entity,
         system::{Commands, Resource},
     },
     log::error,
-    render::render_resource::FilterMode,
-    sprite::TextureAtlas,
+    math::{IVec2, UVec2, Vec2, Vec4},
+    render::{
+        mesh::{Indices, Mesh},
+        render_resource::{FilterMode, PrimitiveTopology},
+    },
+    sprite::{Mesh2dHandle, TextureAtlas},
     utils::HashMap,
 };
 
-use crate::render::texture::TilemapTexture;
+use crate::{
+    render::texture::{TilemapTexture, TilemapTextureDescriptor},
+    tilemap::map::TilemapRotation,
+};
 
-use super::{json::LdtkJson, physics::LdtkPhysicsLayer, LdtkLoader, LdtkUnloader};
+use super::{
+    json::{definitions::EntityDef, LdtkJson},
+    physics::LdtkPhysicsLayer,
+    sprites::{AtlasRect, LdtkEntityMaterial},
+    LdtkLoader, LdtkUnloader,
+};
+
+#[derive(Default)]
+pub struct LdtkDataMapper {
+    pub(crate) associated_file: String,
+    /// tileset iid to texture
+    pub(crate) tilesets: HashMap<i32, TilemapTexture>,
+    /// tileset iid to texture atlas handle
+    pub(crate) atlas_handles: HashMap<i32, Handle<TextureAtlas>>,
+    /// entity identifier to entity definition
+    pub(crate) entity_defs: HashMap<String, EntityDef>,
+    /// entity iid to mesh handle
+    pub(crate) meshes: HashMap<String, Mesh2dHandle>,
+    /// entity iid to material handle
+    pub(crate) materials: HashMap<String, Handle<LdtkEntityMaterial>>,
+}
+
+impl LdtkDataMapper {
+    pub fn get_tileset(&self, tileset_uid: i32) -> &TilemapTexture {
+        self.tilesets.get(&tileset_uid).unwrap()
+    }
+
+    pub fn clone_atlas_handle(&self, tileset_uid: i32) -> Handle<TextureAtlas> {
+        self.atlas_handles.get(&tileset_uid).unwrap().clone()
+    }
+
+    pub fn get_entity_def(&self, identifier: &String) -> &EntityDef {
+        self.entity_defs.get(identifier).unwrap()
+    }
+
+    pub fn clone_mesh_handle(&self, iid: &String) -> Mesh2dHandle {
+        self.meshes.get(iid).unwrap().clone()
+    }
+
+    pub fn clone_material_handle(&self, iid: &String) -> Handle<LdtkEntityMaterial> {
+        self.materials.get(iid).unwrap().clone()
+    }
+
+    pub fn initialize(
+        &mut self,
+        manager: &LdtkLevelManager,
+        asset_server: &AssetServer,
+        atlas_assets: &mut Assets<TextureAtlas>,
+        material_assets: &mut Assets<LdtkEntityMaterial>,
+        mesh_assets: &mut Assets<Mesh>,
+    ) {
+        self.associated_file = manager.file_path.clone();
+        self.load_texture(manager, asset_server, atlas_assets);
+        self.load_entities(manager, material_assets, mesh_assets);
+    }
+
+    fn load_texture(
+        &mut self,
+        manager: &LdtkLevelManager,
+        asset_server: &AssetServer,
+        atlas_assets: &mut Assets<TextureAtlas>,
+    ) {
+        let ldtk_data = manager.get_cached_data();
+        ldtk_data.defs.tilesets.iter().for_each(|tileset| {
+            let Some(path) = tileset.rel_path.as_ref() else {
+                return;
+            };
+
+            let texture = asset_server.load(format!("{}{}", manager.asset_path_prefix, path));
+            let desc = TilemapTextureDescriptor {
+                size: UVec2 {
+                    x: tileset.px_wid as u32,
+                    y: tileset.px_hei as u32,
+                },
+                tile_size: UVec2 {
+                    x: tileset.tile_grid_size as u32,
+                    y: tileset.tile_grid_size as u32,
+                },
+                filter_mode: manager.filter_mode.into(),
+            };
+            let texture = TilemapTexture {
+                texture,
+                desc,
+                rotation: TilemapRotation::None,
+            };
+
+            self.tilesets.insert(tileset.uid, texture.clone());
+            self.atlas_handles
+                .insert(tileset.uid, atlas_assets.add(texture.as_texture_atlas()));
+        });
+    }
+
+    fn load_entities(
+        &mut self,
+        manager: &LdtkLevelManager,
+        material_assets: &mut Assets<LdtkEntityMaterial>,
+        mesh_assets: &mut Assets<Mesh>,
+    ) {
+        let ldtk_data = manager.get_cached_data();
+        ldtk_data.defs.entities.iter().for_each(|entity| {
+            self.entity_defs
+                .insert(entity.identifier.clone(), entity.clone());
+        });
+
+        ldtk_data
+            .levels
+            .iter()
+            .map(|level| {
+                level
+                    .layer_instances
+                    .iter()
+                    .map(|layer| layer.entity_instances.iter())
+                    .flatten()
+            })
+            .flatten()
+            .for_each(|entity_instance| {
+                if let Some(tile_rect) = entity_instance.tile.as_ref() {
+                    let texture_size = self.get_tileset(tile_rect.tileset_uid).desc.size.as_vec2();
+                    self.materials.insert(
+                        entity_instance.iid.clone(),
+                        material_assets.add(LdtkEntityMaterial {
+                            texture: self.get_tileset(tile_rect.tileset_uid).texture.clone(),
+                            atlas_rect: AtlasRect {
+                                min: IVec2::new(tile_rect.x_pos, tile_rect.y_pos).as_vec2()
+                                    / texture_size,
+                                max: IVec2::new(
+                                    tile_rect.x_pos + tile_rect.width,
+                                    tile_rect.y_pos + tile_rect.height,
+                                )
+                                .as_vec2()
+                                    / texture_size,
+                            },
+                        }),
+                    );
+                }
+
+                let pivot = Vec2::new(entity_instance.pivot[0], entity_instance.pivot[1]);
+                let size = Vec2::new(entity_instance.width as f32, entity_instance.height as f32);
+                /*
+                 * 0 - 1
+                 * | / |
+                 * 3 - 2
+                 */
+                // let corner_pos = [
+                //     Vec2::new(-pivot.x * size.x, (1. - pivot.y) * size.y),
+                //     (1. - pivot) * size,
+                //     Vec2::new((1. - pivot.x) * size.x, -pivot.y * size.y),
+                //     -pivot * size,
+                // ]
+
+                // let corner_pos = [
+                //     Vec2::new(-pivot.x, 1. - pivot.y),
+                //     1. - pivot,
+                //     Vec2::new(1. - pivot.x, -pivot.y),
+                //     -pivot,
+                // ]
+                let corner_pos = [
+                    Vec2::new(-0.5, 0.5),
+                    Vec2::new(0.5, 0.5),
+                    Vec2::new(0.5, -0.5),
+                    Vec2::new(-0.5, -0.5),
+                ]
+                .into_iter()
+                .map(|p| (p * size).extend(manager.z_index as f32))
+                .collect::<Vec<_>>();
+                let corner_uv = [Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y].to_vec();
+
+                let (vertices, uvs, vertex_indices) =
+                    // match self.entity_defs[&entity_instance.identifier].tile_render_mode {
+                    //     TileRenderMode::Cover => todo!(),
+                    //     TileRenderMode::FitInside => todo!(),
+                    //     TileRenderMode::Repeat => todo!(),
+                    //     TileRenderMode::Stretch => (
+                    //         corner_pos.to_vec(),
+                    //         corner_uv.to_vec(),
+                    //         vec![0, 3, 1, 1, 3, 2],
+                    //     ),
+                    //     TileRenderMode::FullSizeCropped => todo!(),
+                    //     TileRenderMode::FullSizeUncropped => todo!(),
+                    //     TileRenderMode::NineSlice => todo!(),
+                    // };
+                    (
+                        corner_pos,
+                        corner_uv,
+                        vec![0, 3, 1, 1, 3, 2],
+                    );
+
+                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+                mesh.set_indices(Some(Indices::U16(vertex_indices)));
+                self.meshes
+                    .insert(entity_instance.iid.clone(), mesh_assets.add(mesh).into());
+            });
+    }
+}
 
 #[derive(Resource, Default)]
 pub struct LdtkLevelManager {
@@ -27,6 +229,7 @@ pub struct LdtkLevelManager {
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
     pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
+    pub(crate) data_mapper: LdtkDataMapper,
 }
 
 impl LdtkLevelManager {
@@ -43,6 +246,25 @@ impl LdtkLevelManager {
         self
     }
 
+    pub(crate) fn initialize_assets(
+        &mut self,
+        asset_server: &AssetServer,
+        atlas_assets: &mut Assets<TextureAtlas>,
+        entity_material_assets: &mut Assets<LdtkEntityMaterial>,
+        mesh_assets: &mut Assets<Mesh>,
+    ) {
+        if self.data_mapper.associated_file == self.file_path {
+            return;
+        }
+
+        self.reload_assets(
+            asset_server,
+            atlas_assets,
+            entity_material_assets,
+            mesh_assets,
+        );
+    }
+
     /// Reloads the ldtk file and refresh the level cache.
     pub fn reload_json(&mut self) {
         let path = std::env::current_dir().unwrap().join(&self.file_path);
@@ -55,6 +277,28 @@ impl LdtkLevelManager {
             Ok(data) => Some(data),
             Err(e) => panic!("Could not parse file at path: {}!\n{}", self.file_path, e),
         };
+    }
+
+    /// Reloads the assets.
+    ///
+    /// You need to call this after you changed something like the size of an entity,
+    /// or maybe the identifier of an entity.
+    pub fn reload_assets(
+        &mut self,
+        asset_server: &AssetServer,
+        atlas_assets: &mut Assets<TextureAtlas>,
+        entity_material_assets: &mut Assets<LdtkEntityMaterial>,
+        mesh_assets: &mut Assets<Mesh>,
+    ) {
+        let mut data_mapper = LdtkDataMapper::default();
+        data_mapper.initialize(
+            self,
+            asset_server,
+            atlas_assets,
+            entity_material_assets,
+            mesh_assets,
+        );
+        self.data_mapper = data_mapper;
     }
 
     /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,
@@ -99,6 +343,11 @@ impl LdtkLevelManager {
         self.ldtk_json.as_ref().unwrap()
     }
 
+    pub fn get_data_mapper(&self) -> &LdtkDataMapper {
+        self.check_initialized();
+        &self.data_mapper
+    }
+
     pub fn load(&mut self, commands: &mut Commands, level: &'static str) {
         self.check_initialized();
         let level = level.to_string();
@@ -112,10 +361,8 @@ impl LdtkLevelManager {
         if self.loaded_levels.contains_key(&level.to_string()) {
             error!("Trying to load {:?} that is already loaded!", level);
         } else {
-            let mut loader = self.generate_loader();
-            loader.level = level.clone();
             self.loaded_levels
-                .insert(level, commands.spawn(loader).id());
+                .insert(level.clone(), commands.spawn(LdtkLoader { level }).id());
         }
     }
 
@@ -150,10 +397,8 @@ impl LdtkLevelManager {
             if self.loaded_levels.contains_key(&level.to_string()) {
                 error!("Trying to load {:?} that is already loaded!", level);
             } else {
-                let mut loader = self.generate_loader();
-                loader.level = level.clone();
                 self.loaded_levels
-                    .insert(level, commands.spawn(loader).id());
+                    .insert(level.clone(), commands.spawn(LdtkLoader { level }).id());
             }
         });
     }
@@ -201,35 +446,5 @@ impl LdtkLevelManager {
         if !self.is_initialized() {
             panic!("LdtkLevelManager is not initialized!");
         }
-    }
-
-    fn generate_loader(&self) -> LdtkLoader {
-        LdtkLoader {
-            level: "".to_string(),
-        }
-    }
-}
-
-#[derive(Resource, Default)]
-pub struct LdtkTextures {
-    pub(crate) tilesets: HashMap<i32, TilemapTexture>,
-    pub(crate) atlas_handles: HashMap<i32, Handle<TextureAtlas>>,
-}
-
-impl LdtkTextures {
-    pub fn insert_tileset(&mut self, id: i32, tileset: TilemapTexture) {
-        self.tilesets.insert(id, tileset);
-    }
-
-    pub fn insert_atlas(&mut self, id: i32, atlas: Handle<TextureAtlas>) {
-        self.atlas_handles.insert(id, atlas);
-    }
-
-    pub fn get_tileset(&self, id: i32) -> Option<&TilemapTexture> {
-        self.tilesets.get(&id)
-    }
-
-    pub fn get_atlas(&self, id: i32) -> Option<&Handle<TextureAtlas>> {
-        self.atlas_handles.get(&id)
     }
 }

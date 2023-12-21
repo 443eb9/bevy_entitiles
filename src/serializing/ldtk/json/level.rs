@@ -1,14 +1,15 @@
 use bevy::{
+    ecs::system::{Commands, EntityCommands},
     math::{UVec2, Vec2},
-    sprite::{SpriteSheetBundle, TextureAtlasSprite},
+    sprite::{MaterialMesh2dBundle, SpriteSheetBundle, TextureAtlasSprite},
     transform::components::Transform,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::serializing::ldtk::resources::LdtkTextures;
+use crate::serializing::ldtk::resources::{LdtkDataMapper, LdtkLevelManager};
 
 use super::{
-    definitions::{LayerType, TilesetRect},
+    definitions::{LayerType, TileRenderMode, TilesetRect},
     field::FieldInstance,
     LdtkColor,
 };
@@ -314,38 +315,34 @@ pub struct EntityInstance {
 }
 
 impl EntityInstance {
-    pub fn generate_sprite(&self, ldtk_textures: &LdtkTextures) -> Option<SpriteSheetBundle> {
-        if let Some(atlas) = self.tile.as_ref() {
-            let tileset = ldtk_textures.get_tileset(atlas.tileset_uid).unwrap();
-            let render_size = tileset.desc.tile_size.as_vec2();
-
-            let self_rel_pos = Vec2 {
-                x: self.world_x as f32,
-                y: -self.world_y as f32 - render_size.y,
-            };
-            let pivot_offset = Vec2 {
-                x: render_size.x * (self.pivot[0] - 0.5),
-                y: render_size.y * (self.pivot[1] + 0.5),
-            };
-
-            let sprite_trans = (self_rel_pos + pivot_offset).extend(1.);
-            let index = UVec2 {
-                x: atlas.x_pos as u32 / tileset.desc.tile_size.x,
-                y: atlas.y_pos as u32 / tileset.desc.tile_size.y,
-            };
-
-            Some(SpriteSheetBundle {
-                sprite: TextureAtlasSprite {
-                    index: (index.y * tileset.desc.size.x + index.x) as usize,
-                    custom_size: Some(render_size.clone()),
-                    ..Default::default()
-                },
-                transform: Transform::from_translation(sprite_trans),
-                texture_atlas: ldtk_textures.get_atlas(atlas.tileset_uid).unwrap().clone(),
-                ..Default::default()
-            })
-        } else {
-            None
+    pub fn generate_sprite(&self, commands: &mut EntityCommands, ldtk_manager: &LdtkLevelManager) {
+        if self.tile.is_none() {
+            return;
         }
+
+        let data_mapper = ldtk_manager.get_data_mapper();
+        commands.insert(MaterialMesh2dBundle {
+            mesh: data_mapper.clone_mesh_handle(&self.iid),
+            material: data_mapper.clone_material_handle(&self.iid),
+            transform: self.get_transform(),
+            ..Default::default()
+        });
+    }
+
+    fn get_transform(&self) -> Transform {
+        let render_size = Vec2 {
+            x: self.width as f32,
+            y: self.height as f32,
+        };
+        let self_rel_pos = Vec2 {
+            x: self.world_x as f32,
+            y: -self.world_y as f32 - render_size.y,
+        };
+        let pivot_offset = Vec2 {
+            x: render_size.x * (0.5 - self.pivot[0]),
+            y: render_size.y * (0.5 + self.pivot[1]),
+        };
+
+        Transform::from_translation((self_rel_pos + pivot_offset).extend(1.))
     }
 }

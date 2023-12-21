@@ -1,8 +1,10 @@
 use bevy::{
     app::{Plugin, Update},
+    asset::{load_internal_asset, Handle},
     ecs::entity::Entity,
     math::{IVec4, UVec2, UVec4, Vec2, Vec4},
-    render::render_resource::FilterMode, reflect::Reflect,
+    reflect::Reflect,
+    render::render_resource::{FilterMode, Shader},
 };
 use serde::{Deserialize, Serialize};
 
@@ -11,6 +13,7 @@ use bevy::utils::HashMap;
 
 use crate::{
     math::aabb::AabbBox2d,
+    reflect::ReflectFilterMode,
     render::{
         buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
@@ -19,17 +22,11 @@ use crate::{
         map::{Tilemap, TilemapRotation, TilemapTransform},
         tile::{AnimatedTile, Tile, TileType},
     },
-    MAX_ANIM_COUNT, reflect::ReflectFilterMode,
+    MAX_ANIM_COUNT,
 };
 
 use self::{
-    ldtk::{
-        entities::LdtkEntityRegistry,
-        events::LdtkEvent,
-        load_ldtk_json,
-        resources::{LdtkLevelManager, LdtkTextures},
-        unload_ldtk_level,
-    },
+    ldtk::EntiTilesLdtkPlugin,
     load::load,
     save::{save, TilemapSaver},
 };
@@ -46,15 +43,9 @@ pub struct EntiTilesSerializingPlugin;
 
 impl Plugin for EntiTilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, (save, load))
-            .add_systems(Update, (load_ldtk_json, unload_ldtk_level));
+        app.add_systems(Update, (save, load));
 
-        app.insert_non_send_resource(LdtkEntityRegistry::default());
-
-        app.init_resource::<LdtkLevelManager>()
-            .init_resource::<LdtkTextures>();
-
-        app.add_event::<LdtkEvent>();
+        app.add_plugins(EntiTilesLdtkPlugin);
     }
 }
 

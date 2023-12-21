@@ -94,7 +94,7 @@ pub struct IntGroupValueGroup {
  * Entity Definition
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityDef {
     /// Base entity color
@@ -137,7 +137,7 @@ pub struct EntityDef {
     pub height: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum TileRenderMode {
     Cover,
     FitInside,
@@ -148,7 +148,21 @@ pub enum TileRenderMode {
     NineSlice,
 }
 
-#[derive(Serialize, Debug)]
+impl TileRenderMode {
+    pub fn as_shader_def(&self) -> String {
+        match self {
+            TileRenderMode::Cover => "COVER".to_string(),
+            TileRenderMode::FitInside => "FIT_INSIDE".to_string(),
+            TileRenderMode::Repeat => "REPEAT".to_string(),
+            TileRenderMode::Stretch => "STRETCH".to_string(),
+            TileRenderMode::FullSizeCropped => "FULL_SIZE_CROPPED".to_string(),
+            TileRenderMode::FullSizeUncropped => "FULL_SIZE_UNCROPPED".to_string(),
+            TileRenderMode::NineSlice => "NINE_SLICE".to_string(),
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
 pub struct NineSliceBorders {
     pub is_valid: bool,
     pub up: i32,
