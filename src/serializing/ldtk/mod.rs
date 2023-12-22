@@ -29,7 +29,7 @@ use self::{
     layer::LdtkLayers,
     physics::analyze_physics_layer,
     resources::LdtkLevelManager,
-    sprites::LdtkEntityMaterial,
+    sprite::LdtkEntityMaterial,
 };
 
 pub mod app_ext;
@@ -41,7 +41,7 @@ pub mod json;
 pub mod layer;
 pub mod physics;
 pub mod resources;
-pub mod sprites;
+pub mod sprite;
 
 pub const ENTITY_SPRITE_SHADER: Handle<Shader> = Handle::weak_from_u128(89874656485416351634163551);
 

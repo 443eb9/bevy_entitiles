@@ -1,5 +1,7 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
+use crate::serializing::ldtk::sprite::NineSliceBorders;
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Definitions {
@@ -160,15 +162,6 @@ impl TileRenderMode {
             TileRenderMode::NineSlice => "NINE_SLICE".to_string(),
         }
     }
-}
-
-#[derive(Serialize, Debug, Clone, Copy)]
-pub struct NineSliceBorders {
-    pub is_valid: bool,
-    pub up: i32,
-    pub right: i32,
-    pub down: i32,
-    pub left: i32,
 }
 
 impl<'de> Deserialize<'de> for NineSliceBorders {
