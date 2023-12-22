@@ -141,6 +141,36 @@ impl TileIndex<UVec2> for UVec2 {
     }
 }
 
+pub trait DivToCeil {
+    fn div_to_ceil(self, other: Self) -> Self;
+}
+
+impl DivToCeil for IVec2 {
+    fn div_to_ceil(self, other: Self) -> Self {
+        let mut result = self / other;
+        if self.x % other.x != 0 {
+            result.x += 1;
+        }
+        if self.y % other.y != 0 {
+            result.y += 1;
+        }
+        result
+    }
+}
+
+impl DivToCeil for UVec2 {
+    fn div_to_ceil(self, other: Self) -> Self {
+        let mut result = self / other;
+        if self.x % other.x != 0 {
+            result.x += 1;
+        }
+        if self.y % other.y != 0 {
+            result.y += 1;
+        }
+        result
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

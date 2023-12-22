@@ -1,15 +1,12 @@
 use bevy::{
-    ecs::system::{Commands, EntityCommands},
-    math::{UVec2, Vec2},
-    sprite::{MaterialMesh2dBundle, SpriteSheetBundle, TextureAtlasSprite},
-    transform::components::Transform,
+    ecs::system::EntityCommands, sprite::MaterialMesh2dBundle, transform::components::Transform,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::serializing::ldtk::resources::{LdtkDataMapper, LdtkLevelManager};
+use crate::serializing::ldtk::resources::LdtkLevelManager;
 
 use super::{
-    definitions::{LayerType, TileRenderMode, TilesetRect},
+    definitions::{LayerType, TilesetRect},
     field::FieldInstance,
     LdtkColor,
 };
@@ -324,25 +321,8 @@ impl EntityInstance {
         commands.insert(MaterialMesh2dBundle {
             mesh: data_mapper.clone_mesh_handle(&self.iid),
             material: data_mapper.clone_material_handle(&self.iid),
-            transform: self.get_transform(),
+            transform: Transform::from_xyz(self.world_x as f32, -self.world_y as f32, 1.),
             ..Default::default()
         });
-    }
-
-    fn get_transform(&self) -> Transform {
-        let render_size = Vec2 {
-            x: self.width as f32,
-            y: self.height as f32,
-        };
-        let self_rel_pos = Vec2 {
-            x: self.world_x as f32,
-            y: -self.world_y as f32 - render_size.y,
-        };
-        let pivot_offset = Vec2 {
-            x: render_size.x * (0.5 - self.pivot[0]),
-            y: render_size.y * (0.5 + self.pivot[1]),
-        };
-
-        Transform::from_translation((self_rel_pos + pivot_offset).extend(1.))
     }
 }

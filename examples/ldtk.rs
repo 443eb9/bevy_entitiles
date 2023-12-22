@@ -50,7 +50,7 @@ fn main() {
             WorldInspectorPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (load, control, events, hot_reload))
+        .add_systems(Update, (load, events, hot_reload))
         .register_type::<Teleport>()
         .register_type::<Player>()
         .register_type::<Item>()
@@ -60,6 +60,7 @@ fn main() {
         .register_ldtk_entity::<Player>("Player")
         .register_ldtk_entity::<Teleport>("Teleport")
         .register_ldtk_entity::<Ladder>("Ladder")
+        .register_ldtk_entity::<SecretArea>("SecretArea")
         .run();
 }
 
@@ -79,10 +80,6 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             parent: "Collisions".to_string(),
         })
         .set_if_ignore_unregistered_entities(true);
-}
-
-fn control(input: Res<Input<KeyCode>>) {
-    if input.just_pressed(KeyCode::Escape) {}
 }
 
 macro_rules! level_control {
@@ -232,6 +229,11 @@ pub struct Player {
 #[spawn_sprite]
 #[ldtk_tag]
 pub struct Ladder;
+
+#[derive(Component, LdtkEntity, Reflect)]
+#[spawn_sprite]
+#[ldtk_tag]
+pub struct SecretArea;
 
 #[derive(Component, LdtkEntity, Reflect)]
 #[spawn_sprite]

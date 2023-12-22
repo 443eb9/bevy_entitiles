@@ -162,7 +162,7 @@ impl TileRenderMode {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub struct NineSliceBorders {
     pub is_valid: bool,
     pub up: i32,

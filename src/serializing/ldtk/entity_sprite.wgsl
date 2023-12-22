@@ -16,6 +16,9 @@ var<uniform> atlas_rect: AtlasRect;
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(texture, texture_sampler,
-                         in.uv * (atlas_rect.max - atlas_rect.min) + atlas_rect.min);
+    // return textureSample(texture, texture_sampler,
+    //                      in.uv * (atlas_rect.max - atlas_rect.min) + atlas_rect.min);
+    return vec4<f32>(mix(textureSample(texture, texture_sampler,
+                         in.uv * (atlas_rect.max - atlas_rect.min) + atlas_rect.min).rgb, vec3<f32>(1., 1., 1.), 0.2), 1.);
+    // return vec4<f32>(1.0);
 }
