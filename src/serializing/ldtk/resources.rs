@@ -13,7 +13,7 @@ use bevy::{
         render_resource::{FilterMode, PrimitiveTopology},
     },
     sprite::{Mesh2dHandle, TextureAtlas},
-    utils::HashMap,
+    utils::{HashMap, HashSet},
 };
 
 use crate::{
@@ -22,6 +22,7 @@ use crate::{
 };
 
 use super::{
+    components::EntityIid,
     json::{
         definitions::{EntityDef, TileRenderMode},
         LdtkJson,
@@ -279,8 +280,6 @@ impl LdtkAssets {
                     }
                 };
 
-                println!("{}", entity_depth[&entity_instance.identifier]);
-
                 let mesh = Mesh::new(PrimitiveTopology::TriangleList)
                     .with_inserted_attribute(
                         Mesh::ATTRIBUTE_POSITION,
@@ -309,6 +308,7 @@ pub struct LdtkLevelManager {
     pub(crate) loaded_levels: HashMap<String, Entity>,
     pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
     pub(crate) ldtk_assets: LdtkAssets,
+    pub(crate) global_entities: HashMap<String, Entity>,
 }
 
 impl LdtkLevelManager {

@@ -14,6 +14,7 @@ use bevy::{
         system::{Commands, EntityCommands, Res, ResMut},
     },
     input::{keyboard::KeyCode, Input},
+    math::Vec2,
     reflect::Reflect,
     render::{mesh::Mesh, texture::ImagePlugin, view::Msaa},
     sprite::TextureAtlas,
@@ -23,6 +24,7 @@ use bevy::{
 use bevy_entitiles::{
     serializing::ldtk::{
         app_ext::AppExt,
+        components::EntityIid,
         entities::LdtkEntity,
         enums::LdtkEnum,
         events::LdtkEvent,
@@ -54,6 +56,7 @@ fn main() {
         .register_type::<Teleport>()
         .register_type::<Player>()
         .register_type::<Item>()
+        .register_type::<EntityIid>()
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
         .register_ldtk_entity::<Item>("Item")
@@ -178,10 +181,16 @@ fn player_spawn(
     // this is takes params that are exactly the same as the LdtkEntity trait
     // you can use this to add more fancy stuff to your entity
     // like adding a collider:
-    commands.insert(Collider::cuboid(
-        entity_instance.width as f32,
-        entity_instance.height as f32,
-    ));
+    let size = Vec2::new(entity_instance.width as f32, entity_instance.height as f32);
+    commands.insert(
+        Collider::convex_hull(vec![
+            Vec2::new(-0.5, 0.) * size,
+            Vec2::new(0.5, 0.) * size,
+            Vec2::new(0.5, 1.) * size,
+            Vec2::new(-0.5, 1.) * size,
+        ])
+        .unwrap(),
+    );
 }
 
 // values here may show unreachable pattern warning

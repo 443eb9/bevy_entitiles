@@ -27,7 +27,9 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
         .find(|attr| attr.path().get_ident().unwrap() == GLOBAL_ENTITY_ATTR);
     let global_entity = {
         if global_entity_attr.is_some() {
-            quote::quote!()
+            quote::quote!(
+                commands.insert(bevy_entitiles::serializing::ldtk::components::GlobalEntity);
+            )
         } else {
             quote::quote!(
                 use bevy::prelude::BuildChildren;

@@ -5,7 +5,7 @@ use bevy::{
         component::Component,
         entity::Entity,
         event::EventWriter,
-        query::With,
+        query::{Added, With},
         system::{Commands, NonSend, Query, Res, ResMut},
     },
     hierarchy::{BuildChildren, DespawnRecursiveExt},
@@ -18,7 +18,7 @@ use bevy::{
 };
 
 use self::{
-    components::{EntityIid, LdtkLoadedLevel, LevelIid},
+    components::{EntityIid, GlobalEntity, LdtkLoadedLevel, LevelIid},
     entities::LdtkEntityRegistry,
     events::{LdtkEvent, LevelEvent},
     json::{
@@ -58,13 +58,25 @@ impl Plugin for EntiTilesLdtkPlugin {
 
         app.add_plugins(Material2dPlugin::<LdtkEntityMaterial>::default());
 
-        app.add_systems(Update, (load_ldtk_json, unload_ldtk_level));
+        app.add_systems(
+            Update,
+            (load_ldtk_json, unload_ldtk_level, global_entity_registerer),
+        );
 
         app.insert_non_send_resource(LdtkEntityRegistry::default());
 
         app.init_resource::<LdtkLevelManager>();
 
         app.add_event::<LdtkEvent>();
+    }
+}
+
+fn global_entity_registerer(
+    mut manager: ResMut<LdtkLevelManager>,
+    query: Query<(Entity, &EntityIid), Added<GlobalEntity>>,
+) {
+    for (entity, iid) in query.iter() {
+        manager.global_entities.insert(iid.0.clone(), entity);
     }
 }
 
@@ -268,9 +280,13 @@ fn load_layer(
         }
         LayerType::Entities => {
             for entity_instance in layer.entity_instances.iter() {
+                if manager.global_entities.contains_key(&entity_instance.iid) {
+                    continue;
+                }
+
                 let phantom_entity = {
-                    if let Some(m) = ident_mapper.get(&entity_instance.identifier) {
-                        m
+                    if let Some(e) = ident_mapper.get(&entity_instance.identifier) {
+                        e
                     } else if !manager.ignore_unregistered_entities {
                         panic!(
                             "Could not find entity type with entity identifier: {}! \
@@ -278,12 +294,11 @@ fn load_layer(
                             entity_instance.identifier
                         );
                     } else {
-                        return;
+                        continue;
                     }
                 };
 
                 let mut new_entity = commands.spawn(EntityIid(entity_instance.iid.clone()));
-
                 let mut fields = entity_instance
                     .field_instances
                     .iter()

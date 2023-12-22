@@ -7,6 +7,9 @@ pub struct LdtkLoadedLevel {
 }
 
 #[derive(Component, Reflect)]
+pub struct GlobalEntity;
+
+#[derive(Component, Reflect, Hash, Eq, PartialEq, Clone)]
 pub struct EntityIid(pub String);
 
 #[derive(Component, Reflect)]
