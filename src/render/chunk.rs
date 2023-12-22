@@ -9,7 +9,10 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::{math::aabb::AabbBox2d, tilemap::tile::TileType};
+use crate::{
+    math::{aabb::AabbBox2d, extension::DivToCeil},
+    tilemap::tile::TileType,
+};
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
@@ -189,7 +192,9 @@ pub struct RenderChunkStorage {
 impl RenderChunkStorage {
     /// Insert new render chunks into the storage for a tilemap.
     pub fn insert_tilemap(&mut self, tilemap: &ExtractedTilemap) {
-        let amount = Self::calculate_render_chunk_count(tilemap.size, tilemap.render_chunk_size);
+        let amount = tilemap
+            .size
+            .div_to_ceil(UVec2::splat(tilemap.render_chunk_size));
         self.value.insert(
             tilemap.id,
             (amount, vec![None; (amount.x * amount.y) as usize]),

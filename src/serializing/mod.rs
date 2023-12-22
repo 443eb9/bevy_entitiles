@@ -1,10 +1,9 @@
 use bevy::{
     app::{Plugin, Update},
-    asset::{load_internal_asset, Handle},
     ecs::entity::Entity,
     math::{IVec4, UVec2, UVec4, Vec2, Vec4},
     reflect::Reflect,
-    render::render_resource::{FilterMode, Shader},
+    render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
 

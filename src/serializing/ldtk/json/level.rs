@@ -317,10 +317,10 @@ impl EntityInstance {
             return;
         }
 
-        let data_mapper = ldtk_manager.get_data_mapper();
+        let ldtk_assets = ldtk_manager.get_ldtk_assets();
         commands.insert(MaterialMesh2dBundle {
-            mesh: data_mapper.clone_mesh_handle(&self.iid),
-            material: data_mapper.clone_material_handle(&self.iid),
+            mesh: ldtk_assets.clone_mesh_handle(&self.iid),
+            material: ldtk_assets.clone_material_handle(&self.iid),
             transform: Transform::from_xyz(self.world_x as f32, -self.world_y as f32, 1.),
             ..Default::default()
         });

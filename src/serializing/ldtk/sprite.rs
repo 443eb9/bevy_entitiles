@@ -84,10 +84,6 @@ impl NineSliceBorders {
             border_pxs.z / tile_size.x,
             border_pxs.w / tile_size.x,
         );
-        let valid_inner_range = [
-            Vec2::new(border_pxs.z, border_pxs.x),
-            Vec2::new(render_size.x - border_pxs.w, render_size.y - border_pxs.y),
-        ];
 
         let mut vertices = Vec::new();
         let mut uvs = Vec::new();
@@ -206,11 +202,29 @@ impl NineSliceBorders {
                 Vec2::new(1. - border_uvs.w, 1. - border_uvs.y),
             ],
         ];
+        let valid_rects = [
+            [
+                Vec2::new(border_pxs.z, 0.),
+                Vec2::new(render_size.x - border_pxs.z, border_pxs.x),
+            ],
+            [
+                Vec2::new(border_pxs.z, render_size.y - border_pxs.y),
+                Vec2::new(render_size.x - border_pxs.w, render_size.y),
+            ],
+            [
+                Vec2::new(0., border_pxs.x),
+                Vec2::new(border_pxs.z, render_size.y - border_pxs.y),
+            ],
+            [
+                Vec2::new(render_size.x - border_pxs.w, border_pxs.x),
+                Vec2::new(render_size.x, render_size.y - border_pxs.y),
+            ],
+        ];
         for i in 0..4 {
             for dx in 0..repeat[i].x {
                 for dy in 0..repeat[i].y {
                     let (dx, dy) = (dx as f32, dy as f32);
-                    vertices.extend_from_slice(&[
+                    let mut v = vec![
                         Vec2 {
                             x: origins[i].x + dx * extents[i].x,
                             y: origins[i].y + dy * extents[i].y,
@@ -227,8 +241,11 @@ impl NineSliceBorders {
                             x: origins[i].x + dx * extents[i].x,
                             y: origins[i].y + (dy + 1.) * extents[i].y,
                         },
-                    ]);
-                    uvs.extend_from_slice(&border_slice_uvs[i]);
+                    ];
+                    let mut u = border_slice_uvs[i].to_vec();
+                    clip_mesh(&mut v, &mut u, valid_rects[i]);
+                    vertices.extend(v);
+                    uvs.extend(u);
                     vertex_indices.extend(base_indices.iter().map(|v| v + quad_count * 4));
                     quad_count += 1;
                 }
@@ -243,16 +260,23 @@ impl NineSliceBorders {
             Vec2::new(1. - border_uvs.y, 1. - border_uvs.w),
             Vec2::new(border_uvs.x, 1. - border_uvs.w),
         ];
+        let valid_inner_range = [
+            Vec2::new(border_pxs.z, border_pxs.x),
+            Vec2::new(render_size.x - border_pxs.w, render_size.y - border_pxs.y),
+        ];
         for dx in 0..tiled_count.x {
             for dy in 0..tiled_count.y {
                 let (dx, dy) = (dx as f32, dy as f32);
-                vertices.extend([
+                let mut v = vec![
                     origin + tiled_size * Vec2::new(dx, dy),
                     origin + tiled_size * Vec2::new(dx + 1., dy),
                     origin + tiled_size * Vec2::new(dx + 1., dy + 1.),
                     origin + tiled_size * Vec2::new(dx, dy + 1.),
-                ]);
-                uvs.extend_from_slice(&inner_slice_uvs);
+                ];
+                let mut u = inner_slice_uvs.to_vec();
+                clip_mesh(&mut v, &mut u, valid_inner_range);
+                vertices.extend(v);
+                uvs.extend(u);
                 vertex_indices.extend(base_indices.iter().map(|v| v + quad_count * 4));
                 quad_count += 1;
             }
@@ -267,4 +291,20 @@ impl NineSliceBorders {
             indices: vertex_indices,
         }
     }
+}
+
+fn clip_mesh(vertices: &mut Vec<Vec2>, uvs: &mut Vec<Vec2>, valid_rect: [Vec2; 2]) {
+    let size = vertices[2] - vertices[0];
+    vertices
+        .iter_mut()
+        .for_each(|v| *v = v.clamp(valid_rect[0], valid_rect[1]));
+    let clipped_size = vertices[2] - vertices[0];
+    let clipped_ratio = clipped_size / size;
+    let uv_size_clipped = (uvs[2] - uvs[0]) * clipped_ratio;
+    *uvs = vec![
+        uvs[0],
+        uvs[0] + Vec2::new(uv_size_clipped.x, 0.),
+        uvs[0] + uv_size_clipped,
+        uvs[0] + Vec2::new(0., uv_size_clipped.y),
+    ];
 }

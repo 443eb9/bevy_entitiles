@@ -172,7 +172,7 @@ fn load_levels(
             level_entity,
             level.layer_instances.len(),
             level_px,
-            &manager.data_mapper,
+            &manager.ldtk_assets,
             translation,
             manager.z_index,
         );

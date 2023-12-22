@@ -7,7 +7,7 @@ use bevy::{
         system::{Commands, Resource},
     },
     log::error,
-    math::{BVec2, IVec2, IVec4, UVec2, Vec2, Vec4, Vec4Swizzles},
+    math::{IVec2, UVec2, Vec2},
     render::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
@@ -17,7 +17,6 @@ use bevy::{
 };
 
 use crate::{
-    math::extension::DivToCeil,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::map::TilemapRotation,
 };
@@ -33,7 +32,7 @@ use super::{
 };
 
 #[derive(Default)]
-pub struct LdtkDataMapper {
+pub struct LdtkAssets {
     pub(crate) associated_file: String,
     /// tileset iid to texture
     pub(crate) tilesets: HashMap<i32, TilemapTexture>,
@@ -47,7 +46,7 @@ pub struct LdtkDataMapper {
     pub(crate) materials: HashMap<String, Handle<LdtkEntityMaterial>>,
 }
 
-impl LdtkDataMapper {
+impl LdtkAssets {
     pub fn get_tileset(&self, tileset_uid: i32) -> &TilemapTexture {
         self.tilesets.get(&tileset_uid).unwrap()
     }
@@ -128,17 +127,25 @@ impl LdtkDataMapper {
             self.entity_defs
                 .insert(entity.identifier.clone(), entity.clone());
         });
+        let entity_depth = ldtk_data
+            .defs
+            .entities
+            .iter()
+            .enumerate()
+            .map(|(index, entity)| {
+                (
+                    entity.identifier.clone(),
+                    (ldtk_data.defs.entities.len() - index) as f32 + manager.z_index as f32,
+                )
+            })
+            .collect::<HashMap<String, f32>>();
 
         ldtk_data
             .levels
             .iter()
-            .map(|level| {
-                level
-                    .layer_instances
-                    .iter()
-                    .map(|layer| layer.entity_instances.iter())
-                    .flatten()
-            })
+            .map(|level| level.layer_instances.iter())
+            .flatten()
+            .map(|layer| layer.entity_instances.iter())
             .flatten()
             .for_each(|entity_instance| {
                 let Some(tile_rect) = entity_instance.tile.as_ref() else {
@@ -272,16 +279,18 @@ impl LdtkDataMapper {
                     }
                 };
 
-                let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-                mesh.insert_attribute(
-                    Mesh::ATTRIBUTE_POSITION,
-                    vertices
-                        .into_iter()
-                        .map(|p| p.extend(manager.z_index as f32))
-                        .collect::<Vec<_>>(),
-                );
-                mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-                mesh.set_indices(Some(Indices::U16(vertex_indices)));
+                println!("{}", entity_depth[&entity_instance.identifier]);
+
+                let mesh = Mesh::new(PrimitiveTopology::TriangleList)
+                    .with_inserted_attribute(
+                        Mesh::ATTRIBUTE_POSITION,
+                        vertices
+                            .into_iter()
+                            .map(|p| p.extend(entity_depth[&entity_instance.identifier]))
+                            .collect::<Vec<_>>(),
+                    )
+                    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
+                    .with_indices(Some(Indices::U16(vertex_indices)));
                 self.meshes
                     .insert(entity_instance.iid.clone(), mesh_assets.add(mesh).into());
             });
@@ -299,7 +308,7 @@ pub struct LdtkLevelManager {
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
     pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
-    pub(crate) data_mapper: LdtkDataMapper,
+    pub(crate) ldtk_assets: LdtkAssets,
 }
 
 impl LdtkLevelManager {
@@ -323,7 +332,7 @@ impl LdtkLevelManager {
         entity_material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
     ) {
-        if self.data_mapper.associated_file == self.file_path {
+        if self.ldtk_assets.associated_file == self.file_path {
             return;
         }
 
@@ -360,15 +369,15 @@ impl LdtkLevelManager {
         entity_material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
     ) {
-        let mut data_mapper = LdtkDataMapper::default();
-        data_mapper.initialize(
+        let mut ldtk_assets = LdtkAssets::default();
+        ldtk_assets.initialize(
             self,
             asset_server,
             atlas_assets,
             entity_material_assets,
             mesh_assets,
         );
-        self.data_mapper = data_mapper;
+        self.ldtk_assets = ldtk_assets;
     }
 
     /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,
@@ -413,9 +422,9 @@ impl LdtkLevelManager {
         self.ldtk_json.as_ref().unwrap()
     }
 
-    pub fn get_data_mapper(&self) -> &LdtkDataMapper {
+    pub fn get_ldtk_assets(&self) -> &LdtkAssets {
         self.check_initialized();
-        &self.data_mapper
+        &self.ldtk_assets
     }
 
     pub fn load(&mut self, commands: &mut Commands, level: &'static str) {

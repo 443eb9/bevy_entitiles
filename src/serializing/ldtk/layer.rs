@@ -20,7 +20,7 @@ use super::{
     components::LayerIid,
     json::level::{LayerInstance, TileInstance},
     physics::LdtkPhysicsLayer,
-    resources::LdtkDataMapper,
+    resources::LdtkAssets,
 };
 
 pub struct LdtkLayers<'a> {
@@ -37,14 +37,14 @@ impl<'a> LdtkLayers<'a> {
         level_entity: Entity,
         total_layers: usize,
         px_size: UVec2,
-        ldtk_data_mapper: &'a LdtkDataMapper,
+        ldtk_assets: &'a LdtkAssets,
         translation: Vec2,
         base_z_index: i32,
     ) -> Self {
         Self {
             level_entity,
             layers: vec![None; total_layers],
-            tilesets: &ldtk_data_mapper.tilesets,
+            tilesets: &ldtk_assets.tilesets,
             px_size,
             translation,
             base_z_index,
