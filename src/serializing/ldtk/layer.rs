@@ -11,6 +11,7 @@ use crate::{
     math::aabb::AabbBox2d,
     render::texture::TilemapTexture,
     tilemap::{
+        layer::{LayerInserter, TileLayer},
         map::{Tilemap, TilemapBuilder},
         tile::{TileBuilder, TileType},
     },
@@ -75,12 +76,16 @@ impl<'a> LdtkLayers<'a> {
         let tile_index = tile_index.as_uvec2();
 
         if tilemap.get(tile_index).is_none() {
-            let mut builder = TileBuilder::new()
-                .with_layer(0, tile.tile_id as u32)
+            let builder = TileBuilder::new()
+                .with_layer(
+                    0,
+                    TileLayer::new()
+                        .with_texture_index(tile.tile_id as u32)
+                        .with_flip_raw(tile.flip as u32),
+                )
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
-            builder.flip[0] = tile.flip as u32;
 
-            tilemap.set(commands, tile_index, &builder);
+            tilemap.set(commands, tile_index, builder);
             (0..4).into_iter().for_each(|i| {
                 tilemap.set_layer_opacity(i, layer.opacity);
             });
@@ -88,10 +93,10 @@ impl<'a> LdtkLayers<'a> {
             tilemap.insert_layer(
                 commands,
                 tile_index,
-                tile.tile_id as u32,
-                Some((tile.flip as u32).into()),
-                true,
-                false,
+                LayerInserter {
+                    is_top: true,
+                    layer: TileLayer::new().with_texture_index(tile.tile_id as u32),
+                },
             );
         }
     }
@@ -143,7 +148,7 @@ impl<'a> LdtkLayers<'a> {
         &mut self,
         commands: &mut Commands,
         physics: &LdtkPhysicsLayer,
-        aabbs: Vec<(UVec2, UVec2)>,
+        aabbs: Vec<(i32, (UVec2, UVec2))>,
     ) {
         let physics_map = self
             .layers
@@ -170,7 +175,7 @@ impl<'a> LdtkLayers<'a> {
             });
         aabbs
             .into_iter()
-            .map(|(min, max)| {
+            .map(|(i, (min, max))| {
                 let min = physics_map.index_inf_to_world(IVec2 {
                     x: min.x as i32,
                     y: (physics_map.size.y - 1 - min.y + 1) as i32,
@@ -179,24 +184,43 @@ impl<'a> LdtkLayers<'a> {
                     x: (max.x + 1) as i32,
                     y: (physics_map.size.y - 1 - max.y) as i32,
                 });
-                AabbBox2d { min, max }
+                (i, AabbBox2d { min, max })
             })
-            .for_each(|aabb| {
+            .for_each(|(i, aabb)| {
                 let mut collider = commands.spawn(TransformBundle {
                     local: Transform::from_translation(aabb.center().extend(0.)),
                     ..Default::default()
                 });
                 collider.set_parent(physics_map.id);
+
                 #[cfg(feature = "physics_xpbd")]
-                collider.insert(bevy_xpbd_2d::components::Collider::cuboid(
-                    aabb.width(),
-                    aabb.height(),
-                ));
+                {
+                    collider.insert((
+                        bevy_xpbd_2d::components::Collider::cuboid(aabb.width(), aabb.height()),
+                        bevy_xpbd_2d::components::RigidBody::Static,
+                    ));
+                    if let Some(coe) = physics.frictions.as_ref().and_then(|f| f.get(&i)) {
+                        collider.insert(bevy_xpbd_2d::components::Friction {
+                            dynamic_coefficient: *coe,
+                            static_coefficient: *coe,
+                            ..Default::default()
+                        });
+                    }
+                }
+
                 #[cfg(feature = "physics_rapier")]
-                collider.insert(bevy_rapier2d::geometry::Collider::cuboid(
-                    aabb.width() / 2.,
-                    aabb.height() / 2.,
-                ));
+                {
+                    collider.insert(bevy_rapier2d::geometry::Collider::cuboid(
+                        aabb.width() / 2.,
+                        aabb.height() / 2.,
+                    ));
+                    if let Some(coe) = physics.frictions.as_ref().and_then(|f| f.get(&i)) {
+                        collider.insert(bevy_rapier2d::geometry::Friction {
+                            coefficient: *coe,
+                            ..Default::default()
+                        });
+                    }
+                }
             });
     }
 }

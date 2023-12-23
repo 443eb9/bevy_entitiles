@@ -1,11 +1,10 @@
 use bevy::{
     hierarchy::BuildChildren,
-    math::UVec4,
     prelude::{Commands, Component, Entity, UVec2, Vec4},
     reflect::Reflect,
 };
 
-use super::map::Tilemap;
+use super::{layer::TileLayer, map::Tilemap};
 
 /// Defines the shape of tiles in a tilemap.
 /// Check the `Coordinate Systems` chapter in README.md to see the details.
@@ -41,30 +40,27 @@ impl From<u32> for TileFlip {
 
 #[derive(Clone)]
 pub struct TileBuilder {
-    pub(crate) texture_indices: Vec<i32>,
+    pub(crate) layers: Vec<TileLayer>,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
-    pub(crate) flip: UVec4,
 }
 
 impl TileBuilder {
     /// Create a new tile builder.
     pub fn new() -> Self {
         Self {
-            texture_indices: Vec::new(),
+            layers: Vec::new(),
             anim: None,
             color: Vec4::ONE,
-            flip: UVec4::ZERO,
         }
     }
 
     #[cfg(feature = "serializing")]
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
-            texture_indices: serialized_tile.texture_indices.clone(),
+            layers: serialized_tile.layers.clone(),
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
-            flip: serialized_tile.flip,
         }
     }
 
@@ -78,16 +74,11 @@ impl TileBuilder {
         self
     }
 
-    pub fn with_layer(mut self, layer: usize, texture_index: u32) -> Self {
-        if layer >= self.texture_indices.len() {
-            self.texture_indices.resize(layer + 1, -1);
+    pub fn with_layer(mut self, index: usize, layer: TileLayer) -> Self {
+        if self.layers.len() <= index {
+            self.layers.resize(index + 1, TileLayer::new());
         }
-        self.texture_indices[layer] = texture_index as i32;
-        self
-    }
-
-    pub fn with_flip(mut self, layer: usize, flip: TileFlip) -> Self {
-        self.flip[layer] |= flip as u32;
+        self.layers[index] = layer;
         self
     }
 
@@ -108,9 +99,8 @@ impl TileBuilder {
             render_chunk_index,
             tilemap_id: tilemap.id,
             index,
-            texture_indices: self.texture_indices.clone(),
+            layers: self.layers.clone(),
             color: self.color,
-            flip: self.flip,
         });
         if let Some(anim) = &self.anim {
             tile.insert(anim.clone());
@@ -127,9 +117,8 @@ pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_indices: Vec<i32>,
+    pub layers: Vec<TileLayer>,
     pub color: Vec4,
-    pub flip: UVec4,
 }
 
 #[derive(Component, Clone, Reflect)]

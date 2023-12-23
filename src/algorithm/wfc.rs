@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{UVec4, Vec4},
+    math::Vec4,
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     reflect::Reflect,
     utils::HashSet,
@@ -19,6 +19,7 @@ use crate::{
     math::{extension::TileIndex, FillArea},
     serializing::SerializedTile,
     tilemap::{
+        layer::TileLayer,
         map::{Tilemap, TilemapPattern},
         tile::{TileBuilder, TileType},
     },
@@ -99,10 +100,9 @@ impl WfcRunner {
             .into_iter()
             .map(|r| SerializedTile {
                 index: UVec2::ZERO,
-                texture_indices: vec![r as i32],
                 color: Vec4::ONE,
+                layers: vec![TileLayer::new().with_texture_index(r as u32)],
                 anim: None,
-                flip: UVec4::ZERO,
             })
             .collect();
 
@@ -548,7 +548,7 @@ impl WfcGrid {
                     tilemap.set(
                         commands,
                         tile.index + self.area.origin,
-                        &TileBuilder::from_serialized_tile(serialized_tile),
+                        TileBuilder::from_serialized_tile(serialized_tile),
                     );
                 }
             }
@@ -762,7 +762,7 @@ pub fn wave_function_collapse_async(
                                 tilemap.set(
                                     &mut c,
                                     min_elem.index,
-                                    &TileBuilder::from_serialized_tile(serialized_tile),
+                                    TileBuilder::from_serialized_tile(serialized_tile),
                                 );
                             }
                             WfcType::MapPattern(_patterns) => {

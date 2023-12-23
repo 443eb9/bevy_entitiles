@@ -10,7 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- [LDtk](https://ldtk.io/) Fully Support
+- [LDtk](https://ldtk.io/) Full Support
 - Physics (for LDtk maps)
 - Pathfinding (for LDtk maps)
 - Wave Function Collapse ( Collapse map from LDtk; Optimization )

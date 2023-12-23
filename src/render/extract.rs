@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::Res,
-    math::{UVec4, Vec3Swizzles},
+    math::Vec3Swizzles,
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
@@ -13,6 +13,7 @@ use bevy::{
 use crate::{
     math::aabb::AabbBox2d,
     tilemap::{
+        layer::TileLayer,
         map::{Tilemap, TilemapTransform},
         tile::{AnimatedTile, Tile, TileType},
     },
@@ -44,10 +45,9 @@ pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_indices: Vec<i32>,
+    pub layers: Vec<TileLayer>,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
-    pub flip: UVec4,
 }
 
 #[derive(Component)]
@@ -106,10 +106,9 @@ pub fn extract_tiles(
                 render_chunk_index: tile.render_chunk_index,
                 tilemap: tile.tilemap_id,
                 index: tile.index,
-                texture_indices: tile.texture_indices.clone(),
+                layers: tile.layers.clone(),
                 color: tile.color,
                 anim,
-                flip: tile.flip,
             },
         ));
     }

@@ -23,6 +23,7 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
+        layer::TileLayer,
         map::{TilemapBuilder, TilemapRotation},
         physics::TileCollision,
         tile::{TileBuilder, TileType},
@@ -71,7 +72,7 @@ fn setup(
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new().with_layer(0, 0),
+        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     tilemap.set_physics_tile_xpbd(&mut commands, UVec2 { x: 19, y: 9 }, None, true);
@@ -106,7 +107,7 @@ fn setup(
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new().with_layer(0, 0),
+        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     tilemap.set_physics_tile_xpbd(&mut commands, UVec2 { x: 19, y: 9 }, None, true);

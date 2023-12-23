@@ -4,7 +4,7 @@ use bevy::{
         event::{EventReader, EventWriter},
         system::{Commands, Query},
     },
-    math::{UVec2, Vec2},
+    math::UVec2,
 };
 use bevy_xpbd_2d::{
     components::{Collider, Friction, RigidBody},
@@ -12,15 +12,11 @@ use bevy_xpbd_2d::{
         collision::contact_reporting::{CollisionEnded, CollisionStarted},
         PhysicsDebugPlugin, PhysicsPlugins,
     },
-    resources::Gravity,
 };
 
 use crate::{
     math::FillArea,
-    tilemap::{
-        map::Tilemap,
-        tile::Tile,
-    },
+    tilemap::{map::Tilemap, tile::Tile},
 };
 
 use super::{get_collision, TileCollision};
@@ -30,8 +26,7 @@ pub struct PhysicsXpbdTilemapPlugin;
 impl Plugin for PhysicsXpbdTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugins(PhysicsPlugins::default())
-            .add_systems(Update, collision_handler)
-            .insert_resource(Gravity(Vec2::ZERO));
+            .add_systems(Update, collision_handler);
 
         #[cfg(feature = "debug")]
         app.add_plugins(PhysicsDebugPlugin::default());
@@ -65,7 +60,7 @@ impl Tilemap {
         let Some(tile_entity) = self.get(index) else {
             return;
         };
-        
+
         let collider = Collider::convex_hull(self.get_tile_convex_hull(index).to_vec()).unwrap();
 
         if is_trigger {

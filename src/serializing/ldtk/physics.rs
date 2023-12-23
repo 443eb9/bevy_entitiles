@@ -1,4 +1,4 @@
-use bevy::math::UVec2;
+use bevy::{math::UVec2, utils::HashMap};
 
 use super::json::{definitions::LayerType, level::LayerInstance};
 
@@ -7,12 +7,13 @@ pub struct LdtkPhysicsLayer {
     pub identifier: String,
     pub air_value: i32,
     pub parent: String,
+    pub frictions: Option<HashMap<i32, f32>>,
 }
 
 pub fn analyze_physics_layer(
     layer: &LayerInstance,
     physics: &LdtkPhysicsLayer,
-) -> Vec<(UVec2, UVec2)> {
+) -> Vec<(i32, (UVec2, UVec2))> {
     if layer.ty != LayerType::IntGrid {
         panic!(
             "The physics layer {:?} is not an IntGrid layer!",
@@ -28,7 +29,7 @@ pub fn analyze_physics_layer(
 }
 
 /// Returns a list of all the aabb colliders in the grid.
-fn parse_grid(mut grid: Vec<i32>, size: UVec2, air_value: i32) -> Vec<(UVec2, UVec2)> {
+fn parse_grid(mut grid: Vec<i32>, size: UVec2, air_value: i32) -> Vec<(i32, (UVec2, UVec2))> {
     let mut aabbs = vec![];
 
     for y in 0..size.y {
@@ -37,6 +38,7 @@ fn parse_grid(mut grid: Vec<i32>, size: UVec2, air_value: i32) -> Vec<(UVec2, UV
                 continue;
             }
 
+            let cur_i = grid[(x + y * size.x) as usize];
             let cur = UVec2 { x, y };
             let mut d = UVec2 {
                 x: if x == size.x - 1 { 0 } else { 1 },
@@ -45,21 +47,21 @@ fn parse_grid(mut grid: Vec<i32>, size: UVec2, air_value: i32) -> Vec<(UVec2, UV
             let mut dst = cur;
             while d.x != 0 || d.y != 0 {
                 for t_x in cur.x..=dst.x {
-                    if get_value(&grid, t_x, dst.y + d.y, size, air_value) == air_value {
+                    if get_value(&grid, t_x, dst.y + d.y, size, air_value) != cur_i {
                         d.y = 0;
                         break;
                     }
                 }
 
                 for t_y in cur.y..=dst.y {
-                    if get_value(&grid, dst.x + d.x, t_y, size, air_value) == air_value {
+                    if get_value(&grid, dst.x + d.x, t_y, size, air_value) != cur_i {
                         d.x = 0;
                         break;
                     }
                 }
 
                 if d == UVec2::ONE
-                    && get_value(&grid, dst.x + 1, dst.y + 1, size, air_value) == air_value
+                    && get_value(&grid, dst.x + 1, dst.y + 1, size, air_value) != cur_i
                 {
                     d.y = 0;
                 }
@@ -68,7 +70,7 @@ fn parse_grid(mut grid: Vec<i32>, size: UVec2, air_value: i32) -> Vec<(UVec2, UV
             }
 
             fill(&mut grid, cur, dst, size, air_value);
-            aabbs.push((cur, dst));
+            aabbs.push((cur_i, (cur, dst)));
         }
     }
     aabbs

@@ -155,7 +155,7 @@ pub fn load(
                     tilemap.set(
                         &mut commands,
                         ser_t.index,
-                        &TileBuilder::from_serialized_tile(ser_t),
+                        TileBuilder::from_serialized_tile(ser_t),
                     );
                 }
             }

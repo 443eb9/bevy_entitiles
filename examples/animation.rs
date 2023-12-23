@@ -56,7 +56,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new().with_animation(AnimatedTile {
+        TileBuilder::new().with_animation(AnimatedTile {
             sequence_index: anim_a,
         }),
     );
@@ -64,7 +64,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
-        &TileBuilder::new().with_animation(AnimatedTile {
+        TileBuilder::new().with_animation(AnimatedTile {
             sequence_index: anim_b,
         }),
     );

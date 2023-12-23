@@ -13,6 +13,7 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         algorithm::path::PathTilemap,
+        layer::TileLayer,
         map::{TilemapBuilder, TilemapRotation},
         tile::{TileBuilder, TileType},
     },
@@ -54,7 +55,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.fill_rect(
         &mut commands,
         FillArea::full(&tilemap),
-        &TileBuilder::new().with_layer(0, 0),
+        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     let mut path_tilemap = PathTilemap::new(tilemap.id());

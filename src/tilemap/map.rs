@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     layer::{LayerInserter, LayerUpdater},
-    tile::{TileBuilder, TileFlip, TileType},
+    tile::{TileBuilder, TileType},
 };
 
 #[derive(Debug, Clone, Copy, Default, Reflect)]
@@ -245,7 +245,7 @@ impl Tilemap {
     /// Set a tile.
     ///
     /// Overwrites the tile if it already exists.
-    pub fn set(&mut self, commands: &mut Commands, index: UVec2, tile_builder: &TileBuilder) {
+    pub fn set(&mut self, commands: &mut Commands, index: UVec2, tile_builder: TileBuilder) {
         if self.is_out_of_tilemap_uvec(index) {
             return;
         }
@@ -268,7 +268,7 @@ impl Tilemap {
             };
 
             if let Some(t) = tile {
-                self.set_unchecked(commands, index, t);
+                self.set_unchecked(commands, index, t.clone());
             } else {
                 self.remove(commands, index);
             }
@@ -279,7 +279,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         index: UVec2,
-        tile_builder: &TileBuilder,
+        tile_builder: TileBuilder,
     ) {
         let vec_idx = self.transform_index(index);
         if let Some(previous) = self.tiles[vec_idx] {
@@ -289,29 +289,14 @@ impl Tilemap {
         self.tiles[vec_idx] = Some(new_tile);
     }
 
-    pub fn insert_layer(
-        &mut self,
-        commands: &mut Commands,
-        index: UVec2,
-        texture_index: u32,
-        flip: Option<TileFlip>,
-        is_top: bool,
-        is_overwrite_if_full: bool,
-    ) {
+    pub fn insert_layer(&mut self, commands: &mut Commands, index: UVec2, inserter: LayerInserter) {
         if let Some(tile) = self.get(index) {
-            commands.entity(tile).insert(LayerInserter {
-                is_top,
-                flip: flip.map(|f| f as u32),
-                texture_index,
-                is_overwrite_if_full,
-            });
+            commands.entity(tile).insert(inserter);
         }
     }
 
-    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: &LayerUpdater) {
-        if self.get(index).is_none()
-            || updater.texture_index.unwrap_or_default().0 >= MAX_LAYER_COUNT
-        {
+    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: LayerUpdater) {
+        if self.get(index).is_none() {
             return;
         }
 
@@ -323,9 +308,9 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         index: UVec2,
-        updater: &LayerUpdater,
+        updater: LayerUpdater,
     ) {
-        commands.entity(self.get(index).unwrap()).insert(*updater);
+        commands.entity(self.get(index).unwrap()).insert(updater);
     }
 
     /// Set the opacity of a layer. Default is 1 for each layer.
@@ -359,12 +344,12 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         area: FillArea,
-        tile_builder: &TileBuilder,
+        tile_builder: TileBuilder,
     ) {
         let builder = tile_builder.clone();
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set_unchecked(commands, UVec2 { x, y }, &builder);
+                self.set_unchecked(commands, UVec2 { x, y }, builder.clone());
             }
         }
     }
@@ -386,7 +371,7 @@ impl Tilemap {
                 } else {
                     UVec2::new(x, y)
                 });
-                self.set_unchecked(commands, UVec2 { x, y }, &builder);
+                self.set_unchecked(commands, UVec2 { x, y }, builder);
             }
         }
     }
@@ -409,7 +394,7 @@ impl Tilemap {
     // }
 
     /// Simlar to `Tilemap::fill_rect()`.
-    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: &LayerUpdater) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: LayerUpdater) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 self.update(commands, UVec2 { x, y }, updater);
@@ -430,7 +415,7 @@ impl Tilemap {
                 self.update(
                     commands,
                     UVec2 { x, y },
-                    &updater(if relative_index {
+                    updater(if relative_index {
                         UVec2 { x, y } - area.origin
                     } else {
                         UVec2 { x, y }

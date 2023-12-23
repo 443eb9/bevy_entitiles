@@ -11,7 +11,8 @@ use bevy::{
         component::Component,
         entity::Entity,
         event::EventReader,
-        system::{Commands, EntityCommands, Res, ResMut},
+        query::With,
+        system::{Commands, EntityCommands, Query, Res, ResMut},
     },
     input::{keyboard::KeyCode, Input},
     math::Vec2,
@@ -24,7 +25,6 @@ use bevy::{
 use bevy_entitiles::{
     serializing::ldtk::{
         app_ext::AppExt,
-        components::EntityIid,
         entities::LdtkEntity,
         enums::LdtkEnum,
         events::LdtkEvent,
@@ -37,7 +37,11 @@ use bevy_entitiles::{
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_xpbd_2d::components::Collider;
+use bevy_xpbd_2d::{
+    components::{Collider, Friction, LinearVelocity, Mass, RigidBody},
+    plugins::{collision::contact_reporting::Collision, debug::PhysicsDebugConfig},
+    resources::Gravity,
+};
 use helpers::EntiTilesDebugPlugin;
 
 mod helpers;
@@ -48,17 +52,20 @@ fn main() {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
-            // PhysicsDebugPlugin::default(),
             WorldInspectorPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (load, events, hot_reload))
+        .add_systems(
+            Update,
+            (load, events, hot_reload, player_control, collision),
+        )
         .register_type::<Teleport>()
         .register_type::<Player>()
         .register_type::<Item>()
-        .register_type::<EntityIid>()
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
+        .insert_resource(Gravity(Vec2::new(0., -9.8)))
+        .insert_resource(PhysicsDebugConfig::all())
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
         .register_ldtk_entity::<Teleport>("Teleport")
@@ -81,6 +88,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             identifier: "PhysicsColliders".to_string(),
             air_value: 0,
             parent: "Collisions".to_string(),
+            frictions: Some(HashMap::from([(0, 0.5), (0, 0.1)])),
         })
         .set_if_ignore_unregistered_entities(true);
 }
@@ -155,6 +163,27 @@ fn events(mut ldtk_events: EventReader<LdtkEvent>) {
     }
 }
 
+fn player_control(mut query: Query<&mut LinearVelocity, With<Player>>, input: Res<Input<KeyCode>>) {
+    let Ok(mut player) = query.get_single_mut() else {
+        return;
+    };
+    if input.pressed(KeyCode::Left) {
+        player.x -= 100.;
+    }
+    if input.pressed(KeyCode::Right) {
+        player.x += 100.;
+    }
+    if input.pressed(KeyCode::Space) {
+        player.y += 100.;
+    }
+}
+
+fn collision(mut ev: EventReader<Collision>) {
+    for event in ev.read() {
+        println!("{:?}", event.0);
+    }
+}
+
 // this function will be called when the player entity is GOING TO BE spawned
 // which means the entity still has no components
 // you can consider this as a "extension"
@@ -182,15 +211,23 @@ fn player_spawn(
     // you can use this to add more fancy stuff to your entity
     // like adding a collider:
     let size = Vec2::new(entity_instance.width as f32, entity_instance.height as f32);
-    commands.insert(
-        Collider::convex_hull(vec![
-            Vec2::new(-0.5, 0.) * size,
-            Vec2::new(0.5, 0.) * size,
-            Vec2::new(0.5, 1.) * size,
-            Vec2::new(-0.5, 1.) * size,
-        ])
-        .unwrap(),
-    );
+    commands.insert((
+        // Collider::convex_hull(vec![
+        //     Vec2::new(-0.5, 0.) * size,
+        //     Vec2::new(0.5, 0.) * size,
+        //     Vec2::new(0.5, 1.) * size,
+        //     Vec2::new(-0.5, 1.) * size,
+        // ])
+        // .unwrap(),
+        Collider::cuboid(size.x, size.y),
+        RigidBody::Dynamic,
+        Friction {
+            dynamic_coefficient: 0.5,
+            static_coefficient: 0.5,
+            ..Default::default()
+        },
+        Mass(100.),
+    ));
 }
 
 // values here may show unreachable pattern warning

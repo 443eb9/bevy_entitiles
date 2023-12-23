@@ -1,17 +1,50 @@
-use bevy::{ecs::{
-    component::Component,
-    entity::Entity,
-    system::{ParallelCommands, Query},
-}, reflect::Reflect, math::Vec4};
+use bevy::{
+    ecs::{
+        component::Component,
+        entity::Entity,
+        system::{ParallelCommands, Query},
+    },
+    math::Vec4,
+    reflect::Reflect,
+};
 
-use super::tile::Tile;
+use super::tile::{Tile, TileFlip};
+
+#[derive(Debug, Default, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TileLayer {
+    pub(crate) texture_index: i32,
+    pub(crate) flip: u32,
+}
+
+impl TileLayer {
+    pub fn new() -> Self {
+        Self {
+            texture_index: -1,
+            flip: 0,
+        }
+    }
+
+    pub fn with_texture_index(mut self, texture_index: u32) -> Self {
+        self.texture_index = texture_index as i32;
+        self
+    }
+
+    pub fn with_flip(mut self, flip: TileFlip) -> Self {
+        self.flip |= flip as u32;
+        self
+    }
+
+    pub(crate) fn with_flip_raw(mut self, flip: u32) -> Self {
+        self.flip = flip;
+        self
+    }
+}
 
 #[derive(Component, Reflect)]
 pub struct LayerInserter {
     pub is_top: bool,
-    pub is_overwrite_if_full: bool,
-    pub texture_index: u32,
-    pub flip: Option<u32>,
+    pub layer: TileLayer,
 }
 
 pub fn layer_inserter(
@@ -22,9 +55,9 @@ pub fn layer_inserter(
         .par_iter_mut()
         .for_each(|(entity, mut tile, inserter)| {
             if inserter.is_top {
-                tile.texture_indices.push(inserter.texture_index as i32);
+                tile.layers.push(inserter.layer);
             } else {
-                tile.texture_indices.insert(0, inserter.texture_index as i32);
+                tile.layers.insert(0, inserter.layer);
             }
 
             commands.command_scope(|mut c| {
@@ -35,24 +68,21 @@ pub fn layer_inserter(
 
 #[derive(Default, Component, Clone, Copy, Reflect)]
 pub struct LayerUpdater {
-    pub texture_index: Option<(usize, u32)>,
+    pub index: Option<usize>,
+    pub layer: TileLayer,
     pub color: Option<Vec4>,
-    pub flip: Option<(usize, u32)>,
 }
 
 pub fn layer_updater(mut tiles_query: Query<(&mut Tile, &LayerUpdater)>) {
     tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
-        if let Some((layer, texture_index)) = updater.texture_index {
-            if layer >= tile.texture_indices.len() {
-                tile.texture_indices.resize(layer + 1, -1);
+        if let (Some(index), layer) = (updater.index, updater.layer) {
+            if index >= tile.layers.len() {
+                tile.layers.resize(index + 1, TileLayer::new());
             }
-            tile.texture_indices[layer] = texture_index as i32;
+            tile.layers[index] = layer;
         }
         if let Some(color) = updater.color {
             tile.color = color;
-        }
-        if let Some((layer, flip)) = updater.flip {
-            tile.flip[layer] = flip;
         }
     });
 }

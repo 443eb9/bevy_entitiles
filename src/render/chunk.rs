@@ -11,7 +11,8 @@ use bevy::{
 
 use crate::{
     math::{aabb::AabbBox2d, extension::DivToCeil},
-    tilemap::tile::TileType, MAX_LAYER_COUNT,
+    tilemap::tile::TileType,
+    MAX_LAYER_COUNT,
 };
 
 use super::{
@@ -165,18 +166,20 @@ impl TilemapRenderChunk {
         let index = self.tiles.len() - index - 1;
 
         let mut texture_indices = IVec4::NEG_ONE;
+        let mut flip = UVec4::ZERO;
         let tile_index = {
             if let Some(anim) = tile.anim.as_ref() {
                 texture_indices[0] = anim.sequence_index as i32;
                 tile.index.extend(1)
             } else {
-                tile.texture_indices
+                tile.layers
                     .iter()
                     .enumerate()
                     .rev()
                     .take(MAX_LAYER_COUNT)
                     .for_each(|(i, t)| {
-                        texture_indices[i] = *t;
+                        texture_indices[i] = t.texture_index;
+                        flip[i] = t.flip;
                     });
                 tile.index.extend(0)
             }
@@ -186,7 +189,7 @@ impl TilemapRenderChunk {
             index: tile_index,
             texture_indices,
             color: tile.color,
-            flip: tile.flip,
+            flip,
         });
         self.dirty_mesh = true;
     }

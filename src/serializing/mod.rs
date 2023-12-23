@@ -1,7 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{UVec2, UVec4, Vec2, Vec4},
+    math::{UVec2, Vec2, Vec4},
     reflect::Reflect,
     render::render_resource::FilterMode,
 };
@@ -18,6 +18,7 @@ use crate::{
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
+        layer::TileLayer,
         map::{Tilemap, TilemapRotation, TilemapTransform},
         tile::{AnimatedTile, Tile, TileType},
     },
@@ -198,20 +199,18 @@ pub enum TilemapLayer {
 #[derive(Serialize, Deserialize, Clone, Reflect)]
 pub struct SerializedTile {
     pub index: UVec2,
-    pub texture_indices: Vec<i32>,
+    pub layers: Vec<TileLayer>,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
-    pub flip: UVec4,
 }
 
 impl SerializedTile {
     fn from_tile(tile: Tile, anim: Option<AnimatedTile>) -> Self {
         Self {
             index: tile.index,
-            texture_indices: tile.texture_indices,
+            layers: tile.layers,
             color: tile.color,
             anim,
-            flip: tile.flip,
         }
     }
 }

@@ -32,7 +32,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     var position_world = vec4<f32>((tilemap.rot_mat * position_model) + tilemap.translation, 0., 1.);
 
     output.position = view.view_proj * position_world;
-    output.color = pow(input.color, vec4<f32>(2.2));
+    output.color = vec4<f32>(pow(input.color.rgb, vec3<f32>(2.2)), input.color.a);
 
 #ifndef PURE_COLOR
     output.is_animated = input.index.z;
@@ -82,7 +82,7 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
                                       uv, input.texture_indices[i]);
-        color = mix(color, tex_color, tex_color.a * pow(tilemap.layer_opacities[i], 1. / 2.2));
+        color = mix(color, tex_color, tex_color.a * tilemap.layer_opacities[i]);
 
         if input.is_animated == 1u {
             break;
