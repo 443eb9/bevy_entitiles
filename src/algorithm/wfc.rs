@@ -3,9 +3,10 @@ use std::fs::read_to_string;
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{IVec4, Vec4, UVec4},
+    math::{UVec4, Vec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
-    utils::HashSet, reflect::Reflect,
+    reflect::Reflect,
+    utils::HashSet,
 };
 use rand::{
     distributions::{Uniform, WeightedIndex},
@@ -96,16 +97,12 @@ impl WfcRunner {
 
         let tiles = (0..rule.len())
             .into_iter()
-            .map(|r| {
-                let mut texture_indices = IVec4::NEG_ONE;
-                texture_indices[0] = r as i32;
-                SerializedTile {
-                    index: UVec2::ZERO,
-                    texture_indices,
-                    color: Vec4::ONE,
-                    anim: None,
-                    flip: UVec4::ZERO,
-                }
+            .map(|r| SerializedTile {
+                index: UVec2::ZERO,
+                texture_indices: vec![r as i32],
+                color: Vec4::ONE,
+                anim: None,
+                flip: UVec4::ZERO,
             })
             .collect();
 

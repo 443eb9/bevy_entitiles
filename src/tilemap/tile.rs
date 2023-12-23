@@ -1,11 +1,9 @@
 use bevy::{
-    ecs::system::Query,
     hierarchy::BuildChildren,
-    math::{IVec4, UVec4},
-    prelude::{Commands, Component, Entity, UVec2, Vec4}, reflect::Reflect,
+    math::UVec4,
+    prelude::{Commands, Component, Entity, UVec2, Vec4},
+    reflect::Reflect,
 };
-
-use crate::MAX_LAYER_COUNT;
 
 use super::map::Tilemap;
 
@@ -43,7 +41,7 @@ impl From<u32> for TileFlip {
 
 #[derive(Clone)]
 pub struct TileBuilder {
-    pub(crate) texture_indices: IVec4,
+    pub(crate) texture_indices: Vec<i32>,
     pub(crate) anim: Option<AnimatedTile>,
     pub(crate) color: Vec4,
     pub(crate) flip: UVec4,
@@ -53,7 +51,7 @@ impl TileBuilder {
     /// Create a new tile builder.
     pub fn new() -> Self {
         Self {
-            texture_indices: IVec4::NEG_ONE,
+            texture_indices: Vec::new(),
             anim: None,
             color: Vec4::ONE,
             flip: UVec4::ZERO,
@@ -63,7 +61,7 @@ impl TileBuilder {
     #[cfg(feature = "serializing")]
     pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
         Self {
-            texture_indices: serialized_tile.texture_indices,
+            texture_indices: serialized_tile.texture_indices.clone(),
             anim: serialized_tile.anim.clone(),
             color: serialized_tile.color,
             flip: serialized_tile.flip,
@@ -81,14 +79,10 @@ impl TileBuilder {
     }
 
     pub fn with_layer(mut self, layer: usize, texture_index: u32) -> Self {
-        if self.anim.is_none() && layer < MAX_LAYER_COUNT {
-            self.texture_indices[layer] = texture_index as i32;
-        } else {
-            panic!(
-                "Trying to add a layer to an animated tile or the layer index is out of bounds!"
-            );
+        if layer >= self.texture_indices.len() {
+            self.texture_indices.resize(layer + 1, -1);
         }
-
+        self.texture_indices[layer] = texture_index as i32;
         self
     }
 
@@ -108,13 +102,13 @@ impl TileBuilder {
                     + render_chunk_index_2d.x
             }
         } as usize;
-        
+
         let mut tile = commands.spawn_empty();
         tile.insert(Tile {
             render_chunk_index,
             tilemap_id: tilemap.id,
             index,
-            texture_indices: self.texture_indices,
+            texture_indices: self.texture_indices.clone(),
             color: self.color,
             flip: self.flip,
         });
@@ -133,7 +127,7 @@ pub struct Tile {
     pub tilemap_id: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub texture_indices: IVec4,
+    pub texture_indices: Vec<i32>,
     pub color: Vec4,
     pub flip: UVec4,
 }
@@ -142,25 +136,4 @@ pub struct Tile {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnimatedTile {
     pub sequence_index: usize,
-}
-
-#[derive(Default, Component, Clone, Copy, Reflect)]
-pub struct TileUpdater {
-    pub texture_index: Option<(usize, u32)>,
-    pub color: Option<Vec4>,
-    pub flip: Option<(usize, u32)>,
-}
-
-pub fn tile_updater(mut tiles_query: Query<(&mut Tile, &TileUpdater)>) {
-    tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
-        if let Some((layer, texture_index)) = updater.texture_index {
-            tile.texture_indices[layer] = texture_index as i32;
-        }
-        if let Some(color) = updater.color {
-            tile.color = color;
-        }
-        if let Some((layer, flip)) = updater.flip {
-            tile.flip[layer] = flip;
-        }
-    });
 }

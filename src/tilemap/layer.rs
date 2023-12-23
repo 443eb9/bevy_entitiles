@@ -2,9 +2,7 @@ use bevy::{ecs::{
     component::Component,
     entity::Entity,
     system::{ParallelCommands, Query},
-}, reflect::Reflect};
-
-use crate::MAX_LAYER_COUNT;
+}, reflect::Reflect, math::Vec4};
 
 use super::tile::Tile;
 
@@ -24,9 +22,9 @@ pub fn layer_inserter(
         .par_iter_mut()
         .for_each(|(entity, mut tile, inserter)| {
             if inserter.is_top {
-                insert_top(&mut tile, inserter);
+                tile.texture_indices.push(inserter.texture_index as i32);
             } else {
-                insert_bottom(&mut tile, inserter);
+                tile.texture_indices.insert(0, inserter.texture_index as i32);
             }
 
             commands.command_scope(|mut c| {
@@ -35,42 +33,26 @@ pub fn layer_inserter(
         });
 }
 
-fn insert_top(tile: &mut Tile, inserter: &LayerInserter) {
-    let mut j = MAX_LAYER_COUNT;
-    for i in (0..MAX_LAYER_COUNT).rev() {
-        if tile.texture_indices[i] > 0 {
-            if j < MAX_LAYER_COUNT {
-                tile.texture_indices[j] = inserter.texture_index as i32;
-                if let Some(f) = inserter.flip {
-                    tile.flip[j] = f;
-                }
-                return;
-            }
-            break;
-        }
-        j -= 1;
-    }
-    if inserter.is_overwrite_if_full {
-        tile.texture_indices[MAX_LAYER_COUNT - 1] = inserter.texture_index as i32;
-    }
+#[derive(Default, Component, Clone, Copy, Reflect)]
+pub struct LayerUpdater {
+    pub texture_index: Option<(usize, u32)>,
+    pub color: Option<Vec4>,
+    pub flip: Option<(usize, u32)>,
 }
 
-fn insert_bottom(tile: &mut Tile, inserter: &LayerInserter) {
-    let mut j = -1;
-    for i in 0..MAX_LAYER_COUNT {
-        if tile.texture_indices[i] > 0 {
-            if j > 0 {
-                tile.texture_indices[j as usize] = inserter.texture_index as i32;
-                if let Some(f) = inserter.flip {
-                    tile.flip[j as usize] = f;
-                }
-                return;
+pub fn layer_updater(mut tiles_query: Query<(&mut Tile, &LayerUpdater)>) {
+    tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
+        if let Some((layer, texture_index)) = updater.texture_index {
+            if layer >= tile.texture_indices.len() {
+                tile.texture_indices.resize(layer + 1, -1);
             }
-            break;
+            tile.texture_indices[layer] = texture_index as i32;
         }
-        j += 1;
-    }
-    if inserter.is_overwrite_if_full {
-        tile.texture_indices[0] = inserter.texture_index as i32;
-    }
+        if let Some(color) = updater.color {
+            tile.color = color;
+        }
+        if let Some((layer, flip)) = updater.flip {
+            tile.flip[layer] = flip;
+        }
+    });
 }

@@ -13,7 +13,7 @@ use bevy::{
         render_resource::{FilterMode, PrimitiveTopology},
     },
     sprite::{Mesh2dHandle, TextureAtlas},
-    utils::{HashMap, HashSet},
+    utils::HashMap,
 };
 
 use crate::{
@@ -22,7 +22,6 @@ use crate::{
 };
 
 use super::{
-    components::EntityIid,
     json::{
         definitions::{EntityDef, TileRenderMode},
         LdtkJson,

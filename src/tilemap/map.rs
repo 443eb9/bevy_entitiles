@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{
-    layer::LayerInserter,
-    tile::{TileBuilder, TileFlip, TileType, TileUpdater},
+    layer::{LayerInserter, LayerUpdater},
+    tile::{TileBuilder, TileFlip, TileType},
 };
 
 #[derive(Debug, Clone, Copy, Default, Reflect)]
@@ -308,7 +308,7 @@ impl Tilemap {
         }
     }
 
-    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: &TileUpdater) {
+    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: &LayerUpdater) {
         if self.get(index).is_none()
             || updater.texture_index.unwrap_or_default().0 >= MAX_LAYER_COUNT
         {
@@ -323,7 +323,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         index: UVec2,
-        updater: &TileUpdater,
+        updater: &LayerUpdater,
     ) {
         commands.entity(self.get(index).unwrap()).insert(*updater);
     }
@@ -409,7 +409,7 @@ impl Tilemap {
     // }
 
     /// Simlar to `Tilemap::fill_rect()`.
-    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: &TileUpdater) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: &LayerUpdater) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 self.update(commands, UVec2 { x, y }, updater);
@@ -422,7 +422,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         area: FillArea,
-        mut updater: impl FnMut(UVec2) -> TileUpdater,
+        mut updater: impl FnMut(UVec2) -> LayerUpdater,
         relative_index: bool,
     ) {
         for y in area.origin.y..=area.dest.y {
@@ -494,7 +494,7 @@ impl Tilemap {
     }
 
     /// Get the world position of the center of a slot.
-    /// 
+    ///
     /// This method does not limit the index to the tilemap size.
     #[inline]
     pub fn index_inf_to_world(&self, index: IVec2) -> Vec2 {

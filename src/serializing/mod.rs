@@ -1,7 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{IVec4, UVec2, UVec4, Vec2, Vec4},
+    math::{UVec2, UVec4, Vec2, Vec4},
     reflect::Reflect,
     render::render_resource::FilterMode,
 };
@@ -198,7 +198,7 @@ pub enum TilemapLayer {
 #[derive(Serialize, Deserialize, Clone, Reflect)]
 pub struct SerializedTile {
     pub index: UVec2,
-    pub texture_indices: IVec4,
+    pub texture_indices: Vec<i32>,
     pub color: Vec4,
     pub anim: Option<AnimatedTile>,
     pub flip: UVec4,

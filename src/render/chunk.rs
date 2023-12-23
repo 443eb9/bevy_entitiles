@@ -11,7 +11,7 @@ use bevy::{
 
 use crate::{
     math::{aabb::AabbBox2d, extension::DivToCeil},
-    tilemap::tile::TileType,
+    tilemap::tile::TileType, MAX_LAYER_COUNT,
 };
 
 use super::{
@@ -164,13 +164,21 @@ impl TilemapRenderChunk {
         // TODO fix this. This allows the tile sort by y axis. But this approach looks weird.
         let index = self.tiles.len() - index - 1;
 
-        let (tile_index, texture_indices) = {
+        let mut texture_indices = IVec4::NEG_ONE;
+        let tile_index = {
             if let Some(anim) = tile.anim.as_ref() {
-                let mut tex_idxes = tile.texture_indices;
-                tex_idxes.x = anim.sequence_index as i32;
-                (tile.index.extend(1), tex_idxes)
+                texture_indices[0] = anim.sequence_index as i32;
+                tile.index.extend(1)
             } else {
-                (tile.index.extend(0), tile.texture_indices)
+                tile.texture_indices
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .take(MAX_LAYER_COUNT)
+                    .for_each(|(i, t)| {
+                        texture_indices[i] = *t;
+                    });
+                tile.index.extend(0)
             }
         };
 
