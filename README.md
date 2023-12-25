@@ -2,7 +2,7 @@
 
 A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
-This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
+~~This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )~~Caught a cold on 12.24 and feeling not good. Will stop committing for a few days.
 
 It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
 
