@@ -7,7 +7,7 @@ use bevy::{
         system::{Commands, Resource},
     },
     log::error,
-    math::{IVec2, UVec2, Vec2},
+    math::{IVec2, UVec2},
     render::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
@@ -22,10 +22,7 @@ use crate::{
 };
 
 use super::{
-    json::{
-        definitions::{EntityDef, TileRenderMode},
-        LdtkJson,
-    },
+    json::{definitions::EntityDef, LdtkJson},
     physics::LdtkPhysicsLayer,
     sprite::{AtlasRect, LdtkEntityMaterial},
     LdtkLoader, LdtkUnloader,
@@ -127,18 +124,6 @@ impl LdtkAssets {
             self.entity_defs
                 .insert(entity.identifier.clone(), entity.clone());
         });
-        let entity_depth = ldtk_data
-            .defs
-            .entities
-            .iter()
-            .enumerate()
-            .map(|(index, entity)| {
-                (
-                    entity.identifier.clone(),
-                    (ldtk_data.defs.entities.len() - index) as f32 + manager.z_index as f32,
-                )
-            })
-            .collect::<HashMap<String, f32>>();
 
         ldtk_data
             .levels
@@ -152,7 +137,6 @@ impl LdtkAssets {
                     return;
                 };
 
-                let tile_size = Vec2::new(tile_rect.width as f32, tile_rect.height as f32);
                 let texture_size = self.get_tileset(tile_rect.tileset_uid).desc.size.as_vec2();
                 self.materials.insert(
                     entity_instance.iid.clone(),
@@ -171,124 +155,34 @@ impl LdtkAssets {
                     }),
                 );
 
-                let pivot = Vec2::new(entity_instance.pivot[0], -entity_instance.pivot[1]);
-                let render_size =
-                    Vec2::new(entity_instance.width as f32, entity_instance.height as f32);
-                /*
-                 * 0 - 1
-                 * | / |
-                 * 3 - 2
-                 */
-                let corner_pos = [
-                    Vec2::new(0., 0.) - pivot,
-                    Vec2::new(1., 0.) - pivot,
-                    Vec2::new(1., -1.) - pivot,
-                    Vec2::new(0., -1.) - pivot,
-                ];
-                let corner_uv = [Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
-
-                let (vertices, uvs, vertex_indices) = match self.entity_defs
-                    [&entity_instance.identifier]
+                let sprite_mesh = self.entity_defs[&entity_instance.identifier]
                     .tile_render_mode
-                {
-                    TileRenderMode::Cover => {
-                        let d_x = render_size.x / tile_rect.width as f32;
-                        let d_y = render_size.y / tile_rect.height as f32;
-                        let tile_size = d_x.max(d_y) * tile_size;
+                    .get_mesh(entity_instance, tile_rect, &self.entity_defs);
+                
+                let entity_depth = ldtk_data
+                    .defs
+                    .entities
+                    .iter()
+                    .enumerate()
+                    .map(|(index, entity)| {
                         (
-                            corner_pos
-                                .into_iter()
-                                .map(|p| p * render_size)
-                                .collect::<Vec<_>>(),
-                            corner_uv
-                                .into_iter()
-                                .map(|p| {
-                                    (p) * render_size / tile_size
-                                        + pivot * (1. - render_size / tile_size)
-                                })
-                                .collect(),
-                            vec![0, 3, 1, 1, 3, 2],
+                            entity.identifier.clone(),
+                            (ldtk_data.defs.entities.len() - index) as f32 + manager.z_index as f32,
                         )
-                    }
-                    TileRenderMode::FitInside => {
-                        let d_x = render_size.x / tile_rect.width as f32;
-                        let d_y = render_size.y / tile_rect.height as f32;
-                        let size = d_x.min(d_y) * tile_size;
-                        (
-                            corner_pos.into_iter().map(|p| p * size).collect(),
-                            corner_uv.to_vec(),
-                            vec![0, 3, 1, 1, 3, 2],
-                        )
-                    }
-                    TileRenderMode::Repeat => {
-                        let mut vertices = Vec::new();
-                        let mut uvs = Vec::new();
-                        let mut vertex_indices = Vec::new();
-                        let mut i = 0;
-                        for dy in 0..entity_instance.height / tile_rect.height {
-                            for dx in 0..entity_instance.width / tile_rect.width {
-                                let offset = Vec2::new(dx as f32, -dy as f32) * tile_size;
-                                vertices
-                                    .extend(corner_pos.into_iter().map(|p| p * tile_size + offset));
-                                uvs.extend(corner_uv.to_vec());
-                                vertex_indices
-                                    .extend(vec![0, 3, 1, 1, 3, 2].into_iter().map(|v| v + i * 4));
-                                i += 1;
-                            }
-                        }
-                        (vertices, uvs, vertex_indices)
-                    }
-                    TileRenderMode::Stretch => (
-                        corner_pos.into_iter().map(|p| p * render_size).collect(),
-                        corner_uv.to_vec(),
-                        vec![0, 3, 1, 1, 3, 2],
-                    ),
-                    TileRenderMode::FullSizeCropped => {
-                        let d_x = render_size.x / tile_rect.width as f32;
-                        let d_y = render_size.y / tile_rect.height as f32;
-                        let size = Vec2::new(d_x.min(1.), d_y.min(1.)) * tile_size;
-                        let uv_scale = size / tile_size;
-                        let pivot = Vec2::new(pivot.x, -pivot.y);
-                        (
-                            corner_pos.into_iter().map(|p| p * size).collect(),
-                            corner_uv
-                                .into_iter()
-                                .map(|p| p * uv_scale + pivot * (1. - uv_scale))
-                                .collect(),
-                            vec![0, 3, 1, 1, 3, 2],
-                        )
-                    }
-                    TileRenderMode::FullSizeUncropped => (
-                        corner_pos.into_iter().map(|p| p * tile_size).collect(),
-                        corner_uv.to_vec(),
-                        vec![0, 3, 1, 1, 3, 2],
-                    ),
-                    TileRenderMode::NineSlice => {
-                        let nine_slice_mesh = self.entity_defs[&entity_instance.identifier]
-                            .nine_slice_borders
-                            .generate_mesh(
-                                IVec2::new(entity_instance.width, entity_instance.height),
-                                IVec2::new(tile_rect.width, tile_rect.height),
-                                pivot,
-                            );
-                        (
-                            nine_slice_mesh.vertices,
-                            nine_slice_mesh.uvs,
-                            nine_slice_mesh.indices,
-                        )
-                    }
-                };
+                    })
+                    .collect::<HashMap<String, f32>>();
 
                 let mesh = Mesh::new(PrimitiveTopology::TriangleList)
                     .with_inserted_attribute(
                         Mesh::ATTRIBUTE_POSITION,
-                        vertices
+                        sprite_mesh
+                            .vertices
                             .into_iter()
                             .map(|p| p.extend(entity_depth[&entity_instance.identifier]))
                             .collect::<Vec<_>>(),
                     )
-                    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
-                    .with_indices(Some(Indices::U16(vertex_indices)));
+                    .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, sprite_mesh.uvs)
+                    .with_indices(Some(Indices::U16(sprite_mesh.indices)));
                 self.meshes
                     .insert(entity_instance.iid.clone(), mesh_assets.add(mesh).into());
             });

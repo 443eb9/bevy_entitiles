@@ -7,12 +7,19 @@ use bevy::{
         texture::Image,
     },
     sprite::Material2d,
+    utils::HashMap,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::math::extension::DivToCeil;
 
-use super::{json::definitions::TilesetRect, ENTITY_SPRITE_SHADER};
+use super::{
+    json::{
+        definitions::{EntityDef, TilesetRect},
+        level::EntityInstance,
+    },
+    ENTITY_SPRITE_SHADER,
+};
 
 #[derive(ShaderType, Clone, Copy, Debug)]
 pub struct AtlasRect {
@@ -44,6 +51,153 @@ impl Material2d for LdtkEntityMaterial {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum TileRenderMode {
+    Cover,
+    FitInside,
+    Repeat,
+    Stretch,
+    FullSizeCropped,
+    FullSizeUncropped,
+    NineSlice,
+}
+
+impl TileRenderMode {
+    pub fn as_shader_def(&self) -> String {
+        match self {
+            TileRenderMode::Cover => "COVER".to_string(),
+            TileRenderMode::FitInside => "FIT_INSIDE".to_string(),
+            TileRenderMode::Repeat => "REPEAT".to_string(),
+            TileRenderMode::Stretch => "STRETCH".to_string(),
+            TileRenderMode::FullSizeCropped => "FULL_SIZE_CROPPED".to_string(),
+            TileRenderMode::FullSizeUncropped => "FULL_SIZE_UNCROPPED".to_string(),
+            TileRenderMode::NineSlice => "NINE_SLICE".to_string(),
+        }
+    }
+
+    pub fn get_mesh(
+        &self,
+        entity: &EntityInstance,
+        tile_rect: &TilesetRect,
+        defs: &HashMap<String, EntityDef>,
+    ) -> SpriteMesh {
+        let tile_size = Vec2::new(tile_rect.width as f32, tile_rect.height as f32);
+        let render_size = Vec2::new(entity.width as f32, entity.height as f32);
+        let tile_px = IVec2::new(tile_rect.width, tile_rect.height);
+        let entity_px = IVec2::new(entity.width, entity.height);
+        let pivot = Vec2::new(entity.pivot[0], -entity.pivot[1]);
+
+        /*
+         * 0 - 1
+         * | / |
+         * 3 - 2
+         */
+        let corner_pos = [
+            Vec2::new(0., 0.) - pivot,
+            Vec2::new(1., 0.) - pivot,
+            Vec2::new(1., -1.) - pivot,
+            Vec2::new(0., -1.) - pivot,
+        ];
+        let corner_uv = [Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
+
+        let (vertices, uvs, vertex_indices) = match self {
+            TileRenderMode::Cover => {
+                let tile_size = (render_size / tile_size).max_element() * tile_size;
+                (
+                    corner_pos
+                        .into_iter()
+                        .map(|p| p * render_size)
+                        .collect::<Vec<_>>(),
+                    corner_uv
+                        .into_iter()
+                        .map(|p| {
+                            p * render_size / tile_size + pivot * (1. - render_size / tile_size)
+                        })
+                        .collect(),
+                    vec![0, 3, 1, 1, 3, 2],
+                )
+            }
+            TileRenderMode::FitInside => {
+                let size = (render_size / tile_size).min_element() * tile_size;
+                (
+                    corner_pos.into_iter().map(|p| p * size).collect(),
+                    corner_uv.to_vec(),
+                    vec![0, 3, 1, 1, 3, 2],
+                )
+            }
+            TileRenderMode::Repeat => {
+                let mut vertices = Vec::new();
+                let mut uvs = Vec::new();
+                let mut vertex_indices = Vec::new();
+                let mut i = 0;
+                let tiled_count = entity_px.div_to_ceil(tile_px);
+                for dy in 0..tiled_count.y {
+                    for dx in 0..tiled_count.x {
+                        let offset = Vec2::new(dx as f32, dy as f32) * tile_size;
+                        let mut v = corner_pos
+                            .into_iter()
+                            .map(|p| (p + pivot) * tile_size + offset)
+                            .collect();
+                        let mut u = corner_uv.to_vec();
+                        clip_mesh(&mut v, &mut u, [Vec2::ZERO, render_size]);
+                        vertices.extend(
+                            v.into_iter()
+                                .map(|v| Vec2::new(v.x, -v.y) - pivot * render_size),
+                        );
+                        uvs.extend(u);
+                        vertex_indices
+                            .extend(vec![0, 3, 1, 1, 3, 2].into_iter().map(|v| v + i * 4));
+                        i += 1;
+                    }
+                }
+                (vertices, uvs, vertex_indices)
+            }
+            TileRenderMode::Stretch => (
+                corner_pos.into_iter().map(|p| p * render_size).collect(),
+                corner_uv.to_vec(),
+                vec![0, 3, 1, 1, 3, 2],
+            ),
+            TileRenderMode::FullSizeCropped => {
+                let d = render_size / tile_size;
+                let size = Vec2::new(d.x.min(1.), d.y.min(1.)) * tile_size;
+                let uv_scale = size / tile_size;
+                let pivot = Vec2::new(pivot.x, -pivot.y);
+                (
+                    corner_pos.into_iter().map(|p| p * size).collect(),
+                    corner_uv
+                        .into_iter()
+                        .map(|p| p * uv_scale + pivot * (1. - uv_scale))
+                        .collect(),
+                    vec![0, 3, 1, 1, 3, 2],
+                )
+            }
+            TileRenderMode::FullSizeUncropped => (
+                corner_pos.into_iter().map(|p| p * tile_size).collect(),
+                corner_uv.to_vec(),
+                vec![0, 3, 1, 1, 3, 2],
+            ),
+            TileRenderMode::NineSlice => {
+                let nine_slice_mesh = defs[&entity.identifier].nine_slice_borders.generate_mesh(
+                    IVec2::new(entity.width, entity.height),
+                    IVec2::new(tile_rect.width, tile_rect.height),
+                    pivot,
+                );
+                (
+                    nine_slice_mesh.vertices,
+                    nine_slice_mesh.uvs,
+                    nine_slice_mesh.indices,
+                )
+            }
+        };
+
+        SpriteMesh {
+            vertices,
+            uvs,
+            indices: vertex_indices,
+        }
+    }
+}
+
 #[derive(Serialize, Debug, Clone, Copy)]
 pub struct NineSliceBorders {
     pub is_valid: bool,
@@ -53,19 +207,14 @@ pub struct NineSliceBorders {
     pub left: i32,
 }
 
-pub struct NineSliceMesh {
+pub struct SpriteMesh {
     pub vertices: Vec<Vec2>,
     pub uvs: Vec<Vec2>,
     pub indices: Vec<u16>,
 }
 
 impl NineSliceBorders {
-    pub fn generate_mesh(
-        &self,
-        render_size: IVec2,
-        tile_size: IVec2,
-        pivot: Vec2,
-    ) -> NineSliceMesh {
+    pub fn generate_mesh(&self, render_size: IVec2, tile_size: IVec2, pivot: Vec2) -> SpriteMesh {
         let inner_pxs = IVec2::new(
             render_size.x - self.left - self.right,
             render_size.y - self.up - self.down,
@@ -282,7 +431,7 @@ impl NineSliceBorders {
             }
         }
 
-        NineSliceMesh {
+        SpriteMesh {
             vertices: vertices
                 .into_iter()
                 .map(|v| Vec2::new(v.x, -v.y) - pivot * render_size)

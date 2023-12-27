@@ -1,6 +1,6 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use crate::serializing::ldtk::sprite::NineSliceBorders;
+use crate::serializing::ldtk::sprite::{NineSliceBorders, TileRenderMode};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -137,31 +137,6 @@ pub struct EntityDef {
 
     /// Pixel height
     pub height: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum TileRenderMode {
-    Cover,
-    FitInside,
-    Repeat,
-    Stretch,
-    FullSizeCropped,
-    FullSizeUncropped,
-    NineSlice,
-}
-
-impl TileRenderMode {
-    pub fn as_shader_def(&self) -> String {
-        match self {
-            TileRenderMode::Cover => "COVER".to_string(),
-            TileRenderMode::FitInside => "FIT_INSIDE".to_string(),
-            TileRenderMode::Repeat => "REPEAT".to_string(),
-            TileRenderMode::Stretch => "STRETCH".to_string(),
-            TileRenderMode::FullSizeCropped => "FULL_SIZE_CROPPED".to_string(),
-            TileRenderMode::FullSizeUncropped => "FULL_SIZE_UNCROPPED".to_string(),
-            TileRenderMode::NineSlice => "NINE_SLICE".to_string(),
-        }
-    }
 }
 
 impl<'de> Deserialize<'de> for NineSliceBorders {
