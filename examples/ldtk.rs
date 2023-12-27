@@ -39,7 +39,7 @@ use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_xpbd_2d::{
     components::{Collider, Friction, LinearVelocity, Mass, RigidBody},
-    plugins::{collision::contact_reporting::Collision, debug::PhysicsDebugConfig},
+    plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins},
     resources::Gravity,
 };
 use helpers::EntiTilesDebugPlugin;
@@ -53,18 +53,17 @@ fn main() {
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
             WorldInspectorPlugin::default(),
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (load, events, hot_reload, player_control, collision),
-        )
+        .add_systems(Update, (load, events, hot_reload, player_control))
         .register_type::<Teleport>()
         .register_type::<Player>()
         .register_type::<Item>()
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
-        .insert_resource(Gravity(Vec2::new(0., -9.8)))
+        .insert_resource(Gravity(Vec2::new(0., -98.)))
         .insert_resource(PhysicsDebugConfig::all())
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
@@ -76,6 +75,7 @@ fn main() {
 
 fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     commands.spawn(Camera2dBundle::default());
+    // you can also insert this resource directly
     manager
         .initialize(
             // replace the filename with grid_vania.ldtk before running
@@ -88,7 +88,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             identifier: "PhysicsColliders".to_string(),
             air_value: 0,
             parent: "Collisions".to_string(),
-            frictions: Some(HashMap::from([(0, 0.5), (0, 0.1)])),
+            frictions: Some(HashMap::from([(1, 0.9), (2, 0.1)])),
         })
         .set_if_ignore_unregistered_entities(true);
 }
@@ -167,20 +167,18 @@ fn player_control(mut query: Query<&mut LinearVelocity, With<Player>>, input: Re
     let Ok(mut player) = query.get_single_mut() else {
         return;
     };
+    // wasd is taken up by the camera controller.
     if input.pressed(KeyCode::Left) {
-        player.x -= 100.;
+        player.x = -30.;
     }
     if input.pressed(KeyCode::Right) {
-        player.x += 100.;
+        player.x = 30.;
     }
-    if input.pressed(KeyCode::Space) {
-        player.y += 100.;
-    }
-}
-
-fn collision(mut ev: EventReader<Collision>) {
-    for event in ev.read() {
-        println!("{:?}", event.0);
+    // I know this is not scientifically correct
+    // because the player will be able to jump infinitely
+    // but I'm lazy to do the detection :p
+    if input.pressed(KeyCode::Up) {
+        player.y = 100.;
     }
 }
 
@@ -212,14 +210,13 @@ fn player_spawn(
     // like adding a collider:
     let size = Vec2::new(entity_instance.width as f32, entity_instance.height as f32);
     commands.insert((
-        // Collider::convex_hull(vec![
-        //     Vec2::new(-0.5, 0.) * size,
-        //     Vec2::new(0.5, 0.) * size,
-        //     Vec2::new(0.5, 1.) * size,
-        //     Vec2::new(-0.5, 1.) * size,
-        // ])
-        // .unwrap(),
-        Collider::cuboid(size.x, size.y),
+        Collider::convex_hull(vec![
+            Vec2::new(-0.5, 0.) * size,
+            Vec2::new(0.5, 0.) * size,
+            Vec2::new(0.5, 1.) * size,
+            Vec2::new(-0.5, 1.) * size,
+        ])
+        .unwrap(),
         RigidBody::Dynamic,
         Friction {
             dynamic_coefficient: 0.5,

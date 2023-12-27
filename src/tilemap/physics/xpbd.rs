@@ -8,10 +8,7 @@ use bevy::{
 };
 use bevy_xpbd_2d::{
     components::{Collider, Friction, RigidBody},
-    plugins::{
-        collision::contact_reporting::{CollisionEnded, CollisionStarted},
-        PhysicsDebugPlugin, PhysicsPlugins,
-    },
+    plugins::collision::contact_reporting::{CollisionEnded, CollisionStarted},
 };
 
 use crate::{
@@ -25,11 +22,7 @@ pub struct PhysicsXpbdTilemapPlugin;
 
 impl Plugin for PhysicsXpbdTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_plugins(PhysicsPlugins::default())
-            .add_systems(Update, collision_handler);
-
-        #[cfg(feature = "debug")]
-        app.add_plugins(PhysicsDebugPlugin::default());
+        app.add_systems(Update, collision_handler);
     }
 }
 

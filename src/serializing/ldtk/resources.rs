@@ -311,6 +311,16 @@ pub struct LdtkLevelManager {
 }
 
 impl LdtkLevelManager {
+    pub fn new(file_path: String, asset_path_prefix: String) -> Self {
+        let mut s = Self {
+            file_path: file_path.clone(),
+            asset_path_prefix: asset_path_prefix.clone(),
+            ..Default::default()
+        };
+        s.initialize(file_path, asset_path_prefix);
+        s
+    }
+
     /// `file_path`: The path to the ldtk file relative to the working directory.
     ///
     /// `asset_path_prefix`: The path to the ldtk file relative to the assets folder.

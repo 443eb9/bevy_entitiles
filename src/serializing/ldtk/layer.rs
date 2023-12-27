@@ -3,7 +3,7 @@ use bevy::{
     hierarchy::BuildChildren,
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
-    transform::{components::Transform, TransformBundle},
+    transform::TransformBundle,
     utils::HashMap,
 };
 
@@ -187,16 +187,19 @@ impl<'a> LdtkLayers<'a> {
                 (i, AabbBox2d { min, max })
             })
             .for_each(|(i, aabb)| {
-                let mut collider = commands.spawn(TransformBundle {
-                    local: Transform::from_translation(aabb.center().extend(0.)),
-                    ..Default::default()
-                });
+                let mut collider = commands.spawn(TransformBundle::default());
                 collider.set_parent(physics_map.id);
 
                 #[cfg(feature = "physics_xpbd")]
                 {
                     collider.insert((
-                        bevy_xpbd_2d::components::Collider::cuboid(aabb.width(), aabb.height()),
+                        bevy_xpbd_2d::components::Collider::convex_hull(vec![
+                            aabb.min,
+                            aabb.top_left(),
+                            aabb.max,
+                            aabb.bottom_right(),
+                        ])
+                        .unwrap(),
                         bevy_xpbd_2d::components::RigidBody::Static,
                     ));
                     if let Some(coe) = physics.frictions.as_ref().and_then(|f| f.get(&i)) {

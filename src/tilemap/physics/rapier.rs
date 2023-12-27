@@ -9,16 +9,11 @@ use bevy::{
 use bevy_rapier2d::{
     geometry::{ActiveEvents, Collider, Friction, Sensor},
     pipeline::CollisionEvent,
-    plugin::{NoUserData, RapierPhysicsPlugin},
-    render::RapierDebugRenderPlugin,
 };
 
 use crate::{
     math::FillArea,
-    tilemap::{
-        map::Tilemap,
-        tile::Tile,
-    },
+    tilemap::{map::Tilemap, tile::Tile},
 };
 
 use super::{get_collision, TileCollision};
@@ -27,11 +22,7 @@ pub struct PhysicsRapierTilemapPlugin;
 
 impl Plugin for PhysicsRapierTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-            .add_systems(FixedUpdate, collision_handler);
-
-        #[cfg(feature = "debug")]
-        app.add_plugins(RapierDebugRenderPlugin::default());
+        app.add_systems(FixedUpdate, collision_handler);
     }
 }
 
