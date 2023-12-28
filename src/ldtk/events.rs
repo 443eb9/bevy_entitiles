@@ -1,4 +1,4 @@
-use bevy::ecs::event::Event;
+use bevy::{ecs::event::Event, reflect::Reflect};
 
 #[derive(Event)]
 pub enum LdtkEvent {
@@ -6,6 +6,7 @@ pub enum LdtkEvent {
     LevelUnloaded(LevelEvent),
 }
 
+#[derive(Reflect, Debug, Clone)]
 pub struct LevelEvent {
     pub identifier: String,
     pub iid: String,

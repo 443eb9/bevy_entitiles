@@ -1,4 +1,4 @@
-use bevy::math::IVec2;
+use bevy::{math::IVec2, reflect::Reflect};
 use serde::{
     de::{Error, IgnoredAny, Visitor},
     Deserialize, Deserializer, Serialize,
@@ -12,7 +12,7 @@ use crate::{
 
 use super::{definitions::TilesetRect, EntityRef, GridPoint};
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct FieldInstance {
     /// Reference of the Field definition UID
@@ -188,7 +188,7 @@ impl<'de> Deserialize<'de> for FieldInstance {
 /// - For Point, the value is a GridPoint object.
 /// - For Tile, the value is a TilesetRect object.
 /// - For EntityRef, the value is an EntityReferenceInfos object.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(untagged)]
 pub enum FieldValue {
     Integer(i32),

@@ -3,7 +3,7 @@ use bevy::{
     asset::{load_internal_asset, Asset, Assets, Handle},
     ecs::system::{Res, ResMut, Resource},
     math::{UVec2, Vec2, Vec4},
-    reflect::TypePath,
+    reflect::Reflect,
     render::{
         render_resource::{AsBindGroup, Shader, ShaderRef, ShaderType},
         texture::Image,
@@ -26,9 +26,15 @@ impl Plugin for EntiTilesUiPlugin {
         app.add_plugins(UiMaterialPlugin::<UiTileMaterial>::default());
         app.init_resource::<UiTileMaterialRegistry>();
         app.add_systems(Update, materials_time_updater);
+
+        app.register_type::<UiTilemapTexture>()
+            .register_type::<UiTilemapTextureDescriptor>()
+            .register_type::<UiTileMaterialRegistry>()
+            .register_type::<UiTileMaterial>();
     }
 }
 
+#[derive(Reflect)]
 pub struct UiTilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: UiTilemapTextureDescriptor,
@@ -45,6 +51,7 @@ impl UiTilemapTexture {
     }
 }
 
+#[derive(Reflect)]
 pub struct UiTilemapTextureDescriptor {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
@@ -56,7 +63,7 @@ impl UiTilemapTextureDescriptor {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
 pub struct UiTileMaterialRegistry {
     materials: HashMap<Handle<Image>, Vec<Handle<UiTileMaterial>>>,
 }
@@ -174,7 +181,7 @@ impl UiTileBuilder {
     }
 }
 
-#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
+#[derive(AsBindGroup, Asset, Reflect, Debug, Clone)]
 pub struct UiTileMaterial {
     #[texture(0)]
     #[sampler(1)]
@@ -189,7 +196,7 @@ impl UiMaterial for UiTileMaterial {
     }
 }
 
-#[derive(ShaderType, Debug, Clone)]
+#[derive(ShaderType, Debug, Clone, Reflect)]
 pub struct UiTileUniform {
     pub color: Vec4,
     pub atlas_size: Vec2,

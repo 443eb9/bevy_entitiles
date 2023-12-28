@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::system::EntityCommands, sprite::MaterialMesh2dBundle, transform::components::Transform,
+    ecs::system::EntityCommands, sprite::MaterialMesh2dBundle, transform::components::Transform, reflect::Reflect,
 };
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +15,7 @@ use super::{
  * Level
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Level {
     /// Background color of the level (same as `bgColor`, except
@@ -94,7 +94,7 @@ pub struct Level {
     pub world_y: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct ImagePosition {
     /// An array of 4 float values describing the cropped sub-rectangle
@@ -113,7 +113,7 @@ pub struct ImagePosition {
     pub top_left_px: [i32; 2],
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Neighbour {
     /// A single lowercase character tipping on the level location
@@ -133,7 +133,7 @@ pub struct Neighbour {
  * Layer Instance
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LayerInstance {
     /// Grid-based height
@@ -217,7 +217,7 @@ pub struct LayerInstance {
     pub visible: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct TileInstance {
     ///	Alpha/opacity of the tile (0-1, defaults to 1)
@@ -250,7 +250,7 @@ pub struct TileInstance {
  * Entity Instance
  */
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityInstance {
     /// Grid-based coordinates (`[x,y]` format)

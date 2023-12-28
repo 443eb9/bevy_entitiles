@@ -13,12 +13,12 @@ use bevy::{
         render_resource::{FilterMode, PrimitiveTopology},
     },
     sprite::{Mesh2dHandle, TextureAtlas},
-    utils::HashMap,
+    utils::HashMap, reflect::Reflect,
 };
 
 use crate::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
-    tilemap::map::TilemapRotation,
+    tilemap::map::TilemapRotation, reflect::ReflectFilterMode,
 };
 
 use super::{
@@ -28,7 +28,7 @@ use super::{
     LdtkLoader, LdtkUnloader,
 };
 
-#[derive(Default)]
+#[derive(Default, Reflect)]
 pub struct LdtkAssets {
     pub(crate) associated_file: String,
     /// tileset iid to texture
@@ -189,13 +189,13 @@ impl LdtkAssets {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
 pub struct LdtkLevelManager {
     pub(crate) file_path: String,
     pub(crate) asset_path_prefix: String,
     pub(crate) ldtk_json: Option<LdtkJson>,
     pub(crate) level_spacing: Option<i32>,
-    pub(crate) filter_mode: FilterMode,
+    pub(crate) filter_mode: ReflectFilterMode,
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
@@ -303,7 +303,7 @@ impl LdtkLevelManager {
 
     /// The filter mode of the tilemap texture.
     pub fn set_filter_mode(&mut self, filter_mode: FilterMode) -> &mut Self {
-        self.filter_mode = filter_mode;
+        self.filter_mode = filter_mode.into();
         self
     }
 

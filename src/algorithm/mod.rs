@@ -2,12 +2,19 @@ use std::fmt::Debug;
 
 use bevy::{
     prelude::{Plugin, Update},
-    utils::HashMap, reflect::Reflect,
+    reflect::Reflect,
+    utils::HashMap,
 };
 
 use self::{
-    pathfinding::{pathfinding, pathfinding_async},
-    wfc::{wave_function_collapse, wave_function_collapse_async},
+    pathfinding::{
+        pathfinding, pathfinding_async, AsyncPathfinder, Path, PathGrid, PathNode, PathTile,
+        Pathfinder,
+    },
+    wfc::{
+        wave_function_collapse, wave_function_collapse_async, AsyncWfcRunner, WfcElement,
+        WfcHistory,
+    },
 };
 
 pub mod pathfinding;
@@ -17,6 +24,17 @@ pub struct EntiTilesAlgorithmPlugin;
 
 impl Plugin for EntiTilesAlgorithmPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
+        app.register_type::<PathTile>()
+            .register_type::<Pathfinder>()
+            .register_type::<AsyncPathfinder>()
+            .register_type::<Path>()
+            .register_type::<PathNode>()
+            .register_type::<PathGrid>();
+
+        app.register_type::<AsyncWfcRunner>()
+            .register_type::<WfcElement>()
+            .register_type::<WfcHistory>();
+
         app.add_systems(
             Update,
             (

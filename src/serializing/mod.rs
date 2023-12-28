@@ -26,7 +26,7 @@ use crate::{
 };
 
 use self::{
-    load::load,
+    load::{load, TilemapLoadFailure, TilemapLoader},
     save::{save, TilemapSaver},
 };
 
@@ -42,6 +42,18 @@ pub struct EntiTilesSerializingPlugin;
 impl Plugin for EntiTilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, (save, load));
+
+        app.register_type::<TilemapLoader>()
+            .register_type::<TilemapSaver>()
+            .register_type::<TilemapLoadFailure>()
+            .register_type::<SerializedTilemapData>()
+            .register_type::<SerializedTilemap>()
+            .register_type::<SerializedTilemapDescriptor>()
+            .register_type::<SerializedTilemapTexture>();
+
+        #[cfg(feature = "algorithm")]
+        app.register_type::<SerializedPathTile>()
+            .register_type::<SerializedPathTilemap>();
     }
 }
 

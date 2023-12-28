@@ -245,7 +245,7 @@ impl WfcRunner {
 #[derive(Component, Reflect)]
 pub struct AsyncWfcRunner;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub struct WfcElement {
     pub index: UVec2,
     pub collapsed: bool,
@@ -266,8 +266,8 @@ impl WfcElement {
     }
 }
 
-#[derive(Clone)]
-struct WfcHistory {
+#[derive(Clone, Reflect)]
+pub struct WfcHistory {
     grid: Vec<WfcElement>,
     heap: Vec<(u8, UVec2)>,
     remaining: usize,

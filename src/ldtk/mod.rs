@@ -12,9 +12,21 @@ use bevy::{
     log::error,
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
+    reflect::Reflect,
     render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlas},
     transform::components::Transform,
+};
+
+use crate::ldtk::{
+    components::{LayerIid, WorldIid},
+    json::{
+        field::FieldInstance,
+        level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
+        EntityRef, GridPoint, LdtkColor, Toc, World,
+    },
+    resources::LdtkAssets,
+    sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
 };
 
 use self::{
@@ -68,6 +80,36 @@ impl Plugin for EntiTilesLdtkPlugin {
         app.init_resource::<LdtkLevelManager>();
 
         app.add_event::<LdtkEvent>();
+
+        app.register_type::<LdtkLoadedLevel>()
+            .register_type::<GlobalEntity>()
+            .register_type::<EntityIid>()
+            .register_type::<LayerIid>()
+            .register_type::<LevelIid>()
+            .register_type::<WorldIid>()
+            .register_type::<LevelEvent>()
+            .register_type::<LdtkLoader>()
+            .register_type::<LdtkUnloader>()
+            .register_type::<LdtkAssets>()
+            .register_type::<LdtkLevelManager>()
+            .register_type::<AtlasRect>()
+            .register_type::<LdtkEntityMaterial>()
+            .register_type::<NineSliceBorders>()
+            .register_type::<SpriteMesh>();
+        
+        app.register_type::<FieldInstance>()
+            .register_type::<Level>()
+            .register_type::<ImagePosition>()
+            .register_type::<Neighbour>()
+            .register_type::<LayerInstance>()
+            .register_type::<TileInstance>()
+            .register_type::<EntityInstance>()
+            .register_type::<LdtkColor>()
+            .register_type::<LdtkJson>()
+            .register_type::<Toc>()
+            .register_type::<World>()
+            .register_type::<EntityRef>()
+            .register_type::<GridPoint>();
     }
 }
 
@@ -80,12 +122,12 @@ fn global_entity_registerer(
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect, Default, Debug)]
 pub struct LdtkLoader {
     pub(crate) level: String,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect, Default, Debug)]
 pub struct LdtkUnloader;
 
 pub fn unload_ldtk_level(

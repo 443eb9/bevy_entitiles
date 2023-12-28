@@ -62,7 +62,7 @@ impl<'de> Visitor<'de> for LdtkColorVisitor {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LdtkJson {
     /// Project background color
@@ -129,14 +129,14 @@ pub struct LdtkJson {
     pub worlds: Vec<World>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Toc {
     pub identifier: String,
     pub instances: Vec<EntityRef>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, Reflect)]
 pub enum WorldLayout {
     Free,
     GridVania,
@@ -144,7 +144,7 @@ pub enum WorldLayout {
     LinearVertical,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct World {
     /// Width of the world grid in pixels.

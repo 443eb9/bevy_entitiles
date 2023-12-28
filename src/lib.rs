@@ -1,6 +1,12 @@
-use bevy::{app::Update, ecs::schedule::States, prelude::Plugin};
+use bevy::{app::Update, prelude::Plugin};
+use math::{aabb::AabbBox2d, FillArea};
 use render::{texture, EntiTilesRendererPlugin};
-use tilemap::EntiTilesTilemapPlugin;
+use tilemap::{
+    layer::{LayerInserter, LayerUpdater, TileLayer},
+    map::{Tilemap, TilemapTransform},
+    tile::{AnimatedTile, Tile},
+    EntiTilesTilemapPlugin,
+};
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
@@ -32,13 +38,21 @@ impl Plugin for EntiTilesPlugin {
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmPlugin);
-        #[cfg(any(feature = "physics_rapier", feature = "physics_xpbd"))]
-        app.add_plugins(tilemap::physics::EntiTilesPhysicsPlugin);
         #[cfg(feature = "serializing")]
         app.add_plugins(serializing::EntiTilesSerializingPlugin);
         #[cfg(feature = "ldtk")]
         app.add_plugins(ldtk::EntiTilesLdtkPlugin);
         #[cfg(feature = "ui")]
         app.add_plugins(ui::EntiTilesUiPlugin);
+
+        app.register_type::<AabbBox2d>().register_type::<FillArea>();
+
+        app.register_type::<TileLayer>()
+            .register_type::<LayerInserter>()
+            .register_type::<LayerUpdater>()
+            .register_type::<TilemapTransform>()
+            .register_type::<Tilemap>()
+            .register_type::<Tile>()
+            .register_type::<AnimatedTile>();
     }
 }

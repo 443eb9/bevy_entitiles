@@ -1,8 +1,8 @@
-use bevy::{math::UVec2, utils::HashMap};
+use bevy::{math::UVec2, utils::HashMap, reflect::Reflect};
 
 use super::json::{definitions::LayerType, level::LayerInstance};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct LdtkPhysicsLayer {
     pub identifier: String,
     pub air_value: i32,

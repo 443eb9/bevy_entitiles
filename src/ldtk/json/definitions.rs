@@ -1,8 +1,9 @@
+use bevy::reflect::Reflect;
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::ldtk::sprite::{NineSliceBorders, TileRenderMode};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Definitions {
     /// All entities definitions, including their custom fields
@@ -26,7 +27,7 @@ pub struct Definitions {
  * Layer Definition
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LayerDef {
     /// Type of the layer (IntGrid, Entities, Tiles or AutoLayer)
@@ -61,7 +62,7 @@ pub struct LayerDef {
     pub uid: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum LayerType {
     IntGrid,
     Entities,
@@ -69,7 +70,7 @@ pub enum LayerType {
     AutoLayer,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct IntGridValue {
     pub color: String,
@@ -79,7 +80,7 @@ pub struct IntGridValue {
     pub value: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct IntGroupValueGroup {
     /// User defined color
@@ -96,7 +97,7 @@ pub struct IntGroupValueGroup {
  * Entity Definition
  */
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityDef {
     /// Base entity color
@@ -188,7 +189,7 @@ impl<'de> Visitor<'de> for NineSliceBordersVisitor {
  * Tileset Definition
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct TilesetDef {
     /// Grid-based height
@@ -242,21 +243,21 @@ pub struct TilesetDef {
     pub uid: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomData {
     pub data: String,
     pub tile_id: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumTag {
     pub enum_value_id: String,
     pub tile_ids: Vec<i32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct TilesetRect {
     /// UID of the tileset
@@ -279,7 +280,7 @@ pub struct TilesetRect {
     pub height: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumTagValue {
     pub tile_ids: Vec<i32>,
@@ -290,7 +291,7 @@ pub struct EnumTagValue {
  * Enum Definition
  */
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumDef {
     /// Relative path to the external file providing this Enum
@@ -312,7 +313,7 @@ pub struct EnumDef {
     pub values: Vec<EnumValue>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumValue {
     /// Optional color

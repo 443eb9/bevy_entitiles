@@ -3,11 +3,11 @@ use std::{
     io::Write,
 };
 
-use bevy::ecs::{
+use bevy::{ecs::{
     component::Component,
     entity::Entity,
     system::{Commands, Query},
-};
+}, reflect::Reflect};
 use serde::Serialize;
 
 use crate::tilemap::{
@@ -77,7 +77,7 @@ impl TilemapSaverBuilder {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct TilemapSaver {
     pub(crate) path: String,
     pub(crate) texture_path: Option<String>,

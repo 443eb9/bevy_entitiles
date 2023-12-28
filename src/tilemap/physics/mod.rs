@@ -2,6 +2,7 @@ use bevy::{
     app::Plugin,
     ecs::{entity::Entity, event::Event, system::Query},
     math::UVec2,
+    reflect::Reflect,
 };
 
 use crate::tilemap::tile::Tile;
@@ -11,11 +12,14 @@ pub mod rapier;
 #[cfg(feature = "physics_xpbd")]
 pub mod xpbd;
 
-pub struct EntiTilesPhysicsPlugin;
+pub struct EntiTilesPhysicsTilemapPlugin;
 
-impl Plugin for EntiTilesPhysicsPlugin {
+impl Plugin for EntiTilesPhysicsTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_event::<TileCollision>();
+
+        app.register_type::<TileCollision>()
+            .register_type::<CollisionData>();
 
         #[cfg(feature = "physics_rapier")]
         app.add_plugins(crate::tilemap::physics::rapier::PhysicsRapierTilemapPlugin);
@@ -24,13 +28,13 @@ impl Plugin for EntiTilesPhysicsPlugin {
     }
 }
 
-#[derive(Event, Debug)]
+#[derive(Event, Debug, Reflect)]
 pub enum TileCollision {
     Started(CollisionData),
     Stopped(CollisionData),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Reflect, Clone)]
 pub struct CollisionData {
     pub tile_index: UVec2,
     pub tile_entity: Entity,

@@ -7,7 +7,7 @@ use bevy::{
         entity::Entity,
         query::Without,
         system::{Commands, Query, Res},
-    },
+    }, reflect::Reflect,
 };
 use ron::{de::from_bytes, error::SpannedError};
 use serde::Deserialize;
@@ -61,14 +61,14 @@ impl TilemapLoaderBuilder {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Reflect)]
 pub struct TilemapLoader {
     pub(crate) path: String,
     pub(crate) map_name: String,
     pub(crate) layers: u32,
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct TilemapLoadFailure {
     pub path: String,
     pub map_name: String,

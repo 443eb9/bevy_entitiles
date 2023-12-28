@@ -1,7 +1,7 @@
 use bevy::{
     asset::{Asset, Handle},
     math::{IVec2, IVec4, Vec2, Vec4},
-    reflect::TypePath,
+    reflect::Reflect,
     render::{
         render_resource::{AsBindGroup, ShaderRef, ShaderType},
         texture::Image,
@@ -21,7 +21,7 @@ use super::{
     ENTITY_SPRITE_SHADER,
 };
 
-#[derive(ShaderType, Clone, Copy, Debug)]
+#[derive(ShaderType, Clone, Copy, Debug, Reflect)]
 pub struct AtlasRect {
     pub min: Vec2,
     pub max: Vec2,
@@ -36,7 +36,7 @@ impl From<TilesetRect> for AtlasRect {
     }
 }
 
-#[derive(AsBindGroup, Asset, TypePath, Debug, Clone)]
+#[derive(AsBindGroup, Asset, Debug, Clone, Reflect)]
 pub struct LdtkEntityMaterial {
     #[texture(0)]
     #[sampler(1)]
@@ -51,7 +51,7 @@ impl Material2d for LdtkEntityMaterial {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub enum TileRenderMode {
     Cover,
     FitInside,
@@ -198,7 +198,7 @@ impl TileRenderMode {
     }
 }
 
-#[derive(Serialize, Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy, Reflect)]
 pub struct NineSliceBorders {
     pub is_valid: bool,
     pub up: i32,
@@ -207,6 +207,7 @@ pub struct NineSliceBorders {
     pub left: i32,
 }
 
+#[derive(Reflect)]
 pub struct SpriteMesh {
     pub vertices: Vec<Vec2>,
     pub uvs: Vec<Vec2>,
