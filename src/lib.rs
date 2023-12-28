@@ -29,6 +29,25 @@ pub const MAX_ATLAS_COUNT: usize = 512;
 pub const MAX_ANIM_COUNT: usize = 64;
 pub const MAX_ANIM_SEQ_LENGTH: usize = 16;
 
+pub mod prelude {
+    #[cfg(feature = "algorithm")]
+    pub use crate::algorithm::*;
+    #[cfg(feature = "ldtk")]
+    pub use crate::ldtk::*;
+    pub use crate::math::*;
+    pub use crate::render::{
+        buffer::TileAnimation,
+        texture::{TilemapTexture, TilemapTextureDescriptor},
+    };
+    #[cfg(feature = "serializing")]
+    pub use crate::serializing::*;
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    pub use crate::tilemap::physics::*;
+    pub use crate::tilemap::{layer::*, map::*, tile::*};
+    #[cfg(feature = "ui")]
+    pub use crate::ui::*;
+}
+
 pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {

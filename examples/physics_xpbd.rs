@@ -30,14 +30,23 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::components::{Collider, LinearVelocity, RigidBody};
+use bevy_xpbd_2d::{
+    components::{Collider, LinearVelocity, RigidBody},
+    plugins::{PhysicsDebugPlugin, PhysicsPlugins},
+};
 use helpers::EntiTilesDebugPlugin;
 
 mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            EntiTilesPlugin,
+            EntiTilesDebugPlugin,
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
+        ))
         .add_systems(Startup, setup)
         .add_systems(Update, collision_events)
         .add_systems(FixedUpdate, character_move)

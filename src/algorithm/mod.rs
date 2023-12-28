@@ -231,9 +231,4 @@ where
 
         (rhs_heap_index, lhs_heap_index)
     }
-
-    #[cfg(feature = "debug_verbose")]
-    pub fn print_heap(&self) {
-        println!("Heap: {:?}", self.heap);
-    }
 }

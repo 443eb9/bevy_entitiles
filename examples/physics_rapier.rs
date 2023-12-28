@@ -32,6 +32,8 @@ use bevy_entitiles::{
 use bevy_rapier2d::{
     dynamics::{GravityScale, RigidBody, Velocity},
     geometry::{ActiveEvents, Collider},
+    plugin::{NoUserData, RapierPhysicsPlugin},
+    render::RapierDebugRenderPlugin,
 };
 use helpers::{drawing::draw_axis, EntiTilesDebugPlugin};
 
@@ -39,7 +41,13 @@ mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            EntiTilesPlugin,
+            EntiTilesDebugPlugin,
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            RapierDebugRenderPlugin::default(),
+        ))
         .add_systems(Startup, setup)
         .add_systems(Update, (collision_events, character_move, draw_axis))
         .run();

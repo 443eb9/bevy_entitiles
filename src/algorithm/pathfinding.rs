@@ -355,8 +355,6 @@ fn find_path(
             break;
         }
         if frame_step >= max_frame_step {
-            #[cfg(feature = "debug_verbose")]
-            println!("reached max step per frame: {}", frame_step);
             return;
         }
 

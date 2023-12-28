@@ -375,8 +375,6 @@ impl WfcGrid {
         let min_tile = self.get_tile(self.heap[1].1).unwrap().clone();
         self.remaining -= 1;
 
-        #[cfg(feature = "debug_verbose")]
-        println!("popped: {}, remaining={}", min_tile.index, self.remaining);
         if self.remaining > 0 {
             let max = self.heap.pop().unwrap();
             self.heap[1] = max;
@@ -392,12 +390,6 @@ impl WfcGrid {
         };
         if tile.collapsed {
             return;
-        }
-
-        #[cfg(feature = "debug_verbose")]
-        {
-            println!("collasping: {:?}", index);
-            self.print_grid();
         }
 
         let index = tile.index;
@@ -437,8 +429,6 @@ impl WfcGrid {
 
         while !queue.is_empty() {
             let cur_ctr = queue.pop().unwrap();
-            #[cfg(feature = "debug_verbose")]
-            println!("constraining: {}'s neighbour", cur_ctr);
             spreaded.insert(cur_ctr);
             let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
 
@@ -449,27 +439,18 @@ impl WfcGrid {
             for dir in 0..neighbours.len() {
                 let neighbour_tile = self.get_tile(neighbours[dir]).unwrap();
                 if neighbour_tile.collapsed || spreaded.contains(&neighbours[dir]) {
-                    #[cfg(feature = "debug_verbose")]
-                    println!("skipping neighbour: {:?}", neighbours[dir]);
                     continue;
                 }
-                #[cfg(feature = "debug_verbose")]
-                println!("constraining: {:?}", neighbours[dir]);
 
                 for i in 0..self.rule.len() {
                     if cur_tile.psbs & (1 << i) != 0 {
                         psbs_cache[dir] |= self.rule[i][dir];
                     }
                 }
+
                 psbs_cache[dir] &= neighbour_tile.psbs;
-                #[cfg(feature = "debug_verbose")]
-                println!(
-                    "{}'s psbs: {:?}, dir={})",
-                    neighbours[dir], psbs_cache[dir], dir
-                );
+
                 if psbs_cache[dir].count_ones() == 0 {
-                    #[cfg(feature = "debug_verbose")]
-                    println!("start retrace because of: {}", neighbours[dir]);
                     self.retrace();
                     return;
                 }
@@ -484,9 +465,6 @@ impl WfcGrid {
                     self.update_entropy(neighbours[dir]);
                 }
             }
-
-            // #[cfg(feature = "debug")]
-            // self.print_grid();
         }
 
         self.retrace_strength = 1;
@@ -527,20 +505,9 @@ impl WfcGrid {
         self.remaining = hist.remaining;
         self.heap = hist.heap;
         self.retraced_time += 1;
-        #[cfg(feature = "debug_verbose")]
-        {
-            self.validate();
-            println!("retrace success");
-        }
     }
 
     pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
-        #[cfg(feature = "debug_verbose")]
-        {
-            println!("map collapsed!");
-            self.print_grid();
-        }
-
         match &self.ty {
             WfcType::SingleTile(tiles) => {
                 for tile in self.grid.iter() {
@@ -658,42 +625,6 @@ impl WfcGrid {
 
         (rhs_heap_index, lhs_heap_index)
     }
-
-    #[cfg(feature = "debug_verbose")]
-    fn print_grid(&self) {
-        let mut result = "-------------------\n".to_string();
-        let mut counter = 0;
-
-        for t in self.grid.iter() {
-            result.push_str(&format!(
-                "{:?}{}({:?})\t",
-                t.element_index,
-                t.index,
-                self.get_tile(t.index).unwrap().psbs
-            ));
-            counter += 1;
-            if counter == self.area.extent.x {
-                result.push_str("\n");
-                counter = 0;
-            }
-        }
-
-        result.push_str("-------------------");
-        println!("{}", result);
-    }
-
-    #[cfg(feature = "debug_verbose")]
-    fn validate(&self) {
-        // crate::debug::validate_heap(&self.heap, true);
-        for i in 1..self.heap.len() {
-            assert_eq!(
-                self.get_tile(self.heap[i].1).unwrap().heap_index,
-                i,
-                "heap index not match at: {}",
-                self.heap[i].1
-            );
-        }
-    }
 }
 
 pub fn wave_function_collapse(
@@ -709,16 +640,8 @@ pub fn wave_function_collapse(
             wfc_grid.collapse(wfc_grid.pick_random());
 
             while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
-                #[cfg(feature = "debug_verbose")]
-                println!("=============================");
                 let min_tile = wfc_grid.pop_min();
                 wfc_grid.collapse(min_tile.index);
-                #[cfg(feature = "debug_verbose")]
-                {
-                    println!("cycle complete, start validating");
-                    wfc_grid.validate();
-                    println!("=============================");
-                }
                 #[cfg(feature = "debug")]
                 println!("remaining: {}", wfc_grid.remaining);
             }
