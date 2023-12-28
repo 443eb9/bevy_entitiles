@@ -125,14 +125,14 @@ fn create_wrappers(
 
 fn impl_into_enum(ty: &syn::Ident) -> proc_macro2::TokenStream {
     quote::quote!(
-        impl Into<#ty> for bevy_entitiles::serializing::ldtk::json::field::FieldInstance {
+        impl Into<#ty> for bevy_entitiles::ldtk::json::field::FieldInstance {
             fn into(self) -> #ty {
                 match self.value {
                     Some(v) => match v {
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::LocalEnum(
+                        bevy_entitiles::ldtk::json::field::FieldValue::LocalEnum(
                             (_, i),
                         ) => <#ty>::get_identifier(&i),
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::ExternEnum(
+                        bevy_entitiles::ldtk::json::field::FieldValue::ExternEnum(
                             (_, i),
                         ) => <#ty>::get_identifier(&i),
                         _ => panic!("Expected value!"),
@@ -147,14 +147,14 @@ fn impl_into_enum(ty: &syn::Ident) -> proc_macro2::TokenStream {
 
 fn impl_into_enum_opt(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::TokenStream {
     quote::quote!(
-        impl Into<#wrapper> for bevy_entitiles::serializing::ldtk::json::field::FieldInstance {
+        impl Into<#wrapper> for bevy_entitiles::ldtk::json::field::FieldInstance {
             fn into(self) -> #wrapper {
                 match self.value {
                     Some(v) => match v {
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::LocalEnum(
+                        bevy_entitiles::ldtk::json::field::FieldValue::LocalEnum(
                             (_, i),
                         ) => #wrapper(Some(<#ty>::get_identifier(&i))),
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::ExternEnum(
+                        bevy_entitiles::ldtk::json::field::FieldValue::ExternEnum(
                             (_, i),
                         ) => #wrapper(Some(<#ty>::get_identifier(&i))),
                         _ => panic!("Expected value!"),
@@ -169,14 +169,14 @@ fn impl_into_enum_opt(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::Tok
 
 fn impl_into_enum_vec(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::TokenStream {
     quote::quote!(
-        impl Into<#wrapper> for bevy_entitiles::serializing::ldtk::json::field::FieldInstance {
+        impl Into<#wrapper> for bevy_entitiles::ldtk::json::field::FieldInstance {
             fn into(self) -> #wrapper {
                 match self.value {
                     Some(v) => match v {
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::LocalEnumArray((_, i)) => {
+                        bevy_entitiles::ldtk::json::field::FieldValue::LocalEnumArray((_, i)) => {
                             #wrapper(i.iter().map(|i| <#ty>::get_identifier(&i)).collect())
                         }
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::ExternEnumArray((_, i)) => {
+                        bevy_entitiles::ldtk::json::field::FieldValue::ExternEnumArray((_, i)) => {
                             #wrapper(i.iter().map(|i| <#ty>::get_identifier(&i)).collect())
                         }
                         _ => panic!("Expected value!"),
@@ -190,14 +190,14 @@ fn impl_into_enum_vec(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::Tok
 
 fn impl_into_enum_opt_vec(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::TokenStream {
     quote::quote!(
-        impl Into<#wrapper> for bevy_entitiles::serializing::ldtk::json::field::FieldInstance {
+        impl Into<#wrapper> for bevy_entitiles::ldtk::json::field::FieldInstance {
             fn into(self) -> #wrapper {
                 match self.value {
                     Some(v) => match v {
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::LocalEnumArray((_, i)) => {
+                        bevy_entitiles::ldtk::json::field::FieldValue::LocalEnumArray((_, i)) => {
                             #wrapper(Some(i.iter().map(|i| <#ty>::get_identifier(&i)).collect()))
                         }
-                        bevy_entitiles::serializing::ldtk::json::field::FieldValue::ExternEnumArray((_, i)) => {
+                        bevy_entitiles::ldtk::json::field::FieldValue::ExternEnumArray((_, i)) => {
                             #wrapper(Some(i.iter().map(|i| <#ty>::get_identifier(&i)).collect()))
                         }
                         _ => panic!("Expected value!"),

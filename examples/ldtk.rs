@@ -23,7 +23,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    serializing::ldtk::{
+    ldtk::{
         app_ext::AppExt,
         entities::LdtkEntity,
         enums::LdtkEnum,

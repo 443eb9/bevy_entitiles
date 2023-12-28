@@ -6,7 +6,7 @@ use serde::{
 
 use crate::{
     match_field, match_field_enum,
-    serializing::ldtk::{json::LdtkColor, enums::LdtkEnum},
+    ldtk::{json::LdtkColor, enums::LdtkEnum},
     transfer_field, unwrap_field,
 };
 

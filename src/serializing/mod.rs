@@ -26,7 +26,6 @@ use crate::{
 };
 
 use self::{
-    ldtk::EntiTilesLdtkPlugin,
     load::load,
     save::{save, TilemapSaver},
 };
@@ -35,7 +34,6 @@ pub const TILEMAP_META: &str = "tilemap.ron";
 pub const TILES: &str = "tiles.ron";
 pub const PATH_TILES: &str = "path_tiles.ron";
 
-pub mod ldtk;
 pub mod load;
 pub mod save;
 
@@ -44,8 +42,6 @@ pub struct EntiTilesSerializingPlugin;
 impl Plugin for EntiTilesSerializingPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, (save, load));
-
-        app.add_plugins(EntiTilesLdtkPlugin);
     }
 }
 

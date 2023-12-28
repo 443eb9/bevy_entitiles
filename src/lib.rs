@@ -6,6 +6,8 @@ use tilemap::EntiTilesTilemapPlugin;
 pub mod algorithm;
 #[cfg(feature = "debug")]
 pub mod debug;
+#[cfg(feature = "ldtk")]
+pub mod ldtk;
 pub mod math;
 pub mod reflect;
 pub mod render;
@@ -26,8 +28,6 @@ impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, texture::set_texture_usage);
 
-        app.add_state::<EntiTilesStates>();
-
         app.add_plugins((EntiTilesTilemapPlugin, EntiTilesRendererPlugin));
 
         #[cfg(feature = "algorithm")]
@@ -36,15 +36,9 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(tilemap::physics::EntiTilesPhysicsPlugin);
         #[cfg(feature = "serializing")]
         app.add_plugins(serializing::EntiTilesSerializingPlugin);
+        #[cfg(feature = "ldtk")]
+        app.add_plugins(ldtk::EntiTilesLdtkPlugin);
         #[cfg(feature = "ui")]
         app.add_plugins(ui::EntiTilesUiPlugin);
     }
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, States)]
-pub enum EntiTilesStates {
-    #[default]
-    Simulating,
-    #[cfg(feature = "editor")]
-    Editing,
 }

@@ -10,14 +10,11 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- [LDtk](https://ldtk.io/) Full Support
-- Physics (for LDtk maps)
 - Pathfinding (for LDtk maps)
 - Wave Function Collapse ( Collapse map from LDtk; Optimization )
 - Chunk Unloading
 - Infinite Tilemap
 - Runtime Mesh & Texture Baking
-- Tilemap-Link
 - Wang Tilling
 - Tilemap Mask
 - [Tiled](https://www.mapeditor.org/) Support
@@ -26,6 +23,8 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - Lighting
 - Realtime Shadow
 - ~~Frustum Culling~~
+- ~~Physics~~
+- ~~[LDtk](https://ldtk.io/) Full Support~~
 
 ## Known Issues
 
@@ -34,15 +33,15 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Feature Flags
 
-| Flag             | Funtionality                                                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `algorithm`      | Implementation of algorithms                                                                                            |
-| `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.                                 |
-| `debug-verbose`  | Show verbose process of functions. This feature is only useful when debug algorithms. But it's useless for most of you. |
-| `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                                            |
-| `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc.                    |
-| `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                                          |
-| `ui`             | Support renderring tiles as ui image.                                                                                   |
+| Flag             | Funtionality                                                                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| `algorithm`      | Implementation of algorithms                                                                         |
+| `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.              |
+| `ldtk`           | LDtk support.                                                                                        |
+| `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                         |
+| `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc. |
+| `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                       |
+| `ui`             | Support renderring tiles as ui image.                                                                |
 
 ## Coordinate Systems
 

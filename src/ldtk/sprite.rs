@@ -136,7 +136,7 @@ impl TileRenderMode {
                         let offset = Vec2::new(dx as f32, dy as f32) * tile_size;
                         let mut v = corner_pos
                             .into_iter()
-                            .map(|p| (p + pivot) * tile_size + offset)
+                            .map(|p| (Vec2::new(p.x, -p.y) + pivot) * tile_size + offset)
                             .collect();
                         let mut u = corner_uv.to_vec();
                         clip_mesh(&mut v, &mut u, [Vec2::ZERO, render_size]);

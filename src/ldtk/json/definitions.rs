@@ -1,6 +1,6 @@
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use crate::serializing::ldtk::sprite::{NineSliceBorders, TileRenderMode};
+use crate::ldtk::sprite::{NineSliceBorders, TileRenderMode};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]

@@ -3,7 +3,7 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::serializing::ldtk::resources::LdtkLevelManager;
+use crate::ldtk::resources::LdtkLevelManager;
 
 use super::{
     definitions::{LayerType, TilesetRect},

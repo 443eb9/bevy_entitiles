@@ -28,7 +28,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     let global_entity = {
         if global_entity_attr.is_some() {
             quote::quote!(
-                commands.insert(bevy_entitiles::serializing::ldtk::components::GlobalEntity);
+                commands.insert(bevy_entitiles::ldtk::components::GlobalEntity);
             )
         } else {
             quote::quote!(
@@ -126,10 +126,10 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
             fn initialize(
                 level_entity: bevy::ecs::entity::Entity,
                 commands: &mut bevy::ecs::system::EntityCommands,
-                entity_instance: &bevy_entitiles::serializing::ldtk::json::level::EntityInstance,
-                fields: &bevy::utils::HashMap<String, bevy_entitiles::serializing::ldtk::json::field::FieldInstance>,
+                entity_instance: &bevy_entitiles::ldtk::json::level::EntityInstance,
+                fields: &bevy::utils::HashMap<String, bevy_entitiles::ldtk::json::field::FieldInstance>,
                 asset_server: &bevy::prelude::AssetServer,
-                ldtk_manager: &bevy_entitiles::serializing::ldtk::resources::LdtkLevelManager,
+                ldtk_manager: &bevy_entitiles::ldtk::resources::LdtkLevelManager,
             ) {
                 #callback
                 #spawn_sprite
