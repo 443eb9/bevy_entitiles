@@ -72,7 +72,10 @@
 			"parallaxScaling": true,
 			"requiredTags": [],
 			"excludedTags": [],
-			"intGridValues": [{ "value": 1, "identifier": null, "color": "#000000", "tile": null, "groupUid": 0 }],
+			"intGridValues": [
+				{ "value": 1, "identifier": null, "color": "#000000", "tile": null, "groupUid": 0 },
+				{ "value": 2, "identifier": null, "color": "#BE4A2F", "tile": null, "groupUid": 0 }
+			],
 			"intGridValuesGroups": [],
 			"autoRuleGroups": [],
 			"autoSourceLayerDefUid": null,
@@ -1704,7 +1707,7 @@
 						0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,1,1,1,1,1,1,0,
 						0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,
 						0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,
-						1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+						1,2,2,2,2,2,2,1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 						0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0
 					],
 					"autoLayerTiles": [],
