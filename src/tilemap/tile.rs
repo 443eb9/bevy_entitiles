@@ -4,6 +4,8 @@ use bevy::{
     reflect::Reflect,
 };
 
+use crate::math::extension::DivToCeil;
+
 use super::{layer::TileLayer, map::Tilemap};
 
 /// Defines the shape of tiles in a tilemap.
@@ -83,32 +85,40 @@ impl TileBuilder {
     }
 
     pub(crate) fn build(&self, commands: &mut Commands, index: UVec2, tilemap: &Tilemap) -> Entity {
-        let render_chunk_index_2d = index / tilemap.render_chunk_size;
-        let render_chunk_index = {
-            if tilemap.size.x % tilemap.render_chunk_size == 0 {
-                render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size)
-                    + render_chunk_index_2d.x
-            } else {
-                render_chunk_index_2d.y * (tilemap.size.x / tilemap.render_chunk_size + 1)
-                    + render_chunk_index_2d.x
-            }
-        } as usize;
+        let (tile, anim) = self.build_component(index, tilemap);
 
-        let mut tile = commands.spawn_empty();
-        tile.insert(Tile {
-            render_chunk_index,
-            tilemap_id: tilemap.id,
-            index,
-            layers: self.layers.clone(),
-            color: self.color,
-        });
-        if let Some(anim) = &self.anim {
-            tile.insert(anim.clone());
+        let mut tile_entity = commands.spawn_empty();
+        tile_entity.insert(tile);
+        if let Some(anim) = anim {
+            tile_entity.insert(anim);
         }
 
-        let tile_entity = tile.id();
+        let tile_entity = tile_entity.id();
         commands.entity(tilemap.id).add_child(tile_entity);
         tile_entity
+    }
+
+    pub(crate) fn build_component(
+        &self,
+        index: UVec2,
+        tilemap: &Tilemap,
+    ) -> (Tile, Option<AnimatedTile>) {
+        let chunk_index = index / tilemap.render_chunk_size;
+        let storage_size = tilemap
+            .size
+            .div_to_ceil(UVec2::splat(tilemap.render_chunk_size));
+        let chunk_index_vec = chunk_index.y * storage_size.x + chunk_index.x;
+
+        (
+            Tile {
+                render_chunk_index: chunk_index_vec as usize,
+                tilemap_id: tilemap.id,
+                index,
+                layers: self.layers.clone(),
+                color: self.color,
+            },
+            self.anim.clone(),
+        )
     }
 }
 

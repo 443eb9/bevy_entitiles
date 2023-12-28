@@ -1,7 +1,3 @@
-// this exmaple will cost huge time to start
-// but performs well in the game
-// I'm not sure why this will happen
-
 use bevy::{
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,

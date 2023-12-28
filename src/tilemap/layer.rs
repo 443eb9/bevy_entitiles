@@ -35,6 +35,7 @@ impl TileLayer {
         self
     }
 
+    #[allow(dead_code)]
     pub(crate) fn with_flip_raw(mut self, flip: u32) -> Self {
         self.flip = flip;
         self

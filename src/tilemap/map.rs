@@ -346,12 +346,22 @@ impl Tilemap {
         area: FillArea,
         tile_builder: TileBuilder,
     ) {
-        let builder = tile_builder.clone();
+        let mut tile_batch = Vec::with_capacity(area.size());
+        let mut anim_batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set_unchecked(commands, UVec2 { x, y }, builder.clone());
+                self.remove(commands, UVec2 { x, y });
+                let (tile, anim) = tile_builder.build_component(UVec2 { x, y }, self);
+                tile_batch.push(tile);
+                if let Some(anim) = anim {
+                    anim_batch.push(anim);
+                }
             }
         }
+
+        commands.spawn_batch(tile_batch);
+        commands.spawn_batch(anim_batch);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -364,16 +374,27 @@ impl Tilemap {
         mut tile_builder: impl FnMut(UVec2) -> TileBuilder,
         relative_index: bool,
     ) {
+        let mut tile_batch = Vec::with_capacity(area.size());
+        let mut anim_batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
+                self.remove(commands, UVec2 { x, y });
                 let builder = tile_builder(if relative_index {
                     UVec2::new(x, y) - area.origin
                 } else {
                     UVec2::new(x, y)
                 });
-                self.set_unchecked(commands, UVec2 { x, y }, builder);
+                let (tile, anim) = builder.build_component(UVec2 { x, y }, self);
+                tile_batch.push(tile);
+                if let Some(anim) = anim {
+                    anim_batch.push(anim);
+                }
             }
         }
+
+        commands.spawn_batch(tile_batch);
+        commands.spawn_batch(anim_batch);
     }
 
     // TODO implement this
@@ -395,11 +416,17 @@ impl Tilemap {
 
     /// Simlar to `Tilemap::fill_rect()`.
     pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: LayerUpdater) {
+        let mut batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.update(commands, UVec2 { x, y }, updater);
+                if let Some(entity) = self.get(UVec2 { x, y }) {
+                    batch.push((entity, updater.clone()));
+                }
             }
         }
+
+        commands.insert_or_spawn_batch(batch);
     }
 
     /// Simlar to `Tilemap::fill_rect_custom()`.
@@ -410,19 +437,24 @@ impl Tilemap {
         mut updater: impl FnMut(UVec2) -> LayerUpdater,
         relative_index: bool,
     ) {
+        let mut batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.update(
-                    commands,
-                    UVec2 { x, y },
-                    updater(if relative_index {
-                        UVec2 { x, y } - area.origin
-                    } else {
-                        UVec2 { x, y }
-                    }),
-                );
+                if let Some(entity) = self.get(UVec2 { x, y }) {
+                    batch.push((
+                        entity,
+                        updater(if relative_index {
+                            UVec2 { x, y } - area.origin
+                        } else {
+                            UVec2 { x, y }
+                        }),
+                    ));
+                }
             }
         }
+
+        commands.insert_or_spawn_batch(batch);
     }
 
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.
