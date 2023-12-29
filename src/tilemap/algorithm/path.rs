@@ -1,6 +1,11 @@
 use bevy::{ecs::component::Component, math::UVec2, reflect::Reflect, utils::HashMap};
 
-use crate::{algorithm::pathfinding::PathTile, math::FillArea};
+use crate::math::TileArea;
+
+#[derive(Component, Clone, Copy, Reflect)]
+pub struct PathTile {
+    pub cost: u32,
+}
 
 #[derive(Component, Reflect)]
 pub struct PathTilemap {
@@ -31,7 +36,7 @@ impl PathTilemap {
     /// Those empty indices will be ignored.
     pub fn fill_path_rect_custom(
         &mut self,
-        area: FillArea,
+        area: TileArea,
         mut path_tile: impl FnMut(UVec2) -> PathTile,
     ) {
         for y in area.origin.y..=area.dest.y {
@@ -45,7 +50,7 @@ impl PathTilemap {
     /// Fill path-finding data using `PathTile`.
     /// Before fill path, you need to fill the tiles first.
     /// Those empty indices will be ignored.
-    pub fn fill_path_rect(&mut self, area: FillArea, path_tile: &PathTile) {
+    pub fn fill_path_rect(&mut self, area: TileArea, path_tile: &PathTile) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 self.tiles.insert(UVec2::new(x, y), path_tile.clone());

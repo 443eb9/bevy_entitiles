@@ -1,8 +1,6 @@
 use bevy::app::Plugin;
 
-use crate::algorithm::pathfinding::PathTile;
-
-use self::path::PathTilemap;
+use self::path::{PathTile, PathTilemap};
 
 pub mod path;
 

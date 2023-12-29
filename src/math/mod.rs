@@ -6,13 +6,13 @@ pub mod aabb;
 pub mod extension;
 
 #[derive(Debug, Clone, Copy, Reflect)]
-pub struct FillArea {
+pub struct TileArea {
     pub(crate) origin: UVec2,
     pub(crate) extent: UVec2,
     pub(crate) dest: UVec2,
 }
 
-impl FillArea {
+impl TileArea {
     /// Define a new fill area.
     ///
     /// Leave `extent` as `None` to fill from the origin to the edge.

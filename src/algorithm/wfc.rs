@@ -16,7 +16,7 @@ use rand::{
 use ron::de::from_bytes;
 
 use crate::{
-    math::{extension::TileIndex, FillArea},
+    math::{extension::TileIndex, TileArea},
     serializing::SerializedTile,
     tilemap::{
         layer::TileLayer,
@@ -51,7 +51,7 @@ pub struct WfcRunner {
     tile_type: TileType,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     seed: Option<u64>,
-    area: FillArea,
+    area: TileArea,
     max_retrace_factor: u32,
     max_retrace_time: u32,
     max_history: usize,
@@ -63,7 +63,7 @@ impl WfcRunner {
     pub fn from_simple_config(
         tilemap: &Tilemap,
         rule_path: String,
-        area: FillArea,
+        area: TileArea,
         seed: Option<u64>,
     ) -> Self {
         let rule_vec: Vec<[Vec<u8>; 4]> =
@@ -277,7 +277,7 @@ pub struct WfcGrid {
     tile_type: TileType,
     mode: WfcMode,
     ty: WfcType,
-    area: FillArea,
+    area: TileArea,
     grid: Vec<WfcElement>,
     rng: StdRng,
     rule: Vec<[u128; 4]>,

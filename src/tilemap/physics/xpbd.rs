@@ -12,7 +12,7 @@ use bevy_xpbd_2d::{
 };
 
 use crate::{
-    math::FillArea,
+    math::TileArea,
     tilemap::{map::Tilemap, tile::Tile},
 };
 
@@ -31,7 +31,7 @@ impl Tilemap {
     pub fn fill_physics_tile_xpbd(
         &mut self,
         commands: &mut Commands,
-        area: FillArea,
+        area: TileArea,
         friction: Option<f32>,
         is_trigger: bool,
     ) {

@@ -8,8 +8,7 @@ use bevy::{
 
 use self::{
     pathfinding::{
-        pathfinding, pathfinding_async, AsyncPathfinder, Path, PathGrid, PathNode, PathTile,
-        Pathfinder,
+        pathfinding, pathfinding_async, AsyncPathfinder, Path, PathGrid, PathNode, Pathfinder,
     },
     wfc::{
         wave_function_collapse, wave_function_collapse_async, AsyncWfcRunner, WfcElement,
@@ -24,8 +23,7 @@ pub struct EntiTilesAlgorithmPlugin;
 
 impl Plugin for EntiTilesAlgorithmPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.register_type::<PathTile>()
-            .register_type::<Pathfinder>()
+        app.register_type::<Pathfinder>()
             .register_type::<AsyncPathfinder>()
             .register_type::<Path>()
             .register_type::<PathNode>()

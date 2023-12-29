@@ -5,7 +5,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::FillArea,
+    math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         layer::{LayerUpdater, TileLayer, TileLayerPosition, TileUpdater},
@@ -47,13 +47,13 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
+        TileArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
         TileBuilder::new()
             .with_layer(0, TileLayer::new().with_texture_index(1))
             .with_color(Vec4::new(0.8, 1., 0.8, 0.5)),
@@ -102,7 +102,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.update_rect(
         &mut commands,
-        FillArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
+        TileArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
         TileUpdater {
             layer: Some(LayerUpdater {
                 position: TileLayerPosition::Index(1),
@@ -134,7 +134,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
@@ -151,7 +151,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new()
             .with_layer(0, TileLayer::new().with_texture_index(0))
             .with_color(Vec4::new(1., 1., 0., 1.)),

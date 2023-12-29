@@ -19,7 +19,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::FillArea,
+    math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         layer::TileLayer,
@@ -81,7 +81,7 @@ fn setup(
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
@@ -89,7 +89,7 @@ fn setup(
 
     tilemap.fill_physics_tile_rapier(
         &mut commands,
-        FillArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
+        TileArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
         Some(0.8),
         false,
     );
@@ -116,7 +116,7 @@ fn setup(
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
@@ -124,7 +124,7 @@ fn setup(
 
     tilemap.fill_physics_tile_rapier(
         &mut commands,
-        FillArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
+        TileArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
         Some(0.8),
         false,
     );

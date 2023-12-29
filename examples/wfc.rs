@@ -7,7 +7,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     algorithm::wfc::{AsyncWfcRunner, WfcRunner},
-    math::FillArea,
+    math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::{TilemapBuilder, TilemapRotation},
@@ -50,7 +50,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         WfcRunner::from_simple_config(
             &tilemap,
             "examples/wfc_config.ron".to_string(),
-            FillArea::full(&tilemap),
+            TileArea::full(&tilemap),
             Some(0),
         )
         // use weights OR custom_sampler

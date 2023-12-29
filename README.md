@@ -10,7 +10,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Pathfinding (for LDtk maps)
 - Wave Function Collapse ( Collapse map from LDtk; Optimization )
 - Chunk Unloading
 - Infinite Tilemap
@@ -23,6 +22,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - SSAO
 - Realtime Lighting
 - ~~Frustum Culling~~
+- ~~Pathfinding~~
 - ~~Physics~~
 - ~~[LDtk](https://ldtk.io/) Full Support~~
 

@@ -8,7 +8,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::Aabb2d, FillArea},
+    math::{aabb::Aabb2d, TileArea},
     render::{buffer::TileAnimation, texture::TilemapTexture},
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
@@ -337,7 +337,7 @@ impl Tilemap {
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
-        area: FillArea,
+        area: TileArea,
         tile_builder: TileBuilder,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
@@ -359,7 +359,7 @@ impl Tilemap {
     pub fn fill_rect_custom(
         &mut self,
         commands: &mut Commands,
-        area: FillArea,
+        area: TileArea,
         mut tile_builder: impl FnMut(UVec2) -> TileBuilder,
         relative_index: bool,
     ) {
@@ -399,7 +399,7 @@ impl Tilemap {
     // }
 
     /// Simlar to `Tilemap::fill_rect()`.
-    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: TileUpdater) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: TileArea, updater: TileUpdater) {
         let mut batch = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
@@ -417,7 +417,7 @@ impl Tilemap {
     pub fn update_rect_custom(
         &mut self,
         commands: &mut Commands,
-        area: FillArea,
+        area: TileArea,
         mut updater: impl FnMut(UVec2) -> TileUpdater,
         relative_index: bool,
     ) {

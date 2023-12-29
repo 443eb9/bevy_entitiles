@@ -255,15 +255,15 @@ pub struct SerializedPathTile {
 }
 
 #[cfg(feature = "algorithm")]
-impl From<crate::algorithm::pathfinding::PathTile> for SerializedPathTile {
-    fn from(value: crate::algorithm::pathfinding::PathTile) -> Self {
+impl From<crate::tilemap::algorithm::path::PathTile> for SerializedPathTile {
+    fn from(value: crate::tilemap::algorithm::path::PathTile) -> Self {
         Self { cost: value.cost }
     }
 }
 
 #[cfg(feature = "algorithm")]
-impl Into<crate::algorithm::pathfinding::PathTile> for SerializedPathTile {
-    fn into(self) -> crate::algorithm::pathfinding::PathTile {
-        crate::algorithm::pathfinding::PathTile { cost: self.cost }
+impl Into<crate::tilemap::algorithm::path::PathTile> for SerializedPathTile {
+    fn into(self) -> crate::tilemap::algorithm::path::PathTile {
+        crate::tilemap::algorithm::path::PathTile { cost: self.cost }
     }
 }

@@ -7,8 +7,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::pathfinding::PathTile,
-    math::FillArea,
+    math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     serializing::{
         load::{TilemapLoadFailure, TilemapLoaderBuilder},
@@ -16,7 +15,7 @@ use bevy_entitiles::{
         TilemapLayer,
     },
     tilemap::{
-        algorithm::path::PathTilemap,
+        algorithm::path::{PathTile, PathTilemap},
         layer::TileLayer,
         map::{Tilemap, TilemapBuilder, TilemapRotation},
         tile::{TileBuilder, TileType},
@@ -59,18 +58,18 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
+        TileArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     let mut path_tilemap = PathTilemap::new();
-    path_tilemap.fill_path_rect_custom(FillArea::full(&tilemap), |_| PathTile {
+    path_tilemap.fill_path_rect_custom(TileArea::full(&tilemap), |_| PathTile {
         cost: rand::random::<u32>() % 10,
     });
 

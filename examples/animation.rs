@@ -8,7 +8,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::FillArea,
+    math::TileArea,
     render::{
         buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
@@ -55,13 +55,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_animation(anim_a),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
+        TileArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
         TileBuilder::new().with_animation(anim_b),
     );
 

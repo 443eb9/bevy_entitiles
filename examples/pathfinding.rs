@@ -4,11 +4,11 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::pathfinding::{AsyncPathfinder, PathTile, Pathfinder},
-    math::FillArea,
+    algorithm::pathfinding::{AsyncPathfinder, Pathfinder},
+    math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
-        algorithm::path::PathTilemap,
+        algorithm::path::{PathTile, PathTilemap},
         layer::TileLayer,
         map::{TilemapBuilder, TilemapRotation},
         tile::{TileBuilder, TileType},
@@ -50,12 +50,12 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        FillArea::full(&tilemap),
+        TileArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     let mut path_tilemap = PathTilemap::new();
-    path_tilemap.fill_path_rect_custom(FillArea::full(&tilemap), |_| PathTile {
+    path_tilemap.fill_path_rect_custom(TileArea::full(&tilemap), |_| PathTile {
         cost: rand::random::<u32>() % 10,
     });
 

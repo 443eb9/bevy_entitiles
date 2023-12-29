@@ -1,20 +1,21 @@
+use std::ops::Range;
+
 use bevy::{
     ecs::query::Without,
     prelude::{Component, Entity, ParallelCommands, Query, UVec2},
-    utils::HashSet, reflect::Reflect,
+    reflect::Reflect,
+    utils::HashSet,
 };
 
 use crate::{
-    math::extension::{ManhattanDistance, TileIndex},
+    math::{
+        extension::{ManhattanDistance, TileIndex},
+        TileArea,
+    },
     tilemap::{algorithm::path::PathTilemap, map::Tilemap},
 };
 
 use super::{HeapElement, LookupHeap};
-
-#[derive(Component, Clone, Copy, Reflect)]
-pub struct PathTile {
-    pub cost: u32,
-}
 
 #[derive(Component, Reflect)]
 pub struct Pathfinder {
