@@ -4,7 +4,7 @@ use bevy::{
 };
 
 use crate::{
-    math::aabb::AabbBox2d,
+    math::aabb::Aabb2d,
     render::{buffer::TileAnimation, extract::ExtractedTilemap, texture::TilemapTexture},
     tilemap::{
         map::{Tilemap, TilemapTransform},
@@ -25,7 +25,7 @@ pub struct PubTilemap {
     pub texture: Option<TilemapTexture>,
     pub layer_opacities: Vec4,
     pub tiles: Vec<Option<Tile>>,
-    pub aabb: AabbBox2d,
+    pub aabb: Aabb2d,
     pub transform: TilemapTransform,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }

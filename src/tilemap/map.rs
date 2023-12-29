@@ -8,7 +8,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::AabbBox2d, FillArea},
+    math::{aabb::Aabb2d, FillArea},
     render::{buffer::TileAnimation, texture::TilemapTexture},
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
@@ -39,15 +39,15 @@ impl TilemapTransform {
         self.apply_translation(self.apply_rotation(point))
     }
 
-    pub fn transform_aabb(&self, aabb: AabbBox2d) -> AabbBox2d {
+    pub fn transform_aabb(&self, aabb: Aabb2d) -> Aabb2d {
         let min = self.transform_point(aabb.min);
         let max = self.transform_point(aabb.max);
 
         match self.rotation {
-            TilemapRotation::None => AabbBox2d { min, max },
-            TilemapRotation::Cw90 => AabbBox2d::new(max.x, min.y, min.x, max.y),
-            TilemapRotation::Cw180 => AabbBox2d::new(max.x, max.y, min.x, min.y),
-            TilemapRotation::Cw270 => AabbBox2d::new(min.x, max.y, max.x, min.y),
+            TilemapRotation::None => Aabb2d { min, max },
+            TilemapRotation::Cw90 => Aabb2d::new(max.x, min.y, min.x, max.y),
+            TilemapRotation::Cw180 => Aabb2d::new(max.x, max.y, min.x, min.y),
+            TilemapRotation::Cw270 => Aabb2d::new(min.x, max.y, max.x, min.y),
         }
     }
 
@@ -182,7 +182,7 @@ impl TilemapBuilder {
             pivot: self.pivot,
             texture: self.texture.clone(),
             layer_opacities: Vec4::ONE,
-            aabb: AabbBox2d::from_tilemap_builder(&self),
+            aabb: Aabb2d::from_tilemap_builder(&self),
             transform: self.transform,
             anim_seqs: self.anim_seqs,
             anim_counts: 0,
@@ -221,7 +221,7 @@ pub struct Tilemap {
     pub(crate) layer_opacities: Vec4,
     pub(crate) tiles: Vec<Option<Tile>>,
     pub(crate) tile_instances: Vec<Option<Entity>>,
-    pub(crate) aabb: AabbBox2d,
+    pub(crate) aabb: Aabb2d,
     pub(crate) transform: TilemapTransform,
     pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub(crate) anim_counts: usize,

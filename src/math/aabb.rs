@@ -7,14 +7,14 @@ use crate::{
 
 #[derive(Clone, Copy, Default, Debug, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct AabbBox2d {
+pub struct Aabb2d {
     pub min: Vec2,
     pub max: Vec2,
 }
 
-impl AabbBox2d {
+impl Aabb2d {
     pub fn new(min_x: f32, min_y: f32, max_x: f32, max_y: f32) -> Self {
-        AabbBox2d {
+        Aabb2d {
             min: Vec2::new(min_x, min_y),
             max: Vec2::new(max_x, max_y),
         }
@@ -26,7 +26,7 @@ impl AabbBox2d {
         match tilemap.tile_type {
             TileType::Square => {
                 let chunk_render_size = tilemap.tile_slot_size * tilemap.render_chunk_size as f32;
-                tilemap.transform.transform_aabb(AabbBox2d {
+                tilemap.transform.transform_aabb(Aabb2d {
                     min: chunk_index.as_vec2() * chunk_render_size - pivot_offset,
                     max: (chunk_index + 1).as_vec2() * chunk_render_size - pivot_offset,
                 })
@@ -42,7 +42,7 @@ impl AabbBox2d {
                     y: center_y,
                 } - pivot_offset;
 
-                tilemap.transform.transform_aabb(AabbBox2d {
+                tilemap.transform.transform_aabb(Aabb2d {
                     min: center - half_chunk_render_size,
                     max: center + half_chunk_render_size,
                 })
@@ -65,18 +65,18 @@ impl AabbBox2d {
                     y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
                 };
 
-                tilemap.transform.transform_aabb(AabbBox2d { min, max })
+                tilemap.transform.transform_aabb(Aabb2d { min, max })
             }
         }
     }
 
-    pub fn from_tilemap_builder(builder: &TilemapBuilder) -> AabbBox2d {
+    pub fn from_tilemap_builder(builder: &TilemapBuilder) -> Aabb2d {
         let pivot_offset = builder.pivot * builder.tile_slot_size;
 
         match builder.tile_type {
             TileType::Square => {
                 let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
-                builder.transform.transform_aabb(AabbBox2d {
+                builder.transform.transform_aabb(Aabb2d {
                     min: pivot_offset,
                     max: tilemap_render_size - pivot_offset,
                 })
@@ -91,7 +91,7 @@ impl AabbBox2d {
                     y: center_y,
                 } - pivot_offset;
 
-                builder.transform.transform_aabb(AabbBox2d {
+                builder.transform.transform_aabb(Aabb2d {
                     min: center - tilemap_render_size / 2.,
                     max: center + tilemap_render_size / 2.,
                 })
@@ -110,7 +110,7 @@ impl AabbBox2d {
                     y: (b + c) / 2. * n + (b - c) / 2.,
                 } - pivot_offset;
 
-                builder.transform.transform_aabb(AabbBox2d { min, max })
+                builder.transform.transform_aabb(Aabb2d { min, max })
             }
         }
     }
@@ -118,7 +118,7 @@ impl AabbBox2d {
     pub fn from_camera(camera: &ExtractedView) -> Self {
         let half_width = camera.width * camera.scale;
         let half_height = camera.height * camera.scale;
-        AabbBox2d {
+        Aabb2d {
             min: Vec2 {
                 x: camera.transform.x - half_width,
                 y: camera.transform.y - half_height,
@@ -161,13 +161,13 @@ impl AabbBox2d {
     }
 
     #[inline]
-    pub fn expand(&mut self, other: &AabbBox2d) {
+    pub fn expand(&mut self, other: &Aabb2d) {
         self.min = self.min.min(other.min);
         self.max = self.max.max(other.max);
     }
 
     #[inline]
-    pub fn is_intersected(&self, other: &AabbBox2d) -> bool {
+    pub fn is_intersected(&self, other: &Aabb2d) -> bool {
         self.min.x < other.max.x
             && self.max.x > other.min.x
             && self.min.y < other.max.y
@@ -176,7 +176,7 @@ impl AabbBox2d {
 
     #[inline]
     pub fn with_additional_translation(&self, translation: Vec2) -> Self {
-        AabbBox2d {
+        Aabb2d {
             min: self.min + translation,
             max: self.max + translation,
         }
@@ -186,7 +186,7 @@ impl AabbBox2d {
     pub fn with_uniform_scale(&self, scale: f32) -> Self {
         let width = self.width() * scale;
         let height = self.height() * scale;
-        AabbBox2d {
+        Aabb2d {
             min: self.center() - Vec2::new(width, height) / 2.,
             max: self.center() + Vec2::new(width, height) / 2.,
         }

@@ -3,12 +3,12 @@ use bevy::{
     hierarchy::BuildChildren,
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
-    transform::TransformBundle,
+    transform::{components::Transform, TransformBundle},
     utils::HashMap,
 };
 
 use crate::{
-    math::aabb::AabbBox2d,
+    math::aabb::Aabb2d,
     render::texture::TilemapTexture,
     tilemap::{
         map::{Tilemap, TilemapBuilder},
@@ -171,30 +171,39 @@ impl<'a> LdtkLayers<'a> {
         aabbs
             .into_iter()
             .map(|(i, (min, max))| {
-                let min = physics_map.index_inf_to_world(IVec2 {
+                let left_top = physics_map.index_inf_to_world(IVec2 {
                     x: min.x as i32,
                     y: (physics_map.size.y - 1 - min.y + 1) as i32,
                 });
-                let max = physics_map.index_inf_to_world(IVec2 {
+                let right_btm = physics_map.index_inf_to_world(IVec2 {
                     x: (max.x + 1) as i32,
                     y: (physics_map.size.y - 1 - max.y) as i32,
                 });
-                (i, AabbBox2d { min, max })
+                (
+                    i,
+                    Aabb2d {
+                        min: Vec2 {
+                            x: left_top.x,
+                            y: right_btm.y,
+                        },
+                        max: Vec2 {
+                            x: right_btm.x,
+                            y: left_top.y,
+                        },
+                    },
+                )
             })
             .for_each(|(i, aabb)| {
-                let mut collider = commands.spawn(TransformBundle::default());
+                let mut collider = commands.spawn(TransformBundle {
+                    local: Transform::from_translation(aabb.center().extend(0.)),
+                    ..Default::default()
+                });
                 collider.set_parent(physics_map.id);
 
                 #[cfg(feature = "physics_xpbd")]
                 {
                     collider.insert((
-                        bevy_xpbd_2d::components::Collider::convex_hull(vec![
-                            aabb.min,
-                            aabb.top_left(),
-                            aabb.max,
-                            aabb.bottom_right(),
-                        ])
-                        .unwrap(),
+                        bevy_xpbd_2d::components::Collider::cuboid(aabb.width(), aabb.height()),
                         bevy_xpbd_2d::components::RigidBody::Static,
                     ));
                     if let Some(coe) = physics.frictions.as_ref().and_then(|f| f.get(&i)) {

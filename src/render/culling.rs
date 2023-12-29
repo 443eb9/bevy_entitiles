@@ -7,7 +7,7 @@ use bevy::{
     window::Window, reflect::Reflect,
 };
 
-use crate::{math::aabb::AabbBox2d, tilemap::map::Tilemap};
+use crate::{math::aabb::Aabb2d, tilemap::map::Tilemap};
 
 use super::{
     chunk::RenderChunkStorage,
@@ -31,7 +31,7 @@ pub fn cull_tilemaps(
         return;
     };
 
-    let camera_aabb = AabbBox2d::from_camera(&ExtractedView {
+    let camera_aabb = Aabb2d::from_camera(&ExtractedView {
         width: window.width() / 2.,
         height: window.height() / 2.,
         scale: proj.scale,
@@ -63,7 +63,7 @@ pub fn cull_chunks(
             break;
         };
 
-        let camera_aabb = AabbBox2d::from_camera(proj);
+        let camera_aabb = Aabb2d::from_camera(proj);
 
         for chunk in chunks.iter_mut() {
             if let Some(c) = chunk {

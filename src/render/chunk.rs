@@ -10,7 +10,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::AabbBox2d, extension::DivToCeil},
+    math::{aabb::Aabb2d, extension::DivToCeil},
     tilemap::tile::{Tile, TileTexture, TileType},
     MAX_LAYER_COUNT,
 };
@@ -42,7 +42,7 @@ pub struct TilemapRenderChunk {
     pub tiles: Vec<Option<TileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
-    pub aabb: AabbBox2d,
+    pub aabb: Aabb2d,
 }
 
 impl TilemapRenderChunk {
@@ -58,7 +58,7 @@ impl TilemapRenderChunk {
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
             dirty_mesh: true,
-            aabb: AabbBox2d::from_chunk(idx, tilemap),
+            aabb: Aabb2d::from_chunk(idx, tilemap),
         }
     }
 

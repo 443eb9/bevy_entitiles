@@ -11,7 +11,7 @@ use bevy::{
 };
 
 use crate::{
-    math::aabb::AabbBox2d,
+    math::aabb::Aabb2d,
     tilemap::{
         map::{Tilemap, TilemapTransform},
         tile::{Tile, TileType},
@@ -33,7 +33,7 @@ pub struct ExtractedTilemap {
     pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
-    pub aabb: AabbBox2d,
+    pub aabb: Aabb2d,
     pub transform: TilemapTransform,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub layer_opacities: Vec4,

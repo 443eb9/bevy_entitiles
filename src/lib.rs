@@ -1,5 +1,5 @@
 use bevy::{app::Update, prelude::Plugin};
-use math::{aabb::AabbBox2d, FillArea};
+use math::{aabb::Aabb2d, FillArea};
 use prelude::TileTexture;
 use reflect::ReflectFilterMode;
 use render::{texture, EntiTilesRendererPlugin};
@@ -65,7 +65,7 @@ impl Plugin for EntiTilesPlugin {
         #[cfg(feature = "ui")]
         app.add_plugins(ui::EntiTilesUiPlugin);
 
-        app.register_type::<AabbBox2d>().register_type::<FillArea>();
+        app.register_type::<Aabb2d>().register_type::<FillArea>();
 
         app.register_type::<TileLayer>()
             .register_type::<TileLayerPosition>()

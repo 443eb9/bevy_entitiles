@@ -6,7 +6,7 @@ use bevy::{
 };
 
 use bevy_entitiles::{
-    debug::PubTilemap, math::aabb::AabbBox2d, render::chunk::RenderChunkStorage,
+    debug::PubTilemap, math::aabb::Aabb2d, render::chunk::RenderChunkStorage,
     tilemap::map::Tilemap,
 };
 
@@ -37,7 +37,7 @@ pub fn draw_chunk_aabb(mut gizmos: Gizmos, tilemaps: Query<&Tilemap>) {
 
         for y in 0..count.y {
             for x in 0..count.x {
-                let aabb = AabbBox2d::from_chunk(UVec2::new(x, y), &tilemap);
+                let aabb = Aabb2d::from_chunk(UVec2::new(x, y), &tilemap);
                 gizmos.rect_2d(
                     aabb.center(),
                     0.,

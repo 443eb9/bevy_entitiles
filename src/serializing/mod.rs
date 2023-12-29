@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use bevy::utils::HashMap;
 
 use crate::{
-    math::aabb::AabbBox2d,
+    math::aabb::Aabb2d,
     reflect::ReflectFilterMode,
     render::{
         buffer::TileAnimation,
@@ -74,7 +74,7 @@ pub struct SerializedTilemap {
     pub render_chunk_size: u32,
     pub texture: Option<SerializedTilemapTexture>,
     pub layer_opacities: Vec4,
-    pub aabb: AabbBox2d,
+    pub aabb: Aabb2d,
     pub transform: TilemapTransform,
     pub layers: u32,
     pub anim_seqs: Vec<TileAnimation>,
