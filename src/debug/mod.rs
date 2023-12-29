@@ -8,7 +8,7 @@ use crate::{
     render::{buffer::TileAnimation, extract::ExtractedTilemap, texture::TilemapTexture},
     tilemap::{
         map::{Tilemap, TilemapTransform},
-        tile::{Tile, TileType},
+        tile::TileType,
     },
     MAX_ANIM_COUNT,
 };
@@ -24,7 +24,7 @@ pub struct PubTilemap {
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
     pub layer_opacities: Vec4,
-    pub tiles: Vec<Option<Tile>>,
+    pub tiles: Vec<Option<Entity>>,
     pub aabb: Aabb2d,
     pub transform: TilemapTransform,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
@@ -77,7 +77,6 @@ impl PubTilemap {
             size: self.size,
             tile_render_size: self.tile_render_size,
             tile_slot_size: self.tile_slot_size,
-            tiles: self.tiles.clone(),
             pivot: self.pivot,
             render_chunk_size: self.render_chunk_size,
             texture: self.texture,

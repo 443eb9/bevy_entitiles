@@ -54,11 +54,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let anim_b = tilemap.register_animation(TileAnimation::new(vec![0, 1, 2], 3.));
 
     tilemap.fill_rect(
+        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new().with_animation(anim_a),
     );
 
     tilemap.fill_rect(
+        &mut commands,
         FillArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
         TileBuilder::new().with_animation(anim_b),
     );

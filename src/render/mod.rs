@@ -69,7 +69,11 @@ impl Plugin for EntiTilesRendererPlugin {
         render_app
             .add_systems(
                 ExtractSchedule,
-                (extract::extract_tilemaps, extract::extract_view),
+                (
+                    extract::extract_tilemaps,
+                    extract::extract_tiles,
+                    extract::extract_view,
+                ),
             )
             .add_systems(
                 Render,

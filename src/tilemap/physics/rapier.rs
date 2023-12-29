@@ -11,9 +11,12 @@ use bevy_rapier2d::{
     pipeline::CollisionEvent,
 };
 
-use crate::{math::FillArea, tilemap::map::Tilemap};
+use crate::{
+    math::FillArea,
+    tilemap::{map::Tilemap, tile::Tile},
+};
 
-use super::{get_collision, PhysicsTile, TileCollision};
+use super::{get_collision, TileCollision};
 
 pub struct PhysicsRapierTilemapPlugin;
 
@@ -47,7 +50,7 @@ impl Tilemap {
         friction: Option<f32>,
         is_trigger: bool,
     ) {
-        let Some(tile_entity) = self.get_instance(index) else {
+        let Some(tile_entity) = self.get(index) else {
             return;
         };
 
@@ -74,7 +77,7 @@ impl Tilemap {
 pub fn collision_handler(
     mut collision: EventReader<CollisionEvent>,
     mut tile_collision: EventWriter<TileCollision>,
-    tiles_query: Query<&PhysicsTile>,
+    tiles_query: Query<&Tile>,
 ) {
     let mut colls = Vec::with_capacity(collision.len());
     for c in collision.read() {

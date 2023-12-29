@@ -14,7 +14,7 @@ use crate::{
     math::aabb::Aabb2d,
     tilemap::{
         map::{Tilemap, TilemapTransform},
-        tile::{Tile, TileType},
+        tile::{Tile, TileTexture, TileType},
     },
     MAX_ANIM_COUNT,
 };
@@ -29,7 +29,6 @@ pub struct ExtractedTilemap {
     pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
-    pub tiles: Vec<Option<Tile>>,
     pub pivot: Vec2,
     pub render_chunk_size: u32,
     pub texture: Option<TilemapTexture>,
@@ -38,6 +37,15 @@ pub struct ExtractedTilemap {
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub layer_opacities: Vec4,
     pub time: f32,
+}
+
+#[derive(Component)]
+pub struct ExtractedTile {
+    pub tilemap: Entity,
+    pub render_chunk_index: usize,
+    pub index: UVec2,
+    pub texture: TileTexture,
+    pub color: Vec4,
 }
 
 #[derive(Component)]
@@ -64,7 +72,6 @@ pub fn extract_tilemaps(
                 size: tilemap.size,
                 tile_render_size: tilemap.tile_render_size,
                 tile_slot_size: tilemap.tile_slot_size,
-                tiles: tilemap.tiles.clone(),
                 render_chunk_size: tilemap.render_chunk_size,
                 pivot: tilemap.pivot,
                 texture: tilemap.texture.clone(),
@@ -78,6 +85,26 @@ pub fn extract_tilemaps(
     }
 
     commands.insert_or_spawn_batch(extracted_tilemaps);
+}
+
+pub fn extract_tiles(
+    mut commands: Commands,
+    changed_tiles_query: Extract<Query<(Entity, &Tile), Changed<Tile>>>,
+) {
+    let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = vec![];
+    for (entity, tile) in changed_tiles_query.iter() {
+        extracted_tiles.push((
+            entity,
+            ExtractedTile {
+                render_chunk_index: tile.render_chunk_index,
+                tilemap: tile.tilemap_id,
+                index: tile.index,
+                texture: tile.texture.clone(),
+                color: tile.color,
+            },
+        ));
+    }
+    commands.insert_or_spawn_batch(extracted_tiles);
 }
 
 pub fn extract_view(

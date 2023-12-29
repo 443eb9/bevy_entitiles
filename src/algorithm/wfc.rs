@@ -19,8 +19,9 @@ use crate::{
     math::{extension::TileIndex, FillArea},
     serializing::SerializedTile,
     tilemap::{
+        layer::TileLayer,
         map::{Tilemap, TilemapPattern},
-        tile::{TileBuilder, TileLayer, TileTexture, TileType},
+        tile::{TileBuilder, TileTexture, TileType},
     },
 };
 
@@ -505,12 +506,13 @@ impl WfcGrid {
         self.retraced_time += 1;
     }
 
-    pub fn apply_map(&self, tilemap: &mut Tilemap) {
+    pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
         match &self.ty {
             WfcType::SingleTile(tiles) => {
                 for tile in self.grid.iter() {
                     let serialized_tile = tiles.get(tile.element_index.unwrap() as usize).unwrap();
                     tilemap.set(
+                        commands,
                         tile.index + self.area.origin,
                         TileBuilder::from_serialized_tile(serialized_tile),
                     );
@@ -648,7 +650,7 @@ pub fn wave_function_collapse(
 
             commands.command_scope(|mut c| {
                 if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
-                    wfc_grid.apply_map(&mut tilemap);
+                    wfc_grid.apply_map(&mut c, &mut tilemap);
                 } else if let Some(fallback) = wfc_grid.fallback {
                     fallback(&mut c, entity, &tilemap, &runner);
                 }
@@ -676,10 +678,11 @@ pub fn wave_function_collapse_async(
                     grid.collapse(min_elem.index);
 
                     if let Some(idx) = grid.get_tile(min_elem.index).unwrap().element_index {
-                        match &grid.ty {
+                        commands.command_scope(|mut c| match &grid.ty {
                             WfcType::SingleTile(tiles) => {
                                 let serialized_tile = tiles.get(idx as usize).unwrap();
                                 tilemap.set(
+                                    &mut c,
                                     min_elem.index,
                                     TileBuilder::from_serialized_tile(serialized_tile),
                                 );
@@ -690,7 +693,7 @@ pub fn wave_function_collapse_async(
                                 // let ptn_size = pattern.size;
                                 // tilemap.set_pattern(&mut c, pattern, min_elem.index * ptn_size + grid.area.origin);
                             }
-                        }
+                        })
                     }
                 } else {
                     commands.command_scope(|mut c| {

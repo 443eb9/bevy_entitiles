@@ -1,9 +1,11 @@
 use bevy::{
     app::Plugin,
-    ecs::{component::Component, entity::Entity, event::Event, system::Query},
+    ecs::{entity::Entity, event::Event, system::Query},
     math::UVec2,
     reflect::Reflect,
 };
+
+use crate::tilemap::tile::Tile;
 
 #[cfg(feature = "physics_rapier")]
 pub mod rapier;
@@ -17,19 +19,13 @@ impl Plugin for EntiTilesPhysicsTilemapPlugin {
         app.add_event::<TileCollision>();
 
         app.register_type::<TileCollision>()
-            .register_type::<CollisionData>()
-            .register_type::<PhysicsTile>();
+            .register_type::<CollisionData>();
 
         #[cfg(feature = "physics_rapier")]
         app.add_plugins(crate::tilemap::physics::rapier::PhysicsRapierTilemapPlugin);
         #[cfg(feature = "physics_xpbd")]
         app.add_plugins(crate::tilemap::physics::xpbd::PhysicsXpbdTilemapPlugin);
     }
-}
-
-#[derive(Component, Reflect)]
-pub struct PhysicsTile {
-    pub index: UVec2,
 }
 
 #[derive(Event, Debug, Reflect)]
@@ -41,10 +37,12 @@ pub enum TileCollision {
 #[derive(Debug, Reflect, Clone)]
 pub struct CollisionData {
     pub tile_index: UVec2,
+    pub tile_entity: Entity,
+    pub tile_snapshot: Tile,
     pub collider_entity: Entity,
 }
 
-fn get_collision(e1: Entity, e2: Entity, query: &Query<&PhysicsTile>) -> Option<CollisionData> {
+fn get_collision(e1: Entity, e2: Entity, query: &Query<&Tile>) -> Option<CollisionData> {
     let (e_tile, e_other, tile) = {
         if let Ok(t) = query.get(e1) {
             (e1, e2, t)
@@ -57,6 +55,8 @@ fn get_collision(e1: Entity, e2: Entity, query: &Query<&PhysicsTile>) -> Option<
 
     Some(CollisionData {
         tile_index: tile.index,
+        tile_entity: e_tile,
+        tile_snapshot: tile.clone(),
         collider_entity: e_other,
     })
 }

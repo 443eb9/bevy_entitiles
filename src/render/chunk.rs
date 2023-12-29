@@ -11,13 +11,15 @@ use bevy::{
 
 use crate::{
     math::{aabb::Aabb2d, extension::DivToCeil},
-    tilemap::tile::{Tile, TileTexture, TileType},
+    tilemap::tile::{TileTexture, TileType},
     MAX_LAYER_COUNT,
 };
 
 use super::{
-    extract::ExtractedTilemap, texture::TilemapTexture, TILEMAP_MESH_ATTR_COLOR,
-    TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX, TILEMAP_MESH_ATTR_TEX_INDICES,
+    extract::{ExtractedTile, ExtractedTilemap},
+    texture::TilemapTexture,
+    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX,
+    TILEMAP_MESH_ATTR_TEX_INDICES,
 };
 
 #[derive(Clone)]
@@ -157,7 +159,7 @@ impl TilemapRenderChunk {
     }
 
     /// Set a tile in the chunk. Overwrites the previous tile.
-    pub fn set_tile(&mut self, index: UVec2, tile: &Tile) {
+    pub fn set_tile(&mut self, index: UVec2, tile: &ExtractedTile) {
         let index = (index.y * self.size + index.x) as usize;
 
         // TODO fix this. This allows the tile sort by y axis. But this approach looks weird.
@@ -224,25 +226,21 @@ impl RenderChunkStorage {
     }
 
     /// Add tiles to the storage from a query.
-    pub fn add_tiles(
+    pub fn add_tiles_with_query(
         &mut self,
         tilemaps_query: &Query<&ExtractedTilemap>,
-        tiles: &Vec<Option<Tile>>,
+        changed_tiles_query: &Query<&mut ExtractedTile>,
     ) {
-        for tile in tiles.iter() {
-            let Some(tile) = tile else {
-                continue;
-            };
-
-            let Ok(tilemap) = tilemaps_query.get(tile.tilemap_id) else {
+        for tile in changed_tiles_query.iter() {
+            let Ok(tilemap) = tilemaps_query.get(tile.tilemap) else {
                 continue;
             };
 
             let chunks = {
-                if !self.value.contains_key(&tile.tilemap_id) {
+                if !self.value.contains_key(&tile.tilemap) {
                     self.insert_tilemap(tilemap)
                 }
-                self.value.get_mut(&tile.tilemap_id).unwrap()
+                self.value.get_mut(&tile.tilemap).unwrap()
             };
 
             let chunk = {

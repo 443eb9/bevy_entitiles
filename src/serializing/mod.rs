@@ -128,7 +128,6 @@ impl SerializedTilemap {
             texture,
             layer_opacities: self.layer_opacities,
             tiles: vec![],
-            tile_instances: vec![],
             aabb: self.aabb,
             transform: self.transform,
             anim_seqs,

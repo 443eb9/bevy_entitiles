@@ -13,7 +13,10 @@ use crate::{
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
-use super::tile::{Tile, TileBuilder, TileLayer, TileLayerPosition, TileType};
+use super::{
+    layer::{LayerInserter, LayerUpdater},
+    tile::{TileBuilder, TileType},
+};
 
 #[derive(Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -176,7 +179,6 @@ impl TilemapBuilder {
             ext_dir: self.ext_dir,
             size: self.size,
             tiles: vec![None; (self.size.x * self.size.y) as usize],
-            tile_instances: vec![None; (self.size.x * self.size.y) as usize],
             render_chunk_size: self.render_chunk_size,
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
@@ -219,8 +221,7 @@ pub struct Tilemap {
     pub(crate) render_chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
     pub(crate) layer_opacities: Vec4,
-    pub(crate) tiles: Vec<Option<Tile>>,
-    pub(crate) tile_instances: Vec<Option<Entity>>,
+    pub(crate) tiles: Vec<Option<Entity>>,
     pub(crate) aabb: Aabb2d,
     pub(crate) transform: TilemapTransform,
     pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
@@ -229,7 +230,7 @@ pub struct Tilemap {
 
 impl Tilemap {
     /// Get a tile.
-    pub fn get(&self, index: UVec2) -> Option<&Tile> {
+    pub fn get(&self, index: UVec2) -> Option<Entity> {
         if self.is_out_of_tilemap_uvec(index) {
             return None;
         }
@@ -237,52 +238,23 @@ impl Tilemap {
         self.get_unchecked(index)
     }
 
-    #[inline]
-    pub(crate) fn get_unchecked(&self, index: UVec2) -> Option<&Tile> {
-        self.tiles[self.transform_index(index)].as_ref()
-    }
-
-    /// Get a mutable tile.
-    pub fn get_mut(&mut self, index: UVec2) -> Option<&mut Tile> {
-        if self.is_out_of_tilemap_uvec(index) {
-            return None;
-        }
-
-        self.get_mut_unchecked(index)
-    }
-
-    #[inline]
-    pub(crate) fn get_mut_unchecked(&mut self, index: UVec2) -> Option<&mut Tile> {
-        let index = self.transform_index(index);
-        self.tiles[index].as_mut()
-    }
-
-    pub fn get_instance(&self, index: UVec2) -> Option<Entity> {
-        if self.is_out_of_tilemap_uvec(index) {
-            return None;
-        }
-
-        self.get_instance_unchecked(index)
-    }
-
-    #[inline]
-    pub(crate) fn get_instance_unchecked(&self, index: UVec2) -> Option<Entity> {
-        self.tile_instances[self.transform_index(index)]
+    pub(crate) fn get_unchecked(&self, index: UVec2) -> Option<Entity> {
+        self.tiles[self.transform_index(index)]
     }
 
     /// Set a tile.
     ///
     /// Overwrites the tile if it already exists.
-    pub fn set(&mut self, index: UVec2, tile_builder: TileBuilder) {
+    pub fn set(&mut self, commands: &mut Commands, index: UVec2, tile_builder: TileBuilder) {
         if self.is_out_of_tilemap_uvec(index) {
             return;
         }
 
-        self.set_unchecked(index, tile_builder);
+        self.set_unchecked(commands, index, tile_builder);
     }
 
     /// Overwrites all the tiles.
-    pub fn set_all(&mut self, tiles: &Vec<Option<TileBuilder>>) {
+    pub fn set_all(&mut self, commands: &mut Commands, tiles: &Vec<Option<TileBuilder>>) {
         assert_eq!(
             tiles.len(),
             self.tiles.len(),
@@ -296,17 +268,49 @@ impl Tilemap {
             };
 
             if let Some(t) = tile {
-                self.set_unchecked(index, t.clone());
+                self.set_unchecked(commands, index, t.clone());
             } else {
-                self.remove(index);
+                self.remove(commands, index);
             }
         }
     }
 
+    pub(crate) fn set_unchecked(
+        &mut self,
+        commands: &mut Commands,
+        index: UVec2,
+        tile_builder: TileBuilder,
+    ) {
+        let vec_idx = self.transform_index(index);
+        if let Some(previous) = self.tiles[vec_idx] {
+            commands.entity(previous).despawn();
+        }
+        let new_tile = tile_builder.build(commands, index, self);
+        self.tiles[vec_idx] = Some(new_tile);
+    }
+
+    pub fn insert_layer(&mut self, commands: &mut Commands, index: UVec2, inserter: LayerInserter) {
+        if let Some(tile) = self.get(index) {
+            commands.entity(tile).insert(inserter);
+        }
+    }
+
+    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: LayerUpdater) {
+        if self.get(index).is_none() {
+            return;
+        }
+
+        self.update_unchecked(commands, index, updater);
+    }
+
     #[inline]
-    pub(crate) fn set_unchecked(&mut self, index: UVec2, tile_builder: TileBuilder) {
-        let vec_index = self.transform_index(index);
-        self.tiles[vec_index] = Some(tile_builder.build(index, &self));
+    pub(crate) fn update_unchecked(
+        &mut self,
+        commands: &mut Commands,
+        index: UVec2,
+        updater: LayerUpdater,
+    ) {
+        commands.entity(self.get(index).unwrap()).insert(updater);
     }
 
     /// Set the opacity of a layer. Default is 1 for each layer.
@@ -321,29 +325,38 @@ impl Tilemap {
     }
 
     /// Remove a tile.
-    pub fn remove(&mut self, index: UVec2) {
+    pub fn remove(&mut self, commands: &mut Commands, index: UVec2) {
         if self.is_out_of_tilemap_uvec(index) || self.get(index).is_none() {
             return;
         }
 
-        self.remove_unchecked(index);
+        self.remove_unchecked(commands, index);
     }
 
-    pub(crate) fn remove_unchecked(&mut self, index: UVec2) {
+    pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, index: UVec2) {
         let index = self.transform_index(index);
+        commands.entity(self.tiles[index].unwrap()).despawn();
         self.tiles[index] = None;
     }
 
     /// Fill a rectangle area with tiles.
-    pub fn fill_rect(&mut self, area: FillArea, tile_builder: TileBuilder) {
+    pub fn fill_rect(
+        &mut self,
+        commands: &mut Commands,
+        area: FillArea,
+        tile_builder: TileBuilder,
+    ) {
+        let mut tile_batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                let index = UVec2 { x, y };
-                self.remove(index);
-                let vec_index = self.transform_index(index);
-                self.tiles[vec_index] = Some(tile_builder.build(index, self));
+                self.remove(commands, UVec2 { x, y });
+                let tile = tile_builder.build_component(UVec2 { x, y }, self);
+                tile_batch.push(tile);
             }
         }
+
+        commands.spawn_batch(tile_batch);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -351,24 +364,27 @@ impl Tilemap {
     /// Set `relative_index` to true if your function takes index relative to the area origin.
     pub fn fill_rect_custom(
         &mut self,
+        commands: &mut Commands,
         area: FillArea,
         mut tile_builder: impl FnMut(UVec2) -> TileBuilder,
         relative_index: bool,
     ) {
+        let mut tile_batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                let index = UVec2 { x, y };
-                self.remove(index);
+                self.remove(commands, UVec2 { x, y });
                 let builder = tile_builder(if relative_index {
-                    index - area.origin
+                    UVec2::new(x, y) - area.origin
                 } else {
-                    index
+                    UVec2::new(x, y)
                 });
-                self.remove(index);
-                let vec_index = self.transform_index(index);
-                self.tiles[vec_index] = Some(builder.build(index, self));
+                let tile = builder.build_component(UVec2 { x, y }, self);
+                tile_batch.push(tile);
             }
         }
+
+        commands.spawn_batch(tile_batch);
     }
 
     // TODO implement this
@@ -389,35 +405,46 @@ impl Tilemap {
     // }
 
     /// Simlar to `Tilemap::fill_rect()`.
-    pub fn update_rect(&mut self, area: FillArea, position: TileLayerPosition, layer: TileLayer) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: LayerUpdater) {
+        let mut batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                if let Some(tile) = self.get_mut(UVec2 { x, y }) {
-                    tile.update_layer(position, layer);
+                if let Some(entity) = self.get(UVec2 { x, y }) {
+                    batch.push((entity, updater.clone()));
                 }
             }
         }
+
+        commands.insert_or_spawn_batch(batch);
     }
 
     /// Simlar to `Tilemap::fill_rect_custom()`.
     pub fn update_rect_custom(
         &mut self,
+        commands: &mut Commands,
         area: FillArea,
-        mut updater: impl FnMut(UVec2) -> (TileLayerPosition, TileLayer),
+        mut updater: impl FnMut(UVec2) -> LayerUpdater,
         relative_index: bool,
     ) {
+        let mut batch = Vec::with_capacity(area.size());
+
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                if let Some(tile) = self.get_mut(UVec2 { x, y }) {
-                    let (pos, layer) = updater(if relative_index {
-                        UVec2 { x, y } - area.origin
-                    } else {
-                        UVec2 { x, y }
-                    });
-                    tile.update_layer(pos, layer);
+                if let Some(entity) = self.get(UVec2 { x, y }) {
+                    batch.push((
+                        entity,
+                        updater(if relative_index {
+                            UVec2 { x, y } - area.origin
+                        } else {
+                            UVec2 { x, y }
+                        }),
+                    ));
                 }
             }
         }
+
+        commands.insert_or_spawn_batch(batch);
     }
 
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.

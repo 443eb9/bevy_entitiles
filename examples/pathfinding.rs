@@ -9,8 +9,9 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         algorithm::path::PathTilemap,
+        layer::TileLayer,
         map::{TilemapBuilder, TilemapRotation},
-        tile::{TileBuilder, TileLayer, TileType},
+        tile::{TileBuilder, TileType},
     },
     EntiTilesPlugin,
 };
@@ -48,6 +49,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     .build(&mut commands);
 
     tilemap.fill_rect(
+        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );

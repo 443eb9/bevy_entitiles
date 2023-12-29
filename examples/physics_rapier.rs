@@ -22,9 +22,10 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
+        layer::TileLayer,
         map::{TilemapBuilder, TilemapRotation},
         physics::TileCollision,
-        tile::{TileBuilder, TileLayer, TileType},
+        tile::{TileBuilder, TileType},
     },
     EntiTilesPlugin,
 };
@@ -79,6 +80,7 @@ fn setup(
     .build(&mut commands);
 
     tilemap.fill_rect(
+        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
@@ -113,6 +115,7 @@ fn setup(
     .build(&mut commands);
 
     tilemap.fill_rect(
+        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );

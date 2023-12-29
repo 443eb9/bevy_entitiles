@@ -4,8 +4,9 @@ use prelude::TileTexture;
 use reflect::ReflectFilterMode;
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
+    layer::{LayerInserter, LayerUpdater, TileLayer},
     map::{Tilemap, TilemapTransform},
-    tile::{Tile, TileLayer, TileLayerPosition},
+    tile::Tile,
     EntiTilesTilemapPlugin,
 };
 
@@ -43,7 +44,7 @@ pub mod prelude {
     pub use crate::serializing::*;
     #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
     pub use crate::tilemap::physics::*;
-    pub use crate::tilemap::{map::*, tile::*};
+    pub use crate::tilemap::{layer::*, map::*, tile::*};
     #[cfg(feature = "ui")]
     pub use crate::ui::*;
 }
@@ -68,7 +69,8 @@ impl Plugin for EntiTilesPlugin {
         app.register_type::<Aabb2d>().register_type::<FillArea>();
 
         app.register_type::<TileLayer>()
-            .register_type::<TileLayerPosition>()
+            .register_type::<LayerInserter>()
+            .register_type::<LayerUpdater>()
             .register_type::<TilemapTransform>()
             .register_type::<Tilemap>()
             .register_type::<Tile>()
