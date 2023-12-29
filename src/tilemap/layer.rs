@@ -8,7 +8,7 @@ use bevy::{
     reflect::Reflect,
 };
 
-use super::tile::{Tile, TileFlip};
+use super::tile::{Tile, TileFlip, TileTexture};
 
 #[derive(Debug, Default, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -56,9 +56,13 @@ pub fn layer_inserter(
         .par_iter_mut()
         .for_each(|(entity, mut tile, inserter)| {
             if inserter.is_top {
-                tile.layers.push(inserter.layer);
+                if let TileTexture::Static(ref mut tex) = tile.texture {
+                    tex.push(inserter.layer)
+                }
             } else {
-                tile.layers.insert(0, inserter.layer);
+                if let TileTexture::Static(ref mut tex) = tile.texture {
+                    tex.insert(0, inserter.layer)
+                }
             }
 
             commands.command_scope(|mut c| {
@@ -77,10 +81,12 @@ pub struct LayerUpdater {
 pub fn layer_updater(mut tiles_query: Query<(&mut Tile, &LayerUpdater)>) {
     tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
         if let (Some(index), layer) = (updater.index, updater.layer) {
-            if index >= tile.layers.len() {
-                tile.layers.resize(index + 1, TileLayer::new());
+            if let TileTexture::Static(tex) = &mut tile.texture {
+                if index >= tex.len() {
+                    tex.resize(index + 1, TileLayer::new());
+                }
+                tex[index] = layer;
             }
-            tile.layers[index] = layer;
         }
         if let Some(color) = updater.color {
             tile.color = color;

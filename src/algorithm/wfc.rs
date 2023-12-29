@@ -21,7 +21,7 @@ use crate::{
     tilemap::{
         layer::TileLayer,
         map::{Tilemap, TilemapPattern},
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TileTexture, TileType},
     },
 };
 
@@ -101,8 +101,7 @@ impl WfcRunner {
             .map(|r| SerializedTile {
                 index: UVec2::ZERO,
                 color: Vec4::ONE,
-                layers: vec![TileLayer::new().with_texture_index(r as u32)],
-                anim: None,
+                texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
             })
             .collect();
 

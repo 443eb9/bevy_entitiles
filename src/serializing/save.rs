@@ -3,24 +3,24 @@ use std::{
     io::Write,
 };
 
-use bevy::{ecs::{
-    component::Component,
-    entity::Entity,
-    system::{Commands, Query},
-}, reflect::Reflect};
+use bevy::{
+    ecs::{
+        component::Component,
+        entity::Entity,
+        system::{Commands, Query},
+    },
+    reflect::Reflect,
+};
 use serde::Serialize;
 
-use crate::tilemap::{
-    map::Tilemap,
-    tile::{AnimatedTile, Tile},
-};
+use crate::tilemap::{map::Tilemap, tile::Tile};
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
-use bevy::utils::HashMap;
-#[cfg(feature = "algorithm")]
 use super::PATH_TILES;
+#[cfg(feature = "algorithm")]
+use bevy::utils::HashMap;
 
 pub struct TilemapSaverBuilder {
     path: String,
@@ -88,8 +88,10 @@ pub struct TilemapSaver {
 pub fn save(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &Tilemap, &TilemapSaver)>,
-    tiles_query: Query<(&Tile, Option<&AnimatedTile>)>,
-    #[cfg(feature = "algorithm")] path_tilemaps_query: Query<&crate::tilemap::algorithm::path::PathTilemap>,
+    tiles_query: Query<&Tile>,
+    #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
+        &crate::tilemap::algorithm::path::PathTilemap,
+    >,
 ) {
     for (entity, tilemap, saver) in tilemaps_query.iter() {
         let map_path = format!("{}\\{}\\", saver.path, tilemap.name);
@@ -104,8 +106,9 @@ pub fn save(
                 .iter()
                 .map(|e| {
                     if let Some(tile) = e {
-                        let (t, a) = tiles_query.get(tile.clone()).unwrap();
-                        Some(SerializedTile::from_tile(t.clone(), a.cloned()))
+                        Some(SerializedTile::from_tile(
+                            tiles_query.get(tile.clone()).cloned().unwrap(),
+                        ))
                     } else {
                         None
                     }
@@ -123,7 +126,9 @@ pub fn save(
                     tiles: path_tilemap
                         .tiles
                         .iter()
-                        .map(|(index, tile)| (*index, super::SerializedPathTile { cost: tile.cost }))
+                        .map(|(index, tile)| {
+                            (*index, super::SerializedPathTile { cost: tile.cost })
+                        })
                         .collect::<HashMap<_, _>>(),
                 };
 

@@ -13,9 +13,8 @@ use bevy::{
 use crate::{
     math::aabb::AabbBox2d,
     tilemap::{
-        layer::TileLayer,
         map::{Tilemap, TilemapTransform},
-        tile::{AnimatedTile, Tile, TileType},
+        tile::{Tile, TileTexture, TileType},
     },
     MAX_ANIM_COUNT,
 };
@@ -45,9 +44,8 @@ pub struct ExtractedTile {
     pub tilemap: Entity,
     pub render_chunk_index: usize,
     pub index: UVec2,
-    pub layers: Vec<TileLayer>,
+    pub texture: TileTexture,
     pub color: Vec4,
-    pub anim: Option<AnimatedTile>,
 }
 
 #[derive(Component)]
@@ -91,24 +89,18 @@ pub fn extract_tilemaps(
 
 pub fn extract_tiles(
     mut commands: Commands,
-    changed_tiles_query: Extract<Query<(Entity, &Tile, Option<&AnimatedTile>), Changed<Tile>>>,
+    changed_tiles_query: Extract<Query<(Entity, &Tile), Changed<Tile>>>,
 ) {
     let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = vec![];
-    for (entity, tile, anim) in changed_tiles_query.iter() {
-        let anim = if let Some(a) = anim {
-            Some(a.clone())
-        } else {
-            None
-        };
+    for (entity, tile) in changed_tiles_query.iter() {
         extracted_tiles.push((
             entity,
             ExtractedTile {
                 render_chunk_index: tile.render_chunk_index,
                 tilemap: tile.tilemap_id,
                 index: tile.index,
-                layers: tile.layers.clone(),
+                texture: tile.texture.clone(),
                 color: tile.color,
-                anim,
             },
         ));
     }

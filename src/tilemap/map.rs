@@ -347,21 +347,16 @@ impl Tilemap {
         tile_builder: TileBuilder,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
-        let mut anim_batch = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 self.remove(commands, UVec2 { x, y });
-                let (tile, anim) = tile_builder.build_component(UVec2 { x, y }, self);
+                let tile = tile_builder.build_component(UVec2 { x, y }, self);
                 tile_batch.push(tile);
-                if let Some(anim) = anim {
-                    anim_batch.push(anim);
-                }
             }
         }
 
         commands.spawn_batch(tile_batch);
-        commands.spawn_batch(anim_batch);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -375,7 +370,6 @@ impl Tilemap {
         relative_index: bool,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
-        let mut anim_batch = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -385,16 +379,12 @@ impl Tilemap {
                 } else {
                     UVec2::new(x, y)
                 });
-                let (tile, anim) = builder.build_component(UVec2 { x, y }, self);
+                let tile = builder.build_component(UVec2 { x, y }, self);
                 tile_batch.push(tile);
-                if let Some(anim) = anim {
-                    anim_batch.push(anim);
-                }
             }
         }
 
         commands.spawn_batch(tile_batch);
-        commands.spawn_batch(anim_batch);
     }
 
     // TODO implement this

@@ -18,9 +18,8 @@ use crate::{
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
-        layer::TileLayer,
         map::{Tilemap, TilemapRotation, TilemapTransform},
-        tile::{AnimatedTile, Tile, TileType},
+        tile::{Tile, TileTexture, TileType},
     },
     MAX_ANIM_COUNT,
 };
@@ -207,18 +206,16 @@ pub enum TilemapLayer {
 #[derive(Serialize, Deserialize, Clone, Reflect)]
 pub struct SerializedTile {
     pub index: UVec2,
-    pub layers: Vec<TileLayer>,
+    pub texture: TileTexture,
     pub color: Vec4,
-    pub anim: Option<AnimatedTile>,
 }
 
 impl SerializedTile {
-    fn from_tile(tile: Tile, anim: Option<AnimatedTile>) -> Self {
+    fn from_tile(tile: Tile) -> Self {
         Self {
             index: tile.index,
-            layers: tile.layers,
+            texture: tile.texture,
             color: tile.color,
-            anim,
         }
     }
 }

@@ -1,11 +1,12 @@
 use bevy::{app::Update, prelude::Plugin};
 use math::{aabb::AabbBox2d, FillArea};
+use prelude::TileTexture;
 use reflect::ReflectFilterMode;
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
     layer::{LayerInserter, LayerUpdater, TileLayer},
     map::{Tilemap, TilemapTransform},
-    tile::{AnimatedTile, Tile},
+    tile::Tile,
     EntiTilesTilemapPlugin,
 };
 
@@ -73,7 +74,7 @@ impl Plugin for EntiTilesPlugin {
             .register_type::<TilemapTransform>()
             .register_type::<Tilemap>()
             .register_type::<Tile>()
-            .register_type::<AnimatedTile>();
+            .register_type::<TileTexture>();
 
         app.register_type::<ReflectFilterMode>();
     }
