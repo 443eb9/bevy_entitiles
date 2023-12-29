@@ -11,12 +11,9 @@ use bevy_xpbd_2d::{
     plugins::collision::contact_reporting::{CollisionEnded, CollisionStarted},
 };
 
-use crate::{
-    math::FillArea,
-    tilemap::{map::Tilemap, tile::Tile},
-};
+use crate::{math::FillArea, tilemap::map::Tilemap};
 
-use super::{get_collision, TileCollision};
+use super::{get_collision, PhysicsTile, TileCollision};
 
 pub struct PhysicsXpbdTilemapPlugin;
 
@@ -50,7 +47,7 @@ impl Tilemap {
         friction: Option<f32>,
         is_trigger: bool,
     ) {
-        let Some(tile_entity) = self.get(index) else {
+        let Some(tile_entity) = self.get_instance(index) else {
             return;
         };
 
@@ -74,7 +71,7 @@ pub fn collision_handler(
     mut collision_start: EventReader<CollisionStarted>,
     mut collision_end: EventReader<CollisionEnded>,
     mut tile_collision: EventWriter<TileCollision>,
-    tiles_query: Query<&Tile>,
+    tiles_query: Query<&PhysicsTile>,
 ) {
     let mut colls = Vec::with_capacity(collision_start.len());
     for c in collision_start.read() {

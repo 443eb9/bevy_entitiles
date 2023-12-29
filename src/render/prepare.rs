@@ -5,7 +5,7 @@ use bevy::{
 
 use super::{
     buffer::{TilemapUniformBuffers, UniformBuffer},
-    extract::{ExtractedTile, ExtractedTilemap},
+    extract::ExtractedTilemap,
     texture::TilemapTexturesStorage,
     RenderChunkStorage,
 };
@@ -15,14 +15,11 @@ pub fn prepare(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     extracted_tilemaps: Query<&ExtractedTilemap>,
-    extracted_tiles: Query<&mut ExtractedTile>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     mut uniform_buffers: ResMut<TilemapUniformBuffers>,
     // mut storage_buffers: ResMut<TilemapStorageBuffers>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
 ) {
-    render_chunks.add_tiles_with_query(&extracted_tilemaps, &extracted_tiles);
-
     uniform_buffers.clear();
     // storage_buffers.clear();
 
@@ -31,6 +28,7 @@ pub fn prepare(
             .entity(tilemap.id)
             .insert(uniform_buffers.insert(tilemap));
 
+        render_chunks.add_tiles(&extracted_tilemaps, &tilemap.tiles);
         render_chunks.prepare_chunks(tilemap, &render_device);
 
         if let Some(texture) = tilemap.texture.as_ref() {

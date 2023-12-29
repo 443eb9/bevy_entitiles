@@ -13,7 +13,7 @@ use bevy::{
 };
 use serde::Serialize;
 
-use crate::tilemap::{map::Tilemap, tile::Tile};
+use crate::tilemap::map::Tilemap;
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
@@ -88,7 +88,6 @@ pub struct TilemapSaver {
 pub fn save(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &Tilemap, &TilemapSaver)>,
-    tiles_query: Query<&Tile>,
     #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
         &crate::tilemap::algorithm::path::PathTilemap,
     >,
@@ -104,11 +103,9 @@ pub fn save(
             let serialized_tiles: Vec<Option<SerializedTile>> = tilemap
                 .tiles
                 .iter()
-                .map(|e| {
-                    if let Some(tile) = e {
-                        Some(SerializedTile::from_tile(
-                            tiles_query.get(tile.clone()).cloned().unwrap(),
-                        ))
+                .map(|t| {
+                    if let Some(tile) = t {
+                        Some(SerializedTile::from_tile(tile.clone()))
                     } else {
                         None
                     }

@@ -8,9 +8,8 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
-        layer::{LayerUpdater, TileLayer},
         map::{TilemapBuilder, TilemapRotation},
-        tile::{TileBuilder, TileFlip, TileType},
+        tile::{TileBuilder, TileFlip, TileLayer, TileLayerPosition, TileType},
     },
     EntiTilesPlugin,
 };
@@ -46,13 +45,11 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     .build(&mut commands);
 
     tilemap.fill_rect(
-        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     tilemap.fill_rect(
-        &mut commands,
         FillArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
         TileBuilder::new()
             .with_layer(0, TileLayer::new().with_texture_index(1))
@@ -60,7 +57,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     tilemap.set(
-        &mut commands,
         UVec2 { x: 18, y: 8 },
         TileBuilder::new()
             .with_layer(0, TileLayer::new().with_texture_index(0))
@@ -68,7 +64,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     tilemap.set(
-        &mut commands,
         UVec2 { x: 1, y: 1 },
         TileBuilder::new().with_layer(
             1,
@@ -79,7 +74,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     tilemap.set(
-        &mut commands,
         UVec2 { x: 1, y: 2 },
         TileBuilder::new().with_layer(
             0,
@@ -90,7 +84,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     tilemap.set(
-        &mut commands,
         UVec2 { x: 1, y: 3 },
         TileBuilder::new().with_layer(
             0,
@@ -101,13 +94,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     tilemap.update_rect(
-        &mut commands,
         FillArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
-        LayerUpdater {
-            index: Some(1),
-            layer: TileLayer::new().with_texture_index(3),
-            ..Default::default()
-        },
+        TileLayerPosition::Index(1),
+        TileLayer::new().with_texture_index(3),
     );
 
     commands.entity(tilemap.id()).insert(tilemap);
@@ -131,7 +120,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     .build(&mut commands);
 
     tilemap.fill_rect(
-        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
@@ -148,7 +136,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     .build(&mut commands);
 
     tilemap.fill_rect(
-        &mut commands,
         FillArea::full(&tilemap),
         TileBuilder::new()
             .with_layer(0, TileLayer::new().with_texture_index(0))

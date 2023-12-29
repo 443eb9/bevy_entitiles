@@ -6,10 +6,8 @@ use bevy::{
 };
 
 use bevy_entitiles::{
-    debug::PubTilemap,
-    math::aabb::AabbBox2d,
-    render::chunk::RenderChunkStorage,
-    tilemap::{map::Tilemap, tile::Tile},
+    debug::PubTilemap, math::aabb::AabbBox2d, render::chunk::RenderChunkStorage,
+    tilemap::map::Tilemap,
 };
 
 #[cfg(feature = "algorithm")]
@@ -84,13 +82,5 @@ pub fn draw_grid(mut gizmos: Gizmos) {
             Vec2::new(x as f32 * SIZE, 100. * SIZE),
             Color::WHITE,
         );
-    }
-}
-
-pub fn draw_tiles(mut gizmos: Gizmos, tiles: Query<&Tile>, tilemaps: Query<&Tilemap>) {
-    for tile in tiles.iter() {
-        let tilemap = tilemaps.get(tile.tilemap_id).unwrap();
-        let center = tilemap.index_to_world(tile.index);
-        gizmos.rect_2d(center, 0., Vec2::new(8., 8.), Color::YELLOW);
     }
 }

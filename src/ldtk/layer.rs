@@ -11,9 +11,8 @@ use crate::{
     math::aabb::AabbBox2d,
     render::texture::TilemapTexture,
     tilemap::{
-        layer::{LayerInserter, TileLayer},
         map::{Tilemap, TilemapBuilder},
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TileLayer, TileLayerPosition, TileType},
     },
 };
 
@@ -85,18 +84,14 @@ impl<'a> LdtkLayers<'a> {
                 )
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
 
-            tilemap.set(commands, tile_index, builder);
+            tilemap.set(tile_index, builder);
             (0..4).into_iter().for_each(|i| {
                 tilemap.set_layer_opacity(i, layer.opacity);
             });
         } else {
-            tilemap.insert_layer(
-                commands,
-                tile_index,
-                LayerInserter {
-                    is_top: true,
-                    layer: TileLayer::new().with_texture_index(tile.tile_id as u32),
-                },
+            tilemap.get_mut(tile_index).unwrap().insert_layer(
+                TileLayerPosition::Top,
+                TileLayer::new().with_texture_index(tile.tile_id as u32),
             );
         }
     }
