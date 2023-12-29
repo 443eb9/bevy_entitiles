@@ -29,7 +29,7 @@ use bevy_entitiles::{
         enums::LdtkEnum,
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
-        physics::LdtkPhysicsLayer,
+        layer::physics::LdtkPhysicsLayer,
         resources::LdtkLevelManager,
         sprite::LdtkEntityMaterial,
     },

@@ -11,18 +11,23 @@ use crate::{
     math::aabb::Aabb2d,
     render::texture::TilemapTexture,
     tilemap::{
-        layer::{LayerInserter, TileLayer},
+        algorithm::path::PathTilemap,
+        layer::{LayerUpdater, TileLayer, TileLayerPosition, TileUpdater},
         map::{Tilemap, TilemapBuilder},
         tile::{TileBuilder, TileType},
     },
 };
 
+use self::{path::LdtkPathLayer, physics::LdtkPhysicsLayer};
+
 use super::{
     components::LayerIid,
     json::level::{LayerInstance, TileInstance},
-    physics::LdtkPhysicsLayer,
     resources::LdtkAssets,
 };
+
+pub mod path;
+pub mod physics;
 
 pub struct LdtkLayers<'a> {
     pub level_entity: Entity,
@@ -90,12 +95,15 @@ impl<'a> LdtkLayers<'a> {
                 tilemap.set_layer_opacity(i, layer.opacity);
             });
         } else {
-            tilemap.insert_layer(
+            tilemap.update(
                 commands,
                 tile_index,
-                LayerInserter {
-                    is_top: true,
-                    layer: TileLayer::new().with_texture_index(tile.tile_id as u32),
+                TileUpdater {
+                    layer: Some(LayerUpdater {
+                        position: TileLayerPosition::Top,
+                        layer: TileLayer::new().with_texture_index(tile.tile_id as u32),
+                    }),
+                    ..Default::default()
                 },
             );
         }
@@ -144,35 +152,23 @@ impl<'a> LdtkLayers<'a> {
         }
     }
 
+    pub fn apply_path_layer(
+        &mut self,
+        commands: &mut Commands,
+        path: &LdtkPathLayer,
+        tilemap: PathTilemap,
+    ) {
+        let path_map = self.find_layer(&path.parent, &path.identifier);
+        commands.entity(path_map.id).insert(tilemap);
+    }
+
     pub fn apply_physics_layer(
         &mut self,
         commands: &mut Commands,
         physics: &LdtkPhysicsLayer,
         aabbs: Vec<(i32, (UVec2, UVec2))>,
     ) {
-        let physics_map = self
-            .layers
-            .iter()
-            .find(|map| {
-                if let Some(map) = map {
-                    map.name == physics.parent
-                } else {
-                    false
-                }
-            })
-            .unwrap_or_else(|| {
-                panic!(
-                    "Missing parent {} for physics layer {}!",
-                    physics.parent, physics.identifier
-                )
-            })
-            .as_ref()
-            .unwrap_or_else(|| {
-                panic!(
-                    "The parent layer {} for physics layer {} is not a rendered layer!",
-                    physics.parent, physics.identifier
-                )
-            });
+        let physics_map = self.find_layer(&physics.parent, &physics.identifier);
         aabbs
             .into_iter()
             .map(|(i, (min, max))| {
@@ -234,5 +230,25 @@ impl<'a> LdtkLayers<'a> {
                     }
                 }
             });
+    }
+
+    fn find_layer(&self, parent: &String, layer: &String) -> &Tilemap {
+        self.layers
+            .iter()
+            .find(|map| {
+                if let Some(map) = map {
+                    map.name == *parent
+                } else {
+                    false
+                }
+            })
+            .unwrap_or_else(|| panic!("Missing parent {} for layer {}!", parent, layer))
+            .as_ref()
+            .unwrap_or_else(|| {
+                panic!(
+                    "The parent layer {} for layer {} is not a rendered layer!",
+                    parent, layer
+                )
+            })
     }
 }

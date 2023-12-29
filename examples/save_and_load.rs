@@ -69,8 +69,8 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    let mut path_tilemap = PathTilemap::new(tilemap.id());
-    path_tilemap.fill_path_rect_custom(&tilemap, FillArea::full(&tilemap), |_| PathTile {
+    let mut path_tilemap = PathTilemap::new();
+    path_tilemap.fill_path_rect_custom(FillArea::full(&tilemap), |_| PathTile {
         cost: rand::random::<u32>() % 10,
     });
 

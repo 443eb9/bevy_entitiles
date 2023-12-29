@@ -38,8 +38,7 @@ use self::{
         level::{LayerInstance, Level},
         LdtkJson, WorldLayout,
     },
-    layer::LdtkLayers,
-    physics::analyze_physics_layer,
+    layer::{path::analyze_path_layer, LdtkLayers},
     resources::LdtkLevelManager,
     sprite::LdtkEntityMaterial,
 };
@@ -51,7 +50,6 @@ pub mod enums;
 pub mod events;
 pub mod json;
 pub mod layer;
-pub mod physics;
 pub mod resources;
 pub mod sprite;
 
@@ -96,7 +94,7 @@ impl Plugin for EntiTilesLdtkPlugin {
             .register_type::<LdtkEntityMaterial>()
             .register_type::<NineSliceBorders>()
             .register_type::<SpriteMesh>();
-        
+
         app.register_type::<FieldInstance>()
             .register_type::<Level>()
             .register_type::<ImagePosition>()
@@ -222,6 +220,8 @@ fn load_levels(
         );
 
         let mut collider_aabbs = None;
+        let mut path_tilemap = None;
+
         let mut layer_grid = LdtkLayers::new(
             level_entity,
             level.layer_instances.len(),
@@ -231,9 +231,16 @@ fn load_levels(
             manager.z_index,
         );
         for (layer_index, layer) in level.layer_instances.iter().enumerate() {
+            if let Some(path) = manager.path_layer.as_ref() {
+                if layer.identifier == path.identifier {
+                    path_tilemap = Some(analyze_path_layer(layer, path));
+                    continue;
+                }
+            }
+
             if let Some(phy) = manager.physics_layer.as_ref() {
                 if layer.identifier == phy.identifier {
-                    collider_aabbs = Some(analyze_physics_layer(layer, phy));
+                    collider_aabbs = Some(layer::physics::analyze_physics_layer(layer, phy));
                     continue;
                 }
             }
@@ -256,6 +263,9 @@ fn load_levels(
                 manager.physics_layer.as_ref().unwrap(),
                 aabbs,
             );
+        }
+        if let Some(path) = path_tilemap {
+            layer_grid.apply_path_layer(commands, manager.path_layer.as_ref().unwrap(), path);
         }
         layer_grid.apply_all(commands);
         ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {

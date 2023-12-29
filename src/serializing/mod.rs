@@ -239,12 +239,12 @@ impl From<crate::tilemap::algorithm::path::PathTilemap> for SerializedPathTilema
 
 #[cfg(feature = "algorithm")]
 impl SerializedPathTilemap {
-    fn into_path_tilemap(self, tilemap: Entity) -> crate::tilemap::algorithm::path::PathTilemap {
+    fn into_path_tilemap(self) -> crate::tilemap::algorithm::path::PathTilemap {
         let mut tiles = HashMap::default();
         for (index, tile) in self.tiles.iter() {
             tiles.insert(*index, tile.clone().into());
         }
-        crate::tilemap::algorithm::path::PathTilemap { tilemap, tiles }
+        crate::tilemap::algorithm::path::PathTilemap { tiles }
     }
 }
 

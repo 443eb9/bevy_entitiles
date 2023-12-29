@@ -7,7 +7,8 @@ use bevy::{
         entity::Entity,
         query::Without,
         system::{Commands, Query, Res},
-    }, reflect::Reflect,
+    },
+    reflect::Reflect,
 };
 use ron::{de::from_bytes, error::SpannedError};
 use serde::Deserialize;
@@ -138,7 +139,7 @@ pub fn load(
 
             commands
                 .entity(entity)
-                .insert(serialized_path_tilemap.into_path_tilemap(entity));
+                .insert(serialized_path_tilemap.into_path_tilemap());
         }
 
         let mut tilemap = serialized_tilemap.into_tilemap(entity, texture);

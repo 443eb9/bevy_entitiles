@@ -14,7 +14,7 @@ use crate::{
 };
 
 use super::{
-    layer::{LayerInserter, LayerUpdater},
+    layer::TileUpdater,
     tile::{TileBuilder, TileType},
 };
 
@@ -289,13 +289,7 @@ impl Tilemap {
         self.tiles[vec_idx] = Some(new_tile);
     }
 
-    pub fn insert_layer(&mut self, commands: &mut Commands, index: UVec2, inserter: LayerInserter) {
-        if let Some(tile) = self.get(index) {
-            commands.entity(tile).insert(inserter);
-        }
-    }
-
-    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: LayerUpdater) {
+    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: TileUpdater) {
         if self.get(index).is_none() {
             return;
         }
@@ -308,7 +302,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         index: UVec2,
-        updater: LayerUpdater,
+        updater: TileUpdater,
     ) {
         commands.entity(self.get(index).unwrap()).insert(updater);
     }
@@ -405,7 +399,7 @@ impl Tilemap {
     // }
 
     /// Simlar to `Tilemap::fill_rect()`.
-    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: LayerUpdater) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: FillArea, updater: TileUpdater) {
         let mut batch = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
@@ -424,7 +418,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         area: FillArea,
-        mut updater: impl FnMut(UVec2) -> LayerUpdater,
+        mut updater: impl FnMut(UVec2) -> TileUpdater,
         relative_index: bool,
     ) {
         let mut batch = Vec::with_capacity(area.size());

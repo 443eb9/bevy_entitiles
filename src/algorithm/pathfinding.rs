@@ -191,7 +191,7 @@ impl PathGrid {
             return None;
         }
 
-        let Some(tile) = path_tilemap.get_tile(index) else {
+        let Some(tile) = path_tilemap.get(index) else {
             return None;
         };
 

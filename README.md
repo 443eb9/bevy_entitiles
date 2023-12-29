@@ -14,14 +14,14 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - Wave Function Collapse ( Collapse map from LDtk; Optimization )
 - Chunk Unloading
 - Infinite Tilemap
+- Custom Material
 - Runtime Mesh & Texture Baking
 - Wang Tilling
 - Tilemap Mask
 - [Tiled](https://www.mapeditor.org/) Support
 - Volumetric Clouds / Fog
 - SSAO
-- Lighting
-- Realtime Shadow
+- Realtime Lighting
 - ~~Frustum Culling~~
 - ~~Physics~~
 - ~~[LDtk](https://ldtk.io/) Full Support~~
@@ -56,15 +56,6 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 ## Show Cases & Performance
 
 Platform: 10600KF
-
-### Frustum Culling
-
-<div>
-	<img src="./docs/imgs/without_frustum_culling.png" width="300px"/>
-	<img src="./docs/imgs/with_frustum_culling.png" width="300px"/>
-</div>
-
-> *Bevy 0.11.3, crate 0.1.1, 1000x1000 tiles*
 
 ### Animation
 

@@ -8,7 +8,7 @@ use bevy_entitiles::{
     math::FillArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
-        layer::{LayerUpdater, TileLayer},
+        layer::{LayerUpdater, TileLayer, TileLayerPosition, TileUpdater},
         map::{TilemapBuilder, TilemapRotation},
         tile::{TileBuilder, TileFlip, TileType},
     },
@@ -103,9 +103,11 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.update_rect(
         &mut commands,
         FillArea::new(UVec2 { x: 1, y: 3 }, Some(UVec2 { x: 3, y: 3 }), &tilemap),
-        LayerUpdater {
-            index: Some(1),
-            layer: TileLayer::new().with_texture_index(3),
+        TileUpdater {
+            layer: Some(LayerUpdater {
+                position: TileLayerPosition::Index(1),
+                layer: TileLayer::new().with_texture_index(3),
+            }),
             ..Default::default()
         },
     );

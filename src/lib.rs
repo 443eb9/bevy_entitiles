@@ -4,7 +4,7 @@ use prelude::TileTexture;
 use reflect::ReflectFilterMode;
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
-    layer::{LayerInserter, LayerUpdater, TileLayer},
+    layer::{LayerUpdater, TileUpdater, TileLayer},
     map::{Tilemap, TilemapTransform},
     tile::Tile,
     EntiTilesTilemapPlugin,
@@ -69,8 +69,8 @@ impl Plugin for EntiTilesPlugin {
         app.register_type::<Aabb2d>().register_type::<FillArea>();
 
         app.register_type::<TileLayer>()
-            .register_type::<LayerInserter>()
             .register_type::<LayerUpdater>()
+            .register_type::<TileUpdater>()
             .register_type::<TilemapTransform>()
             .register_type::<Tilemap>()
             .register_type::<Tile>()

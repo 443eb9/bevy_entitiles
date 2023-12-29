@@ -1,9 +1,5 @@
 use bevy::{
-    ecs::{
-        component::Component,
-        entity::Entity,
-        system::{ParallelCommands, Query},
-    },
+    ecs::{component::Component, system::Query},
     math::Vec4,
     reflect::Reflect,
 };
@@ -42,50 +38,43 @@ impl TileLayer {
     }
 }
 
-#[derive(Component, Reflect)]
-pub struct LayerInserter {
-    pub is_top: bool,
-    pub layer: TileLayer,
+#[derive(Debug, Clone, Copy, Reflect)]
+pub enum TileLayerPosition {
+    Top,
+    Bottom,
+    Index(usize),
 }
 
-pub fn layer_inserter(
-    commands: ParallelCommands,
-    mut tiles_query: Query<(Entity, &mut Tile, &LayerInserter)>,
-) {
-    tiles_query
-        .par_iter_mut()
-        .for_each(|(entity, mut tile, inserter)| {
-            if inserter.is_top {
-                if let TileTexture::Static(ref mut tex) = tile.texture {
-                    tex.push(inserter.layer)
-                }
-            } else {
-                if let TileTexture::Static(ref mut tex) = tile.texture {
-                    tex.insert(0, inserter.layer)
-                }
-            }
-
-            commands.command_scope(|mut c| {
-                c.entity(entity).remove::<LayerInserter>();
-            });
-        });
-}
-
-#[derive(Default, Component, Clone, Copy, Reflect)]
+#[derive(Clone, Reflect)]
 pub struct LayerUpdater {
-    pub index: Option<usize>,
+    pub position: TileLayerPosition,
     pub layer: TileLayer,
+}
+
+#[derive(Default, Component, Clone, Reflect)]
+pub struct TileUpdater {
+    pub layer: Option<LayerUpdater>,
     pub color: Option<Vec4>,
 }
 
-pub fn layer_updater(mut tiles_query: Query<(&mut Tile, &LayerUpdater)>) {
+pub fn tile_updater(mut tiles_query: Query<(&mut Tile, &TileUpdater)>) {
     tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
-        if let (Some(index), layer) = (updater.index, updater.layer) {
-            if let TileTexture::Static(tex) = &mut tile.texture {
-                if index >= tex.len() {
-                    tex.resize(index + 1, TileLayer::new());
+        if let Some(layer) = &updater.layer {
+            if let TileTexture::Static(ref mut tex) = tile.texture {
+                match layer.position {
+                    TileLayerPosition::Top => {
+                        tex.push(layer.layer);
+                    }
+                    TileLayerPosition::Bottom => {
+                        tex.insert(0, layer.layer);
+                    }
+                    TileLayerPosition::Index(i) => {
+                        if i >= tex.len() {
+                            tex.resize(i + 1, TileLayer::new());
+                        }
+                        tex[i] = layer.layer;
+                    }
                 }
-                tex[index] = layer;
             }
         }
         if let Some(color) = updater.color {

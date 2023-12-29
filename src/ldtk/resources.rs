@@ -8,22 +8,24 @@ use bevy::{
     },
     log::error,
     math::{IVec2, UVec2},
+    reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
     },
     sprite::{Mesh2dHandle, TextureAtlas},
-    utils::HashMap, reflect::Reflect,
+    utils::HashMap,
 };
 
 use crate::{
+    reflect::ReflectFilterMode,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
-    tilemap::map::TilemapRotation, reflect::ReflectFilterMode,
+    tilemap::map::TilemapRotation,
 };
 
 use super::{
     json::{definitions::EntityDef, LdtkJson},
-    physics::LdtkPhysicsLayer,
+    layer::{path::LdtkPathLayer, physics::LdtkPhysicsLayer},
     sprite::{AtlasRect, LdtkEntityMaterial},
     LdtkLoader, LdtkUnloader,
 };
@@ -158,7 +160,7 @@ impl LdtkAssets {
                 let sprite_mesh = self.entity_defs[&entity_instance.identifier]
                     .tile_render_mode
                     .get_mesh(entity_instance, tile_rect, &self.entity_defs);
-                
+
                 let entity_depth = ldtk_data
                     .defs
                     .entities
@@ -199,9 +201,10 @@ pub struct LdtkLevelManager {
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
-    pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
     pub(crate) ldtk_assets: LdtkAssets,
     pub(crate) global_entities: HashMap<String, Entity>,
+    pub(crate) path_layer: Option<LdtkPathLayer>,
+    pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
 }
 
 impl LdtkLevelManager {
@@ -291,13 +294,18 @@ impl LdtkLevelManager {
         self
     }
 
-    /// The identifier of the physics layer.
     /// Set this to allow the algorithm to figure out the colliders.
     /// The layer you specify must be an int grid, or the program will panic.
     ///
     /// The `air_value` is the value of the tiles in the int grid which will be considered as air.
     pub fn set_physics_layer(&mut self, physics: LdtkPhysicsLayer) -> &mut Self {
         self.physics_layer = Some(physics);
+        self
+    }
+
+    /// Set this to allow automatic path tilemap generating.
+    pub fn set_path_layer(&mut self, path: LdtkPathLayer) -> &mut Self {
+        self.path_layer = Some(path);
         self
     }
 
