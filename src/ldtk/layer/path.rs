@@ -21,7 +21,7 @@ pub fn analyze_path_layer(layer: &LayerInstance, path: &LdtkPathLayer) -> PathTi
     }
 
     let size = UVec2::new(layer.c_wid as u32, layer.c_hei as u32);
-    let mut tilemap = PathTilemap::new();
+    let mut tilemap = PathTilemap::new(size);
     let grid = &layer.int_grid_csv;
     let cost_mapper = path.cost_mapper.clone().unwrap_or_default();
 

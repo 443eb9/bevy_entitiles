@@ -40,7 +40,7 @@ impl From<u32> for TileFlip {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct TileBuilder {
     pub(crate) texture: TileTexture,
     pub(crate) color: Vec4,
@@ -52,14 +52,6 @@ impl TileBuilder {
         Self {
             texture: TileTexture::Static(Vec::new()),
             color: Vec4::ONE,
-        }
-    }
-
-    #[cfg(feature = "serializing")]
-    pub fn from_serialized_tile(serialized_tile: &crate::serializing::SerializedTile) -> Self {
-        Self {
-            texture: serialized_tile.texture.clone(),
-            color: serialized_tile.color,
         }
     }
 
@@ -124,4 +116,39 @@ pub struct Tile {
     pub index: UVec2,
     pub texture: TileTexture,
     pub color: Vec4,
+}
+
+#[derive(Debug, Clone, Reflect)]
+pub struct TileBuffer {
+    pub(crate) size: UVec2,
+    pub(crate) tiles: Vec<Option<TileBuilder>>,
+}
+
+impl TileBuffer {
+    pub fn new(size: UVec2) -> Self {
+        Self {
+            size,
+            tiles: vec![None; (size.x * size.y) as usize],
+        }
+    }
+
+    pub fn size(&self) -> UVec2 {
+        self.size
+    }
+
+    pub fn set(&mut self, index: UVec2, tile: TileBuilder) {
+        self.tiles[(index.y * self.size.x + index.x) as usize] = Some(tile);
+    }
+
+    pub fn get(&self, index: UVec2) -> Option<&TileBuilder> {
+        self.tiles
+            .get((index.y * self.size.x + index.x) as usize)
+            .and_then(|t| t.as_ref())
+    }
+
+    pub fn get_mut(&mut self, index: UVec2) -> Option<&mut TileBuilder> {
+        self.tiles
+            .get_mut((index.y * self.size.x + index.x) as usize)
+            .and_then(|t| t.as_mut())
+    }
 }

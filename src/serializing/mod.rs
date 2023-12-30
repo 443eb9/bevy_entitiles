@@ -7,9 +7,6 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "algorithm")]
-use bevy::utils::HashMap;
-
 use crate::{
     math::aabb::Aabb2d,
     reflect::ReflectFilterMode,
@@ -19,7 +16,7 @@ use crate::{
     },
     tilemap::{
         map::{Tilemap, TilemapRotation, TilemapTransform},
-        tile::{Tile, TileTexture, TileType},
+        tile::{Tile, TileTexture, TileType, TileBuilder},
     },
     MAX_ANIM_COUNT,
 };
@@ -34,6 +31,7 @@ pub const TILES: &str = "tiles.ron";
 pub const PATH_TILES: &str = "path_tiles.ron";
 
 pub mod load;
+pub mod pattern;
 pub mod save;
 
 pub struct EntiTilesSerializingPlugin;
@@ -197,13 +195,13 @@ impl Into<FilterMode> for SerializedFilterMode {
 #[repr(u32)]
 #[derive(Serialize, Deserialize, Reflect)]
 pub enum TilemapLayer {
-    Texture = 1,
+    Color = 1,
     Algorithm = 1 << 1,
     Physics = 1 << 2,
     All = !0,
 }
 
-#[derive(Serialize, Deserialize, Clone, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct SerializedTile {
     pub index: UVec2,
     pub texture: TileTexture,
@@ -211,11 +209,20 @@ pub struct SerializedTile {
 }
 
 impl SerializedTile {
-    fn from_tile(tile: Tile) -> Self {
+    pub fn to_tile_builder(self) -> TileBuilder {
+        TileBuilder {
+            texture: self.texture,
+            color: self.color,
+        }
+    }
+}
+
+impl From<Tile> for SerializedTile {
+    fn from(value: Tile) -> Self {
         Self {
-            index: tile.index,
-            texture: tile.texture,
-            color: tile.color,
+            index: value.index,
+            texture: value.texture,
+            color: value.color,
         }
     }
 }
@@ -223,33 +230,52 @@ impl SerializedTile {
 #[cfg(feature = "algorithm")]
 #[derive(Serialize, Deserialize, Reflect)]
 pub struct SerializedPathTilemap {
-    pub tiles: HashMap<UVec2, SerializedPathTile>,
+    pub size: UVec2,
+    pub tiles: Vec<Option<SerializedPathTile>>,
 }
 
 #[cfg(feature = "algorithm")]
 impl From<crate::tilemap::algorithm::path::PathTilemap> for SerializedPathTilemap {
     fn from(value: crate::tilemap::algorithm::path::PathTilemap) -> Self {
-        let mut tiles = HashMap::default();
-        for (index, tile) in value.tiles.iter() {
-            tiles.insert(*index, (*tile).into());
+        Self {
+            size: value.size,
+            tiles: value
+                .tiles
+                .into_iter()
+                .map(|t| {
+                    if let Some(tile) = t {
+                        Some(tile.into())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
         }
-        Self { tiles }
     }
 }
 
 #[cfg(feature = "algorithm")]
 impl SerializedPathTilemap {
     fn into_path_tilemap(self) -> crate::tilemap::algorithm::path::PathTilemap {
-        let mut tiles = HashMap::default();
-        for (index, tile) in self.tiles.iter() {
-            tiles.insert(*index, tile.clone().into());
+        crate::tilemap::algorithm::path::PathTilemap {
+            size: self.size,
+            tiles: self
+                .tiles
+                .into_iter()
+                .map(|t| {
+                    if let Some(tile) = t {
+                        Some(tile.into())
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
         }
-        crate::tilemap::algorithm::path::PathTilemap { tiles }
     }
 }
 
 #[cfg(feature = "algorithm")]
-#[derive(Serialize, Deserialize, Clone, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct SerializedPathTile {
     pub cost: u32,
 }

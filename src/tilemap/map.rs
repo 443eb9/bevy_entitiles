@@ -15,7 +15,7 @@ use crate::{
 
 use super::{
     layer::TileUpdater,
-    tile::{TileBuilder, TileType},
+    tile::{TileBuffer, TileBuilder, TileType},
 };
 
 #[derive(Debug, Clone, Copy, Default, Reflect)]
@@ -81,17 +81,17 @@ impl TilemapTransform {
 }
 
 pub struct TilemapBuilder {
-    pub name: String,
-    pub tile_type: TileType,
-    pub ext_dir: Vec2,
-    pub size: UVec2,
-    pub tile_render_size: Vec2,
-    pub tile_slot_size: Vec2,
-    pub pivot: Vec2,
-    pub render_chunk_size: u32,
-    pub texture: Option<TilemapTexture>,
-    pub transform: TilemapTransform,
-    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub(crate) name: String,
+    pub(crate) tile_type: TileType,
+    pub(crate) ext_dir: Vec2,
+    pub(crate) size: UVec2,
+    pub(crate) tile_render_size: Vec2,
+    pub(crate) tile_slot_size: Vec2,
+    pub(crate) pivot: Vec2,
+    pub(crate) render_chunk_size: u32,
+    pub(crate) texture: Option<TilemapTexture>,
+    pub(crate) transform: TilemapTransform,
+    pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
 }
 
 impl TilemapBuilder {
@@ -191,20 +191,6 @@ impl TilemapBuilder {
         };
         entity.insert((WaitForTextureUsageChange, tilemap.clone()));
         tilemap
-    }
-}
-
-#[cfg(feature = "serializing")]
-#[derive(serde::Serialize, serde::Deserialize, Clone, Reflect)]
-pub struct TilemapPattern {
-    pub size: UVec2,
-    pub tiles: Vec<Option<crate::serializing::SerializedTile>>,
-}
-
-#[cfg(feature = "serializing")]
-impl TilemapPattern {
-    pub fn get(&self, index: UVec2) -> Option<&crate::serializing::SerializedTile> {
-        self.tiles[(index.y * self.size.x + index.x) as usize].as_ref()
     }
 }
 
@@ -344,13 +330,22 @@ impl Tilemap {
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.remove(commands, UVec2 { x, y });
-                let tile = tile_builder.build_component(UVec2 { x, y }, self);
-                tile_batch.push(tile);
+                let index = UVec2 { x, y };
+                self.remove(commands, index);
+                let tile = tile_builder.build_component(index, self);
+                let entity = if let Some(e) = self.get(index) {
+                    e
+                } else {
+                    let e = commands.spawn_empty().id();
+                    let index = self.transform_index(index);
+                    self.tiles[index] = Some(e);
+                    e
+                };
+                tile_batch.push((entity, tile));
             }
         }
 
-        commands.spawn_batch(tile_batch);
+        commands.insert_or_spawn_batch(tile_batch);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -367,36 +362,59 @@ impl Tilemap {
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.remove(commands, UVec2 { x, y });
+                let index = UVec2 { x, y };
+                self.remove(commands, index);
                 let builder = tile_builder(if relative_index {
-                    UVec2::new(x, y) - area.origin
+                    index - area.origin
                 } else {
-                    UVec2::new(x, y)
+                    index
                 });
-                let tile = builder.build_component(UVec2 { x, y }, self);
-                tile_batch.push(tile);
+
+                let tile = builder.build_component(index, self);
+                let entity = if let Some(e) = self.get(index) {
+                    e
+                } else {
+                    let e = commands.spawn_empty().id();
+                    let index = self.transform_index(index);
+                    self.tiles[index] = Some(e);
+                    e
+                };
+                tile_batch.push((entity, tile));
             }
         }
 
-        commands.spawn_batch(tile_batch);
+        commands.insert_or_spawn_batch(tile_batch);
     }
 
-    // TODO implement this
-    // #[cfg(feature = "serializing")]
-    // pub fn set_pattern(&mut self, commands: &mut Commands, pattern: TilemapPattern, origin: UVec2) {
-    //     for y in 0..pattern.size.y {
-    //         for x in 0..pattern.size.x {
-    //             let index = UVec2 { x, y };
-    //             if let Some(tile) = pattern.get(index) {
-    //                 self.set(
-    //                     commands,
-    //                     index + origin,
-    //                     &TileBuilder::from_serialized_tile(tile),
-    //                 );
-    //             }
-    //         }
-    //     }
-    // }
+    /// Fill a rectangle area with tiles from a buffer. This can be faster than set them one by one.
+    pub fn fill_with_buffer(&mut self, commands: &mut Commands, origin: UVec2, buffer: TileBuffer) {
+        let batch = buffer
+            .tiles
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, b)| {
+                if let Some(builder) = b {
+                    let index = UVec2 {
+                        x: index as u32 % buffer.size.x,
+                        y: index as u32 / buffer.size.x,
+                    };
+                    let tile = builder.build_component(index + origin, self);
+
+                    if let Some(e) = self.get(tile.index) {
+                        Some((e, tile))
+                    } else {
+                        let e = commands.spawn_empty().id();
+                        let index = self.transform_index(tile.index);
+                        self.tiles[index] = Some(e);
+                        Some((e, tile))
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        commands.insert_or_spawn_batch(batch);
+    }
 
     /// Simlar to `Tilemap::fill_rect()`.
     pub fn update_rect(&mut self, commands: &mut Commands, area: TileArea, updater: TileUpdater) {
@@ -481,6 +499,11 @@ impl Tilemap {
     #[inline]
     pub fn name(&self) -> String {
         self.name.clone()
+    }
+
+    /// Get the size of the tilemap.
+    pub fn size(&self) -> UVec2 {
+        self.size
     }
 
     #[inline]

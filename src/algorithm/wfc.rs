@@ -17,11 +17,11 @@ use ron::de::from_bytes;
 
 use crate::{
     math::{extension::TileIndex, TileArea},
-    serializing::SerializedTile,
+    serializing::{pattern::TilemapPattern, SerializedTile},
     tilemap::{
         layer::TileLayer,
-        map::{Tilemap, TilemapPattern},
-        tile::{TileBuilder, TileTexture, TileType},
+        map::Tilemap,
+        tile::{TileTexture, TileType},
     },
 };
 
@@ -36,8 +36,9 @@ pub enum WfcMode {
     CustomSampler,
 }
 
-#[derive(Clone, Reflect)]
+#[derive(Debug, Clone, Reflect)]
 pub enum WfcType {
+    None,
     SingleTile(Vec<SerializedTile>),
     MapPattern(Vec<TilemapPattern>),
 }
@@ -45,7 +46,7 @@ pub enum WfcType {
 /// The order of the directions in config should be: up, right, left, down.
 #[derive(Component, Reflect)]
 pub struct WfcRunner {
-    rule: Vec<[u128; 4]>,
+    conn_rules: Vec<[u128; 4]>,
     mode: WfcMode,
     ty: WfcType,
     tile_type: TileType,
@@ -59,7 +60,7 @@ pub struct WfcRunner {
 }
 
 impl WfcRunner {
-    /// Create a runner uses the config that only contains a `texture_index`
+    /// Create a runner using a config describing how the elements should be connected.
     pub fn from_simple_config(
         tilemap: &Tilemap,
         rule_path: String,
@@ -96,21 +97,12 @@ impl WfcRunner {
             rule.push(tex_rule);
         }
 
-        let tiles = (0..rule.len())
-            .into_iter()
-            .map(|r| SerializedTile {
-                index: UVec2::ZERO,
-                color: Vec4::ONE,
-                texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
-            })
-            .collect();
-
         let size = area.size();
 
         Self {
-            rule,
+            conn_rules: rule,
             mode: WfcMode::NonWeighted,
-            ty: WfcType::SingleTile(tiles),
+            ty: WfcType::None,
             tile_type: tilemap.tile_type,
             sampler: None,
             area,
@@ -120,6 +112,69 @@ impl WfcRunner {
             max_history: (size.ilog10().clamp(1, 8) * 20) as usize,
             fallback: None,
         }
+    }
+
+    /// Generate tiles with rules.
+    ///
+    /// The numbers you fill in the rules will be directly considered as the texture indices.
+    pub fn with_texture_indices(mut self) -> Self {
+        let tiles = (0..self.conn_rules.len())
+            .into_iter()
+            .map(|r| SerializedTile {
+                index: UVec2::ZERO,
+                color: Vec4::ONE,
+                texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
+            })
+            .collect();
+        self.ty = WfcType::SingleTile(tiles);
+        self
+    }
+
+    /// Load tilemap patterns from the directory.
+    ///
+    /// The structure should looks like:
+    /// ```
+    /// C
+    /// └── wfc_patterns
+    ///     ├── wfc_pattern_0.ron
+    ///     ├── wfc_pattern_1.ron
+    ///     ..
+    /// ```
+    /// So the `directory`= `C:\\wfc_patterns`, `prefix` = `wfc_pattern_`.
+    pub fn with_pattern_path(self, directory: String, prefix: String) -> Self {
+        let n = self.conn_rules.len();
+        let mut patterns = Vec::with_capacity(n);
+
+        for idx in 0..n {
+            let serialized_pattern: TilemapPattern = from_bytes(
+                read_to_string(format!("{}/{}{}.ron", directory, prefix, idx))
+                    .unwrap()
+                    .as_bytes(),
+            )
+            .unwrap();
+            patterns.push(serialized_pattern);
+        }
+
+        self.with_patterns(patterns)
+    }
+
+    /// Set the patterns of the for wfc.
+    pub fn with_patterns(mut self, patterns: Vec<TilemapPattern>) -> Self {
+        patterns
+            .iter()
+            .for_each(|p| assert_eq!(p.size, patterns[0].size, "Patterns' size not match!"));
+
+        assert_eq!(
+            self.area.extent % patterns[0].size,
+            UVec2::ZERO,
+            "The size of the area({}) should be an integer multiple of the pattern size({}).",
+            self.area.size(),
+            patterns[0].size,
+        );
+
+        self.area.extent /= patterns[0].size;
+        self.ty = WfcType::MapPattern(patterns);
+        self
     }
 
     /// Set the weights of the tiles.
@@ -134,10 +189,10 @@ impl WfcRunner {
             from_bytes(read_to_string(weights_path).unwrap().as_bytes()).unwrap();
         assert_eq!(
             weights_vec.len(),
-            self.rule.len(),
+            self.conn_rules.len(),
             "weights length not match! weights: {}, rules: {}",
             weights_vec.len(),
-            self.rule.len()
+            self.conn_rules.len()
         );
         self.mode = WfcMode::Weighted(weights_vec);
         self
@@ -157,41 +212,6 @@ impl WfcRunner {
         self.mode = WfcMode::CustomSampler;
         self.sampler = Some(custom_sampler);
         self
-    }
-
-    /// Set the pattern for the map.
-    ///
-    /// You can create patterns using the editor.
-    pub fn with_pattern(mut self, directory: String) {
-        let n = self.rule.len();
-        let mut patterns = Vec::with_capacity(n);
-
-        for idx in 0..n {
-            let serialized_pattern: TilemapPattern = from_bytes(
-                read_to_string(format!("{}/{}.wfc_pattern", directory, idx))
-                    .unwrap()
-                    .as_bytes(),
-            )
-            .unwrap();
-            patterns.push(serialized_pattern);
-
-            assert_eq!(
-                patterns[0].size, patterns[idx].size,
-                "Patterns' size not match! pattern 0: {}, pattern {}: {}",
-                patterns[0].size, idx, patterns[idx].size
-            )
-        }
-
-        assert_eq!(
-            self.area.extent % patterns[0].size,
-            UVec2::ZERO,
-            "Size of patterns should be integer size smaller than the area! patterns' size: {}, area size: {}",
-            patterns[0].size,
-            self.area.size(),
-        );
-
-        self.area.extent /= patterns[0].size;
-        self.ty = WfcType::MapPattern(patterns);
     }
 
     /// Set the retrace settings. This will affect the **probability of success**.
@@ -280,7 +300,7 @@ pub struct WfcGrid {
     area: TileArea,
     grid: Vec<WfcElement>,
     rng: StdRng,
-    rule: Vec<[u128; 4]>,
+    conn_rules: Vec<[u128; 4]>,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     heap: Vec<(u8, UVec2)>,
     remaining: usize,
@@ -297,7 +317,7 @@ impl WfcGrid {
     pub fn from_runner(runner: &mut WfcRunner) -> Self {
         let mut grid = Vec::with_capacity(runner.area.size());
         let mut heap = Vec::with_capacity(runner.area.size() + 1);
-        let max_psbs = runner.rule.len() as u16;
+        let max_psbs = runner.conn_rules.len() as u16;
         // a placeholder
         heap.push((0, UVec2::new(0, 0)));
         let mut heap_index = 1;
@@ -312,7 +332,7 @@ impl WfcGrid {
                     psbs: (!0) >> (128 - max_psbs),
                 });
 
-                heap.push((runner.rule.len() as u8, UVec2 { x, y }));
+                heap.push((runner.conn_rules.len() as u8, UVec2 { x, y }));
                 heap_index += 1;
             }
         }
@@ -325,7 +345,7 @@ impl WfcGrid {
             mode: runner.mode.clone(),
             ty: runner.ty.clone(),
             tile_type: runner.tile_type,
-            rule: runner.rule.clone(),
+            conn_rules: runner.conn_rules.clone(),
             rng: match runner.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
                 None => StdRng::from_entropy(),
@@ -432,7 +452,12 @@ impl WfcGrid {
             let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
 
             let neighbours = self.neighbours(cur_ctr);
-            let mut psbs_cache = vec![0; 4];
+            let mut nei_psbs = {
+                match self.tile_type {
+                    TileType::Hexagonal(_) => vec![0; 6],
+                    _ => vec![0; 4],
+                }
+            };
 
             // constrain
             for dir in 0..neighbours.len() {
@@ -441,15 +466,15 @@ impl WfcGrid {
                     continue;
                 }
 
-                for i in 0..self.rule.len() {
+                for i in 0..self.conn_rules.len() {
                     if cur_tile.psbs & (1 << i) != 0 {
-                        psbs_cache[dir] |= self.rule[i][dir];
+                        nei_psbs[dir] |= self.conn_rules[i][dir];
                     }
                 }
 
-                psbs_cache[dir] &= neighbour_tile.psbs;
+                nei_psbs[dir] &= neighbour_tile.psbs;
 
-                if psbs_cache[dir].count_ones() == 0 {
+                if nei_psbs[dir].count_ones() == 0 {
                     self.retrace();
                     return;
                 }
@@ -458,9 +483,9 @@ impl WfcGrid {
             }
 
             for dir in 0..neighbours.len() {
-                let tile = self.get_tile_mut(neighbours[dir]).unwrap();
-                if !tile.collapsed && !spreaded.contains(&tile.index) {
-                    tile.psbs = psbs_cache[dir].clone();
+                let nei_tile = self.get_tile_mut(neighbours[dir]).unwrap();
+                if !nei_tile.collapsed && !spreaded.contains(&nei_tile.index) {
+                    nei_tile.psbs = nei_psbs[dir].clone();
                     self.update_entropy(neighbours[dir]);
                 }
             }
@@ -470,8 +495,6 @@ impl WfcGrid {
     }
 
     pub fn retrace(&mut self) {
-        #[cfg(feature = "debug")]
-        println!("retrace with strength: {}", self.retrace_strength);
         let hist = {
             let hist_len = self.history.len();
             let strength = self.retrace_strength as usize;
@@ -514,18 +537,27 @@ impl WfcGrid {
                     tilemap.set(
                         commands,
                         tile.index + self.area.origin,
-                        TileBuilder::from_serialized_tile(serialized_tile),
+                        serialized_tile.clone().to_tile_builder(),
                     );
                 }
             }
-            WfcType::MapPattern(_patterns) => {
-                unimplemented!();
-                // for ptn in self.grid.iter() {
-                //     let pattern = patterns[ptn.element_index.unwrap() as usize].clone();
-                //     let ptn_size = pattern.size;
-                //     tilemap.set_pattern(commands, pattern, ptn.index * ptn_size + self.area.origin);
-                // }
+            WfcType::MapPattern(patterns) => {
+                self.grid
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, e)| {
+                        let p = &patterns[e.element_index.unwrap() as usize];
+                        p.apply(
+                            commands,
+                            (UVec2 {
+                                x: i as u32 % self.area.extent.x,
+                                y: i as u32 / self.area.extent.x
+                            } + self.area.origin) * p.size,
+                            tilemap
+                        );
+                    });
             }
+            WfcType::None => panic!("WfcType should not be None! You need to set it using `with_texture_indices` or `with_patterns`"),
         }
     }
 
@@ -633,20 +665,13 @@ pub fn wave_function_collapse(
     runner_query
         .par_iter_mut()
         .for_each(|(entity, mut tilemap, mut runner)| {
-            #[cfg(feature = "debug")]
-            let start = std::time::SystemTime::now();
             let mut wfc_grid = WfcGrid::from_runner(&mut runner);
             wfc_grid.collapse(wfc_grid.pick_random());
 
             while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
                 let min_tile = wfc_grid.pop_min();
                 wfc_grid.collapse(min_tile.index);
-                #[cfg(feature = "debug")]
-                println!("remaining: {}", wfc_grid.remaining);
             }
-
-            #[cfg(feature = "debug")]
-            println!("wfc complete in: {:?}", start.elapsed().unwrap());
 
             commands.command_scope(|mut c| {
                 if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
@@ -684,15 +709,20 @@ pub fn wave_function_collapse_async(
                                 tilemap.set(
                                     &mut c,
                                     min_elem.index,
-                                    TileBuilder::from_serialized_tile(serialized_tile),
+                                    serialized_tile.clone().to_tile_builder(),
                                 );
                             }
-                            WfcType::MapPattern(_patterns) => {
-                                unimplemented!()
-                                // let pattern = patterns[idx as usize].clone();
-                                // let ptn_size = pattern.size;
-                                // tilemap.set_pattern(&mut c, pattern, min_elem.index * ptn_size + grid.area.origin);
+                            WfcType::MapPattern(patterns) => {
+                                patterns[idx as usize].apply(
+                                    &mut c,
+                                    (UVec2 {
+                                        x: idx as u32 % grid.area.extent.x,
+                                        y: idx as u32 / grid.area.extent.x
+                                    } + grid.area.origin) * patterns[idx as usize].size,
+                                    &mut tilemap
+                                );
                             }
+                            WfcType::None => panic!("WfcType should not be None! You need to set it using `with_texture_indices` or `with_patterns`"),
                         })
                     }
                 } else {

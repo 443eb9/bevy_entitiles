@@ -15,23 +15,29 @@ use serde::Serialize;
 
 use crate::tilemap::{map::Tilemap, tile::Tile};
 
-use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
+use super::{
+    pattern::TilemapPattern, SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES,
+};
 
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
-#[cfg(feature = "algorithm")]
-use bevy::utils::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
+pub enum TilemapSaverMode {
+    Tilemap,
+    MapPattern,
+}
 
 pub struct TilemapSaverBuilder {
     path: String,
     texture_path: Option<String>,
     layers: u32,
     remove_map_after_done: bool,
+    mode: TilemapSaverMode,
 }
 
 impl TilemapSaverBuilder {
     /// For example if path = C:\\maps, then the crate will create:
-    ///
     /// ```
     /// C
     /// └── maps
@@ -39,12 +45,20 @@ impl TilemapSaverBuilder {
     ///         ├── tilemap.ron
     ///         └── (and other data)
     /// ```
+    ///
+    /// If the mode is `TilemapSaverMode::MapPattern`, then the crate will create:
+    /// ```
+    /// C
+    /// └── maps
+    ///     └── (your tilemap's name).pattern
+    /// ```
     pub fn new(path: String) -> Self {
         TilemapSaverBuilder {
             path,
             texture_path: None,
             layers: 0,
             remove_map_after_done: false,
+            mode: TilemapSaverMode::Tilemap,
         }
     }
 
@@ -67,12 +81,19 @@ impl TilemapSaverBuilder {
         self
     }
 
+    /// Set the saver mode, default is `TilemapSaverMode::Tilemap`.
+    pub fn with_mode(mut self, mode: TilemapSaverMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
     pub fn build(self, commands: &mut Commands, target: Entity) {
         commands.entity(target).insert(TilemapSaver {
             path: self.path,
             texture_path: self.texture_path,
             layers: self.layers,
             remove_map_after_done: self.remove_map_after_done,
+            mode: self.mode,
         });
     }
 }
@@ -83,6 +104,7 @@ pub struct TilemapSaver {
     pub(crate) texture_path: Option<String>,
     pub(crate) layers: u32,
     pub(crate) remove_map_after_done: bool,
+    pub(crate) mode: TilemapSaverMode,
 }
 
 pub fn save(
@@ -96,26 +118,34 @@ pub fn save(
     for (entity, tilemap, saver) in tilemaps_query.iter() {
         let map_path = format!("{}\\{}\\", saver.path, tilemap.name);
 
-        let serialized_tilemap = SerializedTilemap::from_tilemap(tilemap, saver);
-        save_object(&map_path, TILEMAP_META, &serialized_tilemap);
+        if saver.mode == TilemapSaverMode::Tilemap {
+            let serialized_tilemap = SerializedTilemap::from_tilemap(tilemap, saver);
+            save_object(&map_path, TILEMAP_META, &serialized_tilemap);
+        }
+        let mut pattern = TilemapPattern {
+            size: tilemap.size,
+            tiles: vec![],
+            path_tiles: None,
+        };
 
-        // texture
+        // color
         if saver.layers & 1 != 0 {
             let serialized_tiles: Vec<Option<SerializedTile>> = tilemap
                 .tiles
                 .iter()
                 .map(|e| {
                     if let Some(tile) = e {
-                        Some(SerializedTile::from_tile(
-                            tiles_query.get(tile.clone()).cloned().unwrap(),
-                        ))
+                        Some(tiles_query.get(tile.clone()).cloned().unwrap().into())
                     } else {
                         None
                     }
                 })
                 .collect::<Vec<_>>();
 
-            save_object(&map_path, TILES, &serialized_tiles);
+            match saver.mode {
+                TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &serialized_tiles),
+                TilemapSaverMode::MapPattern => pattern.tiles = serialized_tiles,
+            }
         }
 
         // algorithm
@@ -123,17 +153,36 @@ pub fn save(
         if saver.layers & (1 << 1) != 0 {
             if let Ok(path_tilemap) = path_tilemaps_query.get(entity) {
                 let serialized_path_map = super::SerializedPathTilemap {
+                    size: path_tilemap.size,
                     tiles: path_tilemap
                         .tiles
                         .iter()
-                        .map(|(index, tile)| {
-                            (*index, super::SerializedPathTile { cost: tile.cost })
+                        .map(|tile| {
+                            if let Some(t) = tile {
+                                Some((*t).into())
+                            } else {
+                                None
+                            }
                         })
-                        .collect::<HashMap<_, _>>(),
+                        .collect(),
                 };
-
-                save_object(&map_path, PATH_TILES, &serialized_path_map);
+                match saver.mode {
+                    TilemapSaverMode::Tilemap => {
+                        save_object(&map_path, PATH_TILES, &serialized_path_map)
+                    }
+                    TilemapSaverMode::MapPattern => {
+                        pattern.path_tiles = Some(serialized_path_map.tiles)
+                    }
+                }
             }
+        }
+
+        if saver.mode == TilemapSaverMode::MapPattern {
+            save_object(
+                format!("{}\\", saver.path).as_str(),
+                format!("{}.ron", tilemap.name).as_str(),
+                &pattern,
+            );
         }
 
         if saver.remove_map_after_done {
@@ -144,7 +193,7 @@ pub fn save(
     }
 }
 
-pub fn save_object<T: Serialize>(path: &str, file_name: &str, object: &T) {
+fn save_object<T: Serialize>(path: &str, file_name: &str, object: &T) {
     let _ = create_dir_all(path);
     let path = format!("{}{}", path, file_name);
     let _ = File::create(path.clone())

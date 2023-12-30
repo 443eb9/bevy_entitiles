@@ -13,10 +13,7 @@ use bevy::{
 use ron::{de::from_bytes, error::SpannedError};
 use serde::Deserialize;
 
-use crate::{
-    render::texture::TilemapTexture,
-    tilemap::{map::Tilemap, tile::TileBuilder},
-};
+use crate::{render::texture::TilemapTexture, tilemap::map::Tilemap};
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
@@ -153,11 +150,7 @@ pub fn load(
             tilemap.tiles = vec![None; ser_tiles.len()];
             for i in 0..ser_tiles.len() {
                 if let Some(ser_t) = &ser_tiles[i] {
-                    tilemap.set(
-                        &mut commands,
-                        ser_t.index,
-                        TileBuilder::from_serialized_tile(ser_t),
-                    );
+                    tilemap.set(&mut commands, ser_t.index, ser_t.clone().to_tile_builder());
                 }
             }
         }

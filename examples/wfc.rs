@@ -31,7 +31,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let tilemap = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 50, y: 50 },
+        UVec2 { x: 5, y: 5 },
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )
@@ -56,6 +56,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         // use weights OR custom_sampler
         // .with_weights("examples/wfc_weights.ron".to_string())
         .with_retrace_settings(Some(8), Some(1000000))
+        .with_texture_indices()
         .with_fallback(Box::new(|_, e, _, _| {
             println!("Failed to generate: {:?}", e)
         })),

@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use bevy::{
     ecs::query::Without,
     prelude::{Component, Entity, ParallelCommands, Query, UVec2},
@@ -8,10 +6,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{
-        extension::{ManhattanDistance, TileIndex},
-        TileArea,
-    },
+    math::extension::{ManhattanDistance, TileIndex},
     tilemap::{algorithm::path::PathTilemap, map::Tilemap},
 };
 
