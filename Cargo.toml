@@ -113,3 +113,8 @@ required-features = ["ui"]
 name = "wfc_pattern"
 path = "examples/wfc_pattern.rs"
 required-features = ["algorithm", "serializing"]
+
+[[example]]
+name = "ldtk_wfc"
+path = "examples/ldtk_wfc.rs"
+required-features = ["algorithm", "ldtk"]

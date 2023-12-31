@@ -31,7 +31,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let tilemap = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 5, y: 5 },
+        UVec2 { x: 16, y: 16 },
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )
@@ -47,7 +47,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     .build(&mut commands);
 
     commands.entity(tilemap.id()).insert((
-        WfcRunner::from_simple_config(
+        WfcRunner::from_rule_config(
             &tilemap,
             "examples/wfc_config.ron".to_string(),
             TileArea::full(&tilemap),

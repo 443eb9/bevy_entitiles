@@ -143,9 +143,12 @@ impl PathGrid {
         node.index
             .neighbours(tilemap.tile_type, self.allow_diagonal)
             .into_iter()
-            .filter(|n| {
-                self.get_or_register_new(*n, self.dest, tilemap, path_tilemap)
-                    .is_some()
+            .filter_map(|n| {
+                if let Some(nei) = n {
+                    self.get_or_register_new(nei, self.dest, tilemap, path_tilemap)
+                } else {
+                    None
+                }
             })
             .collect()
     }

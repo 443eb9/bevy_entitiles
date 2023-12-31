@@ -103,7 +103,7 @@ fn setup(mut commands: Commands) {
     .build(&mut commands);
 
     commands.entity(wfc_map.id()).insert(
-        WfcRunner::from_simple_config(
+        WfcRunner::from_rule_config(
             &wfc_map,
             "examples/wfc_config.ron".to_string(),
             TileArea::full(&wfc_map),

@@ -1,19 +1,14 @@
 /// Direction order: up, right, left, down
-use std::fs::read_to_string;
+use std::{collections::VecDeque, fs::read_to_string, vec};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
     math::Vec4,
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     reflect::Reflect,
-    utils::HashSet,
+    utils::{HashMap, HashSet},
 };
-use rand::{
-    distributions::{Uniform, WeightedIndex},
-    rngs::StdRng,
-    Rng, SeedableRng,
-};
-use ron::de::from_bytes;
+use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
     math::{extension::TileIndex, TileArea},
@@ -46,7 +41,7 @@ pub enum WfcType {
 /// The order of the directions in config should be: up, right, left, down.
 #[derive(Component, Reflect)]
 pub struct WfcRunner {
-    conn_rules: Vec<[u128; 4]>,
+    conn_rules: Vec<Vec<u128>>,
     mode: WfcMode,
     ty: WfcType,
     tile_type: TileType,
@@ -61,14 +56,14 @@ pub struct WfcRunner {
 
 impl WfcRunner {
     /// Create a runner using a config describing how the elements should be connected.
-    pub fn from_simple_config(
+    pub fn from_rule_config(
         tilemap: &Tilemap,
         rule_path: String,
         area: TileArea,
         seed: Option<u64>,
     ) -> Self {
-        let rule_vec: Vec<[Vec<u8>; 4]> =
-            from_bytes(read_to_string(rule_path).unwrap().as_bytes()).unwrap();
+        let rule_vec: Vec<Vec<Vec<u8>>> =
+            ron::from_str(std::fs::read_to_string(rule_path).unwrap().as_str()).unwrap();
 
         assert!(
             rule_vec.len() <= 128,
@@ -77,8 +72,13 @@ impl WfcRunner {
 
         let mut rule_set = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
-            let mut tex_rule: [Vec<u8>; 4] = Default::default();
-            for dir in 0..4 {
+            let mut tex_rule: Vec<Vec<u8>> = {
+                match tilemap.tile_type {
+                    TileType::Hexagonal(_) => vec![vec![]; 6],
+                    _ => vec![vec![]; 4],
+                }
+            };
+            for dir in 0..tex_rule.len() {
                 for idx in rule_vec[tex_idx][dir].iter() {
                     tex_rule[dir].push(*idx);
                 }
@@ -86,10 +86,15 @@ impl WfcRunner {
             rule_set.push(tex_rule);
         }
 
-        let mut rule: Vec<[u128; 4]> = Vec::with_capacity(rule_set.len());
+        let mut rule = Vec::with_capacity(rule_set.len());
         for tex_idx in 0..rule_set.len() {
-            let mut tex_rule: [u128; 4] = Default::default();
-            for dir in 0..4 {
+            let mut tex_rule = {
+                match tilemap.tile_type {
+                    TileType::Hexagonal(_) => vec![0; 6],
+                    _ => vec![0; 4],
+                }
+            };
+            for dir in 0..tex_rule.len() {
                 for idx in rule_set[tex_idx][dir].iter() {
                     tex_rule[dir] |= 1 << idx;
                 }
@@ -146,10 +151,10 @@ impl WfcRunner {
         let mut patterns = Vec::with_capacity(n);
 
         for idx in 0..n {
-            let serialized_pattern: TilemapPattern = from_bytes(
+            let serialized_pattern: TilemapPattern = ron::from_str(
                 read_to_string(format!("{}/{}{}.ron", directory, prefix, idx))
                     .unwrap()
-                    .as_bytes(),
+                    .as_str(),
             )
             .unwrap();
             patterns.push(serialized_pattern);
@@ -186,7 +191,7 @@ impl WfcRunner {
             "You can only use one sampler or one weights vector"
         );
         let weights_vec: Vec<u8> =
-            from_bytes(read_to_string(weights_path).unwrap().as_bytes()).unwrap();
+            ron::from_str(read_to_string(weights_path).unwrap().as_str()).unwrap();
         assert_eq!(
             weights_vec.len(),
             self.conn_rules.len(),
@@ -264,12 +269,11 @@ impl WfcRunner {
 #[derive(Component, Reflect)]
 pub struct AsyncWfcRunner;
 
-#[derive(Debug, Clone, Copy, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub struct WfcElement {
     pub index: UVec2,
     pub collapsed: bool,
     pub element_index: Option<u8>,
-    pub heap_index: usize,
     pub psbs: u128,
 }
 
@@ -287,22 +291,21 @@ impl WfcElement {
 
 #[derive(Clone, Reflect)]
 pub struct WfcHistory {
-    grid: Vec<WfcElement>,
-    heap: Vec<(u8, UVec2)>,
+    uncollapsed: HashSet<(u8, UVec2)>,
+    elements: HashMap<UVec2, WfcElement>,
     remaining: usize,
 }
 
 #[derive(Component)]
 pub struct WfcGrid {
-    tile_type: TileType,
-    mode: WfcMode,
     ty: WfcType,
+    mode: WfcMode,
+    tile_type: TileType,
     area: TileArea,
-    grid: Vec<WfcElement>,
     rng: StdRng,
-    conn_rules: Vec<[u128; 4]>,
-    sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
-    heap: Vec<(u8, UVec2)>,
+    conn_rules: Vec<Vec<u128>>,
+    uncollapsed: HashSet<(u8, UVec2)>,
+    elements: HashMap<UVec2, WfcElement>,
     remaining: usize,
     history: Vec<Option<WfcHistory>>,
     cur_hist: usize,
@@ -310,47 +313,46 @@ pub struct WfcGrid {
     max_retrace_factor: u32,
     max_retrace_time: u32,
     retraced_time: u32,
+    sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     fallback: Option<Box<dyn Fn(&mut Commands, Entity, &Tilemap, &WfcRunner) + Send + Sync>>,
 }
 
 impl WfcGrid {
     pub fn from_runner(runner: &mut WfcRunner) -> Self {
-        let mut grid = Vec::with_capacity(runner.area.size());
-        let mut heap = Vec::with_capacity(runner.area.size() + 1);
-        let max_psbs = runner.conn_rules.len() as u16;
-        // a placeholder
-        heap.push((0, UVec2::new(0, 0)));
-        let mut heap_index = 1;
+        let mut uncollapsed = HashSet::new();
+        let mut elements = HashMap::new();
+        let max_psbs = runner.conn_rules.len() as u8;
 
         for y in 0..runner.area.extent.y {
             for x in 0..runner.area.extent.x {
-                grid.push(WfcElement {
-                    heap_index,
-                    index: UVec2 { x, y },
-                    element_index: None,
-                    collapsed: false,
-                    psbs: (!0) >> (128 - max_psbs),
-                });
+                elements.insert(
+                    UVec2 { x, y },
+                    WfcElement {
+                        index: UVec2 { x, y },
+                        element_index: None,
+                        collapsed: false,
+                        psbs: (!0) >> (128 - max_psbs),
+                    },
+                );
 
-                heap.push((runner.conn_rules.len() as u8, UVec2 { x, y }));
-                heap_index += 1;
+                uncollapsed.insert((max_psbs, UVec2 { x, y }));
             }
         }
 
         WfcGrid {
-            grid,
+            ty: runner.ty.clone(),
+            mode: runner.mode.clone(),
             area: runner.area,
+            conn_rules: runner.conn_rules.clone(),
+            uncollapsed,
+            elements,
             history: vec![None; runner.max_history],
             cur_hist: 0,
-            mode: runner.mode.clone(),
-            ty: runner.ty.clone(),
             tile_type: runner.tile_type,
-            conn_rules: runner.conn_rules.clone(),
             rng: match runner.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
                 None => StdRng::from_entropy(),
             },
-            heap,
             remaining: runner.area.size(),
             retrace_strength: 1,
             max_retrace_factor: runner.max_retrace_factor,
@@ -361,137 +363,145 @@ impl WfcGrid {
         }
     }
 
-    pub fn get_tile(&self, index: UVec2) -> Option<&WfcElement> {
-        self.grid
-            .get((index.y * self.area.extent.x + index.x) as usize)
-    }
-
-    pub fn get_tile_mut(&mut self, index: UVec2) -> Option<&mut WfcElement> {
-        self.grid
-            .get_mut((index.y * self.area.extent.x + index.x) as usize)
-    }
-
-    pub fn pick_random(&self) -> UVec2 {
-        let mut rng = self.rng.clone();
-        let x = rng.gen_range(0..self.area.extent.x);
-        let y = rng.gen_range(0..self.area.extent.y);
-        UVec2::new(x, y)
-    }
-
-    pub fn is_out_of_grid(&self, index: UVec2) -> bool {
-        index.x >= self.area.extent.x || index.y >= self.area.extent.y
-    }
-
-    pub fn pop_min(&mut self) -> WfcElement {
-        let hist = WfcHistory {
-            grid: self.grid.clone(),
+    pub fn collapse(&mut self) -> UVec2 {
+        self.history[self.cur_hist] = Some(WfcHistory {
+            uncollapsed: self.uncollapsed.clone(),
+            elements: self.elements.clone(),
             remaining: self.remaining,
-            heap: self.heap.clone(),
-        };
-        self.history[self.cur_hist] = Some(hist);
+        });
         self.cur_hist = (self.cur_hist + 1) % self.history.len();
 
-        let min_tile = self.get_tile(self.heap[1].1).unwrap().clone();
-        self.remaining -= 1;
-
-        if self.remaining > 0 {
-            let max = self.heap.pop().unwrap();
-            self.heap[1] = max;
-            self.get_tile_mut(self.heap[1].1).unwrap().heap_index = 1;
-            self.shift_down(1);
-        }
-        min_tile
-    }
-
-    pub fn collapse(&mut self, index: UVec2) {
-        let Some(tile) = self.get_tile(index) else {
-            return;
-        };
-        if tile.collapsed {
-            return;
-        }
-
-        let index = tile.index;
-        let entropy = tile.psbs.count_ones() as usize;
+        let min = self.get_min();
+        let elem = self.elements.get_mut(&min).unwrap();
+        self.uncollapsed
+            .remove(&(elem.psbs.count_ones() as u8, elem.index));
 
         let psb = match &self.mode {
             WfcMode::NonWeighted => {
-                let psb_vec = tile.get_psbs_vec();
-                psb_vec[self.rng.sample(Uniform::new(0, entropy))]
+                let psb_vec = elem.get_psbs_vec();
+                psb_vec[self.rng.gen_range(0..psb_vec.len())]
             }
             WfcMode::Weighted(w) => {
-                let psb_vec = tile.get_psbs_vec();
+                let psb_vec = elem.get_psbs_vec();
                 let weights = psb_vec.iter().map(|p| w[*p as usize]).collect::<Vec<_>>();
                 psb_vec[self.rng.sample(WeightedIndex::new(weights).unwrap())]
             }
             WfcMode::CustomSampler => {
                 let mut rng = self.rng.clone();
-                let res = self.sampler.as_ref().unwrap()(&tile, &mut rng) as u8;
+                let res = self.sampler.as_ref().unwrap()(&elem, &mut rng) as u8;
                 self.rng = rng;
                 res
             }
         };
 
-        self.retrace_strength *= self.rng.sample(Uniform::new(1, self.max_retrace_factor));
+        elem.element_index = Some(psb);
+        elem.psbs = 1 << psb;
+        elem.collapsed = true;
+        self.remaining -= 1;
 
-        let tile = self.get_tile_mut(index).unwrap();
-        tile.element_index = Some(psb);
-        tile.psbs = 1 << psb;
-        tile.collapsed = true;
+        self.retrace_strength *= self.rng.gen_range(1..=self.max_retrace_factor);
 
-        self.spread_constraint(index);
+        let index = elem.index;
+        self.constrain(index);
+        index
     }
 
-    pub fn spread_constraint(&mut self, center: UVec2) {
-        let mut queue: Vec<UVec2> = vec![center];
-        let mut spreaded = HashSet::default();
+    pub fn get_min(&mut self) -> UVec2 {
+        let mut min_entropy = u8::MAX;
+        let mut candidates = Vec::with_capacity(self.remaining);
+        self.uncollapsed.iter().for_each(|(entropy, index)| {
+            if entropy < &min_entropy {
+                min_entropy = *entropy;
+                candidates.clear();
+                candidates.push(*index);
+            } else if entropy == &min_entropy {
+                candidates.push(*index);
+            }
+        });
+        candidates[self.rng.gen_range(0..candidates.len())]
+    }
+
+    pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
+        match &self.ty {
+            WfcType::SingleTile(tiles) => {
+                for tile in self.elements.iter() {
+                    let serialized_tile = tiles.get(tile.1.element_index.unwrap() as usize).unwrap();
+                    tilemap.set(
+                        commands,
+                        tile.1.index + self.area.origin,
+                        serialized_tile.clone().to_tile_builder(),
+                    );
+                }
+            }
+            WfcType::MapPattern(patterns) => {
+                self.elements
+                    .iter()
+                    .enumerate()
+                    .for_each(|(i, e)| {
+                        let p = &patterns[e.1.element_index.unwrap() as usize];
+                        p.apply(
+                            commands,
+                            (UVec2 {
+                                x: i as u32 % self.area.extent.x,
+                                y: i as u32 / self.area.extent.x
+                            } + self.area.origin) * p.size,
+                            tilemap
+                        );
+                    });
+            }
+            WfcType::None => panic!("WfcType should not be None! You need to set it using `with_texture_indices` or `with_patterns`"),
+        }
+    }
+
+    pub fn constrain(&mut self, center: UVec2) {
+        let mut queue = VecDeque::from([center]);
+        let mut spreaded = HashSet::from([center]);
 
         while !queue.is_empty() {
-            let cur_ctr = queue.pop().unwrap();
-            spreaded.insert(cur_ctr);
-            let cur_tile = self.get_tile(cur_ctr).unwrap().clone();
+            let cur_center = queue.pop_front().unwrap();
+            spreaded.insert(cur_center);
 
-            let neighbours = self.neighbours(cur_ctr);
-            let mut nei_psbs = {
-                match self.tile_type {
-                    TileType::Hexagonal(_) => vec![0; 6],
-                    _ => vec![0; 4],
-                }
-            };
+            let cur_elem = self.elements.get(&cur_center).cloned().unwrap();
+            let neis = cur_center.neighbours(self.tile_type, false);
+            let nei_count = neis.len();
 
-            // constrain
-            for dir in 0..neighbours.len() {
-                let neighbour_tile = self.get_tile(neighbours[dir]).unwrap();
-                if neighbour_tile.collapsed || spreaded.contains(&neighbours[dir]) {
+            for dir in 0..nei_count {
+                let Some(nei_index) = neis[dir] else {
+                    continue;
+                };
+                let Some(nei_elem) = self.elements.get_mut(&nei_index) else {
+                    continue;
+                };
+                if nei_elem.collapsed || spreaded.contains(&nei_index) {
                     continue;
                 }
 
-                for i in 0..self.conn_rules.len() {
-                    if cur_tile.psbs & (1 << i) != 0 {
-                        nei_psbs[dir] |= self.conn_rules[i][dir];
-                    }
-                }
+                let mut psb = 0;
+                let psb_rec = nei_elem.psbs;
+                cur_elem.get_psbs_vec().into_iter().for_each(|p| {
+                    psb |= self.conn_rules[p as usize][dir];
+                });
+                nei_elem.psbs &= psb;
 
-                nei_psbs[dir] &= neighbour_tile.psbs;
-
-                if nei_psbs[dir].count_ones() == 0 {
+                if nei_elem.psbs.count_ones() == 0 {
                     self.retrace();
                     return;
                 }
-                spreaded.insert(cur_ctr);
-                queue.push(neighbours[dir]);
-            }
 
-            for dir in 0..neighbours.len() {
-                let nei_tile = self.get_tile_mut(neighbours[dir]).unwrap();
-                if !nei_tile.collapsed && !spreaded.contains(&nei_tile.index) {
-                    nei_tile.psbs = nei_psbs[dir].clone();
-                    self.update_entropy(neighbours[dir]);
+                if nei_elem.psbs != psb_rec {
+                    queue.push_back(nei_index);
+                    let new_psbs = nei_elem.psbs.count_ones() as u8;
+                    self.update_entropy(psb_rec.count_ones() as u8, new_psbs as u8, nei_index);
                 }
             }
         }
 
         self.retrace_strength = 1;
+    }
+
+    pub fn update_entropy(&mut self, old: u8, new: u8, target: UVec2) {
+        self.uncollapsed.remove(&(old, target));
+        self.uncollapsed.insert((new, target));
     }
 
     pub fn retrace(&mut self) {
@@ -523,138 +533,10 @@ impl WfcGrid {
                 .unwrap()
         };
 
-        self.grid = hist.grid;
         self.remaining = hist.remaining;
-        self.heap = hist.heap;
-        self.retraced_time += 1;
-    }
-
-    pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
-        match &self.ty {
-            WfcType::SingleTile(tiles) => {
-                for tile in self.grid.iter() {
-                    let serialized_tile = tiles.get(tile.element_index.unwrap() as usize).unwrap();
-                    tilemap.set(
-                        commands,
-                        tile.index + self.area.origin,
-                        serialized_tile.clone().to_tile_builder(),
-                    );
-                }
-            }
-            WfcType::MapPattern(patterns) => {
-                self.grid
-                    .iter()
-                    .enumerate()
-                    .for_each(|(i, e)| {
-                        let p = &patterns[e.element_index.unwrap() as usize];
-                        p.apply(
-                            commands,
-                            (UVec2 {
-                                x: i as u32 % self.area.extent.x,
-                                y: i as u32 / self.area.extent.x
-                            } + self.area.origin) * p.size,
-                            tilemap
-                        );
-                    });
-            }
-            WfcType::None => panic!("WfcType should not be None! You need to set it using `with_texture_indices` or `with_patterns`"),
-        }
-    }
-
-    pub fn neighbours(&mut self, index: UVec2) -> Vec<UVec2> {
-        index
-            .neighbours(self.tile_type, false)
-            .into_iter()
-            .filter(|n| n.x < self.area.extent.x && n.y < self.area.extent.y)
-            .collect()
-    }
-
-    fn update_entropy(&mut self, index: UVec2) {
-        if self.is_out_of_grid(index) {
-            return;
-        }
-
-        let tile = self.get_tile_mut(index).unwrap();
-        let heap_index = tile.heap_index;
-        self.heap[heap_index].0 = tile.psbs.count_ones() as u8;
-        self.shift_up(heap_index);
-    }
-
-    fn shift_up(&mut self, index: usize) {
-        let Some(mut this) = self.heap.get(index) else {
-            return;
-        };
-        let Some(mut parent) = self.heap.get(index / 2) else {
-            return;
-        };
-
-        while parent.0 > this.0 {
-            let (swapped_this, _) = self.swap_node(this.1, parent.1);
-
-            if swapped_this == 1 {
-                break;
-            } else {
-                this = self.heap.get(swapped_this).unwrap();
-                parent = self.heap.get(swapped_this / 2).unwrap();
-            }
-        }
-    }
-
-    fn shift_down(&mut self, index: usize) {
-        if index * 2 > self.heap.len() - 1 {
-            return;
-        };
-        let Some(mut this) = self.heap.get(index) else {
-            return;
-        };
-        let mut child = {
-            let left = self.heap.get(index * 2).unwrap();
-            if let Some(right) = self.heap.get(index * 2 + 1) {
-                if left.0 < right.0 {
-                    left
-                } else {
-                    right
-                }
-            } else {
-                left
-            }
-        };
-
-        while child.0 < this.0 {
-            let (swapped_this, _) = self.swap_node(this.1, child.1);
-
-            if swapped_this * 2 > self.heap.len() - 1 {
-                break;
-            } else {
-                this = self.heap.get(swapped_this).unwrap();
-                child = {
-                    let left = self.heap.get(swapped_this * 2).unwrap();
-                    if let Some(right) = self.heap.get(swapped_this * 2 + 1) {
-                        if left.0 < right.0 {
-                            left
-                        } else {
-                            right
-                        }
-                    } else {
-                        left
-                    }
-                };
-            }
-        }
-    }
-
-    /// Returns the heap_index after swap.
-    /// (swapped_this_index, swapped_other_index)
-    fn swap_node(&mut self, lhs_index: UVec2, rhs_index: UVec2) -> (usize, usize) {
-        let lhs_heap_index = self.get_tile(lhs_index).unwrap().heap_index;
-        let rhs_heap_index = self.get_tile(rhs_index).unwrap().heap_index;
-
-        self.heap.swap(lhs_heap_index, rhs_heap_index);
-
-        self.get_tile_mut(lhs_index).unwrap().heap_index = rhs_heap_index;
-        self.get_tile_mut(rhs_index).unwrap().heap_index = lhs_heap_index;
-
-        (rhs_heap_index, lhs_heap_index)
+        self.uncollapsed = hist.uncollapsed;
+        self.elements = hist.elements;
+        self.retraced_time += self.retrace_strength;
     }
 }
 
@@ -666,12 +548,15 @@ pub fn wave_function_collapse(
         .par_iter_mut()
         .for_each(|(entity, mut tilemap, mut runner)| {
             let mut wfc_grid = WfcGrid::from_runner(&mut runner);
-            wfc_grid.collapse(wfc_grid.pick_random());
 
+            let now = std::time::SystemTime::now();
             while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
-                let min_tile = wfc_grid.pop_min();
-                wfc_grid.collapse(min_tile.index);
+                wfc_grid.collapse();
             }
+            println!(
+                "WFC time cost: {}ms",
+                now.elapsed().unwrap().as_nanos() as f32 / 1000000.
+            );
 
             commands.command_scope(|mut c| {
                 if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
@@ -699,16 +584,15 @@ pub fn wave_function_collapse_async(
         .for_each(|(entity, mut tilemap, mut runner, _, wfc_grid)| {
             if let Some(mut grid) = wfc_grid {
                 if grid.remaining > 0 && grid.retraced_time < grid.max_retrace_time {
-                    let min_elem = grid.pop_min();
-                    grid.collapse(min_elem.index);
+                    let collapsed = grid.collapse();
 
-                    if let Some(idx) = grid.get_tile(min_elem.index).unwrap().element_index {
+                    if let Some(idx) = grid.elements.get(&collapsed).unwrap().element_index {
                         commands.command_scope(|mut c| match &grid.ty {
                             WfcType::SingleTile(tiles) => {
                                 let serialized_tile = tiles.get(idx as usize).unwrap();
                                 tilemap.set(
                                     &mut c,
-                                    min_elem.index,
+                                    collapsed,
                                     serialized_tile.clone().to_tile_builder(),
                                 );
                             }
@@ -738,8 +622,7 @@ pub fn wave_function_collapse_async(
                     });
                 }
             } else {
-                let mut grid = WfcGrid::from_runner(&mut runner);
-                grid.collapse(grid.pick_random());
+                let grid = WfcGrid::from_runner(&mut runner);
                 commands.command_scope(|mut c| {
                     c.entity(entity).insert(grid);
                 });

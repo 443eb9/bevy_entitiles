@@ -90,54 +90,58 @@ impl ManhattanDistance<u32> for UVec2 {
 }
 
 pub trait TileIndex<T> {
-    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<T>;
+    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<T>>;
 }
 
 impl TileIndex<UVec2> for UVec2 {
-    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<UVec2> {
-        let mut result = Vec::with_capacity(8);
+    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<UVec2>> {
         match ty {
-            TileType::Hexagonal(_) => {
-                for d in [
-                    IVec2::ONE,
-                    IVec2::ONE,
-                    IVec2::NEG_ONE,
-                    IVec2::NEG_ONE,
-                    IVec2::X,
-                    IVec2::Y,
-                ] {
-                    let index = IVec2 {
-                        x: (self.x as i32 + d.x),
-                        y: (self.y as i32 + d.y),
-                    };
-                    if index.x >= 0 || index.y >= 0 {
-                        result.push(index.as_uvec2());
-                    }
+            TileType::Hexagonal(_) => [
+                IVec2::ONE,
+                IVec2::ONE,
+                IVec2::NEG_ONE,
+                IVec2::NEG_ONE,
+                IVec2::X,
+                IVec2::Y,
+            ]
+            .into_iter()
+            .map(|p| {
+                let nei = p + self.as_ivec2();
+                if nei.x >= 0 && nei.y >= 0 {
+                    Some(nei.as_uvec2())
+                } else {
+                    None
                 }
-            }
+            })
+            .collect(),
             _ => {
-                for dy in [-1, 0, 1] {
-                    for dx in [-1, 0, 1] {
-                        if dx == 0 && dy == 0 {
-                            continue;
-                        }
-
-                        if !allow_diagonal && dx != 0 && dy != 0 {
-                            continue;
-                        }
-
-                        let index = IVec2 {
-                            x: (self.x as i32 + dx),
-                            y: (self.y as i32 + dy),
-                        };
-                        if index.x >= 0 || index.y >= 0 {
-                            result.push(index.as_uvec2());
-                        }
+                let seq = [
+                    IVec2::Y,
+                    IVec2::X,
+                    IVec2::NEG_X,
+                    IVec2::NEG_Y,
+                    IVec2::ONE,
+                    IVec2::NEG_ONE,
+                    IVec2::new(1, -1),
+                    IVec2::new(-1, 1),
+                ]
+                .into_iter()
+                .map(|p| {
+                    let nei = p + self.as_ivec2();
+                    if nei.x >= 0 && nei.y >= 0 {
+                        Some(nei.as_uvec2())
+                    } else {
+                        None
                     }
+                })
+                .collect();
+                if allow_diagonal {
+                    seq
+                } else {
+                    seq[0..4].to_vec()
                 }
             }
         }
-        result
     }
 }
 

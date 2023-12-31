@@ -99,15 +99,17 @@ In the following case, each tile has at least one corresponding color gap with i
 	<img src="./docs/imgs/wfc.gif" width="500px">
 </div>
 
-| Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |
-| ------- | ----------------------- | ----------------------- |
-| 10x10   | 33.312                  | 16.264 (3)              |
-| 20x20   | 490.950                 | 96.009 (3)              |
-| 30x30   | 2,280.121               | 335.697 (6)             |
-| 50x50   | 18,838.542              | 2,095.428 (8)           |
-| 100x100 | (Not measurable)        | 32,309.045 (16)         |
+| Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |
+| ------- | ----------------------- | ----------------------- | ----------------------- |
+| 10x10   | 33.312                  | 16.264 (3)              | 0.516(8)                |
+| 20x20   | 490.950                 | 96.009 (3)              | 3.344(8)                |
+| 30x30   | 2,280.121               | 335.697 (6)             | 12.280(8)               |
+| 50x50   | 18,838.542              | 2,095.428 (8)           | 75.143(8)               |
+| 100x100 | (Not measurable)        | 32,309.045 (16)         | 999.414(8)              |
 
-> *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted; Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses*
+> *Column 1: Bevy 0.11.3, crate 0.2.0, NoneWeighted</br>
+> Column 2: Bevy 0.12, crate 0.2.1, NoneWeighted, `max_retrace_factor` = number in parentheses</br>
+> Column3: Bevy 0.12.1, crate 0.2.6, NoneWeighted, `max_retrace_factor` = number in parentheses*
 
 ## Limitations
 
