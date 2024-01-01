@@ -150,7 +150,7 @@ pub fn load(
             tilemap.tiles = vec![None; ser_tiles.len()];
             for i in 0..ser_tiles.len() {
                 if let Some(ser_t) = &ser_tiles[i] {
-                    tilemap.set(&mut commands, ser_t.index, ser_t.clone().to_tile_builder());
+                    tilemap.set(&mut commands, ser_t.index, ser_t.clone().into());
                 }
             }
         }

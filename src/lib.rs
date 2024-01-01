@@ -1,12 +1,11 @@
 use bevy::{app::Update, prelude::Plugin};
 use math::{aabb::Aabb2d, TileArea};
-use prelude::TileTexture;
 use reflect::ReflectFilterMode;
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
-    layer::{LayerUpdater, TileUpdater, TileLayer},
+    layer::{LayerUpdater, TileLayer, TileUpdater},
     map::{Tilemap, TilemapTransform},
-    tile::Tile,
+    tile::{Tile, TileTexture},
     EntiTilesTilemapPlugin,
 };
 
@@ -30,23 +29,31 @@ pub const MAX_ATLAS_COUNT: usize = 512;
 pub const MAX_ANIM_COUNT: usize = 64;
 pub const MAX_ANIM_SEQ_LENGTH: usize = 16;
 
+#[cfg(not(debug_assertions))]
 pub mod prelude {
     #[cfg(feature = "algorithm")]
-    pub use crate::algorithm::*;
+    pub use crate::algorithm::{
+        pathfinding::{AsyncPathfinder, Path, Pathfinder},
+        wfc::{AsyncWfcRunner, WfcRunner},
+    };
     #[cfg(feature = "ldtk")]
-    pub use crate::ldtk::*;
-    pub use crate::math::*;
+    pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager, LdtkLevelManagerMode};
+    pub use crate::math::{aabb::Aabb2d, TileArea};
     pub use crate::render::{
         buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
     };
     #[cfg(feature = "serializing")]
-    pub use crate::serializing::*;
+    pub use crate::serializing::{load::TilemapLoaderBuilder, save::TilemapSaverBuilder};
     #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
-    pub use crate::tilemap::physics::*;
-    pub use crate::tilemap::{layer::*, map::*, tile::*};
+    pub use crate::tilemap::physics::TileCollision;
+    pub use crate::tilemap::{
+        layer::{TileLayer, TileUpdater},
+        map::TilemapBuilder,
+        tile::TileBuilder,
+    };
     #[cfg(feature = "ui")]
-    pub use crate::ui::*;
+    pub use crate::ui::UiTileMaterialRegistry;
 }
 
 pub struct EntiTilesPlugin;

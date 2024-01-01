@@ -208,11 +208,12 @@ pub struct SerializedTile {
     pub color: Vec4,
 }
 
-impl SerializedTile {
-    pub fn to_tile_builder(self) -> TileBuilder {
-        TileBuilder {
-            texture: self.texture,
-            color: self.color,
+impl From<TileBuilder> for SerializedTile {
+    fn from(value: TileBuilder) -> Self {
+        Self {
+            index: UVec2::ZERO,
+            texture: value.texture,
+            color: value.color,
         }
     }
 }
@@ -223,6 +224,15 @@ impl From<Tile> for SerializedTile {
             index: value.index,
             texture: value.texture,
             color: value.color,
+        }
+    }
+}
+
+impl Into<TileBuilder> for SerializedTile {
+    fn into(self) -> TileBuilder {
+        TileBuilder {
+            texture: self.texture,
+            color: self.color,
         }
     }
 }

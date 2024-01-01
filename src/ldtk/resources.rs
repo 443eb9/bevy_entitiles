@@ -20,17 +20,23 @@ use bevy::{
 use crate::{
     reflect::ReflectFilterMode,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
+    serializing::pattern::TilemapPattern,
     tilemap::map::TilemapRotation,
 };
 
 use super::{
     json::{definitions::EntityDef, LdtkJson},
-    layer::{path::LdtkPathLayer, physics::LdtkPhysicsLayer},
     sprite::{AtlasRect, LdtkEntityMaterial},
     LdtkLoader, LdtkUnloader,
 };
 
-#[derive(Default, Reflect)]
+#[derive(Resource, Reflect, Default, Clone)]
+pub struct LdtkPatterns {
+    pub patterns: Vec<TilemapPattern>,
+    pub texture: TilemapTexture,
+}
+
+#[derive(Resource, Default, Reflect)]
 pub struct LdtkAssets {
     pub(crate) associated_file: String,
     /// tileset iid to texture
@@ -66,6 +72,10 @@ impl LdtkAssets {
         self.materials.get(iid).unwrap().clone()
     }
 
+    /// Initialize the assets.
+    ///
+    /// You need to call this after you changed something like the size of an entity,
+    /// or maybe the identifier of an entity.
     pub fn initialize(
         &mut self,
         manager: &LdtkLevelManager,
@@ -191,30 +201,39 @@ impl LdtkAssets {
     }
 }
 
+#[derive(Reflect, Default, Clone, Copy)]
+pub enum LdtkLevelManagerMode {
+    #[default]
+    Tilemap,
+    MapPattern,
+}
+
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkLevelManager {
     pub(crate) file_path: String,
     pub(crate) asset_path_prefix: String,
+    pub(crate) mode: LdtkLevelManagerMode,
     pub(crate) ldtk_json: Option<LdtkJson>,
     pub(crate) level_spacing: Option<i32>,
     pub(crate) filter_mode: ReflectFilterMode,
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
-    pub(crate) ldtk_assets: LdtkAssets,
     pub(crate) global_entities: HashMap<String, Entity>,
-    pub(crate) path_layer: Option<LdtkPathLayer>,
-    pub(crate) physics_layer: Option<LdtkPhysicsLayer>,
+    #[cfg(feature = "algorithm")]
+    pub(crate) path_layer: Option<super::layer::path::LdtkPathLayer>,
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    pub(crate) physics_layer: Option<super::layer::physics::LdtkPhysicsLayer>,
 }
 
 impl LdtkLevelManager {
-    pub fn new(file_path: String, asset_path_prefix: String) -> Self {
+    pub fn new(file_path: String, asset_path_prefix: String, mode: LdtkLevelManagerMode) -> Self {
         let mut s = Self {
             file_path: file_path.clone(),
             asset_path_prefix: asset_path_prefix.clone(),
             ..Default::default()
         };
-        s.initialize(file_path, asset_path_prefix);
+        s.initialize(file_path, asset_path_prefix, mode);
         s
     }
 
@@ -224,30 +243,17 @@ impl LdtkLevelManager {
     ///
     /// For example, your ldtk file is located at `assets/ldtk/fantastic_map.ldtk`,
     /// so `asset_path_prefix` will be `ldtk/`.
-    pub fn initialize(&mut self, file_path: String, asset_path_prefix: String) -> &mut Self {
+    pub fn initialize(
+        &mut self,
+        file_path: String,
+        asset_path_prefix: String,
+        mode: LdtkLevelManagerMode,
+    ) -> &mut Self {
         self.file_path = file_path;
         self.asset_path_prefix = asset_path_prefix;
+        self.mode = mode;
         self.reload_json();
         self
-    }
-
-    pub(crate) fn initialize_assets(
-        &mut self,
-        asset_server: &AssetServer,
-        atlas_assets: &mut Assets<TextureAtlas>,
-        entity_material_assets: &mut Assets<LdtkEntityMaterial>,
-        mesh_assets: &mut Assets<Mesh>,
-    ) {
-        if self.ldtk_assets.associated_file == self.file_path {
-            return;
-        }
-
-        self.reload_assets(
-            asset_server,
-            atlas_assets,
-            entity_material_assets,
-            mesh_assets,
-        );
     }
 
     /// Reloads the ldtk file and refresh the level cache.
@@ -264,28 +270,6 @@ impl LdtkLevelManager {
         };
     }
 
-    /// Reloads the assets.
-    ///
-    /// You need to call this after you changed something like the size of an entity,
-    /// or maybe the identifier of an entity.
-    pub fn reload_assets(
-        &mut self,
-        asset_server: &AssetServer,
-        atlas_assets: &mut Assets<TextureAtlas>,
-        entity_material_assets: &mut Assets<LdtkEntityMaterial>,
-        mesh_assets: &mut Assets<Mesh>,
-    ) {
-        let mut ldtk_assets = LdtkAssets::default();
-        ldtk_assets.initialize(
-            self,
-            asset_server,
-            atlas_assets,
-            entity_material_assets,
-            mesh_assets,
-        );
-        self.ldtk_assets = ldtk_assets;
-    }
-
     /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,
     /// and you are going to load all the levels,
     /// this value will be used to determine the spacing between the levels.
@@ -298,13 +282,18 @@ impl LdtkLevelManager {
     /// The layer you specify must be an int grid, or the program will panic.
     ///
     /// The `air_value` is the value of the tiles in the int grid which will be considered as air.
-    pub fn set_physics_layer(&mut self, physics: LdtkPhysicsLayer) -> &mut Self {
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    pub fn set_physics_layer(
+        &mut self,
+        physics: super::layer::physics::LdtkPhysicsLayer,
+    ) -> &mut Self {
         self.physics_layer = Some(physics);
         self
     }
 
     /// Set this to allow automatic path tilemap generating.
-    pub fn set_path_layer(&mut self, path: LdtkPathLayer) -> &mut Self {
+    #[cfg(feature = "algorithm")]
+    pub fn set_path_layer(&mut self, path: super::layer::path::LdtkPathLayer) -> &mut Self {
         self.path_layer = Some(path);
         self
     }
@@ -331,11 +320,6 @@ impl LdtkLevelManager {
     pub fn get_cached_data(&self) -> &LdtkJson {
         self.check_initialized();
         self.ldtk_json.as_ref().unwrap()
-    }
-
-    pub fn get_ldtk_assets(&self) -> &LdtkAssets {
-        self.check_initialized();
-        &self.ldtk_assets
     }
 
     pub fn load(&mut self, commands: &mut Commands, level: &'static str) {

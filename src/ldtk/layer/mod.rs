@@ -10,28 +10,34 @@ use bevy::{
 use crate::{
     math::aabb::Aabb2d,
     render::texture::TilemapTexture,
+    serializing::pattern::TilemapPattern,
     tilemap::{
-        algorithm::path::PathTilemap,
         layer::{LayerUpdater, TileLayer, TileLayerPosition, TileUpdater},
         map::{Tilemap, TilemapBuilder},
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TileTexture, TileType},
     },
 };
-
-use self::{path::LdtkPathLayer, physics::LdtkPhysicsLayer};
 
 use super::{
     components::LayerIid,
     json::level::{LayerInstance, TileInstance},
-    resources::LdtkAssets,
+    resources::{LdtkAssets, LdtkLevelManagerMode, LdtkPatterns},
 };
 
+#[cfg(feature = "algorithm")]
 pub mod path;
+#[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
 pub mod physics;
+
+#[derive(Clone)]
+pub enum LdtkLayer {
+    Tilemap(Vec<Option<Tilemap>>),
+    MapPattern(Vec<Option<TilemapPattern>>, Option<TilemapTexture>),
+}
 
 pub struct LdtkLayers<'a> {
     pub level_entity: Entity,
-    pub layers: Vec<Option<Tilemap>>,
+    pub layers: LdtkLayer,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
     pub px_size: UVec2,
     pub translation: Vec2,
@@ -46,10 +52,16 @@ impl<'a> LdtkLayers<'a> {
         ldtk_assets: &'a LdtkAssets,
         translation: Vec2,
         base_z_index: i32,
+        mode: LdtkLevelManagerMode,
     ) -> Self {
         Self {
             level_entity,
-            layers: vec![None; total_layers],
+            layers: match mode {
+                LdtkLevelManagerMode::Tilemap => LdtkLayer::Tilemap(vec![None; total_layers]),
+                LdtkLevelManagerMode::MapPattern => {
+                    LdtkLayer::MapPattern(vec![None; total_layers], None)
+                }
+            },
             tilesets: &ldtk_assets.tilesets,
             px_size,
             translation,
@@ -64,108 +76,180 @@ impl<'a> LdtkLayers<'a> {
         layer: &LayerInstance,
         tile: &TileInstance,
     ) {
-        let tilemap = match self.layers[layer_index] {
-            Some(ref mut tilemap) => tilemap,
-            None => self.create_new_layer(commands, layer_index, layer),
-        };
+        self.try_create_new_layer(commands, layer_index, layer);
 
-        let tile_size = tilemap.texture.as_ref().unwrap().desc.tile_size;
-        let tile_index = IVec2 {
-            x: tile.px[0] / tile_size.x as i32,
-            y: tilemap.size.y as i32 - 1 - tile.px[1] / tile_size.y as i32,
-        };
-        if tilemap.is_out_of_tilemap_ivec(tile_index) {
-            return;
-        }
+        match &mut self.layers {
+            LdtkLayer::Tilemap(tilemaps) => {
+                let tilemap = tilemaps[layer_index].as_mut().unwrap();
 
-        let tile_index = tile_index.as_uvec2();
+                let tile_size = tilemap.texture.as_ref().unwrap().desc.tile_size;
+                let tile_index = IVec2 {
+                    x: tile.px[0] / tile_size.x as i32,
+                    y: tilemap.size.y as i32 - 1 - tile.px[1] / tile_size.y as i32,
+                };
+                if tilemap.is_out_of_tilemap_ivec(tile_index) {
+                    return;
+                }
 
-        if tilemap.get(tile_index).is_none() {
-            let builder = TileBuilder::new()
-                .with_layer(
-                    0,
-                    TileLayer::new()
-                        .with_texture_index(tile.tile_id as u32)
-                        .with_flip_raw(tile.flip as u32),
-                )
-                .with_color(Vec4::new(1., 1., 1., tile.alpha));
+                let tile_index = tile_index.as_uvec2();
 
-            tilemap.set(commands, tile_index, builder);
-            (0..4).into_iter().for_each(|i| {
-                tilemap.set_layer_opacity(i, layer.opacity);
-            });
-        } else {
-            tilemap.update(
-                commands,
-                tile_index,
-                TileUpdater {
-                    layer: Some(LayerUpdater {
-                        position: TileLayerPosition::Top,
-                        layer: TileLayer::new().with_texture_index(tile.tile_id as u32),
-                    }),
-                    ..Default::default()
-                },
-            );
+                if tilemap.get(tile_index).is_none() {
+                    let builder = TileBuilder::new()
+                        .with_layer(
+                            0,
+                            TileLayer::new()
+                                .with_texture_index(tile.tile_id as u32)
+                                .with_flip_raw(tile.flip as u32),
+                        )
+                        .with_color(Vec4::new(1., 1., 1., tile.alpha));
+
+                    tilemap.set(commands, tile_index, builder);
+                    (0..4).into_iter().for_each(|i| {
+                        tilemap.set_layer_opacity(i, layer.opacity);
+                    });
+                } else {
+                    tilemap.update(
+                        commands,
+                        tile_index,
+                        TileUpdater {
+                            layer: Some(LayerUpdater {
+                                position: TileLayerPosition::Top,
+                                layer: TileLayer::new().with_texture_index(tile.tile_id as u32),
+                            }),
+                            ..Default::default()
+                        },
+                    );
+                }
+            }
+            LdtkLayer::MapPattern(pattern, texture) => {
+                let pattern = pattern[layer_index].as_mut().unwrap();
+                let tile_size = texture.as_ref().unwrap().desc.tile_size;
+                let tile_index = IVec2 {
+                    x: tile.px[0] / tile_size.x as i32,
+                    y: pattern.size.y as i32 - 1 - tile.px[1] / tile_size.y as i32,
+                };
+                if pattern.is_index_oobi(tile_index) {
+                    return;
+                }
+
+                if let Some(ser_tile) = pattern.get_mut(tile_index.as_uvec2()) {
+                    let TileTexture::Static(tile_layers) = &mut ser_tile.texture else {
+                        unreachable!()
+                    };
+                    tile_layers.push(TileLayer::new().with_texture_index(tile.tile_id as u32));
+                } else {
+                    let builder = TileBuilder::new()
+                        .with_layer(
+                            0,
+                            TileLayer::new()
+                                .with_texture_index(tile.tile_id as u32)
+                                .with_flip_raw(tile.flip as u32),
+                        )
+                        .with_color(Vec4::new(1., 1., 1., tile.alpha));
+                    pattern.set(tile_index.as_uvec2(), Some(builder.into()));
+                }
+            }
         }
     }
 
-    fn create_new_layer(
+    fn try_create_new_layer(
         &mut self,
         commands: &mut Commands,
         layer_index: usize,
         layer: &LayerInstance,
-    ) -> &mut Tilemap {
+    ) {
         let tileset = self
             .tilesets
             .get(&layer.tileset_def_uid.unwrap())
             .cloned()
             .unwrap();
 
-        let tilemap = TilemapBuilder::new(
-            TileType::Square,
-            UVec2 {
-                x: layer.c_wid as u32,
-                y: layer.c_hei as u32,
-            },
-            tileset.desc.tile_size.as_vec2(),
-            layer.identifier.clone(),
-        )
-        .with_texture(tileset)
-        .with_translation(self.translation)
-        .with_z_index(self.base_z_index - layer_index as i32)
-        .build(commands);
+        match &mut self.layers {
+            LdtkLayer::Tilemap(tilemaps) => {
+                if tilemaps[layer_index].is_some() {
+                    return;
+                }
 
-        commands
-            .entity(tilemap.id)
-            .insert((SpatialBundle::default(), LayerIid(layer.iid.clone())));
-        commands.entity(self.level_entity).add_child(tilemap.id());
+                let tilemap = TilemapBuilder::new(
+                    TileType::Square,
+                    UVec2 {
+                        x: layer.c_wid as u32,
+                        y: layer.c_hei as u32,
+                    },
+                    tileset.desc.tile_size.as_vec2(),
+                    layer.identifier.clone(),
+                )
+                .with_texture(tileset)
+                .with_translation(self.translation)
+                .with_z_index(self.base_z_index - layer_index as i32)
+                .build(commands);
 
-        self.layers[layer_index] = Some(tilemap);
-        self.layers[layer_index].as_mut().unwrap()
-    }
+                commands
+                    .entity(tilemap.id)
+                    .insert((SpatialBundle::default(), LayerIid(layer.iid.clone())));
+                commands.entity(self.level_entity).add_child(tilemap.id());
 
-    pub fn apply_all(&mut self, commands: &mut Commands) {
-        for tilemap in self.layers.drain(..) {
-            if let Some(tm) = tilemap {
-                commands.entity(tm.id).insert(tm);
+                tilemaps[layer_index] = Some(tilemap);
+            }
+            LdtkLayer::MapPattern(patterns, texture) => {
+                if let Some(tex) = texture {
+                    assert_eq!(
+                        tex.handle(),
+                        tileset.handle(),
+                        "MapPattern mode only supports one tileset!"
+                    );
+                } else {
+                    *texture = Some(tileset);
+                }
+
+                patterns[layer_index] = Some(TilemapPattern::new(
+                    Some(layer.identifier.clone()),
+                    UVec2 {
+                        x: layer.c_wid as u32,
+                        y: layer.c_hei as u32,
+                    },
+                ));
             }
         }
     }
 
+    pub fn apply_all(&mut self, commands: &mut Commands) {
+        match &mut self.layers {
+            LdtkLayer::Tilemap(tilemaps) => {
+                for layer in tilemaps.drain(..) {
+                    if let Some(tm) = layer {
+                        commands.entity(tm.id).insert(tm);
+                    }
+                }
+            }
+            LdtkLayer::MapPattern(patterns, texture) => {
+                commands.insert_resource(LdtkPatterns {
+                    patterns: patterns
+                        .drain(..)
+                        .filter_map(|p| if let Some(p) = p { Some(p) } else { None })
+                        .collect(),
+                    texture: texture.take().unwrap(),
+                });
+            }
+        }
+    }
+
+    #[cfg(feature = "algorithm")]
     pub fn apply_path_layer(
         &mut self,
         commands: &mut Commands,
-        path: &LdtkPathLayer,
-        tilemap: PathTilemap,
+        path: &path::LdtkPathLayer,
+        tilemap: crate::tilemap::algorithm::path::PathTilemap,
     ) {
         let path_map = self.find_layer(&path.parent, &path.identifier);
         commands.entity(path_map.id).insert(tilemap);
     }
 
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
     pub fn apply_physics_layer(
         &mut self,
         commands: &mut Commands,
-        physics: &LdtkPhysicsLayer,
+        physics: &physics::LdtkPhysicsLayer,
         aabbs: Vec<(i32, (UVec2, UVec2))>,
     ) {
         let physics_map = self.find_layer(&physics.parent, &physics.identifier);
@@ -232,23 +316,26 @@ impl<'a> LdtkLayers<'a> {
             });
     }
 
-    fn find_layer(&self, parent: &String, layer: &String) -> &Tilemap {
-        self.layers
-            .iter()
-            .find(|map| {
-                if let Some(map) = map {
-                    map.name == *parent
-                } else {
-                    false
-                }
-            })
-            .unwrap_or_else(|| panic!("Missing parent {} for layer {}!", parent, layer))
-            .as_ref()
-            .unwrap_or_else(|| {
-                panic!(
-                    "The parent layer {} for layer {} is not a rendered layer!",
-                    parent, layer
-                )
-            })
+    fn find_layer(&mut self, parent: &String, layer: &String) -> &Tilemap {
+        match &mut self.layers {
+            LdtkLayer::Tilemap(tilemaps) => tilemaps
+                .iter()
+                .find(|map| {
+                    if let Some(map) = map {
+                        map.name == *parent
+                    } else {
+                        false
+                    }
+                })
+                .unwrap_or_else(|| panic!("Missing parent {} for layer {}!", parent, layer))
+                .as_ref()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "The parent layer {} for layer {} is not a rendered layer!",
+                        parent, layer
+                    )
+                }),
+            LdtkLayer::MapPattern(_, _) => todo!(),
+        }
     }
 }

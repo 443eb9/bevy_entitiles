@@ -429,7 +429,7 @@ impl WfcGrid {
                     tilemap.set(
                         commands,
                         tile.1.index + self.area.origin,
-                        serialized_tile.clone().to_tile_builder(),
+                        serialized_tile.clone().into(),
                     );
                 }
             }
@@ -593,7 +593,7 @@ pub fn wave_function_collapse_async(
                                 tilemap.set(
                                     &mut c,
                                     collapsed,
-                                    serialized_tile.clone().to_tile_builder(),
+                                    serialized_tile.clone().into(),
                                 );
                             }
                             WfcType::MapPattern(patterns) => {

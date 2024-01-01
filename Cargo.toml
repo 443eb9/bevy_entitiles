@@ -61,7 +61,7 @@ debug = []
 physics_rapier = ["dep:bevy_rapier2d"]
 physics_xpbd = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
-ldtk = ["dep:serde", "dep:serde_json", "dep:bevy_entitiles_derive"]
+ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 ui = []
 
 [[example]]

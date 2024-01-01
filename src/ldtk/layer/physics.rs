@@ -1,6 +1,6 @@
 use bevy::{math::UVec2, reflect::Reflect, utils::HashMap};
 
-use crate::prelude::json::{level::LayerInstance, definitions::LayerType};
+use crate::ldtk::json::{definitions::LayerType, level::LayerInstance};
 
 #[derive(Debug, Clone, Reflect)]
 pub struct LdtkPhysicsLayer {

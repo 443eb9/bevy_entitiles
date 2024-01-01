@@ -15,7 +15,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     let spawn_sprite = {
         if spawn_sprite_attr.is_some() {
             quote::quote!(
-                entity_instance.generate_sprite(commands, ldtk_manager);
+                entity_instance.generate_sprite(commands, ldtk_assets);
             )
         } else {
             quote::quote!()
@@ -48,7 +48,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 syn::Meta::List(meta) => {
                     let func = &meta.tokens;
                     quote::quote!(
-                        #func(level_entity, commands, entity_instance, fields, asset_server, ldtk_manager);
+                        #func(level_entity, commands, entity_instance, fields, asset_server, ldtk_manager, ldtk_assets);
                     )
                 }
                 _ => {
@@ -130,6 +130,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 fields: &bevy::utils::HashMap<String, bevy_entitiles::ldtk::json::field::FieldInstance>,
                 asset_server: &bevy::prelude::AssetServer,
                 ldtk_manager: &bevy_entitiles::ldtk::resources::LdtkLevelManager,
+                ldtk_assets: &bevy_entitiles::ldtk::resources::LdtkAssets,
             ) {
                 #callback
                 #spawn_sprite

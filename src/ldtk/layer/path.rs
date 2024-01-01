@@ -1,7 +1,7 @@
 use bevy::{math::UVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{
-    prelude::json::{definitions::LayerType, level::LayerInstance},
+    ldtk::json::{definitions::LayerType, level::LayerInstance},
     tilemap::algorithm::path::{PathTile, PathTilemap},
 };
 

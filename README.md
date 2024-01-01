@@ -10,7 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Wave Function Collapse ( Collapse map from LDtk; Optimization )
+- Wave Function Collapse ( Collapse map from LDtk )
 - Chunk Unloading
 - Infinite Tilemap
 - Custom Material
@@ -28,7 +28,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Known Issues
 
-- The success probability of the wfc algorithm significantly decreased after switching to `LookupHeap`. ( And that's why I didn't switch to `LookupHeap` )
 - Spawning another tilemap while the program is running will cause panic.
 
 ## Feature Flags
@@ -92,6 +91,8 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 > *Bevy 0.12, crate 0.2.1, using `pathfinding` example*
 
 ### Wave Function Collapse
+
+The wave function collapse algorithm is also fast. XD
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
 

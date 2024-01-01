@@ -1,9 +1,10 @@
 use bevy::{
-    ecs::system::EntityCommands, sprite::MaterialMesh2dBundle, transform::components::Transform, reflect::Reflect,
+    ecs::system::EntityCommands, reflect::Reflect, sprite::MaterialMesh2dBundle,
+    transform::components::Transform,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::ldtk::resources::LdtkLevelManager;
+use crate::ldtk::resources::LdtkAssets;
 
 use super::{
     definitions::{LayerType, TilesetRect},
@@ -312,15 +313,14 @@ pub struct EntityInstance {
 }
 
 impl EntityInstance {
-    pub fn generate_sprite(&self, commands: &mut EntityCommands, ldtk_manager: &LdtkLevelManager) {
+    pub fn generate_sprite(&self, commands: &mut EntityCommands, assets: &LdtkAssets) {
         if self.tile.is_none() {
             return;
         }
 
-        let ldtk_assets = ldtk_manager.get_ldtk_assets();
         commands.insert(MaterialMesh2dBundle {
-            mesh: ldtk_assets.clone_mesh_handle(&self.iid),
-            material: ldtk_assets.clone_material_handle(&self.iid),
+            mesh: assets.clone_mesh_handle(&self.iid),
+            material: assets.clone_material_handle(&self.iid),
             transform: Transform::from_xyz(self.world_x as f32, -self.world_y as f32, 1.),
             ..Default::default()
         });

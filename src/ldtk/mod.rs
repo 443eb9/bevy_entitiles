@@ -25,7 +25,7 @@ use crate::ldtk::{
         level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
         EntityRef, GridPoint, LdtkColor, Toc, World,
     },
-    resources::LdtkAssets,
+    resources::{LdtkAssets, LdtkLevelManagerMode, LdtkPatterns},
     sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
 };
 
@@ -38,7 +38,7 @@ use self::{
         level::{LayerInstance, Level},
         LdtkJson, WorldLayout,
     },
-    layer::{path::analyze_path_layer, LdtkLayers},
+    layer::LdtkLayers,
     resources::LdtkLevelManager,
     sprite::LdtkEntityMaterial,
 };
@@ -75,7 +75,8 @@ impl Plugin for EntiTilesLdtkPlugin {
 
         app.insert_non_send_resource(LdtkEntityRegistry::default());
 
-        app.init_resource::<LdtkLevelManager>();
+        app.init_resource::<LdtkLevelManager>()
+            .init_resource::<LdtkAssets>();
 
         app.add_event::<LdtkEvent>();
 
@@ -89,7 +90,9 @@ impl Plugin for EntiTilesLdtkPlugin {
             .register_type::<LdtkLoader>()
             .register_type::<LdtkUnloader>()
             .register_type::<LdtkAssets>()
+            .register_type::<LdtkLevelManagerMode>()
             .register_type::<LdtkLevelManager>()
+            .register_type::<LdtkPatterns>()
             .register_type::<AtlasRect>()
             .register_type::<LdtkEntityMaterial>()
             .register_type::<NineSliceBorders>()
@@ -150,10 +153,12 @@ pub fn load_ldtk_json(
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
     mut manager: ResMut<LdtkLevelManager>,
+    mut assets: ResMut<LdtkAssets>,
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
 ) {
-    manager.initialize_assets(
+    assets.initialize(
+        &manager,
         &asset_server,
         &mut atlas_assets,
         &mut entity_material_assets,
@@ -169,6 +174,7 @@ pub fn load_ldtk_json(
             &ident_mapper,
             entity,
             &mut ldtk_events,
+            &mut assets,
         );
 
         let mut e_cmd = commands.entity(entity);
@@ -193,6 +199,7 @@ fn load_levels(
     ident_mapper: &LdtkEntityRegistry,
     level_entity: Entity,
     ldtk_events: &mut EventWriter<LdtkEvent>,
+    assets: &mut LdtkAssets,
 ) -> Option<LdtkLoadedLevel> {
     let ldtk_data = manager.get_cached_data();
 
@@ -219,25 +226,30 @@ fn load_levels(
             &manager,
         );
 
+        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
         let mut collider_aabbs = None;
+        #[cfg(feature = "algorithm")]
         let mut path_tilemap = None;
 
         let mut layer_grid = LdtkLayers::new(
             level_entity,
             level.layer_instances.len(),
             level_px,
-            &manager.ldtk_assets,
+            &assets,
             translation,
             manager.z_index,
+            manager.mode,
         );
         for (layer_index, layer) in level.layer_instances.iter().enumerate() {
+            #[cfg(feature = "algorithm")]
             if let Some(path) = manager.path_layer.as_ref() {
                 if layer.identifier == path.identifier {
-                    path_tilemap = Some(analyze_path_layer(layer, path));
+                    path_tilemap = Some(layer::path::analyze_path_layer(layer, path));
                     continue;
                 }
             }
 
+            #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
             if let Some(phy) = manager.physics_layer.as_ref() {
                 if layer.identifier == phy.identifier {
                     collider_aabbs = Some(layer::physics::analyze_physics_layer(layer, phy));
@@ -254,9 +266,11 @@ fn load_levels(
                 &ident_mapper,
                 asset_server,
                 &manager,
+                &assets,
             );
         }
 
+        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
         if let Some(aabbs) = collider_aabbs {
             layer_grid.apply_physics_layer(
                 commands,
@@ -264,6 +278,7 @@ fn load_levels(
                 aabbs,
             );
         }
+        #[cfg(feature = "algorithm")]
         if let Some(path) = path_tilemap {
             layer_grid.apply_path_layer(commands, manager.path_layer.as_ref().unwrap(), path);
         }
@@ -323,6 +338,7 @@ fn load_layer(
     ident_mapper: &LdtkEntityRegistry,
     asset_server: &AssetServer,
     manager: &LdtkLevelManager,
+    assets: &LdtkAssets,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
@@ -363,6 +379,7 @@ fn load_layer(
                     &mut fields,
                     asset_server,
                     manager,
+                    assets,
                 );
             }
         }

@@ -123,8 +123,10 @@ pub fn save(
             save_object(&map_path, TILEMAP_META, &serialized_tilemap);
         }
         let mut pattern = TilemapPattern {
+            label: None,
             size: tilemap.size,
             tiles: vec![],
+            #[cfg(feature = "algorithm")]
             path_tiles: None,
         };
 

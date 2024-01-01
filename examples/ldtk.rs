@@ -30,7 +30,7 @@ use bevy_entitiles::{
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
         layer::physics::LdtkPhysicsLayer,
-        resources::LdtkLevelManager,
+        resources::{LdtkAssets, LdtkLevelManager, LdtkLevelManagerMode},
         sprite::LdtkEntityMaterial,
     },
     EntiTilesPlugin,
@@ -83,6 +83,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             // in my local disk.
             "assets/ldtk/ignoregrid_vania.ldtk".to_string(),
             "ldtk/".to_string(),
+            LdtkLevelManagerMode::Tilemap,
         )
         .set_physics_layer(LdtkPhysicsLayer {
             identifier: "PhysicsColliders".to_string(),
@@ -133,6 +134,7 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
 fn hot_reload(
     input: Res<Input<KeyCode>>,
     mut manager: ResMut<LdtkLevelManager>,
+    mut assets: ResMut<LdtkAssets>,
     asset_server: Res<AssetServer>,
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
@@ -140,7 +142,8 @@ fn hot_reload(
 ) {
     if input.just_pressed(KeyCode::Return) {
         manager.reload_json();
-        manager.reload_assets(
+        assets.initialize(
+            &manager,
             &asset_server,
             &mut atlas_assets,
             &mut entity_material_assets,
@@ -203,7 +206,8 @@ fn player_spawn(
     _asset_server: &AssetServer,
     // the textures from ldtk. They are already registered into assets.
     // you can use them to spawn new sprites.
-    _ldtk_textures: &LdtkLevelManager,
+    _ldtk_manager: &LdtkLevelManager,
+    _ldtk_assets: &LdtkAssets,
 ) {
     // this is takes params that are exactly the same as the LdtkEntity trait
     // you can use this to add more fancy stuff to your entity
