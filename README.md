@@ -129,6 +129,7 @@ In the following case, each tile has at least one corresponding color gap with i
 ## Assets
 
 - [SunnyLand_by_Ansimuz-extended.png](https://ansimuz.itch.io/sunny-land-pixel-game-art)
+- [Cavernas_by_Adam_Saltsman.png](https://adamatomic.itch.io/cavernas)
 
 ## Versions
 

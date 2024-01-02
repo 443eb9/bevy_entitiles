@@ -12,13 +12,104 @@ use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
     math::{extension::TileIndex, TileArea},
+    render::texture::TilemapTexture,
     serializing::{pattern::TilemapPattern, SerializedTile},
     tilemap::{
         layer::TileLayer,
-        map::Tilemap,
+        map::{Tilemap, TilemapBuilder},
         tile::{TileTexture, TileType},
     },
 };
+
+const DIR: [&'static str; 4] = ["up", "right", "left", "down"];
+const HEX_DIR: [&'static str; 6] = [
+    "up_right",
+    "right",
+    "down_right",
+    "up_left",
+    "left",
+    "down_left",
+];
+
+#[derive(Reflect)]
+pub struct WfcRules(pub Vec<Vec<u128>>);
+
+impl WfcRules {
+    pub fn from_file(rule_path: &str, tile_type: TileType) -> Self {
+        let rule_vec: Vec<Vec<Vec<u8>>> =
+            ron::from_str(std::fs::read_to_string(rule_path).unwrap().as_str()).unwrap();
+
+        assert!(
+            rule_vec.len() <= 128,
+            "We only support 128 elements for now"
+        );
+
+        let mut rule_set = Vec::with_capacity(rule_vec.len());
+        for tex_idx in 0..rule_vec.len() {
+            let mut tex_rule: Vec<Vec<u8>> = {
+                match tile_type {
+                    TileType::Hexagonal(_) => vec![vec![]; 6],
+                    _ => vec![vec![]; 4],
+                }
+            };
+            for dir in 0..tex_rule.len() {
+                for idx in rule_vec[tex_idx][dir].iter() {
+                    tex_rule[dir].push(*idx);
+                }
+            }
+            rule_set.push(tex_rule);
+        }
+
+        let mut rule = Vec::with_capacity(rule_set.len());
+        for tex_idx in 0..rule_set.len() {
+            let mut tex_rule = {
+                match tile_type {
+                    TileType::Hexagonal(_) => vec![0; 6],
+                    _ => vec![0; 4],
+                }
+            };
+            for dir in 0..tex_rule.len() {
+                for idx in rule_set[tex_idx][dir].iter() {
+                    tex_rule[dir] |= 1 << idx;
+                }
+            }
+            rule.push(tex_rule);
+        }
+
+        let res = Self(rule);
+        res.check_rules(tile_type);
+        res
+    }
+
+    /// Check if there are conflicts in the rules.
+    pub fn check_rules(&self, tile_type: TileType) {
+        let (total_dirs, dir_names) = match tile_type {
+            TileType::Hexagonal(_) => (6, HEX_DIR.to_vec()),
+            _ => (4, DIR.to_vec()),
+        };
+
+        self.0.iter().enumerate().for_each(|(this_idx, elem)| {
+            elem.iter().enumerate().for_each(|(dir, rule)| {
+                (0..128).into_iter().for_each(|another_idx| {
+                    if rule & (1 << another_idx) != 0 {
+                        assert_ne!(
+                            self.0[another_idx][total_dirs - dir - 1] & (1 << this_idx),
+                            0,
+                            "Conflict in rules! \
+                            {}'s {} can be {}, but {}'s {} cannot be {}!",
+                            this_idx,
+                            dir_names[dir],
+                            another_idx,
+                            another_idx,
+                            dir_names[total_dirs - dir - 1],
+                            this_idx
+                        );
+                    }
+                });
+            });
+        });
+    }
+}
 
 #[derive(Default, Clone, PartialEq, Eq, Debug, Reflect)]
 pub enum WfcMode {
@@ -35,15 +126,15 @@ pub enum WfcMode {
 pub enum WfcSource {
     SingleTile(Vec<SerializedTile>),
     MapPattern(Vec<TilemapPattern>),
-    MultiLayerMapPattern(Vec<Vec<TilemapPattern>>),
+    MultiLayerMapPattern(UVec2, Vec<(Vec<TilemapPattern>, Option<TilemapTexture>)>),
 }
 
 impl WfcSource {
     /// Generate tiles with rules.
     ///
     /// The numbers you fill in the rules will be directly considered as the texture indices.
-    pub fn from_texture_indices(conn_rules: &Vec<Vec<u128>>) -> Self {
-        let tiles = (0..conn_rules.len())
+    pub fn from_texture_indices(conn_rules: &WfcRules) -> Self {
+        let tiles = (0..conn_rules.0.len())
             .into_iter()
             .map(|r| SerializedTile {
                 index: UVec2::ZERO,
@@ -65,12 +156,8 @@ impl WfcSource {
     ///     ..
     /// ```
     /// So the `directory`= `C:\\wfc_patterns`, `prefix` = `wfc_pattern_`.
-    pub fn from_pattern_path(
-        directory: String,
-        prefix: String,
-        conn_rules: &Vec<Vec<u128>>,
-    ) -> Self {
-        let n = conn_rules.len();
+    pub fn from_pattern_path(directory: String, prefix: String, conn_rules: &WfcRules) -> Self {
+        let n = conn_rules.0.len();
         let mut patterns = Vec::with_capacity(n);
 
         for idx in 0..n {
@@ -99,21 +186,16 @@ pub struct WfcRunner {
     max_retrace_factor: u32,
     max_retrace_time: u32,
     max_history: usize,
-    fallback: Option<Box<dyn Fn(&mut Commands, Entity, &Tilemap, &WfcRunner) + Send + Sync>>,
+    fallback: Option<Box<dyn Fn(&mut Commands, Entity, &WfcRunner) + Send + Sync>>,
 }
 
 impl WfcRunner {
-    pub fn new(
-        tilemap: &Tilemap,
-        rules: Vec<Vec<u128>>,
-        area: TileArea,
-        seed: Option<u64>,
-    ) -> Self {
+    pub fn new(tile_type: TileType, rules: WfcRules, area: TileArea, seed: Option<u64>) -> Self {
         let size = area.size();
         Self {
-            conn_rules: rules,
+            conn_rules: rules.0,
             mode: WfcMode::NonWeighted,
-            tile_type: tilemap.tile_type,
+            tile_type,
             sampler: None,
             area,
             seed,
@@ -122,51 +204,6 @@ impl WfcRunner {
             max_history: (size.ilog10().clamp(1, 8) * 20) as usize,
             fallback: None,
         }
-    }
-
-    /// Parse the config describing how the elements should be connected.
-    pub fn read_rule_config(tilemap: &Tilemap, rule_path: String) -> Vec<Vec<u128>> {
-        let rule_vec: Vec<Vec<Vec<u8>>> =
-            ron::from_str(std::fs::read_to_string(rule_path).unwrap().as_str()).unwrap();
-
-        assert!(
-            rule_vec.len() <= 128,
-            "We only support 128 elements for now"
-        );
-
-        let mut rule_set = Vec::with_capacity(rule_vec.len());
-        for tex_idx in 0..rule_vec.len() {
-            let mut tex_rule: Vec<Vec<u8>> = {
-                match tilemap.tile_type {
-                    TileType::Hexagonal(_) => vec![vec![]; 6],
-                    _ => vec![vec![]; 4],
-                }
-            };
-            for dir in 0..tex_rule.len() {
-                for idx in rule_vec[tex_idx][dir].iter() {
-                    tex_rule[dir].push(*idx);
-                }
-            }
-            rule_set.push(tex_rule);
-        }
-
-        let mut rule = Vec::with_capacity(rule_set.len());
-        for tex_idx in 0..rule_set.len() {
-            let mut tex_rule = {
-                match tilemap.tile_type {
-                    TileType::Hexagonal(_) => vec![0; 6],
-                    _ => vec![0; 4],
-                }
-            };
-            for dir in 0..tex_rule.len() {
-                for idx in rule_set[tex_idx][dir].iter() {
-                    tex_rule[dir] |= 1 << idx;
-                }
-            }
-            rule.push(tex_rule);
-        }
-
-        rule
     }
 
     /// Set the weights of the tiles.
@@ -244,7 +281,7 @@ impl WfcRunner {
     /// The Entity in the parameter is the entity that the `WfcRunner` is attached to.
     pub fn with_fallback(
         mut self,
-        fallback: Box<dyn Fn(&mut Commands, Entity, &Tilemap, &WfcRunner) + Send + Sync>,
+        fallback: Box<dyn Fn(&mut Commands, Entity, &WfcRunner) + Send + Sync>,
     ) -> Self {
         self.fallback = Some(fallback);
         self
@@ -255,11 +292,6 @@ impl WfcRunner {
         &self.conn_rules
     }
 }
-
-/// This will sharply increase the time cost.
-/// Use it only when you **REALLY** want to visualize the process.
-#[derive(Component, Reflect)]
-pub struct AsyncWfcRunner;
 
 #[derive(Component, Reflect)]
 pub struct WfcData {
@@ -330,7 +362,7 @@ pub struct WfcGrid {
     max_retrace_time: u32,
     retraced_time: u32,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
-    fallback: Option<Box<dyn Fn(&mut Commands, Entity, &Tilemap, &WfcRunner) + Send + Sync>>,
+    fallback: Option<Box<dyn Fn(&mut Commands, Entity, &WfcRunner) + Send + Sync>>,
 }
 
 impl WfcGrid {
@@ -521,38 +553,33 @@ impl WfcGrid {
         candidates[self.rng.gen_range(0..candidates.len())]
     }
 
-    pub fn apply_data(&mut self, commands: &mut Commands, tilemap: &mut Tilemap) {
+    pub fn apply_data(&mut self, commands: &mut Commands, entity: Entity) {
         let mut data = WfcData::new(self.area.extent);
         self.elements.drain().for_each(|(i, e)| {
             data.set(i, e.element_index.unwrap());
         });
-        commands.entity(tilemap.id).insert(data);
+        commands.entity(entity).insert(data);
     }
 }
 
 pub fn wave_function_collapse(
     commands: ParallelCommands,
-    mut runner_query: Query<(Entity, &mut Tilemap, &mut WfcRunner), Without<WfcData>>,
+    mut runner_query: Query<(Entity, &mut WfcRunner), Without<WfcData>>,
 ) {
     runner_query
         .par_iter_mut()
-        .for_each(|(entity, mut tilemap, mut runner)| {
+        .for_each(|(entity, mut runner)| {
             let mut wfc_grid = WfcGrid::from_runner(&mut runner);
 
-            let now = std::time::SystemTime::now();
             while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
                 wfc_grid.collapse();
             }
-            println!(
-                "WFC time cost: {}ms",
-                now.elapsed().unwrap().as_nanos() as f32 / 1000000.
-            );
 
             commands.command_scope(|mut c| {
                 if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
-                    wfc_grid.apply_data(&mut c, &mut tilemap);
+                    wfc_grid.apply_data(&mut c, entity);
                 } else if let Some(fallback) = wfc_grid.fallback {
-                    fallback(&mut c, entity, &tilemap, &runner);
+                    fallback(&mut c, entity, &runner);
                     c.entity(entity).remove::<WfcRunner>();
                 }
             });
@@ -561,18 +588,23 @@ pub fn wave_function_collapse(
 
 pub fn wfc_applier(
     commands: ParallelCommands,
-    mut tilemaps_query: Query<(&mut Tilemap, &WfcData, &WfcRunner, &WfcSource)>,
+    mut tilemaps_query: Query<(
+        Entity,
+        Option<&mut Tilemap>,
+        &WfcData,
+        &WfcRunner,
+        &WfcSource,
+    )>,
 ) {
     tilemaps_query
         .par_iter_mut()
-        .for_each(|(mut tilemap, wfc_data, runner, source)| {
+        .for_each(|(entity, mut tilemap, wfc_data, runner, source)| {
             commands.command_scope(|mut c| {
-                println!("Applying WFC data to tilemap: {}", tilemap.name);
                 match source {
                     WfcSource::SingleTile(tiles) => {
                         for (index, tex) in wfc_data.data.iter().enumerate() {
                             let ser_tile = tiles.get(*tex as usize).unwrap();
-                            tilemap.set(
+                            tilemap.as_mut().unwrap().set(
                                 &mut c,
                                 UVec2 {
                                     x: index as u32 % wfc_data.size.x,
@@ -592,14 +624,42 @@ pub fn wfc_applier(
                                     y: i as u32 / runner.area.extent.x,
                                 } + runner.area.origin)
                                     * p.size,
-                                &mut tilemap,
+                                &mut tilemap.as_mut().unwrap(),
                             );
                         });
                     }
-                    WfcSource::MultiLayerMapPattern(_) => todo!(),
+                    WfcSource::MultiLayerMapPattern(size, patterns) => {
+                        wfc_data.data.iter().enumerate().for_each(|(i, e)| {
+                            let (p, tex) = &patterns[*e as usize];
+                            p.iter().for_each(|layer| {
+                                let mut new_layer = TilemapBuilder::new(
+                                    TileType::Square,
+                                    *size,
+                                    size.as_vec2(),
+                                    layer.label.clone().unwrap(),
+                                );
+                                new_layer.with_translation(
+                                    (UVec2 {
+                                        x: i as u32 % runner.area.extent.x,
+                                        y: i as u32 / runner.area.extent.x,
+                                    } * *size
+                                        * *size)
+                                        .as_vec2(),
+                                );
+                                if let Some(texture) = tex {
+                                    new_layer.with_texture(texture.clone());
+                                }
+                                let mut tilemap = new_layer.build(&mut c);
+                                layer.apply(&mut c, UVec2::ZERO, &mut tilemap);
+                                c.entity(tilemap.id).insert(tilemap);
+                                // c.entity(entity).despawn_recursive();
+                                return;
+                            });
+                        });
+                    }
                 }
 
-                let mut commands = c.entity(tilemap.id);
+                let mut commands = c.entity(entity);
                 commands.remove::<WfcData>();
                 commands.remove::<WfcSource>();
                 commands.remove::<WfcRunner>();

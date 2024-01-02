@@ -76,7 +76,8 @@ impl Plugin for EntiTilesLdtkPlugin {
         app.insert_non_send_resource(LdtkEntityRegistry::default());
 
         app.init_resource::<LdtkLevelManager>()
-            .init_resource::<LdtkAssets>();
+            .init_resource::<LdtkAssets>()
+            .init_resource::<LdtkPatterns>();
 
         app.add_event::<LdtkEvent>();
 
@@ -156,6 +157,7 @@ pub fn load_ldtk_json(
     mut assets: ResMut<LdtkAssets>,
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut patterns: ResMut<LdtkPatterns>,
 ) {
     assets.initialize(
         &manager,
@@ -175,8 +177,12 @@ pub fn load_ldtk_json(
             entity,
             &mut ldtk_events,
             &mut assets,
+            &mut patterns,
         );
 
+        if manager.mode == LdtkLevelManagerMode::MapPattern {
+            continue;
+        }
         let mut e_cmd = commands.entity(entity);
         if let Some(loaded) = loaded {
             e_cmd.insert((
@@ -200,6 +206,7 @@ fn load_levels(
     level_entity: Entity,
     ldtk_events: &mut EventWriter<LdtkEvent>,
     assets: &mut LdtkAssets,
+    patterns: &mut LdtkPatterns,
 ) -> Option<LdtkLoadedLevel> {
     let ldtk_data = manager.get_cached_data();
 
@@ -232,6 +239,7 @@ fn load_levels(
         let mut path_tilemap = None;
 
         let mut layer_grid = LdtkLayers::new(
+            level.identifier.clone(),
             level_entity,
             level.layer_instances.len(),
             level_px,
@@ -282,7 +290,7 @@ fn load_levels(
         if let Some(path) = path_tilemap {
             layer_grid.apply_path_layer(commands, manager.path_layer.as_ref().unwrap(), path);
         }
-        layer_grid.apply_all(commands);
+        layer_grid.apply_all(commands, patterns);
         ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
             identifier: level.identifier.clone(),
             iid: level.iid.clone(),
@@ -306,27 +314,29 @@ fn load_background(
     asset_server: &AssetServer,
     manager: &LdtkLevelManager,
 ) {
-    let texture = match level.bg_rel_path.as_ref() {
-        Some(path) => asset_server.load(format!("{}{}", manager.asset_path_prefix, path)),
-        None => Handle::default(),
-    };
+    if manager.mode == LdtkLevelManagerMode::Tilemap {
+        let texture = level
+            .bg_rel_path
+            .as_ref()
+            .map(|path| asset_server.load(format!("{}{}", manager.asset_path_prefix, path)));
 
-    let bg_entity = commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: level.bg_color.into(),
-                custom_size: Some(level_px.as_vec2()),
+        let bg_entity = commands
+            .spawn(SpriteBundle {
+                sprite: Sprite {
+                    color: level.bg_color.into(),
+                    custom_size: Some(level_px.as_vec2()),
+                    ..Default::default()
+                },
+                texture: texture.unwrap_or_default(),
+                transform: Transform::from_translation(
+                    (translation + level_px.as_vec2() / 2.)
+                        .extend(manager.z_index as f32 - level.layer_instances.len() as f32 - 1.),
+                ),
                 ..Default::default()
-            },
-            texture,
-            transform: Transform::from_translation(
-                (translation + level_px.as_vec2() / 2.)
-                    .extend(manager.z_index as f32 - level.layer_instances.len() as f32 - 1.),
-            ),
-            ..Default::default()
-        })
-        .id();
-    commands.entity(level_entity).add_child(bg_entity);
+            })
+            .id();
+        commands.entity(level_entity).add_child(bg_entity);
+    }
 }
 
 fn load_layer(

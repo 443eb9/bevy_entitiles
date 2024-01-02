@@ -1,14 +1,12 @@
 use bevy::{
     ecs::{entity::Entity, system::Commands},
-    hierarchy::BuildChildren,
+    hierarchy::{BuildChildren, DespawnRecursiveExt},
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
-    transform::{components::Transform, TransformBundle},
     utils::HashMap,
 };
 
 use crate::{
-    math::aabb::Aabb2d,
     render::texture::TilemapTexture,
     serializing::pattern::TilemapPattern,
     tilemap::{
@@ -36,6 +34,7 @@ pub enum LdtkLayer {
 }
 
 pub struct LdtkLayers<'a> {
+    pub identifier: String,
     pub level_entity: Entity,
     pub layers: LdtkLayer,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
@@ -46,6 +45,7 @@ pub struct LdtkLayers<'a> {
 
 impl<'a> LdtkLayers<'a> {
     pub fn new(
+        identifier: String,
         level_entity: Entity,
         total_layers: usize,
         px_size: UVec2,
@@ -55,6 +55,7 @@ impl<'a> LdtkLayers<'a> {
         mode: LdtkLevelManagerMode,
     ) -> Self {
         Self {
+            identifier,
             level_entity,
             layers: match mode {
                 LdtkLevelManagerMode::Tilemap => LdtkLayer::Tilemap(vec![None; total_layers]),
@@ -192,6 +193,10 @@ impl<'a> LdtkLayers<'a> {
                 tilemaps[layer_index] = Some(tilemap);
             }
             LdtkLayer::MapPattern(patterns, texture) => {
+                if patterns[layer_index].is_some() {
+                    return;
+                }
+
                 if let Some(tex) = texture {
                     assert_eq!(
                         tex.handle(),
@@ -213,7 +218,7 @@ impl<'a> LdtkLayers<'a> {
         }
     }
 
-    pub fn apply_all(&mut self, commands: &mut Commands) {
+    pub fn apply_all(&mut self, commands: &mut Commands, ldtk_patterns: &mut LdtkPatterns) {
         match &mut self.layers {
             LdtkLayer::Tilemap(tilemaps) => {
                 for layer in tilemaps.drain(..) {
@@ -223,13 +228,13 @@ impl<'a> LdtkLayers<'a> {
                 }
             }
             LdtkLayer::MapPattern(patterns, texture) => {
-                commands.insert_resource(LdtkPatterns {
-                    patterns: patterns
-                        .drain(..)
-                        .filter_map(|p| if let Some(p) = p { Some(p) } else { None })
-                        .collect(),
-                    texture: texture.take().unwrap(),
-                });
+                let level = patterns
+                    .drain(..)
+                    .filter_map(|p| if let Some(p) = p { Some(p) } else { None })
+                    .collect();
+                let texture = texture.take().unwrap();
+                ldtk_patterns.insert(commands, self.identifier.clone(), level, texture);
+                commands.entity(self.level_entity).despawn_recursive();
             }
         }
     }
@@ -266,7 +271,7 @@ impl<'a> LdtkLayers<'a> {
                 });
                 (
                     i,
-                    Aabb2d {
+                    crate::math::aabb::Aabb2d {
                         min: Vec2 {
                             x: left_top.x,
                             y: right_btm.y,
@@ -279,8 +284,10 @@ impl<'a> LdtkLayers<'a> {
                 )
             })
             .for_each(|(i, aabb)| {
-                let mut collider = commands.spawn(TransformBundle {
-                    local: Transform::from_translation(aabb.center().extend(0.)),
+                let mut collider = commands.spawn(bevy::transform::TransformBundle {
+                    local: bevy::transform::components::Transform::from_translation(
+                        aabb.center().extend(0.),
+                    ),
                     ..Default::default()
                 });
                 collider.set_parent(physics_map.id);
@@ -335,7 +342,7 @@ impl<'a> LdtkLayers<'a> {
                         parent, layer
                     )
                 }),
-            LdtkLayer::MapPattern(_, _) => todo!(),
+            LdtkLayer::MapPattern(..) => todo!(),
         }
     }
 }

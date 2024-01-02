@@ -8,7 +8,7 @@ use bevy::{
 
 use self::{
     pathfinding::{AsyncPathfinder, Path, PathGrid, PathNode, Pathfinder},
-    wfc::{AsyncWfcRunner, WfcData, WfcElement, WfcHistory, WfcSource},
+    wfc::{WfcData, WfcElement, WfcHistory, WfcSource},
 };
 
 pub mod pathfinding;
@@ -24,8 +24,7 @@ impl Plugin for EntiTilesAlgorithmPlugin {
             .register_type::<PathNode>()
             .register_type::<PathGrid>();
 
-        app.register_type::<AsyncWfcRunner>()
-            .register_type::<WfcElement>()
+        app.register_type::<WfcElement>()
             .register_type::<WfcHistory>()
             .register_type::<WfcData>()
             .register_type::<WfcSource>();

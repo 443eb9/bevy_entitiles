@@ -36,8 +36,17 @@ impl TileArea {
         }
     }
 
-    /// Define a new fill area that fills the entire tilemap.
+    /// Define a new fill area without checking if the area is out of the tilemap.
     #[inline]
+    pub fn new_unchecked(origin: UVec2, extent: UVec2) -> Self {
+        Self {
+            origin,
+            extent,
+            dest: origin + extent - 1,
+        }
+    }
+
+    /// Define a new fill area that fills the entire tilemap.
     pub fn full(tilemap: &Tilemap) -> Self {
         Self::new(UVec2::ZERO, None, tilemap)
     }

@@ -6,7 +6,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::wfc::{AsyncWfcRunner, WfcRunner, WfcSource},
+    algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
@@ -46,17 +46,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ))
     .build(&mut commands);
 
-    let rules = WfcRunner::read_rule_config(&tilemap, "examples/wfc_config.ron".to_string());
+    let rules = WfcRules::from_file("examples/wfc_config.ron", TileType::Square);
 
     commands.entity(tilemap.id()).insert((
         WfcSource::from_texture_indices(&rules),
-        WfcRunner::new(&tilemap, rules, TileArea::full(&tilemap), Some(0))
+        WfcRunner::new(TileType::Square, rules, TileArea::full(&tilemap), Some(0))
             // use weights OR custom_sampler
             // .with_weights("examples/wfc_weights.ron".to_string())
             .with_retrace_settings(Some(8), Some(1000000))
-            .with_fallback(Box::new(|_, e, _, _| {
-                println!("Failed to generate: {:?}", e)
-            })),
-        AsyncWfcRunner,
+            .with_fallback(Box::new(|_, e, _| println!("Failed to generate: {:?}", e))),
     ));
 }

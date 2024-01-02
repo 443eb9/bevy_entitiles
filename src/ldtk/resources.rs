@@ -4,14 +4,15 @@ use bevy::{
     asset::{AssetServer, Assets, Handle},
     ecs::{
         entity::Entity,
-        system::{Commands, Resource},
+        system::{Commands, Resource, SystemId},
     },
     log::error,
-    math::{IVec2, UVec2},
+    math::{IVec2, UVec2, Vec4},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
+        texture::Image,
     },
     sprite::{Mesh2dHandle, TextureAtlas},
     utils::HashMap,
@@ -30,10 +31,41 @@ use super::{
     LdtkLoader, LdtkUnloader,
 };
 
+#[derive(Reflect, Clone)]
+pub enum LdtkBackground {
+    Color(Vec4),
+    Texture(Handle<Image>),
+}
+
 #[derive(Resource, Reflect, Default, Clone)]
 pub struct LdtkPatterns {
-    pub patterns: Vec<TilemapPattern>,
-    pub texture: TilemapTexture,
+    pub patterns: HashMap<String, (Vec<TilemapPattern>, TilemapTexture)>,
+    #[reflect(ignore)]
+    pub callback: Option<SystemId>,
+    pub threashold: Option<usize>,
+}
+
+impl LdtkPatterns {
+    pub fn get(&self, identifier: String) -> &(Vec<TilemapPattern>, TilemapTexture) {
+        self.patterns.get(&identifier).unwrap()
+    }
+
+    pub fn insert(
+        &mut self,
+        commands: &mut Commands,
+        identifier: String,
+        patterns: Vec<TilemapPattern>,
+        texture: TilemapTexture,
+    ) {
+        self.patterns
+            .insert(identifier.to_string(), (patterns, texture));
+
+        if let (Some(threashold), Some(callback)) = (self.threashold, self.callback) {
+            if self.patterns.len() == threashold {
+                commands.run_system(callback);
+            }
+        }
+    }
 }
 
 #[derive(Resource, Default, Reflect)]
@@ -201,7 +233,7 @@ impl LdtkAssets {
     }
 }
 
-#[derive(Reflect, Default, Clone, Copy)]
+#[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
 pub enum LdtkLevelManagerMode {
     #[default]
     Tilemap,
@@ -227,13 +259,13 @@ pub struct LdtkLevelManager {
 }
 
 impl LdtkLevelManager {
-    pub fn new(file_path: String, asset_path_prefix: String, mode: LdtkLevelManagerMode) -> Self {
+    pub fn new(file_path: &str, asset_path_prefix: &str, mode: LdtkLevelManagerMode) -> Self {
         let mut s = Self {
-            file_path: file_path.clone(),
-            asset_path_prefix: asset_path_prefix.clone(),
+            file_path: file_path.to_string(),
+            asset_path_prefix: asset_path_prefix.to_string(),
             ..Default::default()
         };
-        s.initialize(file_path, asset_path_prefix, mode);
+        s.initialize(file_path.to_string(), asset_path_prefix.to_string(), mode);
         s
     }
 
@@ -325,19 +357,56 @@ impl LdtkLevelManager {
     pub fn load(&mut self, commands: &mut Commands, level: &'static str) {
         self.check_initialized();
         let level = level.to_string();
-        if !self.loaded_levels.is_empty() {
-            panic!(
-                "It's not allowed to load a level when there are already loaded levels! \
-                See Known Issues in README.md to know why."
-            )
-        }
+        assert!(
+            self.loaded_levels.is_empty(),
+            "It's not allowed to load a level when there are already loaded levels! \
+            See Known Issues in README.md to know why."
+        );
 
         if self.loaded_levels.contains_key(&level.to_string()) {
             error!("Trying to load {:?} that is already loaded!", level);
         } else {
-            self.loaded_levels
-                .insert(level.clone(), commands.spawn(LdtkLoader { level }).id());
+            let entity = commands.spawn(LdtkLoader {
+                level: level.clone(),
+            });
+            match self.mode {
+                LdtkLevelManagerMode::Tilemap => {
+                    self.loaded_levels.insert(level.clone(), entity.id());
+                }
+                LdtkLevelManagerMode::MapPattern => {}
+            }
         }
+    }
+
+    pub fn load_all(&mut self, commands: &mut Commands) {
+        self.check_initialized();
+        assert!(
+            self.loaded_levels.is_empty(),
+            "It's not allowed to load a level when there are already loaded levels! \
+            See Known Issues in README.md to know why."
+        );
+
+        self.ldtk_json
+            .as_ref()
+            .unwrap()
+            .levels
+            .iter()
+            .for_each(|level| {
+                if self.loaded_levels.contains_key(&level.identifier) {
+                    error!("Trying to load {:?} that is already loaded!", level);
+                } else {
+                    let entity = commands.spawn(LdtkLoader {
+                        level: level.identifier.clone(),
+                    });
+                    match self.mode {
+                        LdtkLevelManagerMode::Tilemap => {
+                            self.loaded_levels
+                                .insert(level.identifier.clone(), entity.id());
+                        }
+                        LdtkLevelManagerMode::MapPattern => {}
+                    }
+                }
+            });
     }
 
     pub fn try_load(&mut self, commands: &mut Commands, level: &'static str) -> bool {
@@ -367,13 +436,7 @@ impl LdtkLevelManager {
     pub fn load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) {
         self.check_initialized();
         levels.iter().for_each(|level| {
-            let level = level.to_string();
-            if self.loaded_levels.contains_key(&level.to_string()) {
-                error!("Trying to load {:?} that is already loaded!", level);
-            } else {
-                self.loaded_levels
-                    .insert(level.clone(), commands.spawn(LdtkLoader { level }).id());
-            }
+            self.load(commands, &level);
         });
     }
 
@@ -417,8 +480,9 @@ impl LdtkLevelManager {
     }
 
     fn check_initialized(&self) {
-        if !self.is_initialized() {
-            panic!("LdtkLevelManager is not initialized!");
-        }
+        assert!(
+            self.is_initialized(),
+            "LdtkLevelManager is not initialized!"
+        );
     }
 }

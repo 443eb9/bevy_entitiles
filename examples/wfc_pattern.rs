@@ -6,7 +6,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::wfc::{WfcRunner, WfcSource},
+    algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
     serializing::{
         save::{TilemapSaverBuilder, TilemapSaverMode},
@@ -110,13 +110,13 @@ fn setup(mut commands: Commands) {
     )
     .build(&mut commands);
 
-    let rules = WfcRunner::read_rule_config(&wfc_map, "examples/wfc_config.ron".to_string());
+    let rules = WfcRules::from_file("examples/wfc_config.ron", TileType::Square);
     let mut area = TileArea::full(&wfc_map);
     area.set_extent(area.extent() / PATTERN_SIZE, &wfc_map);
 
     commands.entity(wfc_map.id()).insert((
         WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules),
-        WfcRunner::new(&wfc_map, rules, area, Some(0))
+        WfcRunner::new(TileType::Square, rules, area, Some(0))
             .with_retrace_settings(Some(8), Some(1000000)),
     ));
 }
