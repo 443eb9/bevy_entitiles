@@ -37,11 +37,60 @@ impl TileArea {
     }
 
     /// Define a new fill area that fills the entire tilemap.
+    #[inline]
     pub fn full(tilemap: &Tilemap) -> Self {
         Self::new(UVec2::ZERO, None, tilemap)
     }
 
+    #[inline]
     pub fn size(&self) -> usize {
         (self.extent.x * self.extent.y) as usize
+    }
+
+    #[inline]
+    pub fn origin(&self) -> UVec2 {
+        self.origin
+    }
+
+    #[inline]
+    pub fn extent(&self) -> UVec2 {
+        self.extent
+    }
+
+    #[inline]
+    pub fn dest(&self) -> UVec2 {
+        self.dest
+    }
+
+    pub fn set_extent(&mut self, extent: UVec2, tilemap: &Tilemap) {
+        self.extent = extent;
+        self.dest = self.origin + extent - 1;
+
+        assert!(
+            !tilemap.is_out_of_tilemap_uvec(self.dest),
+            "Failed to set extent! The new extent is out of the tilemap!"
+        );
+    }
+
+    pub fn set_dest(&mut self, dest: UVec2, tilemap: &Tilemap) {
+        self.dest = dest;
+        self.extent = dest - self.origin + 1;
+
+        assert!(
+            !tilemap.is_out_of_tilemap_uvec(self.dest),
+            "Failed to set dest! The new dest is out of the tilemap!"
+        );
+    }
+
+    #[must_use]
+    pub fn with_extent(mut self, extent: UVec2, tilemap: &Tilemap) -> Self {
+        self.set_extent(extent, tilemap);
+        self
+    }
+
+    #[must_use]
+    pub fn with_dest(mut self, dest: UVec2, tilemap: &Tilemap) -> Self {
+        self.set_dest(dest, tilemap);
+        self
     }
 }

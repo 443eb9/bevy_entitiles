@@ -1,5 +1,5 @@
 /// Direction order: up, right, left, down
-use std::{collections::VecDeque, fs::read_to_string, vec};
+use std::{collections::VecDeque, vec};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
@@ -31,11 +31,60 @@ pub enum WfcMode {
     CustomSampler,
 }
 
-#[derive(Debug, Clone, Reflect)]
-pub enum WfcType {
-    None,
+#[derive(Component, Debug, Clone, Reflect)]
+pub enum WfcSource {
     SingleTile(Vec<SerializedTile>),
     MapPattern(Vec<TilemapPattern>),
+    MultiLayerMapPattern(Vec<Vec<TilemapPattern>>),
+}
+
+impl WfcSource {
+    /// Generate tiles with rules.
+    ///
+    /// The numbers you fill in the rules will be directly considered as the texture indices.
+    pub fn from_texture_indices(conn_rules: &Vec<Vec<u128>>) -> Self {
+        let tiles = (0..conn_rules.len())
+            .into_iter()
+            .map(|r| SerializedTile {
+                index: UVec2::ZERO,
+                color: Vec4::ONE,
+                texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
+            })
+            .collect();
+        Self::SingleTile(tiles)
+    }
+
+    /// Load tilemap patterns from the directory.
+    ///
+    /// The structure should looks like:
+    /// ```
+    /// C
+    /// └── wfc_patterns
+    ///     ├── wfc_pattern_0.ron
+    ///     ├── wfc_pattern_1.ron
+    ///     ..
+    /// ```
+    /// So the `directory`= `C:\\wfc_patterns`, `prefix` = `wfc_pattern_`.
+    pub fn from_pattern_path(
+        directory: String,
+        prefix: String,
+        conn_rules: &Vec<Vec<u128>>,
+    ) -> Self {
+        let n = conn_rules.len();
+        let mut patterns = Vec::with_capacity(n);
+
+        for idx in 0..n {
+            let serialized_pattern: TilemapPattern = ron::from_str(
+                std::fs::read_to_string(format!("{}/{}{}.ron", directory, prefix, idx))
+                    .unwrap()
+                    .as_str(),
+            )
+            .unwrap();
+            patterns.push(serialized_pattern);
+        }
+
+        Self::MapPattern(patterns)
+    }
 }
 
 /// The order of the directions in config should be: up, right, left, down.
@@ -43,7 +92,6 @@ pub enum WfcType {
 pub struct WfcRunner {
     conn_rules: Vec<Vec<u128>>,
     mode: WfcMode,
-    ty: WfcType,
     tile_type: TileType,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     seed: Option<u64>,
@@ -55,13 +103,29 @@ pub struct WfcRunner {
 }
 
 impl WfcRunner {
-    /// Create a runner using a config describing how the elements should be connected.
-    pub fn from_rule_config(
+    pub fn new(
         tilemap: &Tilemap,
-        rule_path: String,
+        rules: Vec<Vec<u128>>,
         area: TileArea,
         seed: Option<u64>,
     ) -> Self {
+        let size = area.size();
+        Self {
+            conn_rules: rules,
+            mode: WfcMode::NonWeighted,
+            tile_type: tilemap.tile_type,
+            sampler: None,
+            area,
+            seed,
+            max_retrace_factor: size.ilog10().clamp(2, 16),
+            max_retrace_time: size.ilog10().clamp(2, 16) * 100,
+            max_history: (size.ilog10().clamp(1, 8) * 20) as usize,
+            fallback: None,
+        }
+    }
+
+    /// Parse the config describing how the elements should be connected.
+    pub fn read_rule_config(tilemap: &Tilemap, rule_path: String) -> Vec<Vec<u128>> {
         let rule_vec: Vec<Vec<Vec<u8>>> =
             ron::from_str(std::fs::read_to_string(rule_path).unwrap().as_str()).unwrap();
 
@@ -102,84 +166,7 @@ impl WfcRunner {
             rule.push(tex_rule);
         }
 
-        let size = area.size();
-
-        Self {
-            conn_rules: rule,
-            mode: WfcMode::NonWeighted,
-            ty: WfcType::None,
-            tile_type: tilemap.tile_type,
-            sampler: None,
-            area,
-            seed,
-            max_retrace_factor: size.ilog10().clamp(2, 16),
-            max_retrace_time: size.ilog10().clamp(2, 16) * 100,
-            max_history: (size.ilog10().clamp(1, 8) * 20) as usize,
-            fallback: None,
-        }
-    }
-
-    /// Generate tiles with rules.
-    ///
-    /// The numbers you fill in the rules will be directly considered as the texture indices.
-    pub fn with_texture_indices(mut self) -> Self {
-        let tiles = (0..self.conn_rules.len())
-            .into_iter()
-            .map(|r| SerializedTile {
-                index: UVec2::ZERO,
-                color: Vec4::ONE,
-                texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
-            })
-            .collect();
-        self.ty = WfcType::SingleTile(tiles);
-        self
-    }
-
-    /// Load tilemap patterns from the directory.
-    ///
-    /// The structure should looks like:
-    /// ```
-    /// C
-    /// └── wfc_patterns
-    ///     ├── wfc_pattern_0.ron
-    ///     ├── wfc_pattern_1.ron
-    ///     ..
-    /// ```
-    /// So the `directory`= `C:\\wfc_patterns`, `prefix` = `wfc_pattern_`.
-    pub fn with_pattern_path(self, directory: String, prefix: String) -> Self {
-        let n = self.conn_rules.len();
-        let mut patterns = Vec::with_capacity(n);
-
-        for idx in 0..n {
-            let serialized_pattern: TilemapPattern = ron::from_str(
-                read_to_string(format!("{}/{}{}.ron", directory, prefix, idx))
-                    .unwrap()
-                    .as_str(),
-            )
-            .unwrap();
-            patterns.push(serialized_pattern);
-        }
-
-        self.with_patterns(patterns)
-    }
-
-    /// Set the patterns of the for wfc.
-    pub fn with_patterns(mut self, patterns: Vec<TilemapPattern>) -> Self {
-        patterns
-            .iter()
-            .for_each(|p| assert_eq!(p.size, patterns[0].size, "Patterns' size not match!"));
-
-        assert_eq!(
-            self.area.extent % patterns[0].size,
-            UVec2::ZERO,
-            "The size of the area({}) should be an integer multiple of the pattern size({}).",
-            self.area.size(),
-            patterns[0].size,
-        );
-
-        self.area.extent /= patterns[0].size;
-        self.ty = WfcType::MapPattern(patterns);
-        self
+        rule
     }
 
     /// Set the weights of the tiles.
@@ -191,7 +178,7 @@ impl WfcRunner {
             "You can only use one sampler or one weights vector"
         );
         let weights_vec: Vec<u8> =
-            ron::from_str(read_to_string(weights_path).unwrap().as_str()).unwrap();
+            ron::from_str(std::fs::read_to_string(weights_path).unwrap().as_str()).unwrap();
         assert_eq!(
             weights_vec.len(),
             self.conn_rules.len(),
@@ -262,12 +249,42 @@ impl WfcRunner {
         self.fallback = Some(fallback);
         self
     }
+
+    /// Get the rule for wfc.
+    pub fn get_rule(&self) -> &Vec<Vec<u128>> {
+        &self.conn_rules
+    }
 }
 
 /// This will sharply increase the time cost.
 /// Use it only when you **REALLY** want to visualize the process.
 #[derive(Component, Reflect)]
 pub struct AsyncWfcRunner;
+
+#[derive(Component, Reflect)]
+pub struct WfcData {
+    pub(crate) data: Vec<u8>,
+    pub(crate) size: UVec2,
+}
+
+impl WfcData {
+    pub(crate) fn new(size: UVec2) -> Self {
+        Self {
+            data: vec![0; (size.x * size.y) as usize],
+            size,
+        }
+    }
+
+    pub fn get(&self, index: UVec2) -> Option<u8> {
+        self.data
+            .get((index.y * self.size.x + index.x) as usize)
+            .cloned()
+    }
+
+    pub(crate) fn set(&mut self, index: UVec2, value: u8) {
+        self.data[(index.y * self.size.x + index.x) as usize] = value;
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub struct WfcElement {
@@ -298,7 +315,6 @@ pub struct WfcHistory {
 
 #[derive(Component)]
 pub struct WfcGrid {
-    ty: WfcType,
     mode: WfcMode,
     tile_type: TileType,
     area: TileArea,
@@ -340,7 +356,6 @@ impl WfcGrid {
         }
 
         WfcGrid {
-            ty: runner.ty.clone(),
             mode: runner.mode.clone(),
             area: runner.area,
             conn_rules: runner.conn_rules.clone(),
@@ -363,7 +378,7 @@ impl WfcGrid {
         }
     }
 
-    pub fn collapse(&mut self) -> UVec2 {
+    pub fn collapse(&mut self) {
         self.history[self.cur_hist] = Some(WfcHistory {
             uncollapsed: self.uncollapsed.clone(),
             elements: self.elements.clone(),
@@ -403,54 +418,6 @@ impl WfcGrid {
 
         let index = elem.index;
         self.constrain(index);
-        index
-    }
-
-    pub fn get_min(&mut self) -> UVec2 {
-        let mut min_entropy = u8::MAX;
-        let mut candidates = Vec::with_capacity(self.remaining);
-        self.uncollapsed.iter().for_each(|(entropy, index)| {
-            if entropy < &min_entropy {
-                min_entropy = *entropy;
-                candidates.clear();
-                candidates.push(*index);
-            } else if entropy == &min_entropy {
-                candidates.push(*index);
-            }
-        });
-        candidates[self.rng.gen_range(0..candidates.len())]
-    }
-
-    pub fn apply_map(&self, commands: &mut Commands, tilemap: &mut Tilemap) {
-        match &self.ty {
-            WfcType::SingleTile(tiles) => {
-                for tile in self.elements.iter() {
-                    let serialized_tile = tiles.get(tile.1.element_index.unwrap() as usize).unwrap();
-                    tilemap.set(
-                        commands,
-                        tile.1.index + self.area.origin,
-                        serialized_tile.clone().into(),
-                    );
-                }
-            }
-            WfcType::MapPattern(patterns) => {
-                self.elements
-                    .iter()
-                    .enumerate()
-                    .for_each(|(i, e)| {
-                        let p = &patterns[e.1.element_index.unwrap() as usize];
-                        p.apply(
-                            commands,
-                            (UVec2 {
-                                x: i as u32 % self.area.extent.x,
-                                y: i as u32 / self.area.extent.x
-                            } + self.area.origin) * p.size,
-                            tilemap
-                        );
-                    });
-            }
-            WfcType::None => panic!("WfcType should not be None! You need to set it using `with_texture_indices` or `with_patterns`"),
-        }
     }
 
     pub fn constrain(&mut self, center: UVec2) {
@@ -538,11 +505,34 @@ impl WfcGrid {
         self.elements = hist.elements;
         self.retraced_time += self.retrace_strength;
     }
+
+    pub fn get_min(&mut self) -> UVec2 {
+        let mut min_entropy = u8::MAX;
+        let mut candidates = Vec::with_capacity(self.remaining);
+        self.uncollapsed.iter().for_each(|(entropy, index)| {
+            if entropy < &min_entropy {
+                min_entropy = *entropy;
+                candidates.clear();
+                candidates.push(*index);
+            } else if entropy == &min_entropy {
+                candidates.push(*index);
+            }
+        });
+        candidates[self.rng.gen_range(0..candidates.len())]
+    }
+
+    pub fn apply_data(&mut self, commands: &mut Commands, tilemap: &mut Tilemap) {
+        let mut data = WfcData::new(self.area.extent);
+        self.elements.drain().for_each(|(i, e)| {
+            data.set(i, e.element_index.unwrap());
+        });
+        commands.entity(tilemap.id).insert(data);
+    }
 }
 
 pub fn wave_function_collapse(
     commands: ParallelCommands,
-    mut runner_query: Query<(Entity, &mut Tilemap, &mut WfcRunner), Without<AsyncWfcRunner>>,
+    mut runner_query: Query<(Entity, &mut Tilemap, &mut WfcRunner), Without<WfcData>>,
 ) {
     runner_query
         .par_iter_mut()
@@ -560,72 +550,59 @@ pub fn wave_function_collapse(
 
             commands.command_scope(|mut c| {
                 if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
-                    wfc_grid.apply_map(&mut c, &mut tilemap);
+                    wfc_grid.apply_data(&mut c, &mut tilemap);
                 } else if let Some(fallback) = wfc_grid.fallback {
                     fallback(&mut c, entity, &tilemap, &runner);
+                    c.entity(entity).remove::<WfcRunner>();
                 }
-                c.entity(entity).remove::<WfcRunner>();
-            })
+            });
         });
 }
 
-pub fn wave_function_collapse_async(
+pub fn wfc_applier(
     commands: ParallelCommands,
-    mut runner_query: Query<(
-        Entity,
-        &mut Tilemap,
-        &mut WfcRunner,
-        &AsyncWfcRunner,
-        Option<&mut WfcGrid>,
-    )>,
+    mut tilemaps_query: Query<(&mut Tilemap, &WfcData, &WfcRunner, &WfcSource)>,
 ) {
-    runner_query
+    tilemaps_query
         .par_iter_mut()
-        .for_each(|(entity, mut tilemap, mut runner, _, wfc_grid)| {
-            if let Some(mut grid) = wfc_grid {
-                if grid.remaining > 0 && grid.retraced_time < grid.max_retrace_time {
-                    let collapsed = grid.collapse();
-
-                    if let Some(idx) = grid.elements.get(&collapsed).unwrap().element_index {
-                        commands.command_scope(|mut c| match &grid.ty {
-                            WfcType::SingleTile(tiles) => {
-                                let serialized_tile = tiles.get(idx as usize).unwrap();
-                                tilemap.set(
-                                    &mut c,
-                                    collapsed,
-                                    serialized_tile.clone().into(),
-                                );
-                            }
-                            WfcType::MapPattern(patterns) => {
-                                patterns[idx as usize].apply(
-                                    &mut c,
-                                    (UVec2 {
-                                        x: idx as u32 % grid.area.extent.x,
-                                        y: idx as u32 / grid.area.extent.x
-                                    } + grid.area.origin) * patterns[idx as usize].size,
-                                    &mut tilemap
-                                );
-                            }
-                            WfcType::None => panic!("WfcType should not be None! You need to set it using `with_texture_indices` or `with_patterns`"),
-                        })
-                    }
-                } else {
-                    commands.command_scope(|mut c| {
-                        if grid.retraced_time >= grid.max_retrace_time {
-                            if let Some(fallback) = &grid.fallback {
-                                fallback(&mut c, entity, &tilemap, &runner);
-                            }
+        .for_each(|(mut tilemap, wfc_data, runner, source)| {
+            commands.command_scope(|mut c| {
+                println!("Applying WFC data to tilemap: {}", tilemap.name);
+                match source {
+                    WfcSource::SingleTile(tiles) => {
+                        for (index, tex) in wfc_data.data.iter().enumerate() {
+                            let ser_tile = tiles.get(*tex as usize).unwrap();
+                            tilemap.set(
+                                &mut c,
+                                UVec2 {
+                                    x: index as u32 % wfc_data.size.x,
+                                    y: index as u32 / wfc_data.size.x,
+                                },
+                                ser_tile.clone().into(),
+                            );
                         }
-                        c.entity(entity).remove::<WfcRunner>();
-                        c.entity(entity).remove::<AsyncWfcRunner>();
-                        c.entity(entity).remove::<WfcGrid>();
-                    });
+                    }
+                    WfcSource::MapPattern(patterns) => {
+                        wfc_data.data.iter().enumerate().for_each(|(i, e)| {
+                            let p = &patterns[*e as usize];
+                            p.apply(
+                                &mut c,
+                                (UVec2 {
+                                    x: i as u32 % runner.area.extent.x,
+                                    y: i as u32 / runner.area.extent.x,
+                                } + runner.area.origin)
+                                    * p.size,
+                                &mut tilemap,
+                            );
+                        });
+                    }
+                    WfcSource::MultiLayerMapPattern(_) => todo!(),
                 }
-            } else {
-                let grid = WfcGrid::from_runner(&mut runner);
-                commands.command_scope(|mut c| {
-                    c.entity(entity).insert(grid);
-                });
-            }
+
+                let mut commands = c.entity(tilemap.id);
+                commands.remove::<WfcData>();
+                commands.remove::<WfcSource>();
+                commands.remove::<WfcRunner>();
+            });
         });
 }

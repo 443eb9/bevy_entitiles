@@ -6,7 +6,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::wfc::{AsyncWfcRunner, WfcRunner},
+    algorithm::wfc::{AsyncWfcRunner, WfcRunner, WfcSource},
     math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
@@ -46,20 +46,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ))
     .build(&mut commands);
 
+    let rules = WfcRunner::read_rule_config(&tilemap, "examples/wfc_config.ron".to_string());
+
     commands.entity(tilemap.id()).insert((
-        WfcRunner::from_rule_config(
-            &tilemap,
-            "examples/wfc_config.ron".to_string(),
-            TileArea::full(&tilemap),
-            Some(0),
-        )
-        // use weights OR custom_sampler
-        // .with_weights("examples/wfc_weights.ron".to_string())
-        .with_retrace_settings(Some(8), Some(1000000))
-        .with_texture_indices()
-        .with_fallback(Box::new(|_, e, _, _| {
-            println!("Failed to generate: {:?}", e)
-        })),
+        WfcSource::from_texture_indices(&rules),
+        WfcRunner::new(&tilemap, rules, TileArea::full(&tilemap), Some(0))
+            // use weights OR custom_sampler
+            // .with_weights("examples/wfc_weights.ron".to_string())
+            .with_retrace_settings(Some(8), Some(1000000))
+            .with_fallback(Box::new(|_, e, _, _| {
+                println!("Failed to generate: {:?}", e)
+            })),
         AsyncWfcRunner,
     ));
 }

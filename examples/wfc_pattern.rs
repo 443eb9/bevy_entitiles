@@ -6,7 +6,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    algorithm::wfc::WfcRunner,
+    algorithm::wfc::{WfcRunner, WfcSource},
     math::TileArea,
     serializing::{
         save::{TilemapSaverBuilder, TilemapSaverMode},
@@ -37,6 +37,7 @@ fn setup(mut commands: Commands) {
     let wfc_img = image::open("assets/test_wfc.png").unwrap().to_rgba8();
 
     const TILE_SIZE: u32 = 16;
+    const PATTERN_SIZE: u32 = 16;
     const ROWS: u32 = 2;
     const COLS: u32 = 3;
 
@@ -49,13 +50,16 @@ fn setup(mut commands: Commands) {
         for col in 0..COLS {
             let mut tilemap = TilemapBuilder::new(
                 TileType::Square,
-                UVec2 { x: 16, y: 16 },
+                UVec2 {
+                    x: PATTERN_SIZE,
+                    y: PATTERN_SIZE,
+                },
                 Vec2 { x: 8., y: 8. },
                 format!("{}{}", PREFIX, col * ROWS + row),
             )
             .with_translation(Vec2 {
                 x: (col * TILE_SIZE) as f32 * 8.,
-                y: (row * TILE_SIZE) as f32 * -8. - 8. * 16.,
+                y: (row * TILE_SIZE) as f32 * -8. - 8. * PATTERN_SIZE as f32,
             })
             .with_render_chunk_size(16)
             .build(&mut commands);
@@ -94,6 +98,10 @@ fn setup(mut commands: Commands) {
             .build(&mut commands, *map);
     });
 
+    // If you are running this example for the first time,
+    // you need to comment the code below and run it once.
+    // So the patterns are generated and saved to disk.
+
     let wfc_map = TilemapBuilder::new(
         TileType::Square,
         UVec2 { x: 80, y: 80 },
@@ -102,14 +110,13 @@ fn setup(mut commands: Commands) {
     )
     .build(&mut commands);
 
-    commands.entity(wfc_map.id()).insert(
-        WfcRunner::from_rule_config(
-            &wfc_map,
-            "examples/wfc_config.ron".to_string(),
-            TileArea::full(&wfc_map),
-            Some(0),
-        )
-        .with_retrace_settings(Some(8), Some(1000000))
-        .with_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string()),
-    );
+    let rules = WfcRunner::read_rule_config(&wfc_map, "examples/wfc_config.ron".to_string());
+    let mut area = TileArea::full(&wfc_map);
+    area.set_extent(area.extent() / PATTERN_SIZE, &wfc_map);
+
+    commands.entity(wfc_map.id()).insert((
+        WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules),
+        WfcRunner::new(&wfc_map, rules, area, Some(0))
+            .with_retrace_settings(Some(8), Some(1000000)),
+    ));
 }
