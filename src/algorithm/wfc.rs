@@ -122,11 +122,22 @@ pub enum WfcMode {
     CustomSampler,
 }
 
-#[derive(Component, Debug, Clone, Reflect)]
+#[cfg(feature = "ldtk")]
+#[derive(Clone, Reflect)]
+pub enum LdtkWfcMode {
+    /// Apply the result of wfc to a single level
+    SingleMap,
+    /// Apply the result of wfc to one map per level
+    MultiMaps,
+}
+
+#[derive(Component, Clone, Reflect)]
 pub enum WfcSource {
     SingleTile(Vec<SerializedTile>),
     MapPattern(Vec<TilemapPattern>),
     MultiLayerMapPattern(UVec2, Vec<(Vec<TilemapPattern>, Option<TilemapTexture>)>),
+    #[cfg(feature = "ldtk")]
+    LdtkMapPattern(LdtkWfcMode),
 }
 
 impl WfcSource {
@@ -291,9 +302,16 @@ impl WfcRunner {
     pub fn get_rule(&self) -> &Vec<Vec<u128>> {
         &self.conn_rules
     }
+
+    pub fn get_elem_idx(&self, elem_index: usize) -> UVec2 {
+        UVec2 {
+            x: elem_index as u32 % self.area.extent.x,
+            y: elem_index as u32 / self.area.extent.x,
+        }
+    }
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component, Clone, Reflect)]
 pub struct WfcData {
     pub(crate) data: Vec<u8>,
     pub(crate) size: UVec2,
@@ -595,6 +613,9 @@ pub fn wfc_applier(
         &WfcRunner,
         &WfcSource,
     )>,
+    #[cfg(feature = "ldtk")] ldtk_patterns: Option<
+        bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>,
+    >,
 ) {
     tilemaps_query
         .par_iter_mut()
@@ -602,14 +623,11 @@ pub fn wfc_applier(
             commands.command_scope(|mut c| {
                 match source {
                     WfcSource::SingleTile(tiles) => {
-                        for (index, tex) in wfc_data.data.iter().enumerate() {
-                            let ser_tile = tiles.get(*tex as usize).unwrap();
+                        for (i, e) in wfc_data.data.iter().enumerate() {
+                            let ser_tile = tiles.get(*e as usize).unwrap();
                             tilemap.as_mut().unwrap().set(
                                 &mut c,
-                                UVec2 {
-                                    x: index as u32 % wfc_data.size.x,
-                                    y: index as u32 / wfc_data.size.x,
-                                },
+                                runner.get_elem_idx(i),
                                 ser_tile.clone().into(),
                             );
                         }
@@ -619,11 +637,7 @@ pub fn wfc_applier(
                             let p = &patterns[*e as usize];
                             p.apply(
                                 &mut c,
-                                (UVec2 {
-                                    x: i as u32 % runner.area.extent.x,
-                                    y: i as u32 / runner.area.extent.x,
-                                } + runner.area.origin)
-                                    * p.size,
+                                (runner.get_elem_idx(i) + runner.area.origin) * p.size,
                                 &mut tilemap.as_mut().unwrap(),
                             );
                         });
@@ -631,20 +645,17 @@ pub fn wfc_applier(
                     WfcSource::MultiLayerMapPattern(size, patterns) => {
                         wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                             let (p, tex) = &patterns[*e as usize];
+                            let size = *size;
+
                             p.iter().for_each(|layer| {
                                 let mut new_layer = TilemapBuilder::new(
                                     TileType::Square,
-                                    *size,
+                                    size,
                                     size.as_vec2(),
                                     layer.label.clone().unwrap(),
                                 );
                                 new_layer.with_translation(
-                                    (UVec2 {
-                                        x: i as u32 % runner.area.extent.x,
-                                        y: i as u32 / runner.area.extent.x,
-                                    } * *size
-                                        * *size)
-                                        .as_vec2(),
+                                    (runner.get_elem_idx(i) * size * size).as_vec2(),
                                 );
                                 if let Some(texture) = tex {
                                     new_layer.with_texture(texture.clone());
@@ -652,10 +663,73 @@ pub fn wfc_applier(
                                 let mut tilemap = new_layer.build(&mut c);
                                 layer.apply(&mut c, UVec2::ZERO, &mut tilemap);
                                 c.entity(tilemap.id).insert(tilemap);
-                                // c.entity(entity).despawn_recursive();
-                                return;
                             });
                         });
+                    }
+                    #[cfg(feature = "ldtk")]
+                    WfcSource::LdtkMapPattern(mode) => {
+                        let Some(patterns) = &ldtk_patterns else {
+                            return;
+                        };
+                        if !patterns.is_ready() {
+                            return;
+                        }
+
+                        match mode {
+                            LdtkWfcMode::SingleMap => {
+                                let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
+
+                                let mut layers = (0..layer_sample.len())
+                                    .map(|layer_idx| {
+                                        let size = layer_sample[layer_idx].0.size;
+                                        let tile_size = layer_sample[layer_idx].1.desc.tile_size;
+
+                                        TilemapBuilder::new(
+                                            TileType::Square,
+                                            size * runner.area.extent,
+                                            tile_size.as_vec2(),
+                                            "".to_string(),
+                                        )
+                                        .with_texture(layer_sample[layer_idx].1.clone())
+                                        .build(&mut c)
+                                    })
+                                    .collect::<Vec<_>>();
+
+                                wfc_data.data.iter().enumerate().for_each(|(i, e)| {
+                                    let (p, bg) = patterns.get_with_index(*e);
+                                    let ptn_idx = runner.get_elem_idx(i);
+
+                                    let mut bg = bg.clone();
+                                    let ptn_render_size = bg.sprite.custom_size.unwrap();
+                                    let z = bg.transform.translation.z;
+                                    bg.transform.translation = ((ptn_render_size / 2.)
+                                        + ptn_idx.as_vec2() * ptn_render_size)
+                                        .extend(z);
+
+                                    p.iter().enumerate().for_each(|(layer_index, layer)| {
+                                        let mut target = &mut layers[layer_index];
+                                        layer.0.apply(&mut c, ptn_idx * layer.0.size, &mut target);
+                                    });
+                                });
+
+                                layers.into_iter().for_each(|tilemap| {
+                                    c.entity(tilemap.id).insert(tilemap);
+                                });
+                            }
+                            LdtkWfcMode::MultiMaps => {
+                                let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
+                                c.insert_resource(crate::ldtk::resources::LdtkWfcManager {
+                                    wfc_data: Some(wfc_data.clone()),
+                                    idents: ldtk_patterns.as_ref().unwrap().idents.clone(),
+                                    pattern_size: layer_sample[0].0.size.as_vec2()
+                                        * layer_sample[0].1.desc.tile_size.as_vec2(),
+                                });
+                                bevy::hierarchy::DespawnRecursiveExt::despawn_recursive(
+                                    c.entity(entity),
+                                );
+                                return;
+                            }
+                        };
                     }
                 }
 

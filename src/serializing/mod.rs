@@ -152,7 +152,7 @@ impl From<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
         Self {
             size: value.size,
             tile_size: value.tile_size,
-            filter_mode: value.filter_mode,
+            filter_mode: value.filter_mode.into(),
         }
     }
 }
@@ -162,7 +162,7 @@ impl Into<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
         TilemapTextureDescriptor {
             size: self.size,
             tile_size: self.tile_size,
-            filter_mode: self.filter_mode,
+            filter_mode: self.filter_mode.into(),
         }
     }
 }

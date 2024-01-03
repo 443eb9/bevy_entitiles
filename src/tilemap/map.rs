@@ -1,10 +1,11 @@
 use bevy::{
     ecs::component::Component,
-    hierarchy::DespawnRecursiveExt,
-    math::{Mat2, Vec4},
-    prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
+    hierarchy::{BuildChildren, DespawnRecursiveExt},
+    math::{Mat2, Quat, Vec4},
+    prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, SpatialBundle, UVec2, Vec2},
     reflect::Reflect,
     render::render_resource::TextureUsages,
+    transform::components::Transform,
 };
 
 use crate::{
@@ -77,6 +78,16 @@ impl TilemapTransform {
     #[inline]
     pub fn apply_translation(&self, point: Vec2) -> Vec2 {
         point + self.translation
+    }
+}
+
+impl Into<Transform> for TilemapTransform {
+    fn into(self) -> Transform {
+        Transform {
+            translation: self.translation.extend(self.z_index as f32),
+            rotation: Quat::from_rotation_z(self.rotation as u32 as f32),
+            ..Default::default()
+        }
     }
 }
 
@@ -189,7 +200,14 @@ impl TilemapBuilder {
             anim_seqs: self.anim_seqs,
             anim_counts: 0,
         };
-        entity.insert((WaitForTextureUsageChange, tilemap.clone()));
+        entity.insert((
+            WaitForTextureUsageChange,
+            tilemap.clone(),
+            SpatialBundle {
+                transform: tilemap.transform.into(),
+                ..Default::default()
+            },
+        ));
         tilemap
     }
 }
@@ -327,6 +345,7 @@ impl Tilemap {
         tile_builder: TileBuilder,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
+        let mut entities = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -339,6 +358,7 @@ impl Tilemap {
                     let e = commands.spawn_empty().id();
                     let index = self.transform_index(index);
                     self.tiles[index] = Some(e);
+                    entities.push(e);
                     e
                 };
                 tile_batch.push((entity, tile));
@@ -346,6 +366,7 @@ impl Tilemap {
         }
 
         commands.insert_or_spawn_batch(tile_batch);
+        commands.entity(self.id).push_children(&entities);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -359,6 +380,7 @@ impl Tilemap {
         relative_index: bool,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
+        let mut entities = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -377,6 +399,7 @@ impl Tilemap {
                     let e = commands.spawn_empty().id();
                     let index = self.transform_index(index);
                     self.tiles[index] = Some(e);
+                    entities.push(e);
                     e
                 };
                 tile_batch.push((entity, tile));
@@ -384,10 +407,13 @@ impl Tilemap {
         }
 
         commands.insert_or_spawn_batch(tile_batch);
+        commands.entity(self.id).push_children(&entities);
     }
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than set them one by one.
     pub fn fill_with_buffer(&mut self, commands: &mut Commands, origin: UVec2, buffer: TileBuffer) {
+        let mut entities = Vec::with_capacity((buffer.size.x * buffer.size.y) as usize);
+
         let batch = buffer
             .tiles
             .into_iter()
@@ -406,6 +432,7 @@ impl Tilemap {
                         let e = commands.spawn_empty().id();
                         let index = self.transform_index(tile.index);
                         self.tiles[index] = Some(e);
+                        entities.push(e);
                         Some((e, tile))
                     }
                 } else {
@@ -413,7 +440,9 @@ impl Tilemap {
                 }
             })
             .collect::<Vec<_>>();
+
         commands.insert_or_spawn_batch(batch);
+        commands.entity(self.id).push_children(&entities);
     }
 
     /// Simlar to `Tilemap::fill_rect()`.

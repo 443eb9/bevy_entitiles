@@ -8,7 +8,7 @@ use bevy::{
         query::{Added, With},
         system::{Commands, NonSend, Query, Res, ResMut},
     },
-    hierarchy::{BuildChildren, DespawnRecursiveExt},
+    hierarchy::DespawnRecursiveExt,
     log::error,
     math::{UVec2, Vec2},
     prelude::SpatialBundle,
@@ -25,7 +25,7 @@ use crate::ldtk::{
         level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
         EntityRef, GridPoint, LdtkColor, Toc, World,
     },
-    resources::{LdtkAssets, LdtkLevelManagerMode, LdtkPatterns},
+    resources::{LdtkAssets, LdtkPatterns},
     sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
 };
 
@@ -91,7 +91,7 @@ impl Plugin for EntiTilesLdtkPlugin {
             .register_type::<LdtkLoader>()
             .register_type::<LdtkUnloader>()
             .register_type::<LdtkAssets>()
-            .register_type::<LdtkLevelManagerMode>()
+            .register_type::<LdtkLoaderMode>()
             .register_type::<LdtkLevelManager>()
             .register_type::<LdtkPatterns>()
             .register_type::<AtlasRect>()
@@ -112,6 +112,13 @@ impl Plugin for EntiTilesLdtkPlugin {
             .register_type::<World>()
             .register_type::<EntityRef>()
             .register_type::<GridPoint>();
+
+        #[cfg(feature = "algorithm")]
+        {
+            app.init_resource::<resources::LdtkWfcManager>();
+
+            app.register_type::<resources::LdtkWfcManager>();
+        }
     }
 }
 
@@ -124,12 +131,21 @@ fn global_entity_registerer(
     }
 }
 
-#[derive(Component, Reflect, Default, Debug)]
-pub struct LdtkLoader {
-    pub(crate) level: String,
+#[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
+pub enum LdtkLoaderMode {
+    #[default]
+    Tilemap,
+    MapPattern,
 }
 
-#[derive(Component, Reflect, Default, Debug)]
+#[derive(Component, Reflect, Default)]
+pub struct LdtkLoader {
+    pub(crate) level: String,
+    pub(crate) mode: LdtkLoaderMode,
+    pub(crate) trans_ovrd: Option<Vec2>,
+}
+
+#[derive(Component, Reflect, Default)]
 pub struct LdtkUnloader;
 
 pub fn unload_ldtk_level(
@@ -180,7 +196,7 @@ pub fn load_ldtk_json(
             &mut patterns,
         );
 
-        if manager.mode == LdtkLevelManagerMode::MapPattern {
+        if loader.mode == LdtkLoaderMode::MapPattern {
             continue;
         }
         let mut e_cmd = commands.entity(entity);
@@ -216,22 +232,16 @@ fn load_levels(
             continue;
         }
 
-        let translation = get_level_translation(&ldtk_data, level_index, &manager);
+        let translation = loader
+            .trans_ovrd
+            .unwrap_or_else(|| get_level_translation(&ldtk_data, level_index, &manager));
 
         let level_px = UVec2 {
             x: level.px_wid as u32,
             y: level.px_hei as u32,
         };
 
-        load_background(
-            commands,
-            level_entity,
-            level,
-            translation,
-            level_px,
-            asset_server,
-            &manager,
-        );
+        let background = load_background(level, translation, level_px, asset_server, &manager);
 
         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
         let mut collider_aabbs = None;
@@ -242,11 +252,11 @@ fn load_levels(
             level.identifier.clone(),
             level_entity,
             level.layer_instances.len(),
-            level_px,
             &assets,
             translation,
             manager.z_index,
-            manager.mode,
+            loader.mode,
+            background,
         );
         for (layer_index, layer) in level.layer_instances.iter().enumerate() {
             #[cfg(feature = "algorithm")]
@@ -306,36 +316,29 @@ fn load_levels(
 }
 
 fn load_background(
-    commands: &mut Commands,
-    level_entity: Entity,
     level: &Level,
     translation: Vec2,
     level_px: UVec2,
     asset_server: &AssetServer,
     manager: &LdtkLevelManager,
-) {
-    if manager.mode == LdtkLevelManagerMode::Tilemap {
-        let texture = level
-            .bg_rel_path
-            .as_ref()
-            .map(|path| asset_server.load(format!("{}{}", manager.asset_path_prefix, path)));
+) -> SpriteBundle {
+    let texture = level
+        .bg_rel_path
+        .as_ref()
+        .map(|path| asset_server.load(format!("{}{}", manager.asset_path_prefix, path)));
 
-        let bg_entity = commands
-            .spawn(SpriteBundle {
-                sprite: Sprite {
-                    color: level.bg_color.into(),
-                    custom_size: Some(level_px.as_vec2()),
-                    ..Default::default()
-                },
-                texture: texture.unwrap_or_default(),
-                transform: Transform::from_translation(
-                    (translation + level_px.as_vec2() / 2.)
-                        .extend(manager.z_index as f32 - level.layer_instances.len() as f32 - 1.),
-                ),
-                ..Default::default()
-            })
-            .id();
-        commands.entity(level_entity).add_child(bg_entity);
+    SpriteBundle {
+        sprite: Sprite {
+            color: level.bg_color.into(),
+            custom_size: Some(level_px.as_vec2()),
+            ..Default::default()
+        },
+        texture: texture.unwrap_or_default(),
+        transform: Transform::from_translation(
+            (translation + level_px.as_vec2() / 2.)
+                .extend(manager.z_index as f32 - level.layer_instances.len() as f32 - 1.),
+        ),
+        ..Default::default()
     }
 }
 

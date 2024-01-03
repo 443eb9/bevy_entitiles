@@ -35,7 +35,7 @@ pub mod prelude {
         wfc::{AsyncWfcRunner, WfcRunner},
     };
     #[cfg(feature = "ldtk")]
-    pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager, LdtkLevelManagerMode};
+    pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager, LdtkLoaderMode};
     pub use crate::math::{aabb::Aabb2d, TileArea};
     pub use crate::render::{
         buffer::TileAnimation,

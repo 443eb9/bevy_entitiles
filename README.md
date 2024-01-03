@@ -36,7 +36,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | ---------------- | ---------------------------------------------------------------------------------------------------- |
 | `algorithm`      | Implementation of algorithms                                                                         |
 | `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.              |
-| `ldtk`           | LDtk support.                                                                                        |
+| `ldtk`           | [LDtk](https://ldtk.io/) support.                                                                    |
 | `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                         |
 | `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc. |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                       |
@@ -55,6 +55,17 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 ## Show Cases & Performance
 
 Platform: 10600KF
+
+### LDtk
+
+The gif on the right is the map generated with wave function collapse. And the orange boxes in the left image is procedural generated colliders.
+
+<div>
+	<img src="./docs/imgs/ldtk.png" width="250px">
+	<img src="./docs/imgs/ldtk_wfc.gif" width="250px">
+</div>
+
+> *Bevy 0.12.1, crate 0.2.6, LDtk 1.4.1*
 
 ### Animation
 
@@ -88,7 +99,7 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 | 500x500   | 295.67                  |
 | 1000x1000 | 1384.33                 |
 
-> *Bevy 0.12, crate 0.2.1, using `pathfinding` example*
+> *Bevy 0.12.0, crate 0.2.1, using `pathfinding` example*
 
 ### Wave Function Collapse
 
@@ -135,6 +146,6 @@ In the following case, each tile has at least one corresponding color gap with i
 
 | Bevy ver | EntiTiles ver | LDtk ver      |
 | -------- | ------------- | ------------- |
-| 0.12.x   | 0.2.3-0.2.5   | 1.4.1         |
+| 0.12.x   | 0.2.3-0.2.6   | 1.4.1         |
 | 0.12.x   | 0.2.0-0.2.2   | Not supported |
 | 0.11.x   | 0.1.x         | Not supported |

@@ -4,17 +4,16 @@ use bevy::{
     asset::{AssetServer, Assets, Handle},
     ecs::{
         entity::Entity,
-        system::{Commands, Resource, SystemId},
+        system::{Commands, Resource},
     },
     log::error,
-    math::{IVec2, UVec2, Vec4},
+    math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
-        texture::Image,
     },
-    sprite::{Mesh2dHandle, TextureAtlas},
+    sprite::{Mesh2dHandle, SpriteBundle, TextureAtlas},
     utils::HashMap,
 };
 
@@ -27,43 +26,55 @@ use crate::{
 use super::{
     json::{definitions::EntityDef, LdtkJson},
     sprite::{AtlasRect, LdtkEntityMaterial},
-    LdtkLoader, LdtkUnloader,
+    LdtkLoader, LdtkLoaderMode, LdtkUnloader,
 };
-
-#[derive(Reflect, Clone)]
-pub enum LdtkBackground {
-    Color(Vec4),
-    Texture(Handle<Image>),
-}
 
 #[derive(Resource, Reflect, Default, Clone)]
 pub struct LdtkPatterns {
-    pub patterns: HashMap<String, (Vec<TilemapPattern>, TilemapTexture)>,
     #[reflect(ignore)]
-    pub callback: Option<SystemId>,
-    pub threashold: Option<usize>,
+    pub patterns: HashMap<String, (Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle)>,
+    pub idents: HashMap<u8, String>,
 }
 
 impl LdtkPatterns {
-    pub fn get(&self, identifier: String) -> &(Vec<TilemapPattern>, TilemapTexture) {
+    #[inline]
+    pub fn new(idents: HashMap<u8, String>) -> Self {
+        Self {
+            idents,
+            ..Default::default()
+        }
+    }
+
+    #[inline]
+    pub fn get_with_ident(
+        &self,
+        identifier: String,
+    ) -> &(Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle) {
         self.patterns.get(&identifier).unwrap()
     }
 
+    #[inline]
+    pub fn get_with_index(
+        &self,
+        index: u8,
+    ) -> &(Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle) {
+        self.patterns.get(&self.idents[&index]).unwrap()
+    }
+
+    #[inline]
     pub fn insert(
         &mut self,
-        commands: &mut Commands,
         identifier: String,
-        patterns: Vec<TilemapPattern>,
-        texture: TilemapTexture,
+        patterns: Vec<(TilemapPattern, TilemapTexture)>,
+        background: SpriteBundle,
     ) {
         self.patterns
-            .insert(identifier.to_string(), (patterns, texture));
+            .insert(identifier.to_string(), (patterns, background));
+    }
 
-        if let (Some(threashold), Some(callback)) = (self.threashold, self.callback) {
-            if self.patterns.len() == threashold {
-                commands.run_system(callback);
-            }
-        }
+    #[inline]
+    pub fn is_ready(&self) -> bool {
+        !self.patterns.is_empty() && !self.idents.is_empty()
     }
 }
 
@@ -232,18 +243,30 @@ impl LdtkAssets {
     }
 }
 
-#[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
-pub enum LdtkLevelManagerMode {
-    #[default]
-    Tilemap,
-    MapPattern,
+#[cfg(feature = "algorithm")]
+#[derive(Resource, Default, Reflect)]
+pub struct LdtkWfcManager {
+    pub(crate) wfc_data: Option<crate::algorithm::wfc::WfcData>,
+    pub(crate) idents: HashMap<u8, String>,
+    pub(crate) pattern_size: Vec2,
+}
+
+#[cfg(feature = "algorithm")]
+impl LdtkWfcManager {
+    pub fn get_ident(&self, level_index: UVec2) -> Option<String> {
+        let idx = self.wfc_data.as_ref()?.get(level_index)?;
+        Some(self.idents[&idx].clone())
+    }
+
+    pub fn get_translation(&self, level_index: UVec2) -> Vec2 {
+        level_index.as_vec2() * self.pattern_size
+    }
 }
 
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkLevelManager {
     pub(crate) file_path: String,
     pub(crate) asset_path_prefix: String,
-    pub(crate) mode: LdtkLevelManagerMode,
     pub(crate) ldtk_json: Option<LdtkJson>,
     pub(crate) level_spacing: Option<i32>,
     #[reflect(ignore)]
@@ -259,13 +282,13 @@ pub struct LdtkLevelManager {
 }
 
 impl LdtkLevelManager {
-    pub fn new(file_path: &str, asset_path_prefix: &str, mode: LdtkLevelManagerMode) -> Self {
+    pub fn new(file_path: String, asset_path_prefix: String) -> Self {
         let mut s = Self {
             file_path: file_path.to_string(),
             asset_path_prefix: asset_path_prefix.to_string(),
             ..Default::default()
         };
-        s.initialize(file_path.to_string(), asset_path_prefix.to_string(), mode);
+        s.initialize(file_path.to_string(), asset_path_prefix.to_string());
         s
     }
 
@@ -275,15 +298,9 @@ impl LdtkLevelManager {
     ///
     /// For example, your ldtk file is located at `assets/ldtk/fantastic_map.ldtk`,
     /// so `asset_path_prefix` will be `ldtk/`.
-    pub fn initialize(
-        &mut self,
-        file_path: String,
-        asset_path_prefix: String,
-        mode: LdtkLevelManagerMode,
-    ) -> &mut Self {
+    pub fn initialize(&mut self, file_path: String, asset_path_prefix: String) -> &mut Self {
         self.file_path = file_path;
         self.asset_path_prefix = asset_path_prefix;
-        self.mode = mode;
         self.reload_json();
         self
     }
@@ -354,7 +371,7 @@ impl LdtkLevelManager {
         self.ldtk_json.as_ref().unwrap()
     }
 
-    pub fn load(&mut self, commands: &mut Commands, level: &'static str) {
+    pub fn load(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
         self.check_initialized();
         let level = level.to_string();
         assert!(
@@ -368,17 +385,14 @@ impl LdtkLevelManager {
         } else {
             let entity = commands.spawn(LdtkLoader {
                 level: level.clone(),
+                mode: LdtkLoaderMode::Tilemap,
+                trans_ovrd,
             });
-            match self.mode {
-                LdtkLevelManagerMode::Tilemap => {
-                    self.loaded_levels.insert(level.clone(), entity.id());
-                }
-                LdtkLevelManagerMode::MapPattern => {}
-            }
+            self.loaded_levels.insert(level.clone(), entity.id());
         }
     }
 
-    pub fn load_all(&mut self, commands: &mut Commands) {
+    pub fn load_all_patterns(&mut self, commands: &mut Commands) {
         self.check_initialized();
         assert!(
             self.loaded_levels.is_empty(),
@@ -395,37 +409,37 @@ impl LdtkLevelManager {
                 if self.loaded_levels.contains_key(&level.identifier) {
                     error!("Trying to load {:?} that is already loaded!", level);
                 } else {
-                    let entity = commands.spawn(LdtkLoader {
+                    commands.spawn(LdtkLoader {
                         level: level.identifier.clone(),
+                        mode: LdtkLoaderMode::MapPattern,
+                        trans_ovrd: None,
                     });
-                    match self.mode {
-                        LdtkLevelManagerMode::Tilemap => {
-                            self.loaded_levels
-                                .insert(level.identifier.clone(), entity.id());
-                        }
-                        LdtkLevelManagerMode::MapPattern => {}
-                    }
                 }
             });
     }
 
-    pub fn try_load(&mut self, commands: &mut Commands, level: &'static str) -> bool {
+    pub fn try_load(
+        &mut self,
+        commands: &mut Commands,
+        level: String,
+        trans_ovrd: Option<Vec2>,
+    ) -> bool {
         self.check_initialized();
         if self.loaded_levels.is_empty() {
-            self.load(commands, level);
+            self.load(commands, level, trans_ovrd);
             true
         } else {
             false
         }
     }
 
-    pub fn switch_to(&mut self, commands: &mut Commands, level: &'static str) {
+    pub fn switch_to(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
         self.check_initialized();
         if self.loaded_levels.contains_key(&level.to_string()) {
             error!("Trying to load {:?} that is already loaded!", level);
         } else {
             self.unload_all(commands);
-            self.load(commands, level);
+            self.load(commands, level, trans_ovrd);
         }
     }
 
@@ -433,10 +447,10 @@ impl LdtkLevelManager {
     ///
     /// This method will cause panic if you have already loaded levels before.
     /// **Even if you have unloaded them!!**
-    pub fn load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) {
+    pub fn load_many(&mut self, commands: &mut Commands, levels: &[String]) {
         self.check_initialized();
         levels.iter().for_each(|level| {
-            self.load(commands, &level);
+            self.load(commands, level.clone(), None);
         });
     }
 
@@ -444,7 +458,7 @@ impl LdtkLevelManager {
     ///
     /// This method will cause panic if you have already loaded levels before.
     /// **Even if you have unloaded them!!**
-    pub fn try_load_many(&mut self, commands: &mut Commands, levels: &[&'static str]) -> bool {
+    pub fn try_load_many(&mut self, commands: &mut Commands, levels: &[String]) -> bool {
         self.check_initialized();
         if self.loaded_levels.is_empty() {
             self.load_many(commands, levels);
@@ -454,7 +468,7 @@ impl LdtkLevelManager {
         }
     }
 
-    pub fn unload(&mut self, commands: &mut Commands, level: &'static str) {
+    pub fn unload(&mut self, commands: &mut Commands, level: String) {
         let level = level.to_string();
         if let Some(l) = self.loaded_levels.get(&level) {
             commands.entity(*l).insert(LdtkUnloader);

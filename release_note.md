@@ -4,6 +4,7 @@
 - Support map patterns for wfc. (also LDtk maps)
 - Removed `AsyncWfcRunner`
 - Wfc rework.
+- Tilemaps will now have `SpatialBundle` added.
 
 # What's Fixed:
 

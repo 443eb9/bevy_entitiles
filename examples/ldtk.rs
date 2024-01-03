@@ -30,7 +30,7 @@ use bevy_entitiles::{
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
         layer::physics::LdtkPhysicsLayer,
-        resources::{LdtkAssets, LdtkLevelManager, LdtkLevelManagerMode},
+        resources::{LdtkAssets, LdtkLevelManager},
         sprite::LdtkEntityMaterial,
     },
     EntiTilesPlugin,
@@ -83,7 +83,6 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             // in my local disk.
             "assets/ldtk/ignoregrid_vania.ldtk".to_string(),
             "ldtk/".to_string(),
-            LdtkLevelManagerMode::Tilemap,
         )
         .set_physics_layer(LdtkPhysicsLayer {
             identifier: "PhysicsColliders".to_string(),
@@ -98,10 +97,10 @@ macro_rules! level_control {
     ($key:ident, $level:expr, $input:expr, $manager:expr, $commands:expr) => {
         if $input.pressed(KeyCode::ControlLeft) {
             if $input.just_pressed(KeyCode::$key) {
-                $manager.unload(&mut $commands, $level);
+                $manager.unload(&mut $commands, $level.to_string());
             }
         } else if $input.just_pressed(KeyCode::$key) {
-            $manager.switch_to(&mut $commands, $level);
+            $manager.switch_to(&mut $commands, $level.to_string(), None);
         }
     };
 }
@@ -122,12 +121,15 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
     if input.just_pressed(KeyCode::Key0) {
         manager.try_load_many(
             &mut commands,
-            &["Entrance", "Cross_roads", "Water_supply", "Ossuary"],
+            &["Entrance", "Cross_roads", "Water_supply", "Ossuary"]
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>(),
         );
     }
 
     if input.just_pressed(KeyCode::Key8) {
-        manager.try_load(&mut commands, "Entrance");
+        manager.try_load(&mut commands, "Entrance".to_string(), None);
     }
 }
 
@@ -204,9 +206,9 @@ fn player_spawn(
     _fields: &HashMap<String, FieldInstance>,
     // the asset server
     _asset_server: &AssetServer,
-    // the textures from ldtk. They are already registered into assets.
-    // you can use them to spawn new sprites.
+    // the ldtk level manager, I think you are familiar with it
     _ldtk_manager: &LdtkLevelManager,
+    // the ldtk assets, like sprites and meshes
     _ldtk_assets: &LdtkAssets,
 ) {
     // this is takes params that are exactly the same as the LdtkEntity trait

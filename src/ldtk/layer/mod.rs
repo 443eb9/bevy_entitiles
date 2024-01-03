@@ -2,7 +2,7 @@ use bevy::{
     ecs::{entity::Entity, system::Commands},
     hierarchy::{BuildChildren, DespawnRecursiveExt},
     math::{IVec2, UVec2, Vec2, Vec4},
-    prelude::SpatialBundle,
+    sprite::SpriteBundle,
     utils::HashMap,
 };
 
@@ -19,7 +19,8 @@ use crate::{
 use super::{
     components::LayerIid,
     json::level::{LayerInstance, TileInstance},
-    resources::{LdtkAssets, LdtkLevelManagerMode, LdtkPatterns},
+    resources::{LdtkAssets, LdtkPatterns},
+    LdtkLoaderMode,
 };
 
 #[cfg(feature = "algorithm")]
@@ -30,7 +31,7 @@ pub mod physics;
 #[derive(Clone)]
 pub enum LdtkLayer {
     Tilemap(Vec<Option<Tilemap>>),
-    MapPattern(Vec<Option<TilemapPattern>>, Option<TilemapTexture>),
+    MapPattern(Vec<Option<(TilemapPattern, TilemapTexture)>>),
 }
 
 pub struct LdtkLayers<'a> {
@@ -38,9 +39,9 @@ pub struct LdtkLayers<'a> {
     pub level_entity: Entity,
     pub layers: LdtkLayer,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
-    pub px_size: UVec2,
     pub translation: Vec2,
     pub base_z_index: i32,
+    pub background: SpriteBundle,
 }
 
 impl<'a> LdtkLayers<'a> {
@@ -48,25 +49,23 @@ impl<'a> LdtkLayers<'a> {
         identifier: String,
         level_entity: Entity,
         total_layers: usize,
-        px_size: UVec2,
         ldtk_assets: &'a LdtkAssets,
         translation: Vec2,
         base_z_index: i32,
-        mode: LdtkLevelManagerMode,
+        mode: LdtkLoaderMode,
+        background: SpriteBundle,
     ) -> Self {
         Self {
             identifier,
             level_entity,
             layers: match mode {
-                LdtkLevelManagerMode::Tilemap => LdtkLayer::Tilemap(vec![None; total_layers]),
-                LdtkLevelManagerMode::MapPattern => {
-                    LdtkLayer::MapPattern(vec![None; total_layers], None)
-                }
+                LdtkLoaderMode::Tilemap => LdtkLayer::Tilemap(vec![None; total_layers]),
+                LdtkLoaderMode::MapPattern => LdtkLayer::MapPattern(vec![None; total_layers]),
             },
             tilesets: &ldtk_assets.tilesets,
-            px_size,
             translation,
             base_z_index,
+            background,
         }
     }
 
@@ -122,9 +121,9 @@ impl<'a> LdtkLayers<'a> {
                     );
                 }
             }
-            LdtkLayer::MapPattern(pattern, texture) => {
-                let pattern = pattern[layer_index].as_mut().unwrap();
-                let tile_size = texture.as_ref().unwrap().desc.tile_size;
+            LdtkLayer::MapPattern(patterns) => {
+                let (pattern, texture) = patterns[layer_index].as_mut().unwrap();
+                let tile_size = texture.desc.tile_size;
                 let tile_index = IVec2 {
                     x: tile.px[0] / tile_size.x as i32,
                     y: pattern.size.y as i32 - 1 - tile.px[1] / tile_size.y as i32,
@@ -187,32 +186,25 @@ impl<'a> LdtkLayers<'a> {
 
                 commands
                     .entity(tilemap.id)
-                    .insert((SpatialBundle::default(), LayerIid(layer.iid.clone())));
+                    .insert(LayerIid(layer.iid.clone()));
                 commands.entity(self.level_entity).add_child(tilemap.id());
 
                 tilemaps[layer_index] = Some(tilemap);
             }
-            LdtkLayer::MapPattern(patterns, texture) => {
+            LdtkLayer::MapPattern(patterns) => {
                 if patterns[layer_index].is_some() {
                     return;
                 }
 
-                if let Some(tex) = texture {
-                    assert_eq!(
-                        tex.handle(),
-                        tileset.handle(),
-                        "MapPattern mode only supports one tileset!"
-                    );
-                } else {
-                    *texture = Some(tileset);
-                }
-
-                patterns[layer_index] = Some(TilemapPattern::new(
-                    Some(layer.identifier.clone()),
-                    UVec2 {
-                        x: layer.c_wid as u32,
-                        y: layer.c_hei as u32,
-                    },
+                patterns[layer_index] = Some((
+                    TilemapPattern::new(
+                        Some(layer.identifier.clone()),
+                        UVec2 {
+                            x: layer.c_wid as u32,
+                            y: layer.c_hei as u32,
+                        },
+                    ),
+                    tileset,
                 ));
             }
         }
@@ -226,14 +218,17 @@ impl<'a> LdtkLayers<'a> {
                         commands.entity(tm.id).insert(tm);
                     }
                 }
+
+                let bg = commands.spawn(self.background.clone()).id();
+                commands.entity(self.level_entity).add_child(bg);
             }
-            LdtkLayer::MapPattern(patterns, texture) => {
+            LdtkLayer::MapPattern(patterns) => {
                 let level = patterns
                     .drain(..)
                     .filter_map(|p| if let Some(p) = p { Some(p) } else { None })
-                    .collect();
-                let texture = texture.take().unwrap();
-                ldtk_patterns.insert(commands, self.identifier.clone(), level, texture);
+                    .collect::<Vec<_>>();
+
+                ldtk_patterns.insert(self.identifier.clone(), level, self.background.clone());
                 commands.entity(self.level_entity).despawn_recursive();
             }
         }
@@ -264,11 +259,11 @@ impl<'a> LdtkLayers<'a> {
                 let left_top = physics_map.index_inf_to_world(IVec2 {
                     x: min.x as i32,
                     y: (physics_map.size.y - 1 - min.y + 1) as i32,
-                });
+                }) - physics_map.transform.translation;
                 let right_btm = physics_map.index_inf_to_world(IVec2 {
                     x: (max.x + 1) as i32,
                     y: (physics_map.size.y - 1 - max.y) as i32,
-                });
+                }) - physics_map.transform.translation;
                 (
                     i,
                     crate::math::aabb::Aabb2d {
