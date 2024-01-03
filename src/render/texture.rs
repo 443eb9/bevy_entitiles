@@ -21,10 +21,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::{
-    reflect::ReflectFilterMode,
-    tilemap::map::{Tilemap, TilemapRotation, WaitForTextureUsageChange},
-};
+use crate::tilemap::map::{Tilemap, TilemapRotation, WaitForTextureUsageChange};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -78,9 +75,9 @@ impl TilemapTexturesStorage {
                 address_mode_u: AddressMode::ClampToEdge,
                 address_mode_v: AddressMode::ClampToEdge,
                 address_mode_w: AddressMode::ClampToEdge,
-                mag_filter: desc.filter_mode.into(),
-                min_filter: desc.filter_mode.into(),
-                mipmap_filter: desc.filter_mode.into(),
+                mag_filter: desc.filter_mode,
+                min_filter: desc.filter_mode,
+                mipmap_filter: desc.filter_mode,
                 lod_min_clamp: 0.,
                 lod_max_clamp: f32::MAX,
                 compare: None,
@@ -229,7 +226,8 @@ impl TilemapTexture {
 pub struct TilemapTextureDescriptor {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
-    pub(crate) filter_mode: ReflectFilterMode,
+    #[reflect(ignore)]
+    pub(crate) filter_mode: FilterMode,
 }
 
 impl TilemapTextureDescriptor {
@@ -245,7 +243,7 @@ impl TilemapTextureDescriptor {
         Self {
             size,
             tile_size,
-            filter_mode: filter_mode.into(),
+            filter_mode,
         }
     }
 }

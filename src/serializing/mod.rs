@@ -9,14 +9,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     math::aabb::Aabb2d,
-    reflect::ReflectFilterMode,
     render::{
         buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
         map::{Tilemap, TilemapRotation, TilemapTransform},
-        tile::{Tile, TileTexture, TileType, TileBuilder},
+        tile::{Tile, TileBuilder, TileTexture, TileType},
     },
     MAX_ANIM_COUNT,
 };
@@ -145,7 +144,7 @@ pub struct SerializedTilemapTexture {
 pub struct SerializedTilemapDescriptor {
     pub size: UVec2,
     pub tile_size: UVec2,
-    pub filter_mode: ReflectFilterMode,
+    pub filter_mode: SerializedFilterMode,
 }
 
 impl From<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
@@ -153,7 +152,7 @@ impl From<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
         Self {
             size: value.size,
             tile_size: value.tile_size,
-            filter_mode: value.filter_mode.into(),
+            filter_mode: value.filter_mode,
         }
     }
 }
@@ -163,7 +162,7 @@ impl Into<TilemapTextureDescriptor> for SerializedTilemapDescriptor {
         TilemapTextureDescriptor {
             size: self.size,
             tile_size: self.tile_size,
-            filter_mode: self.filter_mode.into(),
+            filter_mode: self.filter_mode,
         }
     }
 }

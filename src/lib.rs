@@ -1,6 +1,5 @@
 use bevy::{app::Update, prelude::Plugin};
 use math::{aabb::Aabb2d, TileArea};
-use reflect::ReflectFilterMode;
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
     layer::{LayerUpdater, TileLayer, TileUpdater},
@@ -16,7 +15,6 @@ pub mod debug;
 #[cfg(feature = "ldtk")]
 pub mod ldtk;
 pub mod math;
-pub mod reflect;
 pub mod render;
 #[cfg(feature = "serializing")]
 pub mod serializing;
@@ -82,7 +80,5 @@ impl Plugin for EntiTilesPlugin {
             .register_type::<Tilemap>()
             .register_type::<Tile>()
             .register_type::<TileTexture>();
-
-        app.register_type::<ReflectFilterMode>();
     }
 }

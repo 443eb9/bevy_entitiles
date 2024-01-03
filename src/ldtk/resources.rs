@@ -19,7 +19,6 @@ use bevy::{
 };
 
 use crate::{
-    reflect::ReflectFilterMode,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     serializing::pattern::TilemapPattern,
     tilemap::map::TilemapRotation,
@@ -143,7 +142,7 @@ impl LdtkAssets {
                     x: tileset.tile_grid_size as u32,
                     y: tileset.tile_grid_size as u32,
                 },
-                filter_mode: manager.filter_mode.into(),
+                filter_mode: manager.filter_mode,
             };
             let texture = TilemapTexture {
                 texture,
@@ -247,7 +246,8 @@ pub struct LdtkLevelManager {
     pub(crate) mode: LdtkLevelManagerMode,
     pub(crate) ldtk_json: Option<LdtkJson>,
     pub(crate) level_spacing: Option<i32>,
-    pub(crate) filter_mode: ReflectFilterMode,
+    #[reflect(ignore)]
+    pub(crate) filter_mode: FilterMode,
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
@@ -332,7 +332,7 @@ impl LdtkLevelManager {
 
     /// The filter mode of the tilemap texture.
     pub fn set_filter_mode(&mut self, filter_mode: FilterMode) -> &mut Self {
-        self.filter_mode = filter_mode.into();
+        self.filter_mode = filter_mode;
         self
     }
 
