@@ -10,9 +10,8 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Wave Function Collapse ( Collapse map from LDtk )
-- Chunk Unloading
 - Infinite Tilemap
+- Chunk Unloading
 - Custom Material
 - Runtime Mesh & Texture Baking
 - Wang Tilling
@@ -106,6 +105,8 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 The wave function collapse algorithm is also fast. XD
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
+
+**Notice: The funtionality of visualizing the process of wfc was removed in 0.2.6**
 
 <div>
 	<img src="./docs/imgs/wfc.gif" width="500px">

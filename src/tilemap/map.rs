@@ -212,6 +212,21 @@ impl TilemapBuilder {
     }
 }
 
+#[derive(Clone, Reflect)]
+pub struct TilemapChunk {
+    pub size: u32,
+    pub tiles: Vec<Option<Entity>>,
+}
+
+impl TilemapChunk {
+    pub fn get(&self, index: UVec2) -> Option<Entity> {
+        self.tiles
+            .get((index.y * self.size + index.x) as usize)
+            .cloned()
+            .flatten()
+    }
+}
+
 #[derive(Component, Clone, Reflect)]
 pub struct Tilemap {
     pub(crate) id: Entity,
