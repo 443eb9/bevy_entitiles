@@ -1,6 +1,6 @@
 use bevy::{
     ecs::system::Res,
-    math::Vec3Swizzles,
+    math::{IVec2, Vec3Swizzles},
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
         UVec2, Vec2, Vec4,
@@ -11,7 +11,6 @@ use bevy::{
 };
 
 use crate::{
-    math::aabb::Aabb2d,
     tilemap::{
         map::{Tilemap, TilemapTransform},
         tile::{Tile, TileTexture, TileType},
@@ -26,13 +25,11 @@ pub struct ExtractedTilemap {
     pub id: Entity,
     pub tile_type: TileType,
     pub ext_dir: Vec2,
-    pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
-    pub render_chunk_size: u32,
+    pub chunk_size: u32,
     pub texture: Option<TilemapTexture>,
-    pub aabb: Aabb2d,
     pub transform: TilemapTransform,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub layer_opacities: Vec4,
@@ -42,8 +39,9 @@ pub struct ExtractedTilemap {
 #[derive(Component)]
 pub struct ExtractedTile {
     pub tilemap: Entity,
-    pub render_chunk_index: usize,
-    pub index: UVec2,
+    pub chunk_index: IVec2,
+    pub in_chunk_index: UVec2,
+    pub index: IVec2,
     pub texture: TileTexture,
     pub color: Vec4,
 }
@@ -69,13 +67,11 @@ pub fn extract_tilemaps(
                 id: tilemap.id,
                 tile_type: tilemap.tile_type,
                 ext_dir: tilemap.ext_dir,
-                size: tilemap.size,
                 tile_render_size: tilemap.tile_render_size,
                 tile_slot_size: tilemap.tile_slot_size,
-                render_chunk_size: tilemap.render_chunk_size,
+                chunk_size: tilemap.chunk_size,
                 pivot: tilemap.pivot,
                 texture: tilemap.texture.clone(),
-                aabb: tilemap.aabb,
                 transform: tilemap.transform,
                 anim_seqs: tilemap.anim_seqs,
                 layer_opacities: tilemap.layer_opacities,
@@ -96,8 +92,9 @@ pub fn extract_tiles(
         extracted_tiles.push((
             entity,
             ExtractedTile {
-                render_chunk_index: tile.render_chunk_index,
                 tilemap: tile.tilemap_id,
+                chunk_index: tile.chunk_index,
+                in_chunk_index: tile.in_chunk_index,
                 index: tile.index,
                 texture: tile.texture.clone(),
                 color: tile.color,

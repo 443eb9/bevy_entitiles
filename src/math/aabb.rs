@@ -1,8 +1,8 @@
-use bevy::{prelude::{UVec2, Vec2}, reflect::Reflect};
+use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect};
 
 use crate::{
     render::extract::{ExtractedTilemap, ExtractedView},
-    tilemap::{map::TilemapBuilder, tile::TileType},
+    tilemap::tile::TileType,
 };
 
 #[derive(Clone, Copy, Default, Debug, Reflect)]
@@ -20,12 +20,12 @@ impl Aabb2d {
         }
     }
 
-    pub fn from_chunk(chunk_index: UVec2, tilemap: &ExtractedTilemap) -> Self {
+    pub fn from_chunk(chunk_index: IVec2, tilemap: &ExtractedTilemap) -> Self {
         let pivot_offset = tilemap.pivot * tilemap.tile_slot_size;
 
         match tilemap.tile_type {
             TileType::Square => {
-                let chunk_render_size = tilemap.tile_slot_size * tilemap.render_chunk_size as f32;
+                let chunk_render_size = tilemap.tile_slot_size * tilemap.chunk_size as f32;
                 tilemap.transform.transform_aabb(Aabb2d {
                     min: chunk_index.as_vec2() * chunk_render_size - pivot_offset,
                     max: (chunk_index + 1).as_vec2() * chunk_render_size - pivot_offset,
@@ -34,7 +34,7 @@ impl Aabb2d {
             TileType::Isometric => {
                 let chunk_index = chunk_index.as_vec2();
                 let half_chunk_render_size =
-                    tilemap.render_chunk_size as f32 * tilemap.tile_slot_size / 2.;
+                    tilemap.chunk_size as f32 * tilemap.tile_slot_size / 2.;
                 let center_x = (chunk_index.x - chunk_index.y) * half_chunk_render_size.x;
                 let center_y = (chunk_index.x + chunk_index.y + 1.) * half_chunk_render_size.y;
                 let center = Vec2 {
@@ -54,7 +54,7 @@ impl Aabb2d {
                 let Vec2 { x: a, y: b } = tilemap.tile_render_size;
                 let c = c as f32;
                 let Vec2 { x, y } = chunk_index.as_vec2();
-                let n = tilemap.render_chunk_size as f32;
+                let n = tilemap.chunk_size as f32;
 
                 let min = Vec2 {
                     x: a * x * n - a / 2. * y * n - (n / 2. - 1.) * a - a / 2.,
@@ -70,50 +70,50 @@ impl Aabb2d {
         }
     }
 
-    pub fn from_tilemap_builder(builder: &TilemapBuilder) -> Aabb2d {
-        let pivot_offset = builder.pivot * builder.tile_slot_size;
+    // pub fn from_tilemap_builder(builder: &TilemapBuilder) -> Aabb2d {
+    //     let pivot_offset = builder.pivot * builder.tile_slot_size;
 
-        match builder.tile_type {
-            TileType::Square => {
-                let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
-                builder.transform.transform_aabb(Aabb2d {
-                    min: pivot_offset,
-                    max: tilemap_render_size - pivot_offset,
-                })
-            }
-            TileType::Isometric => {
-                let half_size = builder.size.as_vec2() / 2.;
-                let tilemap_render_size = (half_size.x + half_size.y) * builder.tile_slot_size;
-                let center_x = (half_size.x - half_size.y) * builder.tile_slot_size.x / 2.;
-                let center_y = tilemap_render_size.y / 2.;
-                let center = Vec2 {
-                    x: center_x,
-                    y: center_y,
-                } - pivot_offset;
+    //     match builder.tile_type {
+    //         TileType::Square => {
+    //             let tilemap_render_size = builder.size.as_vec2() * builder.tile_slot_size;
+    //             builder.transform.transform_aabb(Aabb2d {
+    //                 min: pivot_offset,
+    //                 max: tilemap_render_size - pivot_offset,
+    //             })
+    //         }
+    //         TileType::Isometric => {
+    //             let half_size = builder.size.as_vec2() / 2.;
+    //             let tilemap_render_size = (half_size.x + half_size.y) * builder.tile_slot_size;
+    //             let center_x = (half_size.x - half_size.y) * builder.tile_slot_size.x / 2.;
+    //             let center_y = tilemap_render_size.y / 2.;
+    //             let center = Vec2 {
+    //                 x: center_x,
+    //                 y: center_y,
+    //             } - pivot_offset;
 
-                builder.transform.transform_aabb(Aabb2d {
-                    min: center - tilemap_render_size / 2.,
-                    max: center + tilemap_render_size / 2.,
-                })
-            }
-            TileType::Hexagonal(c) => {
-                let c = c as f32;
-                let Vec2 { x: m, y: n } = builder.size.as_vec2();
-                let Vec2 { x: a, y: b } = builder.tile_slot_size;
+    //             builder.transform.transform_aabb(Aabb2d {
+    //                 min: center - tilemap_render_size / 2.,
+    //                 max: center + tilemap_render_size / 2.,
+    //             })
+    //         }
+    //         TileType::Hexagonal(c) => {
+    //             let c = c as f32;
+    //             let Vec2 { x: m, y: n } = builder.size.as_vec2();
+    //             let Vec2 { x: a, y: b } = builder.tile_slot_size;
 
-                let min = Vec2 {
-                    x: -(n / 2. - 0.5) * a,
-                    y: 0.,
-                } - pivot_offset;
-                let max = Vec2 {
-                    x: m * a,
-                    y: (b + c) / 2. * n + (b - c) / 2.,
-                } - pivot_offset;
+    //             let min = Vec2 {
+    //                 x: -(n / 2. - 0.5) * a,
+    //                 y: 0.,
+    //             } - pivot_offset;
+    //             let max = Vec2 {
+    //                 x: m * a,
+    //                 y: (b + c) / 2. * n + (b - c) / 2.,
+    //             } - pivot_offset;
 
-                builder.transform.transform_aabb(Aabb2d { min, max })
-            }
-        }
-    }
+    //             builder.transform.transform_aabb(Aabb2d { min, max })
+    //         }
+    //     }
+    // }
 
     pub fn from_camera(camera: &ExtractedView) -> Self {
         let half_width = camera.width * camera.scale;

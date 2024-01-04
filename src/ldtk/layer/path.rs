@@ -1,4 +1,4 @@
-use bevy::{math::UVec2, reflect::Reflect, utils::HashMap};
+use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{
     ldtk::json::{definitions::LayerType, level::LayerInstance},
@@ -20,20 +20,20 @@ pub fn analyze_path_layer(layer: &LayerInstance, path: &LdtkPathLayer) -> PathTi
         );
     }
 
-    let size = UVec2::new(layer.c_wid as u32, layer.c_hei as u32);
-    let mut tilemap = PathTilemap::new(size);
+    let size = IVec2::new(layer.c_wid, layer.c_hei);
+    let mut tilemap = PathTilemap::new();
     let grid = &layer.int_grid_csv;
     let cost_mapper = path.cost_mapper.clone().unwrap_or_default();
 
     for y in 0..size.y {
         for x in 0..size.x {
             tilemap.set(
-                UVec2 { x, y },
-                PathTile {
+                IVec2 { x, y },
+                Some(PathTile {
                     cost: *cost_mapper
                         .get(&grid[(y * size.x + x) as usize])
                         .unwrap_or(&(grid[(y * size.x + x) as usize] as u32)),
-                },
+                }),
             )
         }
     }

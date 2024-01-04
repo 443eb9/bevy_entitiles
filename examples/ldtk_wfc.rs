@@ -6,23 +6,24 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query, Res, ResMut},
     },
+    hierarchy::DespawnRecursiveExt,
     input::{keyboard::KeyCode, Input},
     math::{IVec2, UVec2, Vec2, Vec3Swizzles},
     reflect::Reflect,
     render::color::Color,
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
-    DefaultPlugins, hierarchy::DespawnRecursiveExt,
+    DefaultPlugins,
 };
 use bevy_entitiles::{
     algorithm::wfc::{LdtkWfcMode, WfcRules, WfcRunner, WfcSource},
+    debug::EntiTilesDebugPlugin,
     ldtk::resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
     math::TileArea,
     tilemap::tile::TileType,
     EntiTilesPlugin,
 };
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use helpers::EntiTilesDebugPlugin;
+use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
@@ -32,7 +33,7 @@ fn main() {
             DefaultPlugins,
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
-            WorldInspectorPlugin::default(),
+            EntiTilesHelpersPlugin,
         ))
         .insert_resource(LdtkLevelManager::new(
             "assets/ldtk/wfc_source.ldtk".to_string(),
@@ -68,7 +69,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
         WfcRunner::new(
             TileType::Square,
             rules,
-            TileArea::new_unchecked(UVec2::ZERO, UVec2 { x: 4, y: 4 }),
+            TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
         WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
@@ -129,7 +130,11 @@ fn load_level(
 ) {
     query.iter().for_each(|(e, l)| {
         if let Some(ident) = wfc_manager.get_ident(l.0) {
-            level_manager.switch_to(&mut commands, ident, Some(wfc_manager.get_translation(l.0)));
+            level_manager.switch_to(
+                &mut commands,
+                ident,
+                Some(wfc_manager.get_translation(l.0.as_ivec2())),
+            );
         }
         commands.entity(e).despawn_recursive();
     });

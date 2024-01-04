@@ -62,7 +62,7 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             // position
             VertexFormat::Float32x3,
             // index + is_animated
-            VertexFormat::Uint32x3,
+            VertexFormat::Sint32x3,
             // color
             VertexFormat::Float32x4,
         ];

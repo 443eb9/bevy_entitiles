@@ -6,9 +6,7 @@ use bevy::{
     text::{TextSection, TextStyle},
     time::common_conditions::on_real_timer,
 };
-
-#[cfg(feature = "debug")]
-use drawing::{draw_axis, draw_chunk_aabb, draw_grid, draw_tilemap_aabb, draw_tiles};
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use crate::helpers::camera_movement::camera_control;
 
@@ -16,39 +14,23 @@ use self::common::{debug_info_display, DebugFpsText};
 
 pub mod camera_movement;
 pub mod common;
-#[cfg(feature = "debug")]
-pub mod drawing;
 
-/// A bunch of systems for debugging. Since they're not optimized, don't use them unless you're debugging.
-pub struct EntiTilesDebugPlugin;
+pub struct EntiTilesHelpersPlugin;
 
-impl Plugin for EntiTilesDebugPlugin {
+impl Plugin for EntiTilesHelpersPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        println!("==============================");
-        println!("Debug Enabled");
-        println!("==============================");
-
         app.add_systems(Startup, debug_startup).add_systems(
             Update,
             (
-                #[cfg(feature = "debug")]
-                draw_tilemap_aabb,
-                #[cfg(feature = "debug")]
-                draw_chunk_aabb,
                 camera_control,
-                #[cfg(all(feature = "algorithm", feature = "debug"))]
-                drawing::draw_path,
-                #[cfg(feature = "debug")]
-                draw_axis,
-                // #[cfg(feature = "debug")]
-                // draw_grid,
-                // #[cfg(feature = "debug")]
-                // draw_tiles,
                 debug_info_display.run_if(on_real_timer(Duration::from_millis(100))),
             ),
         );
 
-        app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
+        app.add_plugins((
+            bevy::diagnostic::FrameTimeDiagnosticsPlugin,
+            WorldInspectorPlugin::default(),
+        ));
     }
 
     fn finish(&self, _app: &mut bevy::prelude::App) {

@@ -1,7 +1,7 @@
 use bevy::{
     app::Plugin,
     ecs::{entity::Entity, event::Event, system::Query},
-    math::UVec2,
+    math::IVec2,
     reflect::Reflect,
 };
 
@@ -36,7 +36,7 @@ pub enum TileCollision {
 
 #[derive(Debug, Reflect, Clone)]
 pub struct CollisionData {
-    pub tile_index: UVec2,
+    pub tile_index: IVec2,
     pub tile_entity: Entity,
     pub tile_snapshot: Tile,
     pub collider_entity: Entity,

@@ -1,6 +1,7 @@
 use bevy::{
     ecs::query::Without,
-    prelude::{Component, Entity, ParallelCommands, Query, UVec2},
+    math::IVec2,
+    prelude::{Component, Entity, ParallelCommands, Query},
     reflect::Reflect,
     utils::HashSet,
 };
@@ -14,8 +15,8 @@ use super::{HeapElement, LookupHeap};
 
 #[derive(Component, Reflect)]
 pub struct Pathfinder {
-    pub origin: UVec2,
-    pub dest: UVec2,
+    pub origin: IVec2,
+    pub dest: IVec2,
     pub allow_diagonal: bool,
     pub tilemap: Entity,
     pub custom_weight: Option<(u32, u32)>,
@@ -29,7 +30,7 @@ pub struct AsyncPathfinder {
 
 #[derive(Component, Clone, Reflect)]
 pub struct Path {
-    path: Vec<UVec2>,
+    path: Vec<IVec2>,
     current_step: usize,
     target_map: Entity,
 }
@@ -44,7 +45,7 @@ impl Path {
     }
 
     /// Get the current target.
-    pub fn cur_target(&self) -> UVec2 {
+    pub fn cur_target(&self) -> IVec2 {
         self.path[self.current_step]
     }
 
@@ -57,16 +58,16 @@ impl Path {
         self.target_map
     }
 
-    pub fn iter(&self) -> std::slice::Iter<UVec2> {
+    pub fn iter(&self) -> std::slice::Iter<IVec2> {
         self.path.iter()
     }
 }
 
 #[derive(Debug, Clone, Copy, Reflect)]
 pub struct PathNode {
-    pub index: UVec2,
+    pub index: IVec2,
     pub heap_index: usize,
-    pub parent: Option<UVec2>,
+    pub parent: Option<IVec2>,
     pub g_cost: u32,
     pub h_cost: u32,
     pub cost_to_pass: u32,
@@ -74,9 +75,9 @@ pub struct PathNode {
 
 impl PathNode {
     pub fn new(
-        index: UVec2,
+        index: IVec2,
         g_cost: u32,
-        dest: UVec2,
+        dest: IVec2,
         heap_index: usize,
         cost_to_pass: u32,
     ) -> Self {
@@ -111,17 +112,17 @@ impl HeapElement for PathNode {
 #[derive(Component, Reflect)]
 pub struct PathGrid {
     pub allow_diagonal: bool,
-    pub dest: UVec2,
+    pub dest: IVec2,
     pub weights: (u32, u32),
-    pub lookup_heap: LookupHeap<u32, UVec2, PathNode>,
-    pub explored: HashSet<UVec2>,
+    pub lookup_heap: LookupHeap<u32, IVec2, PathNode>,
+    pub explored: HashSet<IVec2>,
     pub steps: u32,
 }
 
 impl PathGrid {
     pub fn new(finder: &Pathfinder, root: &PathNode) -> Self {
         let weights = finder.custom_weight.unwrap_or((1, 1));
-        let mut lookup_heap: LookupHeap<u32, UVec2, PathNode> = LookupHeap::new();
+        let mut lookup_heap = LookupHeap::new();
         lookup_heap.update_lookup(root.index, *root);
         lookup_heap.insert_heap(root.weight(weights), root.index);
         PathGrid {
@@ -139,27 +140,21 @@ impl PathGrid {
         node: &PathNode,
         tilemap: &Tilemap,
         path_tilemap: &PathTilemap,
-    ) -> Vec<UVec2> {
+    ) -> Vec<IVec2> {
         node.index
             .neighbours(tilemap.tile_type, self.allow_diagonal)
             .into_iter()
-            .filter_map(|n| {
-                if let Some(nei) = n {
-                    self.get_or_register_new(nei, self.dest, tilemap, path_tilemap)
-                } else {
-                    None
-                }
-            })
+            .filter_map(|n| self.get_or_register_new(n.unwrap(), self.dest, tilemap, path_tilemap))
             .collect()
     }
 
     #[inline]
-    pub fn is_explored(&self, index: UVec2) -> bool {
+    pub fn is_explored(&self, index: IVec2) -> bool {
         self.explored.contains(&index)
     }
 
     #[inline]
-    pub fn is_scheduled(&self, index: UVec2) -> bool {
+    pub fn is_scheduled(&self, index: IVec2) -> bool {
         if let Some(node) = self.lookup_heap.heap_get(index) {
             node.1 == index
         } else {
@@ -167,22 +162,22 @@ impl PathGrid {
         }
     }
 
-    pub fn get(&self, index: UVec2) -> Option<&PathNode> {
+    pub fn get(&self, index: IVec2) -> Option<&PathNode> {
         self.lookup_heap.map_get(&index)
     }
 
-    pub fn get_mut(&mut self, index: UVec2) -> Option<&mut PathNode> {
+    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut PathNode> {
         self.lookup_heap.map_get_mut(&index)
     }
 
     fn get_or_register_new(
         &mut self,
-        index: UVec2,
-        dest: UVec2,
+        index: IVec2,
+        dest: IVec2,
         tilemap: &Tilemap,
         path_tilemap: &PathTilemap,
-    ) -> Option<UVec2> {
-        if tilemap.is_out_of_tilemap_uvec(index) {
+    ) -> Option<IVec2> {
+        if tilemap.get(index).is_none() {
             return None;
         }
 
@@ -202,7 +197,7 @@ impl PathGrid {
         Some(index)
     }
 
-    pub fn schedule(&mut self, index: &UVec2) {
+    pub fn schedule(&mut self, index: &IVec2) {
         let node = self.lookup_heap.map_get(index).unwrap();
         let key_heap = node.weight(self.weights);
         let key_map = node.index;
@@ -230,24 +225,18 @@ pub fn pathfinding(
     tilemaps_query: Query<(&Tilemap, &PathTilemap)>,
 ) {
     finders.par_iter_mut().for_each(|(finder_entity, finder)| {
-        #[cfg(feature = "debug")]
-        let start = std::time::SystemTime::now();
         let Ok((tilemap, path_tilemap)) = tilemaps_query.get(finder.tilemap) else {
             panic!("Failed to find the tilemap! Did you add the tilemap and path tilemap to the same entity?");
         };
 
         // check if origin or dest doesn't exists
-        if tilemap.is_out_of_tilemap_uvec(finder.origin)
-            || tilemap.is_out_of_tilemap_uvec(finder.dest)
+        if tilemap.get(finder.origin).is_none()
+            || tilemap.get(finder.dest).is_none()
         {
             complete_pathfinding(&commands, finder_entity, None);
             return;
         };
 
-        // initialize containers
-        // only path_records stores the actual node data
-        // which acts as a lookup table
-        // the others only store the index
         let origin_node = PathNode::new(finder.origin, 0, finder.dest, 1, 0);
         let mut path_grid = PathGrid::new(finder, &origin_node);
         find_path(
@@ -259,8 +248,6 @@ pub fn pathfinding(
             path_tilemap,
             None,
         );
-        #[cfg(feature = "debug")]
-        println!("pathfound: {} ms", start.elapsed().unwrap().as_millis());
     });
 }
 
@@ -286,9 +273,7 @@ pub fn pathfinding_async(
                 );
             } else {
                 // check if origin or dest doesn't exists
-                if tilemap.is_out_of_tilemap_uvec(finder.origin)
-                    || tilemap.is_out_of_tilemap_uvec(finder.dest)
-                {
+                if tilemap.get(finder.origin).is_none() || tilemap.get(finder.dest).is_none() {
                     complete_pathfinding(&commands, finder_entity, None);
                     return;
                 };

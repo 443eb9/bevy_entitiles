@@ -4,7 +4,7 @@ use bevy::{
         event::{EventReader, EventWriter},
         system::{Commands, Query},
     },
-    math::UVec2,
+    math::IVec2,
 };
 use bevy_rapier2d::{
     geometry::{ActiveEvents, Collider, Friction, Sensor},
@@ -37,7 +37,7 @@ impl Tilemap {
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set_physics_tile_rapier(commands, UVec2 { x, y }, friction, is_trigger);
+                self.set_physics_tile_rapier(commands, IVec2 { x, y }, friction, is_trigger);
             }
         }
     }
@@ -46,7 +46,7 @@ impl Tilemap {
     pub fn set_physics_tile_rapier(
         &mut self,
         commands: &mut Commands,
-        index: UVec2,
+        index: IVec2,
         friction: Option<f32>,
         is_trigger: bool,
     ) {
@@ -54,7 +54,9 @@ impl Tilemap {
             return;
         };
 
-        let collider = Collider::convex_hull(&self.get_tile_convex_hull(index)).unwrap();
+        // Seems like rapier will only take the entity's transform into consideration.
+        // So we need to use the world position.
+        let collider = Collider::convex_hull(&self.get_tile_convex_hull_world(index)).unwrap();
 
         if is_trigger {
             commands

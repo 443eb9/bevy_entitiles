@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use bevy::{
     ecs::component::Component,
     hierarchy::{BuildChildren, DespawnRecursiveExt},
@@ -6,10 +8,11 @@ use bevy::{
     reflect::Reflect,
     render::render_resource::TextureUsages,
     transform::components::Transform,
+    utils::HashMap,
 };
 
 use crate::{
-    math::{aabb::Aabb2d, TileArea},
+    math::{aabb::Aabb2d, extension::DivToFloor, TileArea},
     render::{buffer::TileAnimation, texture::TilemapTexture},
     MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
@@ -95,11 +98,10 @@ pub struct TilemapBuilder {
     pub(crate) name: String,
     pub(crate) tile_type: TileType,
     pub(crate) ext_dir: Vec2,
-    pub(crate) size: UVec2,
     pub(crate) tile_render_size: Vec2,
     pub(crate) tile_slot_size: Vec2,
     pub(crate) pivot: Vec2,
-    pub(crate) render_chunk_size: u32,
+    pub(crate) chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
     pub(crate) transform: TilemapTransform,
     pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
@@ -107,17 +109,16 @@ pub struct TilemapBuilder {
 
 impl TilemapBuilder {
     /// Create a new tilemap builder.
-    pub fn new(ty: TileType, size: UVec2, tile_render_size: Vec2, name: String) -> Self {
+    pub fn new(ty: TileType, tile_render_size: Vec2, name: String) -> Self {
         Self {
             name,
             tile_type: ty,
             ext_dir: Vec2::ONE,
-            size,
             tile_render_size,
             tile_slot_size: tile_render_size,
             pivot: Vec2::ZERO,
             texture: None,
-            render_chunk_size: 32,
+            chunk_size: 32,
             transform: TilemapTransform::default(),
             anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
         }
@@ -130,9 +131,9 @@ impl TilemapBuilder {
         self
     }
 
-    /// Override render chunk size. Default is 32.
-    pub fn with_render_chunk_size(&mut self, size: u32) -> &mut Self {
-        self.render_chunk_size = size;
+    /// Override chunk size. Default is 32.
+    pub fn with_chunk_size(&mut self, size: u32) -> &mut Self {
+        self.chunk_size = size;
         self
     }
 
@@ -188,14 +189,13 @@ impl TilemapBuilder {
             tile_render_size: self.tile_render_size,
             tile_type: self.tile_type,
             ext_dir: self.ext_dir,
-            size: self.size,
-            tiles: vec![None; (self.size.x * self.size.y) as usize],
-            render_chunk_size: self.render_chunk_size,
+            storage: TilemapStorage::new(self.chunk_size),
+            chunk_size: self.chunk_size,
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
             texture: self.texture.clone(),
             layer_opacities: Vec4::ONE,
-            aabb: Aabb2d::from_tilemap_builder(&self),
+            // aabb: Aabb2d::from_tilemap_builder(&self),
             transform: self.transform,
             anim_seqs: self.anim_seqs,
             anim_counts: 0,
@@ -212,18 +212,68 @@ impl TilemapBuilder {
     }
 }
 
-#[derive(Clone, Reflect)]
-pub struct TilemapChunk {
-    pub size: u32,
-    pub tiles: Vec<Option<Entity>>,
+#[derive(Debug, Clone, Reflect)]
+pub struct TilemapStorage<T: Debug + Clone + Reflect> {
+    pub chunk_size: UVec2,
+    pub chunks: HashMap<IVec2, Vec<Option<T>>>,
+    pub down_left: IVec2,
+    pub up_right: IVec2,
 }
 
-impl TilemapChunk {
-    pub fn get(&self, index: UVec2) -> Option<Entity> {
-        self.tiles
-            .get((index.y * self.size + index.x) as usize)
-            .cloned()
-            .flatten()
+impl<T: Debug + Clone + Reflect> TilemapStorage<T> {
+    pub fn new(chunk_size: u32) -> Self {
+        Self {
+            chunk_size: UVec2::splat(chunk_size),
+            chunks: HashMap::new(),
+            down_left: IVec2::ZERO,
+            up_right: IVec2::ZERO,
+        }
+    }
+
+    pub fn get(&self, index: IVec2) -> Option<&T> {
+        let idx = self.transform_index(index);
+        self.chunks
+            .get(&idx.0)
+            .and_then(|c| c.get(idx.1).as_ref().cloned())
+            .and_then(|t| t.as_ref())
+    }
+
+    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut T> {
+        let idx = self.transform_index(index);
+        if let Some(chunk) = self.chunks.get_mut(&idx.0) {
+            chunk.get_mut(idx.1).map(|t| t.as_mut()).flatten()
+        } else {
+            None
+        }
+    }
+
+    pub fn set(&mut self, index: IVec2, elem: Option<T>) {
+        let idx = self.transform_index(index);
+        self.chunks
+            .entry(idx.0)
+            .or_insert_with(|| vec![None; (self.chunk_size.x * self.chunk_size.y) as usize])
+            [idx.1] = elem;
+
+        self.down_left = self.down_left.min(index);
+        self.up_right = self.up_right.max(index);
+    }
+
+    pub fn transform_index(&self, index: IVec2) -> (IVec2, usize) {
+        let isize = self.chunk_size.as_ivec2();
+        let c = index.div_to_floor(isize);
+        let idx = index - c * isize;
+        (c, (idx.y * isize.x + idx.x) as usize)
+    }
+
+    #[inline]
+    pub fn size(&self) -> UVec2 {
+        (self.up_right - self.down_left + IVec2::ONE).as_uvec2()
+    }
+
+    #[inline]
+    pub fn usize(&self) -> usize {
+        let size = self.size();
+        (size.x * size.y) as usize
     }
 }
 
@@ -233,15 +283,14 @@ pub struct Tilemap {
     pub(crate) name: String,
     pub(crate) tile_type: TileType,
     pub(crate) ext_dir: Vec2,
-    pub(crate) size: UVec2,
     pub(crate) tile_render_size: Vec2,
     pub(crate) tile_slot_size: Vec2,
     pub(crate) pivot: Vec2,
-    pub(crate) render_chunk_size: u32,
+    pub(crate) chunk_size: u32,
     pub(crate) texture: Option<TilemapTexture>,
     pub(crate) layer_opacities: Vec4,
-    pub(crate) tiles: Vec<Option<Entity>>,
-    pub(crate) aabb: Aabb2d,
+    pub(crate) storage: TilemapStorage<Entity>,
+    // pub(crate) aabb: Aabb2d,
     pub(crate) transform: TilemapTransform,
     pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub(crate) anim_counts: usize,
@@ -249,80 +298,32 @@ pub struct Tilemap {
 
 impl Tilemap {
     /// Get a tile.
-    pub fn get(&self, index: UVec2) -> Option<Entity> {
-        if self.is_out_of_tilemap_uvec(index) {
-            return None;
-        }
-
-        self.get_unchecked(index)
-    }
-
-    pub(crate) fn get_unchecked(&self, index: UVec2) -> Option<Entity> {
-        self.tiles[self.transform_index(index)]
+    #[inline]
+    pub fn get(&self, index: IVec2) -> Option<Entity> {
+        self.storage.get(index).cloned()
     }
 
     /// Set a tile.
     ///
     /// Overwrites the tile if it already exists.
-    pub fn set(&mut self, commands: &mut Commands, index: UVec2, tile_builder: TileBuilder) {
-        if self.is_out_of_tilemap_uvec(index) {
-            return;
-        }
-
-        self.set_unchecked(commands, index, tile_builder);
-    }
-
-    /// Overwrites all the tiles.
-    pub fn set_all(&mut self, commands: &mut Commands, tiles: &Vec<Option<TileBuilder>>) {
-        assert_eq!(
-            tiles.len(),
-            self.tiles.len(),
-            "tiles length must be equal to the tilemap size"
-        );
-
-        for (i, tile) in tiles.iter().enumerate() {
-            let index = UVec2 {
-                x: i as u32 % self.size.x,
-                y: i as u32 / self.size.x,
-            };
-
-            if let Some(t) = tile {
-                self.set_unchecked(commands, index, t.clone());
-            } else {
-                self.remove(commands, index);
-            }
-        }
-    }
-
-    pub(crate) fn set_unchecked(
-        &mut self,
-        commands: &mut Commands,
-        index: UVec2,
-        tile_builder: TileBuilder,
-    ) {
-        let vec_idx = self.transform_index(index);
-        if let Some(previous) = self.tiles[vec_idx] {
-            commands.entity(previous).despawn();
+    pub fn set(&mut self, commands: &mut Commands, index: IVec2, tile_builder: TileBuilder) {
+        if let Some(previous) = self.storage.get(index) {
+            commands.entity(previous.clone()).despawn();
         }
         let new_tile = tile_builder.build(commands, index, self);
-        self.tiles[vec_idx] = Some(new_tile);
+        self.storage.set(index, Some(new_tile));
     }
 
-    pub fn update(&mut self, commands: &mut Commands, index: UVec2, updater: TileUpdater) {
+    #[inline]
+    pub(crate) fn set_entity(&mut self, index: IVec2, entity: Entity) {
+        self.storage.set(index, Some(entity));
+    }
+
+    pub fn update(&mut self, commands: &mut Commands, index: IVec2, updater: TileUpdater) {
         if self.get(index).is_none() {
             return;
         }
 
-        self.update_unchecked(commands, index, updater);
-    }
-
-    #[inline]
-    pub(crate) fn update_unchecked(
-        &mut self,
-        commands: &mut Commands,
-        index: UVec2,
-        updater: TileUpdater,
-    ) {
         commands.entity(self.get(index).unwrap()).insert(updater);
     }
 
@@ -338,18 +339,15 @@ impl Tilemap {
     }
 
     /// Remove a tile.
-    pub fn remove(&mut self, commands: &mut Commands, index: UVec2) {
-        if self.is_out_of_tilemap_uvec(index) || self.get(index).is_none() {
+    pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
+        if self.get(index).is_none() {
             return;
         }
 
-        self.remove_unchecked(commands, index);
-    }
-
-    pub(crate) fn remove_unchecked(&mut self, commands: &mut Commands, index: UVec2) {
-        let index = self.transform_index(index);
-        commands.entity(self.tiles[index].unwrap()).despawn();
-        self.tiles[index] = None;
+        if let Some(entity) = self.get(index) {
+            commands.entity(entity).despawn_recursive();
+            self.set_entity(index, entity);
+        }
     }
 
     /// Fill a rectangle area with tiles.
@@ -364,15 +362,14 @@ impl Tilemap {
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                let index = UVec2 { x, y };
+                let index = IVec2 { x, y };
                 self.remove(commands, index);
                 let tile = tile_builder.build_component(index, self);
                 let entity = if let Some(e) = self.get(index) {
                     e
                 } else {
                     let e = commands.spawn_empty().id();
-                    let index = self.transform_index(index);
-                    self.tiles[index] = Some(e);
+                    self.set_entity(index, e);
                     entities.push(e);
                     e
                 };
@@ -391,7 +388,7 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         area: TileArea,
-        mut tile_builder: impl FnMut(UVec2) -> TileBuilder,
+        mut tile_builder: impl FnMut(IVec2) -> TileBuilder,
         relative_index: bool,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
@@ -399,7 +396,7 @@ impl Tilemap {
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                let index = UVec2 { x, y };
+                let index = IVec2 { x, y };
                 self.remove(commands, index);
                 let builder = tile_builder(if relative_index {
                     index - area.origin
@@ -412,8 +409,7 @@ impl Tilemap {
                     e
                 } else {
                     let e = commands.spawn_empty().id();
-                    let index = self.transform_index(index);
-                    self.tiles[index] = Some(e);
+                    self.set_entity(index, e);
                     entities.push(e);
                     e
                 };
@@ -426,7 +422,7 @@ impl Tilemap {
     }
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than set them one by one.
-    pub fn fill_with_buffer(&mut self, commands: &mut Commands, origin: UVec2, buffer: TileBuffer) {
+    pub fn fill_with_buffer(&mut self, commands: &mut Commands, origin: IVec2, buffer: TileBuffer) {
         let mut entities = Vec::with_capacity((buffer.size.x * buffer.size.y) as usize);
 
         let batch = buffer
@@ -435,18 +431,21 @@ impl Tilemap {
             .enumerate()
             .filter_map(|(index, b)| {
                 if let Some(builder) = b {
-                    let index = UVec2 {
-                        x: index as u32 % buffer.size.x,
-                        y: index as u32 / buffer.size.x,
-                    };
-                    let tile = builder.build_component(index + origin, self);
+                    let tile = builder.build_component(
+                        UVec2 {
+                            x: index as u32 % buffer.size.x,
+                            y: index as u32 / buffer.size.x,
+                        }
+                        .as_ivec2()
+                            + origin,
+                        self,
+                    );
 
                     if let Some(e) = self.get(tile.index) {
                         Some((e, tile))
                     } else {
                         let e = commands.spawn_empty().id();
-                        let index = self.transform_index(tile.index);
-                        self.tiles[index] = Some(e);
+                        self.set_entity(tile.index, e);
                         entities.push(e);
                         Some((e, tile))
                     }
@@ -466,7 +465,7 @@ impl Tilemap {
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                if let Some(entity) = self.get(UVec2 { x, y }) {
+                if let Some(entity) = self.get(IVec2 { x, y }) {
                     batch.push((entity, updater.clone()));
                 }
             }
@@ -480,20 +479,20 @@ impl Tilemap {
         &mut self,
         commands: &mut Commands,
         area: TileArea,
-        mut updater: impl FnMut(UVec2) -> TileUpdater,
+        mut updater: impl FnMut(IVec2) -> TileUpdater,
         relative_index: bool,
     ) {
         let mut batch = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                if let Some(entity) = self.get(UVec2 { x, y }) {
+                if let Some(entity) = self.get(IVec2 { x, y }) {
                     batch.push((
                         entity,
                         updater(if relative_index {
-                            UVec2 { x, y } - area.origin
+                            IVec2 { x, y } - area.origin
                         } else {
-                            UVec2 { x, y }
+                            IVec2 { x, y }
                         }),
                     ));
                 }
@@ -545,67 +544,49 @@ impl Tilemap {
         self.name.clone()
     }
 
-    /// Get the size of the tilemap.
-    pub fn size(&self) -> UVec2 {
-        self.size
-    }
-
     #[inline]
     pub fn transform(&self) -> TilemapTransform {
         self.transform
     }
 
     /// Get the world position of the center of a slot.
-    #[inline]
-    pub fn index_to_world(&self, index: UVec2) -> Vec2 {
-        self.index_inf_to_world(index.as_ivec2())
-    }
-
-    /// Get the world position of the center of a slot.
-    ///
-    /// This method does not limit the index to the tilemap size.
-    #[inline]
-    pub fn index_inf_to_world(&self, index: IVec2) -> Vec2 {
+    pub fn index_to_world(&self, index: IVec2) -> Vec2 {
         let index = index.as_vec2();
-        match self.tile_type {
-            TileType::Square => self
-                .transform
-                .transform_point((index - self.pivot) * self.tile_slot_size),
-            TileType::Isometric => self.transform.transform_point(
-                (Vec2 {
-                    x: (index.x - index.y - 1.),
-                    y: (index.x + index.y),
-                } / 2.
-                    - self.pivot)
-                    * self.tile_slot_size,
-            ),
-            TileType::Hexagonal(legs) => self.transform.transform_point(Vec2 {
-                x: self.tile_slot_size.x * (index.x - 0.5 * index.y - self.pivot.x),
-                y: (self.tile_slot_size.y + legs as f32) / 2. * (index.y - self.pivot.y),
-            }),
-        }
+        self.transform.transform_point({
+            match self.tile_type {
+                TileType::Square => (index - self.pivot) * self.tile_slot_size,
+                TileType::Isometric => {
+                    (Vec2 {
+                        x: (index.x - index.y - 1.),
+                        y: (index.x + index.y),
+                    } / 2.
+                        - self.pivot)
+                        * self.tile_slot_size
+                }
+                TileType::Hexagonal(legs) => Vec2 {
+                    x: self.tile_slot_size.x * (index.x - 0.5 * index.y - self.pivot.x),
+                    y: (self.tile_slot_size.y + legs as f32) / 2. * (index.y - self.pivot.y),
+                },
+            }
+        })
+    }
+
+    pub fn index_to_rel(&self, index: IVec2) -> Vec2 {
+        self.index_to_world(index) - self.transform.translation
     }
 
     #[inline]
-    pub fn transform_index(&self, index: UVec2) -> usize {
-        (index.y * self.size.x + index.x) as usize
+    pub fn transform_index(&self, index: IVec2) -> (IVec2, UVec2) {
+        let c = index.div_to_floor(IVec2::splat(self.chunk_size as i32));
+        (
+            c,
+            (index - c * IVec2::splat(self.chunk_size as i32)).as_uvec2(),
+        )
     }
 
-    #[inline]
-    pub fn is_out_of_tilemap_uvec(&self, index: UVec2) -> bool {
-        index.x >= self.size.x || index.y >= self.size.y
-    }
-
-    #[inline]
-    pub fn is_out_of_tilemap_ivec(&self, index: IVec2) -> bool {
-        index.x < 0 || index.y < 0 || index.x >= self.size.x as i32 || index.y >= self.size.y as i32
-    }
-
-    #[inline]
-    pub fn get_tile_convex_hull(&self, index: UVec2) -> Vec<Vec2> {
-        let offset = self.index_to_world(index);
+    pub fn get_tile_convex_hull(&self) -> Vec<Vec2> {
         let (x, y) = (self.tile_slot_size.x, self.tile_slot_size.y);
-        let res = match self.tile_type {
+        match self.tile_type {
             TileType::Square => vec![
                 Vec2 { x: 0., y: 0. },
                 Vec2 { x: 0., y },
@@ -632,9 +613,21 @@ impl Tilemap {
                     Vec2 { x: a / 2., y: 0. },
                 ]
             }
-        };
+        }
+    }
 
-        res.into_iter()
+    pub fn get_tile_convex_hull_rel(&self, index: IVec2) -> Vec<Vec2> {
+        let offset = self.index_to_rel(index);
+        self.get_tile_convex_hull()
+            .into_iter()
+            .map(|p| self.transform.apply_rotation(p) + offset)
+            .collect()
+    }
+
+    pub fn get_tile_convex_hull_world(&self, index: IVec2) -> Vec<Vec2> {
+        let offset = self.index_to_world(index);
+        self.get_tile_convex_hull()
+            .into_iter()
             .map(|p| self.transform.apply_rotation(p) + offset)
             .collect()
     }

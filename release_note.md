@@ -5,6 +5,7 @@
 - Removed `AsyncWfcRunner`
 - Wfc rework.
 - Tilemaps will now have `SpatialBundle` added.
+- Infinite tilemap.
 
 # What's Fixed:
 

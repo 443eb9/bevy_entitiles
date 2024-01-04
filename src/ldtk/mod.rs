@@ -335,7 +335,7 @@ fn load_background(
         },
         texture: texture.unwrap_or_default(),
         transform: Transform::from_translation(
-            (translation + level_px.as_vec2() / 2.)
+            (translation + level_px.as_vec2() / 2. * Vec2 { x: 1., y: -1. })
                 .extend(manager.z_index as f32 - level.layer_instances.len() as f32 - 1.),
         ),
         ..Default::default()
@@ -409,7 +409,7 @@ fn get_level_translation(ldtk_data: &LdtkJson, index: usize, manager: &LdtkLevel
     match ldtk_data.world_layout.unwrap() {
         WorldLayout::GridVania | WorldLayout::Free => Vec2 {
             x: level.world_x as f32,
-            y: (-level.world_y - level.px_hei) as f32,
+            y: -level.world_y as f32,
         },
         WorldLayout::LinearHorizontal => {
             let mut offset = 0;

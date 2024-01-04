@@ -1,20 +1,19 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{UVec2, Vec2, Vec4},
+    math::{IVec2, UVec2, Vec2, Vec4},
     reflect::Reflect,
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    math::aabb::Aabb2d,
     render::{
         buffer::TileAnimation,
         texture::{TilemapTexture, TilemapTextureDescriptor},
     },
     tilemap::{
-        map::{Tilemap, TilemapRotation, TilemapTransform},
+        map::{Tilemap, TilemapRotation, TilemapStorage, TilemapTransform},
         tile::{Tile, TileBuilder, TileTexture, TileType},
     },
     MAX_ANIM_COUNT,
@@ -64,14 +63,12 @@ pub struct SerializedTilemap {
     pub name: String,
     pub tile_type: TileType,
     pub ext_dir: Vec2,
-    pub size: UVec2,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
-    pub render_chunk_size: u32,
+    pub chunk_size: u32,
     pub texture: Option<SerializedTilemapTexture>,
     pub layer_opacities: Vec4,
-    pub aabb: Aabb2d,
     pub transform: TilemapTransform,
     pub layers: u32,
     pub anim_seqs: Vec<TileAnimation>,
@@ -84,11 +81,10 @@ impl SerializedTilemap {
             name: tilemap.name.clone(),
             tile_type: tilemap.tile_type,
             ext_dir: tilemap.ext_dir,
-            size: tilemap.size,
             tile_render_size: tilemap.tile_render_size,
             tile_slot_size: tilemap.tile_slot_size,
             pivot: tilemap.pivot,
-            render_chunk_size: tilemap.render_chunk_size,
+            chunk_size: tilemap.chunk_size,
             texture: if let Some(tex) = &saver.texture_path {
                 Some(SerializedTilemapTexture {
                     path: tex.clone(),
@@ -99,7 +95,6 @@ impl SerializedTilemap {
                 None
             },
             layer_opacities: tilemap.layer_opacities,
-            aabb: tilemap.aabb,
             transform: tilemap.transform,
             layers: saver.layers,
             anim_seqs: tilemap.anim_seqs.to_vec(),
@@ -117,15 +112,13 @@ impl SerializedTilemap {
             name: self.name.clone(),
             tile_type: self.tile_type,
             ext_dir: self.ext_dir,
-            size: self.size,
             tile_render_size: self.tile_render_size,
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
-            render_chunk_size: self.render_chunk_size,
+            chunk_size: self.chunk_size,
             texture,
             layer_opacities: self.layer_opacities,
-            tiles: vec![],
-            aabb: self.aabb,
+            storage: TilemapStorage::new(self.chunk_size),
             transform: self.transform,
             anim_seqs,
             anim_counts: self.anim_counts,
@@ -202,7 +195,7 @@ pub enum TilemapLayer {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct SerializedTile {
-    pub index: UVec2,
+    pub index: IVec2,
     pub texture: TileTexture,
     pub color: Vec4,
 }
@@ -210,7 +203,7 @@ pub struct SerializedTile {
 impl From<TileBuilder> for SerializedTile {
     fn from(value: TileBuilder) -> Self {
         Self {
-            index: UVec2::ZERO,
+            index: IVec2::ZERO,
             texture: value.texture,
             color: value.color,
         }
@@ -239,25 +232,17 @@ impl Into<TileBuilder> for SerializedTile {
 #[cfg(feature = "algorithm")]
 #[derive(Serialize, Deserialize, Reflect)]
 pub struct SerializedPathTilemap {
-    pub size: UVec2,
-    pub tiles: Vec<Option<SerializedPathTile>>,
+    pub storage: bevy::utils::HashMap<IVec2, SerializedPathTile>,
 }
 
 #[cfg(feature = "algorithm")]
 impl From<crate::tilemap::algorithm::path::PathTilemap> for SerializedPathTilemap {
     fn from(value: crate::tilemap::algorithm::path::PathTilemap) -> Self {
         Self {
-            size: value.size,
-            tiles: value
-                .tiles
+            storage: value
+                .storage
                 .into_iter()
-                .map(|t| {
-                    if let Some(tile) = t {
-                        Some(tile.into())
-                    } else {
-                        None
-                    }
-                })
+                .map(|(k, v)| (k, v.into()))
                 .collect(),
         }
     }
@@ -267,17 +252,10 @@ impl From<crate::tilemap::algorithm::path::PathTilemap> for SerializedPathTilema
 impl SerializedPathTilemap {
     fn into_path_tilemap(self) -> crate::tilemap::algorithm::path::PathTilemap {
         crate::tilemap::algorithm::path::PathTilemap {
-            size: self.size,
-            tiles: self
-                .tiles
+            storage: self
+                .storage
                 .into_iter()
-                .map(|t| {
-                    if let Some(tile) = t {
-                        Some(tile.into())
-                    } else {
-                        None
-                    }
-                })
+                .map(|(k, v)| (k, v.into()))
                 .collect(),
         }
     }

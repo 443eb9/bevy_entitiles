@@ -3,7 +3,7 @@ use bevy::{
     asset::AssetServer,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::system::{Commands, Res},
-    math::{UVec2, Vec2},
+    math::{IVec2, UVec2, Vec2},
     render::render_resource::FilterMode,
     DefaultPlugins,
 };
@@ -19,13 +19,13 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use helpers::EntiTilesDebugPlugin;
+use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesHelpersPlugin))
         .add_systems(Startup, setup)
         .run();
 }
@@ -35,7 +35,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let mut tilemap = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 20, y: 20 },
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )
@@ -55,13 +54,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     tilemap.fill_rect(
         &mut commands,
-        TileArea::full(&tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
         TileBuilder::new().with_animation(anim_a),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        TileArea::new(UVec2::ZERO, Some(UVec2 { x: 10, y: 10 }), &tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 10, y: 10 }),
         TileBuilder::new().with_animation(anim_b),
     );
 

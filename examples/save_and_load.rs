@@ -2,11 +2,13 @@ use bevy::{
     app::Update,
     ecs::{entity::Entity, system::Query},
     input::{keyboard::KeyCode, Input},
+    math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{
+    debug::EntiTilesDebugPlugin,
     math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     serializing::{
@@ -22,13 +24,18 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use helpers::EntiTilesDebugPlugin;
+use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            EntiTilesPlugin,
+            EntiTilesDebugPlugin,
+            EntiTilesHelpersPlugin,
+        ))
         .add_systems(Startup, setup)
         .add_systems(Update, (save_and_load, failure_handle))
         .run();
@@ -39,7 +46,6 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     let mut tilemap = TilemapBuilder::new(
         TileType::Isometric,
-        UVec2 { x: 20, y: 20 },
         Vec2 { x: 32.0, y: 16.0 },
         "test_map".to_string(),
     )
@@ -53,24 +59,26 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TilemapRotation::None,
     ))
     .with_pivot(Vec2 { x: 0.5, y: 0. })
-    .with_render_chunk_size(64)
+    .with_chunk_size(64)
     .build(&mut commands);
 
     tilemap.fill_rect(
         &mut commands,
-        TileArea::full(&tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
     tilemap.fill_rect(
         &mut commands,
-        TileArea::new(UVec2 { x: 2, y: 2 }, Some(UVec2 { x: 10, y: 7 }), &tilemap),
+        TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    let mut path_tilemap = PathTilemap::new(tilemap.size());
-    path_tilemap.fill_path_rect_custom(TileArea::full(&tilemap), |_| PathTile {
-        cost: rand::random::<u32>() % 10,
+    let mut path_tilemap = PathTilemap::new();
+    path_tilemap.fill_path_rect_custom(TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }), |_| {
+        Some(PathTile {
+            cost: rand::random::<u32>() % 10,
+        })
     });
 
     commands

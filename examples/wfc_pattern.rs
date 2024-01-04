@@ -2,7 +2,7 @@ use bevy::{
     app::{App, Startup},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{entity::Entity, system::Commands},
-    math::{UVec2, Vec2, Vec4},
+    math::{IVec2, UVec2, Vec2, Vec4},
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -19,13 +19,13 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use helpers::EntiTilesDebugPlugin;
+use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesDebugPlugin))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesHelpersPlugin))
         .add_systems(Startup, setup)
         .run();
 }
@@ -50,10 +50,6 @@ fn setup(mut commands: Commands) {
         for col in 0..COLS {
             let mut tilemap = TilemapBuilder::new(
                 TileType::Square,
-                UVec2 {
-                    x: PATTERN_SIZE,
-                    y: PATTERN_SIZE,
-                },
                 Vec2 { x: 8., y: 8. },
                 format!("{}{}", PREFIX, col * ROWS + row),
             )
@@ -61,7 +57,7 @@ fn setup(mut commands: Commands) {
                 x: (col * TILE_SIZE) as f32 * 8.,
                 y: (row * TILE_SIZE) as f32 * -8. - 8. * PATTERN_SIZE as f32,
             })
-            .with_render_chunk_size(16)
+            .with_chunk_size(16)
             .build(&mut commands);
 
             for y in 0..TILE_SIZE {
@@ -69,9 +65,9 @@ fn setup(mut commands: Commands) {
                     let pixel = wfc_img.get_pixel(col * TILE_SIZE + x, row * TILE_SIZE + y);
                     tilemap.set(
                         &mut commands,
-                        UVec2 {
-                            x,
-                            y: TILE_SIZE - y - 1,
+                        IVec2 {
+                            x: x as i32,
+                            y: -(y as i32),
                         },
                         TileBuilder::new()
                             .with_layer(0, TileLayer::new().with_texture_index(0))
@@ -104,19 +100,21 @@ fn setup(mut commands: Commands) {
 
     let wfc_map = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 80, y: 80 },
         Vec2 { x: 8., y: 8. },
         "wfc_map".to_string(),
     )
     .build(&mut commands);
 
     let rules = WfcRules::from_file("examples/wfc_config.ron", TileType::Square);
-    let mut area = TileArea::full(&wfc_map);
-    area.set_extent(area.extent() / PATTERN_SIZE, &wfc_map);
 
     commands.entity(wfc_map.id()).insert((
         WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules),
-        WfcRunner::new(TileType::Square, rules, area, Some(0))
-            .with_retrace_settings(Some(8), Some(1000000)),
+        WfcRunner::new(
+            TileType::Square,
+            rules,
+            TileArea::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
+            Some(0),
+        )
+        .with_retrace_settings(Some(8), Some(1000000)),
     ));
 }

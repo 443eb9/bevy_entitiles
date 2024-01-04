@@ -8,7 +8,7 @@ use bevy::{
         system::{Query, ResMut},
     },
     input::{keyboard::KeyCode, Input},
-    math::Vec3,
+    math::{IVec2, Vec3},
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Update, Vec2},
     render::{
         color::Color,
@@ -20,6 +20,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
+    debug::EntiTilesDebugPlugin,
     math::TileArea,
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
@@ -34,7 +35,7 @@ use bevy_xpbd_2d::{
     components::{Collider, LinearVelocity, RigidBody},
     plugins::{PhysicsDebugPlugin, PhysicsPlugins},
 };
-use helpers::EntiTilesDebugPlugin;
+use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
@@ -44,6 +45,7 @@ fn main() {
             DefaultPlugins,
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
+            EntiTilesHelpersPlugin,
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
         ))
@@ -63,7 +65,6 @@ fn setup(
 
     let mut tilemap = TilemapBuilder::new(
         TileType::Isometric,
-        UVec2 { x: 20, y: 10 },
         Vec2 { x: 32., y: 16. },
         "test_map".to_string(),
     )
@@ -76,19 +77,20 @@ fn setup(
         ),
         TilemapRotation::None,
     ))
+    .with_z_index(-1)
     .build(&mut commands);
 
     tilemap.fill_rect(
         &mut commands,
-        TileArea::full(&tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    tilemap.set_physics_tile_xpbd(&mut commands, UVec2 { x: 19, y: 9 }, None, true);
+    tilemap.set_physics_tile_xpbd(&mut commands, IVec2 { x: 19, y: 9 }, None, true);
 
     tilemap.fill_physics_tile_xpbd(
         &mut commands,
-        TileArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
         Some(0.8),
         false,
     );
@@ -97,7 +99,6 @@ fn setup(
 
     let mut tilemap = TilemapBuilder::new(
         TileType::Square,
-        UVec2 { x: 20, y: 10 },
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )
@@ -115,15 +116,15 @@ fn setup(
 
     tilemap.fill_rect(
         &mut commands,
-        TileArea::full(&tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    tilemap.set_physics_tile_xpbd(&mut commands, UVec2 { x: 19, y: 9 }, None, true);
+    tilemap.set_physics_tile_xpbd(&mut commands, IVec2 { x: 19, y: 9 }, None, true);
 
     tilemap.fill_physics_tile_xpbd(
         &mut commands,
-        TileArea::new(UVec2::ZERO, Some(UVec2 { x: 5, y: 5 }), &tilemap),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
         Some(0.8),
         false,
     );

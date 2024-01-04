@@ -196,16 +196,12 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
     ) -> RenderCommandResult {
         if let Some(chunks) = render_chunks.into_inner().get_chunks(tilemap.id) {
             // iterate reversed to draw the chunks in y order
-            for chunk in chunks.iter().rev() {
-                let Some(c) = chunk else {
-                    continue;
-                };
-
-                if !c.visible {
+            for chunk in chunks.values() {
+                if !chunk.visible {
                     continue;
                 }
 
-                if let Some(gpu_mesh) = &c.gpu_mesh {
+                if let Some(gpu_mesh) = &chunk.gpu_mesh {
                     pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
                     match &gpu_mesh.buffer_info {
                         GpuBufferInfo::Indexed {

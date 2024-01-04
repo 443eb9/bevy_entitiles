@@ -9,15 +9,14 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query},
     },
+    math::UVec2,
     reflect::Reflect,
 };
 use serde::Serialize;
 
 use crate::tilemap::{map::Tilemap, tile::Tile};
 
-use super::{
-    pattern::TilemapPattern, SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES,
-};
+use super::{pattern::TilemapPattern, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
@@ -124,7 +123,7 @@ pub fn save(
         }
         let mut pattern = TilemapPattern {
             label: None,
-            size: tilemap.size,
+            size: UVec2::ZERO,
             tiles: vec![],
             #[cfg(feature = "algorithm")]
             path_tiles: None,
@@ -132,9 +131,12 @@ pub fn save(
 
         // color
         if saver.layers & 1 != 0 {
-            let serialized_tiles: Vec<Option<SerializedTile>> = tilemap
-                .tiles
-                .iter()
+            let ser_tiles = tilemap
+                .storage
+                .chunks
+                .values()
+                .map(|e| e.iter())
+                .flatten()
                 .map(|e| {
                     if let Some(tile) = e {
                         Some(tiles_query.get(tile.clone()).cloned().unwrap().into())
@@ -145,8 +147,11 @@ pub fn save(
                 .collect::<Vec<_>>();
 
             match saver.mode {
-                TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &serialized_tiles),
-                TilemapSaverMode::MapPattern => pattern.tiles = serialized_tiles,
+                TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &ser_tiles),
+                TilemapSaverMode::MapPattern => {
+                    pattern.size = tilemap.storage.size();
+                    pattern.tiles = ser_tiles;
+                }
             }
         }
 
@@ -154,27 +159,16 @@ pub fn save(
         #[cfg(feature = "algorithm")]
         if saver.layers & (1 << 1) != 0 {
             if let Ok(path_tilemap) = path_tilemaps_query.get(entity) {
-                let serialized_path_map = super::SerializedPathTilemap {
-                    size: path_tilemap.size,
-                    tiles: path_tilemap
-                        .tiles
+                let ser_path_map = super::SerializedPathTilemap {
+                    storage: path_tilemap
+                        .storage
                         .iter()
-                        .map(|tile| {
-                            if let Some(t) = tile {
-                                Some((*t).into())
-                            } else {
-                                None
-                            }
-                        })
+                        .map(|(k, v)| (*k, (*v).into()))
                         .collect(),
                 };
                 match saver.mode {
-                    TilemapSaverMode::Tilemap => {
-                        save_object(&map_path, PATH_TILES, &serialized_path_map)
-                    }
-                    TilemapSaverMode::MapPattern => {
-                        pattern.path_tiles = Some(serialized_path_map.tiles)
-                    }
+                    TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &ser_path_map),
+                    TilemapSaverMode::MapPattern => pattern.path_tiles = Some(ser_path_map.storage),
                 }
             }
         }

@@ -85,13 +85,8 @@ impl<'a> LdtkLayers<'a> {
                 let tile_size = tilemap.texture.as_ref().unwrap().desc.tile_size;
                 let tile_index = IVec2 {
                     x: tile.px[0] / tile_size.x as i32,
-                    y: tilemap.size.y as i32 - 1 - tile.px[1] / tile_size.y as i32,
+                    y: -tile.px[1] / tile_size.y as i32 - 1,
                 };
-                if tilemap.is_out_of_tilemap_ivec(tile_index) {
-                    return;
-                }
-
-                let tile_index = tile_index.as_uvec2();
 
                 if tilemap.get(tile_index).is_none() {
                     let builder = TileBuilder::new()
@@ -172,10 +167,6 @@ impl<'a> LdtkLayers<'a> {
 
                 let tilemap = TilemapBuilder::new(
                     TileType::Square,
-                    UVec2 {
-                        x: layer.c_wid as u32,
-                        y: layer.c_hei as u32,
-                    },
                     tileset.desc.tile_size.as_vec2(),
                     layer.identifier.clone(),
                 )
@@ -256,14 +247,14 @@ impl<'a> LdtkLayers<'a> {
         aabbs
             .into_iter()
             .map(|(i, (min, max))| {
-                let left_top = physics_map.index_inf_to_world(IVec2 {
+                let left_top = physics_map.index_to_rel(IVec2 {
                     x: min.x as i32,
-                    y: (physics_map.size.y - 1 - min.y + 1) as i32,
-                }) - physics_map.transform.translation;
-                let right_btm = physics_map.index_inf_to_world(IVec2 {
+                    y: -(min.y as i32),
+                });
+                let right_btm = physics_map.index_to_rel(IVec2 {
                     x: (max.x + 1) as i32,
-                    y: (physics_map.size.y - 1 - max.y) as i32,
-                }) - physics_map.transform.translation;
+                    y: -(max.y as i32) - 1,
+                });
                 (
                     i,
                     crate::math::aabb::Aabb2d {

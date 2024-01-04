@@ -1,5 +1,3 @@
-use std::fs::read_to_string;
-
 use bevy::{
     asset::AssetServer,
     ecs::{
@@ -10,7 +8,7 @@ use bevy::{
     },
     reflect::Reflect,
 };
-use ron::{de::from_bytes, error::SpannedError};
+use ron::error::SpannedError;
 use serde::Deserialize;
 
 use crate::{render::texture::TilemapTexture, tilemap::map::Tilemap};
@@ -147,7 +145,6 @@ pub fn load(
                 continue;
             };
 
-            tilemap.tiles = vec![None; ser_tiles.len()];
             for i in 0..ser_tiles.len() {
                 if let Some(ser_t) = &ser_tiles[i] {
                     tilemap.set(&mut commands, ser_t.index, ser_t.clone().into());
@@ -160,7 +157,7 @@ pub fn load(
 }
 
 fn load_object<T: for<'a> Deserialize<'a>>(path: &str, file_name: &str) -> Result<T, SpannedError> {
-    from_bytes(read_to_string(format!("{}{}", path, file_name))?.as_bytes())
+    ron::from_str(std::fs::read_to_string(format!("{}{}", path, file_name))?.as_str())
 }
 
 fn complete<T: Component>(commands: &mut Commands, entity: Entity, component: T) {

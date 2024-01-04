@@ -89,8 +89,53 @@ impl ManhattanDistance<u32> for UVec2 {
     }
 }
 
+impl ManhattanDistance<u32> for IVec2 {
+    fn manhattan_distance(self, other: Self) -> u32 {
+        let d = (self - other).abs();
+        d.x as u32 + d.y as u32
+    }
+}
+
 pub trait TileIndex<T> {
     fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<T>>;
+}
+
+impl TileIndex<IVec2> for IVec2 {
+    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<IVec2>> {
+        match ty {
+            TileType::Hexagonal(_) => [
+                IVec2::ONE,
+                IVec2::ONE,
+                IVec2::NEG_ONE,
+                IVec2::NEG_ONE,
+                IVec2::X,
+                IVec2::Y,
+            ]
+            .into_iter()
+            .map(|p| Some(p + self))
+            .collect(),
+            _ => {
+                let seq = [
+                    IVec2::Y,
+                    IVec2::X,
+                    IVec2::NEG_X,
+                    IVec2::NEG_Y,
+                    IVec2::ONE,
+                    IVec2::NEG_ONE,
+                    IVec2::new(1, -1),
+                    IVec2::new(-1, 1),
+                ]
+                .into_iter()
+                .map(|p| Some(p + self))
+                .collect();
+                if allow_diagonal {
+                    seq
+                } else {
+                    seq[0..4].to_vec()
+                }
+            }
+        }
+    }
 }
 
 impl TileIndex<UVec2> for UVec2 {
@@ -152,10 +197,10 @@ pub trait DivToCeil {
 impl DivToCeil for IVec2 {
     fn div_to_ceil(self, other: Self) -> Self {
         let mut result = self / other;
-        if self.x % other.x != 0 {
+        if self.x % other.x != 0 && self.x > 0 {
             result.x += 1;
         }
-        if self.y % other.y != 0 {
+        if self.y % other.y != 0 && self.x > 0 {
             result.y += 1;
         }
         result
@@ -170,6 +215,36 @@ impl DivToCeil for UVec2 {
         }
         if self.y % other.y != 0 {
             result.y += 1;
+        }
+        result
+    }
+}
+
+pub trait DivToFloor {
+    fn div_to_floor(self, other: Self) -> Self;
+}
+
+impl DivToFloor for IVec2 {
+    fn div_to_floor(self, other: Self) -> Self {
+        let mut result = self / other;
+        if self.x % other.x != 0 && self.x < 0 {
+            result.x -= 1;
+        }
+        if self.y % other.y != 0 && self.y < 0 {
+            result.y -= 1;
+        }
+        result
+    }
+}
+
+impl DivToFloor for UVec2 {
+    fn div_to_floor(self, other: Self) -> Self {
+        let mut result = self / other;
+        if self.x % other.x != 0 {
+            result.x -= 1;
+        }
+        if self.y % other.y != 0 {
+            result.y -= 1;
         }
         result
     }

@@ -15,7 +15,7 @@ pub struct TilemapPattern {
     pub size: UVec2,
     pub tiles: Vec<Option<SerializedTile>>,
     #[cfg(feature = "algorithm")]
-    pub path_tiles: Option<Vec<Option<super::SerializedPathTile>>>,
+    pub path_tiles: Option<bevy::utils::HashMap<IVec2, super::SerializedPathTile>>,
 }
 
 impl TilemapPattern {
@@ -49,7 +49,7 @@ impl TilemapPattern {
         index.x >= self.size.x as i32 || index.y >= self.size.y as i32 || index.x < 0 || index.y < 0
     }
 
-    pub fn apply(&self, commands: &mut Commands, origin: UVec2, target: &mut Tilemap) {
+    pub fn apply(&self, commands: &mut Commands, origin: IVec2, target: &mut Tilemap) {
         target.fill_with_buffer(
             commands,
             origin,

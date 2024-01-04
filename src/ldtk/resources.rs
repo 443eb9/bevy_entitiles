@@ -258,8 +258,8 @@ impl LdtkWfcManager {
         Some(self.idents[&idx].clone())
     }
 
-    pub fn get_translation(&self, level_index: UVec2) -> Vec2 {
-        level_index.as_vec2() * self.pattern_size
+    pub fn get_translation(&self, level_index: IVec2) -> Vec2 {
+        (level_index.as_vec2() + Vec2::Y) * self.pattern_size
     }
 }
 

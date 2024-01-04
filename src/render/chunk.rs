@@ -1,5 +1,5 @@
 use bevy::{
-    math::{IVec4, UVec3, UVec4},
+    math::{IVec2, IVec3, IVec4, UVec4},
     prelude::{Entity, Mesh, Query, Resource, UVec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -10,7 +10,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::Aabb2d, extension::DivToCeil},
+    math::{aabb::Aabb2d, extension::DivToFloor},
     tilemap::tile::{TileTexture, TileType},
     MAX_LAYER_COUNT,
 };
@@ -26,7 +26,7 @@ use super::{
 pub struct TileData {
     // when the third component of index is 1,
     // it means this tile is a animated tile
-    pub index: UVec3,
+    pub index: IVec3,
     // 4 layers
     pub texture_indices: IVec4,
     pub color: Vec4,
@@ -36,7 +36,7 @@ pub struct TileData {
 #[derive(Clone)]
 pub struct TilemapRenderChunk {
     pub visible: bool,
-    pub index: UVec2,
+    pub index: IVec2,
     pub dirty_mesh: bool,
     pub tile_type: TileType,
     pub size: u32,
@@ -48,15 +48,15 @@ pub struct TilemapRenderChunk {
 }
 
 impl TilemapRenderChunk {
-    pub fn from_index(index: UVec2, tilemap: &ExtractedTilemap) -> Self {
-        let idx = index / tilemap.render_chunk_size;
+    pub fn from_index(index: IVec2, tilemap: &ExtractedTilemap) -> Self {
+        let idx = index.div_to_floor(IVec2::splat(tilemap.chunk_size as i32));
         TilemapRenderChunk {
             visible: true,
             index: idx,
-            size: tilemap.render_chunk_size,
+            size: tilemap.chunk_size,
             tile_type: tilemap.tile_type,
             texture: tilemap.texture.clone(),
-            tiles: vec![None; (tilemap.render_chunk_size * tilemap.render_chunk_size) as usize],
+            tiles: vec![None; (tilemap.chunk_size * tilemap.chunk_size) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
             dirty_mesh: true,
@@ -187,6 +187,10 @@ impl TilemapRenderChunk {
             }
         };
 
+        if texture_indices.y != -1 {
+            println!("texture_indices: {:?}", texture_indices);
+        }
+
         self.tiles[index] = Some(TileData {
             index: tile_index,
             texture_indices,
@@ -199,29 +203,16 @@ impl TilemapRenderChunk {
 
 #[derive(Resource, Default)]
 pub struct RenderChunkStorage {
-    pub(crate) value: HashMap<Entity, (UVec2, Vec<Option<TilemapRenderChunk>>)>,
+    pub(crate) value: HashMap<Entity, HashMap<IVec2, TilemapRenderChunk>>,
 }
 
 impl RenderChunkStorage {
-    /// Insert new render chunks into the storage for a tilemap.
-    pub fn insert_tilemap(&mut self, tilemap: &ExtractedTilemap) {
-        let amount = tilemap
-            .size
-            .div_to_ceil(UVec2::splat(tilemap.render_chunk_size));
-        self.value.insert(
-            tilemap.id,
-            (amount, vec![None; (amount.x * amount.y) as usize]),
-        );
-    }
-
     /// Update the mesh for all chunks of a tilemap.
     pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap, render_device: &RenderDevice) {
         if let Some(chunks) = self.value.get_mut(&tilemap.id) {
-            for chunk in chunks.1.iter_mut() {
-                if let Some(c) = chunk {
-                    c.update_mesh(render_device);
-                }
-            }
+            chunks
+                .values_mut()
+                .for_each(|c| c.update_mesh(render_device));
         }
     }
 
@@ -236,76 +227,26 @@ impl RenderChunkStorage {
                 continue;
             };
 
-            let chunks = {
-                if !self.value.contains_key(&tile.tilemap) {
-                    self.insert_tilemap(tilemap)
-                }
-                self.value.get_mut(&tile.tilemap).unwrap()
-            };
+            let chunks = self.value.entry(tile.tilemap).or_default();
 
-            let chunk = {
-                if chunks.1[tile.render_chunk_index].is_none() {
-                    chunks.1[tile.render_chunk_index] =
-                        Some(TilemapRenderChunk::from_index(tile.index, tilemap));
-                }
-                chunks.1.get_mut(tile.render_chunk_index).unwrap()
-            };
+            let chunk = chunks
+                .entry(tile.chunk_index)
+                .or_insert_with(|| TilemapRenderChunk::from_index(tile.index, tilemap));
 
-            let c = {
-                if chunk.is_none() {
-                    chunk.replace(TilemapRenderChunk::from_index(tile.index, tilemap));
-                };
-                chunk.as_mut().unwrap()
-            };
-
-            let index = tile.index % tilemap.render_chunk_size;
-            c.set_tile(index, tile);
+            chunk.set_tile(tile.in_chunk_index, tile);
         }
     }
 
-    pub fn get_chunks(&self, tilemap: Entity) -> Option<&Vec<Option<TilemapRenderChunk>>> {
-        if let Some(chunks) = self.value.get(&tilemap) {
-            Some(&chunks.1)
-        } else {
-            None
-        }
+    #[inline]
+    pub fn get_chunks(&self, tilemap: Entity) -> Option<&HashMap<IVec2, TilemapRenderChunk>> {
+        self.value.get(&tilemap)
     }
 
+    #[inline]
     pub fn get_chunks_mut(
         &mut self,
         tilemap: Entity,
-    ) -> Option<&mut Vec<Option<TilemapRenderChunk>>> {
-        if let Some(chunks) = self.value.get_mut(&tilemap) {
-            Some(chunks.1.as_mut())
-        } else {
-            None
-        }
-    }
-
-    pub fn get_storage_size(&self, tilemap: Entity) -> Option<UVec2> {
-        if let Some(chunks) = self.value.get(&tilemap) {
-            Some(chunks.0)
-        } else {
-            None
-        }
-    }
-
-    pub fn calculate_render_chunk_count(map_size: UVec2, render_chunk_size: u32) -> UVec2 {
-        UVec2::new(
-            {
-                if map_size.x % render_chunk_size == 0 {
-                    map_size.x / render_chunk_size
-                } else {
-                    map_size.x / render_chunk_size + 1
-                }
-            },
-            {
-                if map_size.y % render_chunk_size == 0 {
-                    map_size.y / render_chunk_size
-                } else {
-                    map_size.y / render_chunk_size + 1
-                }
-            },
-        )
+    ) -> Option<&mut HashMap<IVec2, TilemapRenderChunk>> {
+        self.value.get_mut(&tilemap)
     }
 }

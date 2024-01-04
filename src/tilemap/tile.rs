@@ -1,10 +1,9 @@
 use bevy::{
     hierarchy::BuildChildren,
+    math::IVec2,
     prelude::{Commands, Component, Entity, UVec2, Vec4},
     reflect::Reflect,
 };
-
-use crate::math::extension::DivToCeil;
 
 use super::{layer::TileLayer, map::Tilemap};
 
@@ -75,7 +74,7 @@ impl TileBuilder {
         self
     }
 
-    pub(crate) fn build(&self, commands: &mut Commands, index: UVec2, tilemap: &Tilemap) -> Entity {
+    pub(crate) fn build(&self, commands: &mut Commands, index: IVec2, tilemap: &Tilemap) -> Entity {
         let tile = self.build_component(index, tilemap);
 
         let mut tile_entity = commands.spawn_empty();
@@ -85,16 +84,12 @@ impl TileBuilder {
         tile_entity
     }
 
-    pub(crate) fn build_component(&self, index: UVec2, tilemap: &Tilemap) -> Tile {
-        let chunk_index = index / tilemap.render_chunk_size;
-        let storage_size = tilemap
-            .size
-            .div_to_ceil(UVec2::splat(tilemap.render_chunk_size));
-        let chunk_index_vec = chunk_index.y * storage_size.x + chunk_index.x;
-
+    pub(crate) fn build_component(&self, index: IVec2, tilemap: &Tilemap) -> Tile {
+        let indices = tilemap.transform_index(index);
         Tile {
-            render_chunk_index: chunk_index_vec as usize,
             tilemap_id: tilemap.id,
+            chunk_index: indices.0,
+            in_chunk_index: indices.1,
             index,
             texture: self.texture.clone(),
             color: self.color,
@@ -112,8 +107,9 @@ pub enum TileTexture {
 #[derive(Component, Clone, Debug, Reflect)]
 pub struct Tile {
     pub tilemap_id: Entity,
-    pub render_chunk_index: usize,
-    pub index: UVec2,
+    pub chunk_index: IVec2,
+    pub in_chunk_index: UVec2,
+    pub index: IVec2,
     pub texture: TileTexture,
     pub color: Vec4,
 }

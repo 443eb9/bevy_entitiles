@@ -4,7 +4,7 @@ use bevy::{
         event::{EventReader, EventWriter},
         system::{Commands, Query},
     },
-    math::UVec2,
+    math::IVec2,
 };
 use bevy_xpbd_2d::{
     components::{Collider, Friction, RigidBody},
@@ -37,7 +37,7 @@ impl Tilemap {
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set_physics_tile_xpbd(commands, UVec2 { x, y }, friction, is_trigger);
+                self.set_physics_tile_xpbd(commands, IVec2 { x, y }, friction, is_trigger);
             }
         }
     }
@@ -46,7 +46,7 @@ impl Tilemap {
     pub fn set_physics_tile_xpbd(
         &mut self,
         commands: &mut Commands,
-        index: UVec2,
+        index: IVec2,
         friction: Option<f32>,
         is_trigger: bool,
     ) {
@@ -54,7 +54,7 @@ impl Tilemap {
             return;
         };
 
-        let collider = Collider::convex_hull(self.get_tile_convex_hull(index).to_vec()).unwrap();
+        let collider = Collider::convex_hull(self.get_tile_convex_hull_rel(index)).unwrap();
 
         if is_trigger {
             commands.entity(tile_entity).insert(collider);

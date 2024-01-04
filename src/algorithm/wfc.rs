@@ -3,7 +3,7 @@ use std::{collections::VecDeque, vec};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::Vec4,
+    math::{IVec2, Vec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     reflect::Reflect,
     utils::{HashMap, HashSet},
@@ -148,7 +148,7 @@ impl WfcSource {
         let tiles = (0..conn_rules.0.len())
             .into_iter()
             .map(|r| SerializedTile {
-                index: UVec2::ZERO,
+                index: IVec2::ZERO,
                 color: Vec4::ONE,
                 texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
             })
@@ -303,11 +303,13 @@ impl WfcRunner {
         &self.conn_rules
     }
 
-    pub fn get_elem_idx(&self, elem_index: usize) -> UVec2 {
+    pub fn get_elem_idx(&self, elem_index: usize) -> IVec2 {
         UVec2 {
             x: elem_index as u32 % self.area.extent.x,
             y: elem_index as u32 / self.area.extent.x,
         }
+        .as_ivec2()
+            - self.area.origin
     }
 }
 
@@ -637,7 +639,7 @@ pub fn wfc_applier(
                             let p = &patterns[*e as usize];
                             p.apply(
                                 &mut c,
-                                (runner.get_elem_idx(i) + runner.area.origin) * p.size,
+                                (runner.get_elem_idx(i) + runner.area.origin) * p.size.as_ivec2(),
                                 &mut tilemap.as_mut().unwrap(),
                             );
                         });
@@ -645,12 +647,11 @@ pub fn wfc_applier(
                     WfcSource::MultiLayerMapPattern(size, patterns) => {
                         wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                             let (p, tex) = &patterns[*e as usize];
-                            let size = *size;
+                            let size = size.as_ivec2();
 
                             p.iter().for_each(|layer| {
                                 let mut new_layer = TilemapBuilder::new(
                                     TileType::Square,
-                                    size,
                                     size.as_vec2(),
                                     layer.label.clone().unwrap(),
                                 );
@@ -661,7 +662,7 @@ pub fn wfc_applier(
                                     new_layer.with_texture(texture.clone());
                                 }
                                 let mut tilemap = new_layer.build(&mut c);
-                                layer.apply(&mut c, UVec2::ZERO, &mut tilemap);
+                                layer.apply(&mut c, IVec2::ZERO, &mut tilemap);
                                 c.entity(tilemap.id).insert(tilemap);
                             });
                         });
@@ -681,12 +682,10 @@ pub fn wfc_applier(
 
                                 let mut layers = (0..layer_sample.len())
                                     .map(|layer_idx| {
-                                        let size = layer_sample[layer_idx].0.size;
                                         let tile_size = layer_sample[layer_idx].1.desc.tile_size;
 
                                         TilemapBuilder::new(
                                             TileType::Square,
-                                            size * runner.area.extent,
                                             tile_size.as_vec2(),
                                             "".to_string(),
                                         )
@@ -708,7 +707,11 @@ pub fn wfc_applier(
 
                                     p.iter().enumerate().for_each(|(layer_index, layer)| {
                                         let mut target = &mut layers[layer_index];
-                                        layer.0.apply(&mut c, ptn_idx * layer.0.size, &mut target);
+                                        layer.0.apply(
+                                            &mut c,
+                                            ptn_idx * layer.0.size.as_ivec2(),
+                                            &mut target,
+                                        );
                                     });
                                 });
 

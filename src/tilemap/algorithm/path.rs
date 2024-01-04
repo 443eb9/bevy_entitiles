@@ -1,4 +1,4 @@
-use bevy::{ecs::component::Component, math::UVec2, reflect::Reflect};
+use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::math::TileArea;
 
@@ -9,32 +9,30 @@ pub struct PathTile {
 
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PathTilemap {
-    pub(crate) size: UVec2,
-    pub(crate) tiles: Vec<Option<PathTile>>,
+    pub(crate) storage: HashMap<IVec2, PathTile>,
 }
 
 impl PathTilemap {
-    pub fn new(size: UVec2) -> Self {
+    pub fn new() -> Self {
         Self {
-            size,
-            tiles: vec![None; (size.x * size.y) as usize],
+            storage: HashMap::new(),
         }
     }
 
-    pub fn get(&self, index: UVec2) -> Option<&PathTile> {
-        self.tiles
-            .get(self.transform_index(index))
-            .and_then(|t| t.as_ref())
+    pub fn get(&self, index: IVec2) -> Option<&PathTile> {
+        self.storage.get(&index)
     }
 
-    pub fn get_mut(&mut self, index: UVec2) -> Option<&mut PathTile> {
-        let index = self.transform_index(index);
-        self.tiles.get_mut(index).and_then(|t| t.as_mut())
+    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut PathTile> {
+        self.storage.get_mut(&index)
     }
 
-    pub fn set(&mut self, index: UVec2, new_tile: PathTile) {
-        let index = self.transform_index(index);
-        self.tiles[index] = Some(new_tile);
+    pub fn set(&mut self, index: IVec2, new_tile: Option<PathTile>) {
+        if let Some(tile) = new_tile {
+            self.storage.insert(index, tile);
+        } else {
+            self.storage.remove(&index);
+        }
     }
 
     /// Set path-finding data using a custom function.
@@ -43,11 +41,11 @@ impl PathTilemap {
     pub fn fill_path_rect_custom(
         &mut self,
         area: TileArea,
-        mut path_tile: impl FnMut(UVec2) -> PathTile,
+        mut path_tile: impl FnMut(IVec2) -> Option<PathTile>,
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                let idx = UVec2::new(x, y);
+                let idx = IVec2::new(x, y);
                 self.set(idx, path_tile(idx));
             }
         }
@@ -59,13 +57,8 @@ impl PathTilemap {
     pub fn fill_path_rect(&mut self, area: TileArea, path_tile: &PathTile) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set(UVec2 { x, y }, *path_tile);
+                self.set(IVec2 { x, y }, Some(*path_tile));
             }
         }
-    }
-
-    #[inline]
-    pub fn transform_index(&self, index: UVec2) -> usize {
-        (index.y * self.size.x + index.x) as usize
     }
 }

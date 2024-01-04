@@ -23,6 +23,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
+    debug::EntiTilesDebugPlugin,
     ldtk::{
         app_ext::AppExt,
         entities::LdtkEntity,
@@ -36,13 +37,12 @@ use bevy_entitiles::{
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_xpbd_2d::{
     components::{Collider, Friction, LinearVelocity, Mass, RigidBody},
     plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins},
     resources::Gravity,
 };
-use helpers::EntiTilesDebugPlugin;
+use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
@@ -52,7 +52,7 @@ fn main() {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesDebugPlugin,
-            WorldInspectorPlugin::default(),
+            EntiTilesHelpersPlugin,
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
         ))
