@@ -13,16 +13,20 @@ use bevy::{
     render::color::Color,
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
+    utils::HashMap,
     DefaultPlugins,
 };
 use bevy_entitiles::{
     algorithm::wfc::{LdtkWfcMode, WfcRules, WfcRunner, WfcSource},
-    debug::EntiTilesDebugPlugin,
-    ldtk::resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
+    ldtk::{
+        layer::physics::LdtkPhysicsLayer,
+        resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
+    },
     math::TileArea,
     tilemap::tile::TileType,
     EntiTilesPlugin,
 };
+use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -32,8 +36,9 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             EntiTilesPlugin,
-            EntiTilesDebugPlugin,
             EntiTilesHelpersPlugin,
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
         ))
         .insert_resource(LdtkLevelManager::new(
             "assets/ldtk/wfc_source.ldtk".to_string(),
@@ -45,6 +50,7 @@ fn main() {
                 .map(|i| (i, format!("World_Level_{}", i)))
                 .collect(),
         ))
+        .insert_resource(PhysicsDebugConfig::all())
         .add_systems(Startup, setup)
         .add_systems(Update, (player_control, load_level))
         .register_type::<Player>()
@@ -62,7 +68,14 @@ struct LevelChange(UVec2);
 fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     commands.spawn(Camera2dBundle::default());
 
-    manager.load_all_patterns(&mut commands);
+    manager
+        .set_physics_layer(LdtkPhysicsLayer {
+            identifier: "PhysicsCollider".to_string(),
+            air_value: 0,
+            parent: "Patterns".to_string(),
+            frictions: Some(HashMap::from([(1, 0.5), (2, 0.8)])),
+        })
+        .load_all_patterns(&mut commands);
 
     let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TileType::Square);
     commands.spawn((

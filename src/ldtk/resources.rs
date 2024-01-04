@@ -33,6 +33,10 @@ use super::{
 pub struct LdtkPatterns {
     #[reflect(ignore)]
     pub patterns: HashMap<String, (Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle)>,
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    pub aabbs: HashMap<String, super::layer::physics::LdtkPhysicsAabbs>,
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    pub frictions: Option<HashMap<i32, f32>>,
     pub idents: HashMap<u8, String>,
 }
 
@@ -70,6 +74,25 @@ impl LdtkPatterns {
     ) {
         self.patterns
             .insert(identifier.to_string(), (patterns, background));
+    }
+
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[inline]
+    pub fn insert_physics_aabbs(
+        &mut self,
+        identifier: String,
+        aabbs: super::layer::physics::LdtkPhysicsAabbs,
+    ) {
+        self.aabbs.insert(identifier, aabbs);
+    }
+
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[inline]
+    pub fn get_physics_aabbs_with_index(
+        &self,
+        index: u8,
+    ) -> Option<&super::layer::physics::LdtkPhysicsAabbs> {
+        self.aabbs.get(&self.idents[&index])
     }
 
     #[inline]

@@ -99,6 +99,7 @@ pub struct TilemapBuilder {
     pub(crate) tile_type: TileType,
     pub(crate) ext_dir: Vec2,
     pub(crate) tile_render_size: Vec2,
+    pub(crate) layer_opacities: Vec4,
     pub(crate) tile_slot_size: Vec2,
     pub(crate) pivot: Vec2,
     pub(crate) chunk_size: u32,
@@ -114,6 +115,7 @@ impl TilemapBuilder {
             name,
             tile_type: ty,
             ext_dir: Vec2::ONE,
+            layer_opacities: Vec4::ONE,
             tile_render_size,
             tile_slot_size: tile_render_size,
             pivot: Vec2::ZERO,
@@ -179,6 +181,12 @@ impl TilemapBuilder {
         self
     }
 
+    /// Override the opacity of each layer. Default is `[1., 1., 1., 1.]`.
+    pub fn with_layer_opacities(&mut self, opacities: [f32; 4]) -> &mut Self {
+        self.layer_opacities = opacities.into();
+        self
+    }
+
     /// Build the tilemap and spawn it into the world.
     /// You can modify the component and insert it back.
     pub fn build(&self, commands: &mut Commands) -> Tilemap {
@@ -194,8 +202,7 @@ impl TilemapBuilder {
             tile_slot_size: self.tile_slot_size,
             pivot: self.pivot,
             texture: self.texture.clone(),
-            layer_opacities: Vec4::ONE,
-            // aabb: Aabb2d::from_tilemap_builder(&self),
+            layer_opacities: self.layer_opacities,
             transform: self.transform,
             anim_seqs: self.anim_seqs,
             anim_counts: 0,
@@ -320,11 +327,9 @@ impl Tilemap {
     }
 
     pub fn update(&mut self, commands: &mut Commands, index: IVec2, updater: TileUpdater) {
-        if self.get(index).is_none() {
-            return;
+        if let Some(entity) = self.get(index) {
+            commands.entity(entity).insert(updater);
         }
-
-        commands.entity(self.get(index).unwrap()).insert(updater);
     }
 
     /// Set the opacity of a layer. Default is 1 for each layer.

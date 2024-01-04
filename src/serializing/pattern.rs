@@ -69,5 +69,17 @@ impl TilemapPattern {
                     .collect(),
             },
         );
+
+        #[cfg(feature = "algorithm")]
+        if let Some(path_tiles) = &self.path_tiles {
+            commands
+                .entity(target.id)
+                .insert(crate::tilemap::algorithm::path::PathTilemap {
+                    storage: path_tiles
+                        .iter()
+                        .map(|(k, v)| (*k, v.clone().into()))
+                        .collect(),
+                });
+        }
     }
 }

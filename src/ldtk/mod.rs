@@ -119,6 +119,12 @@ impl Plugin for EntiTilesLdtkPlugin {
 
             app.register_type::<resources::LdtkWfcManager>();
         }
+
+        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+        {
+            app.register_type::<layer::physics::LdtkPhysicsLayer>();
+            app.register_type::<layer::physics::LdtkPhysicsAabbs>();
+        }
     }
 }
 
@@ -290,17 +296,14 @@ fn load_levels(
 
         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
         if let Some(aabbs) = collider_aabbs {
-            layer_grid.apply_physics_layer(
-                commands,
-                manager.physics_layer.as_ref().unwrap(),
-                aabbs,
-            );
+            layer_grid.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
         }
         #[cfg(feature = "algorithm")]
-        if let Some(path) = path_tilemap {
-            layer_grid.apply_path_layer(commands, manager.path_layer.as_ref().unwrap(), path);
+        if let Some(path_tilemap) = path_tilemap {
+            layer_grid.assign_path_layer(manager.path_layer.clone().unwrap(), path_tilemap);
         }
         layer_grid.apply_all(commands, patterns);
+
         ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
             identifier: level.identifier.clone(),
             iid: level.iid.clone(),
@@ -356,7 +359,7 @@ fn load_layer(
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
-                layer_grid.set(commands, layer_index, layer, tile);
+                layer_grid.set(layer_index, layer, tile);
             }
         }
         LayerType::Entities => {
@@ -398,7 +401,7 @@ fn load_layer(
         }
         LayerType::Tiles => {
             for tile in layer.grid_tiles.iter() {
-                layer_grid.set(commands, layer_index, layer, tile);
+                layer_grid.set(layer_index, layer, tile);
             }
         }
     }

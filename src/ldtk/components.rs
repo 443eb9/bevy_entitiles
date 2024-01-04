@@ -12,11 +12,11 @@ pub struct GlobalEntity;
 #[derive(Component, Reflect, Hash, Eq, PartialEq, Clone)]
 pub struct EntityIid(pub String);
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Hash, Eq, PartialEq, Clone)]
 pub struct LayerIid(pub String);
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Hash, Eq, PartialEq, Clone)]
 pub struct LevelIid(pub String);
 
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Hash, Eq, PartialEq, Clone)]
 pub struct WorldIid(pub String);

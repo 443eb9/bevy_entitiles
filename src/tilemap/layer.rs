@@ -1,5 +1,9 @@
 use bevy::{
-    ecs::{component::Component, system::Query},
+    ecs::{
+        component::Component,
+        entity::Entity,
+        system::{ParallelCommands, Query},
+    },
     math::Vec4,
     reflect::Reflect,
 };
@@ -57,28 +61,36 @@ pub struct TileUpdater {
     pub color: Option<Vec4>,
 }
 
-pub fn tile_updater(mut tiles_query: Query<(&mut Tile, &TileUpdater)>) {
-    tiles_query.par_iter_mut().for_each(|(mut tile, updater)| {
-        if let Some(layer) = &updater.layer {
-            if let TileTexture::Static(ref mut tex) = tile.texture {
-                match layer.position {
-                    TileLayerPosition::Top => {
-                        tex.push(layer.layer);
-                    }
-                    TileLayerPosition::Bottom => {
-                        tex.insert(0, layer.layer);
-                    }
-                    TileLayerPosition::Index(i) => {
-                        if i >= tex.len() {
-                            tex.resize(i + 1, TileLayer::new());
+pub fn tile_updater(
+    commands: ParallelCommands,
+    mut tiles_query: Query<(Entity, &mut Tile, &TileUpdater)>,
+) {
+    tiles_query
+        .par_iter_mut()
+        .for_each(|(entity, mut tile, updater)| {
+            if let Some(layer) = &updater.layer {
+                if let TileTexture::Static(ref mut tex) = tile.texture {
+                    match layer.position {
+                        TileLayerPosition::Top => {
+                            tex.push(layer.layer);
                         }
-                        tex[i] = layer.layer;
+                        TileLayerPosition::Bottom => {
+                            tex.insert(0, layer.layer);
+                        }
+                        TileLayerPosition::Index(i) => {
+                            if i >= tex.len() {
+                                tex.resize(i + 1, TileLayer::new());
+                            }
+                            tex[i] = layer.layer;
+                        }
                     }
                 }
             }
-        }
-        if let Some(color) = updater.color {
-            tile.color = color;
-        }
-    });
+            if let Some(color) = updater.color {
+                tile.color = color;
+            }
+            commands.command_scope(|mut c| {
+                c.entity(entity).remove::<TileUpdater>();
+            });
+        });
 }

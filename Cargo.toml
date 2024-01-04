@@ -117,4 +117,4 @@ required-features = ["algorithm", "serializing"]
 [[example]]
 name = "ldtk_wfc"
 path = "examples/ldtk_wfc.rs"
-required-features = ["algorithm", "ldtk"]
+required-features = ["algorithm", "ldtk", "physics_xpbd"]

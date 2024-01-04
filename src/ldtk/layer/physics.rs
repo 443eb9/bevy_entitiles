@@ -1,6 +1,16 @@
-use bevy::{math::UVec2, reflect::Reflect, utils::HashMap};
+use bevy::{
+    ecs::system::Commands,
+    hierarchy::BuildChildren,
+    math::{IVec2, UVec2, Vec2},
+    reflect::Reflect,
+    transform::{components::Transform, TransformBundle},
+    utils::HashMap,
+};
 
-use crate::ldtk::json::{definitions::LayerType, level::LayerInstance};
+use crate::{
+    ldtk::json::{definitions::LayerType, level::LayerInstance},
+    tilemap::map::Tilemap,
+};
 
 #[derive(Debug, Clone, Reflect)]
 pub struct LdtkPhysicsLayer {
@@ -10,10 +20,86 @@ pub struct LdtkPhysicsLayer {
     pub frictions: Option<HashMap<i32, f32>>,
 }
 
+#[derive(Debug, Clone, Reflect)]
+pub struct LdtkPhysicsAabbs {
+    pub aabbs: Vec<(i32, (UVec2, UVec2))>,
+}
+
+impl LdtkPhysicsAabbs {
+    pub fn generate_colliders(
+        &self,
+        commands: &mut Commands,
+        tilemap: &Tilemap,
+        frictions: Option<&HashMap<i32, f32>>,
+    ) {
+        self.aabbs
+            .iter()
+            .map(|(i, (min, max))| {
+                let left_top = tilemap.index_to_rel(IVec2 {
+                    x: min.x as i32,
+                    y: -(min.y as i32),
+                });
+                let right_btm = tilemap.index_to_rel(IVec2 {
+                    x: (max.x + 1) as i32,
+                    y: -(max.y as i32) - 1,
+                });
+                (
+                    i,
+                    crate::math::aabb::Aabb2d {
+                        min: Vec2 {
+                            x: left_top.x,
+                            y: right_btm.y,
+                        },
+                        max: Vec2 {
+                            x: right_btm.x,
+                            y: left_top.y,
+                        },
+                    },
+                )
+            })
+            .for_each(|(i, aabb)| {
+                let mut collider = commands.spawn(TransformBundle {
+                    local: Transform::from_translation(aabb.center().extend(0.)),
+                    ..Default::default()
+                });
+                collider.set_parent(tilemap.id);
+
+                #[cfg(feature = "physics_xpbd")]
+                {
+                    collider.insert((
+                        bevy_xpbd_2d::components::Collider::cuboid(aabb.width(), aabb.height()),
+                        bevy_xpbd_2d::components::RigidBody::Static,
+                    ));
+                    if let Some(coe) = frictions.and_then(|f| f.get(i)) {
+                        collider.insert(bevy_xpbd_2d::components::Friction {
+                            dynamic_coefficient: *coe,
+                            static_coefficient: *coe,
+                            ..Default::default()
+                        });
+                    }
+                }
+
+                #[cfg(feature = "physics_rapier")]
+                {
+                    collider.insert(bevy_rapier2d::geometry::Collider::cuboid(
+                        aabb.width() / 2.,
+                        aabb.height() / 2.,
+                    ));
+                    if let Some(coe) = frictions.and_then(|f| f.get(i)) {
+                        collider.insert(bevy_rapier2d::geometry::Friction {
+                            coefficient: *coe,
+                            ..Default::default()
+                        });
+                    }
+                }
+            });
+    }
+}
+
 pub fn analyze_physics_layer(
     layer: &LayerInstance,
     physics: &LdtkPhysicsLayer,
-) -> Vec<(i32, (UVec2, UVec2))> {
+) -> LdtkPhysicsAabbs {
     if layer.ty != LayerType::IntGrid {
         panic!(
             "The physics layer {:?} is not an IntGrid layer!",
@@ -21,11 +107,13 @@ pub fn analyze_physics_layer(
         );
     }
 
-    parse_grid(
-        layer.int_grid_csv.clone(),
-        UVec2::new(layer.c_wid as u32, layer.c_hei as u32),
-        physics.air_value,
-    )
+    LdtkPhysicsAabbs {
+        aabbs: parse_grid(
+            layer.int_grid_csv.clone(),
+            UVec2::new(layer.c_wid as u32, layer.c_hei as u32),
+            physics.air_value,
+        ),
+    }
 }
 
 /// Returns a list of all the aabb colliders in the grid.

@@ -187,10 +187,6 @@ impl TilemapRenderChunk {
             }
         };
 
-        if texture_indices.y != -1 {
-            println!("texture_indices: {:?}", texture_indices);
-        }
-
         self.tiles[index] = Some(TileData {
             index: tile_index,
             texture_indices,

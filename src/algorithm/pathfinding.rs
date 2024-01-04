@@ -298,11 +298,6 @@ pub fn pathfinding_async(
 }
 
 pub fn complete_pathfinding(commands: &ParallelCommands, finder: Entity, path: Option<Path>) {
-    #[cfg(feature = "debug")]
-    if path.is_none() {
-        println!("path not found");
-    }
-
     commands.command_scope(|mut c| {
         let mut e = c.entity(finder);
         e.remove::<Pathfinder>();

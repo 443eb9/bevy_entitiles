@@ -712,6 +712,20 @@ pub fn wfc_applier(
                                             ptn_idx * layer.0.size.as_ivec2(),
                                             &mut target,
                                         );
+
+                                        #[cfg(any(
+                                            feature = "physics_xpbd",
+                                            feature = "physics_rapier"
+                                        ))]
+                                        if let Some(aabbs) =
+                                            patterns.get_physics_aabbs_with_index(*e)
+                                        {
+                                            aabbs.generate_colliders(
+                                                &mut c,
+                                                &mut target,
+                                                patterns.frictions.as_ref(),
+                                            );
+                                        }
                                     });
                                 });
 
