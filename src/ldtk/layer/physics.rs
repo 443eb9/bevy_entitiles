@@ -31,6 +31,7 @@ impl LdtkPhysicsAabbs {
         commands: &mut Commands,
         tilemap: &Tilemap,
         frictions: Option<&HashMap<i32, f32>>,
+        offset: Vec2,
     ) {
         self.aabbs
             .iter()
@@ -59,7 +60,7 @@ impl LdtkPhysicsAabbs {
             })
             .for_each(|(i, aabb)| {
                 let mut collider = commands.spawn(TransformBundle {
-                    local: Transform::from_translation(aabb.center().extend(0.)),
+                    local: Transform::from_translation((aabb.center() + offset).extend(0.)),
                     ..Default::default()
                 });
                 collider.set_parent(tilemap.id);

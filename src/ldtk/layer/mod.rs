@@ -171,6 +171,7 @@ impl<'a> LdtkLayers<'a> {
                                     commands,
                                     &tilemap,
                                     physics_layer.frictions.as_ref(),
+                                    Vec2::ZERO,
                                 );
                             }
                         }

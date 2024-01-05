@@ -85,7 +85,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
-        WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
+        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
     ));
 
     commands.spawn((

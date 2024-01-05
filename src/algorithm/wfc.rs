@@ -3,7 +3,9 @@ use std::{collections::VecDeque, vec};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{IVec2, Vec4},
+    hierarchy::BuildChildren,
+    log::warn,
+    math::{IVec2, Vec2, Vec4},
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     reflect::Reflect,
     utils::{HashMap, HashSet},
@@ -625,22 +627,26 @@ pub fn wfc_applier(
             commands.command_scope(|mut c| {
                 match source {
                     WfcSource::SingleTile(tiles) => {
+                        let tilemap = tilemap.as_mut().unwrap_or_else(|| {
+                            panic!("SingleTile source requires a tilemap on the entity!")
+                        });
+
                         for (i, e) in wfc_data.data.iter().enumerate() {
                             let ser_tile = tiles.get(*e as usize).unwrap();
-                            tilemap.as_mut().unwrap().set(
-                                &mut c,
-                                runner.get_elem_idx(i),
-                                ser_tile.clone().into(),
-                            );
+                            tilemap.set(&mut c, runner.get_elem_idx(i), ser_tile.clone().into());
                         }
                     }
                     WfcSource::MapPattern(patterns) => {
+                        let tilemap = tilemap.as_mut().unwrap_or_else(|| {
+                            panic!("MapPattern source requires a tilemap on the entity!")
+                        });
+
                         wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                             let p = &patterns[*e as usize];
                             p.apply(
                                 &mut c,
                                 (runner.get_elem_idx(i) + runner.area.origin) * p.size.as_ivec2(),
-                                &mut tilemap.as_mut().unwrap(),
+                                tilemap,
                             );
                         });
                     }
@@ -675,10 +681,15 @@ pub fn wfc_applier(
                         if !patterns.is_ready() {
                             return;
                         }
+                        if tilemap.is_some() {
+                            warn!("LdtkMapPattern source does NOT require tilemap on the entity!");
+                        }
 
                         match mode {
                             LdtkWfcMode::SingleMap => {
                                 let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
+                                c.entity(entity)
+                                    .insert(bevy::prelude::SpatialBundle::default());
 
                                 let mut layers = (0..layer_sample.len())
                                     .map(|layer_idx| {
@@ -704,6 +715,8 @@ pub fn wfc_applier(
                                     bg.transform.translation = ((ptn_render_size / 2.)
                                         + ptn_idx.as_vec2() * ptn_render_size)
                                         .extend(z);
+                                    let bg_entity = c.spawn(bg).id();
+                                    c.entity(entity).add_child(bg_entity);
 
                                     p.iter().enumerate().for_each(|(layer_index, layer)| {
                                         let mut target = &mut layers[layer_index];
@@ -724,12 +737,16 @@ pub fn wfc_applier(
                                                 &mut c,
                                                 &mut target,
                                                 patterns.frictions.as_ref(),
+                                                (ptn_idx.as_vec2() + Vec2::Y)
+                                                    * layer.0.size.as_vec2()
+                                                    * layer.1.desc.tile_size.as_vec2(),
                                             );
                                         }
                                     });
                                 });
 
                                 layers.into_iter().for_each(|tilemap| {
+                                    c.entity(entity).add_child(tilemap.id);
                                     c.entity(tilemap.id).insert(tilemap);
                                 });
                             }
