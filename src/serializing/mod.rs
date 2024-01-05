@@ -45,10 +45,6 @@ impl Plugin for EntiTilesSerializingPlugin {
             .register_type::<SerializedTilemap>()
             .register_type::<SerializedTilemapDescriptor>()
             .register_type::<SerializedTilemapTexture>();
-
-        #[cfg(feature = "algorithm")]
-        app.register_type::<SerializedPathTile>()
-            .register_type::<SerializedPathTilemap>();
     }
 }
 
@@ -226,57 +222,5 @@ impl Into<TileBuilder> for SerializedTile {
             texture: self.texture,
             color: self.color,
         }
-    }
-}
-
-#[cfg(feature = "algorithm")]
-#[derive(Serialize, Deserialize, Reflect)]
-pub struct SerializedPathTilemap {
-    pub storage: bevy::utils::HashMap<IVec2, SerializedPathTile>,
-}
-
-#[cfg(feature = "algorithm")]
-impl From<crate::tilemap::algorithm::path::PathTilemap> for SerializedPathTilemap {
-    fn from(value: crate::tilemap::algorithm::path::PathTilemap) -> Self {
-        Self {
-            storage: value
-                .storage
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect(),
-        }
-    }
-}
-
-#[cfg(feature = "algorithm")]
-impl SerializedPathTilemap {
-    fn into_path_tilemap(self) -> crate::tilemap::algorithm::path::PathTilemap {
-        crate::tilemap::algorithm::path::PathTilemap {
-            storage: self
-                .storage
-                .into_iter()
-                .map(|(k, v)| (k, v.into()))
-                .collect(),
-        }
-    }
-}
-
-#[cfg(feature = "algorithm")]
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
-pub struct SerializedPathTile {
-    pub cost: u32,
-}
-
-#[cfg(feature = "algorithm")]
-impl From<crate::tilemap::algorithm::path::PathTile> for SerializedPathTile {
-    fn from(value: crate::tilemap::algorithm::path::PathTile) -> Self {
-        Self { cost: value.cost }
-    }
-}
-
-#[cfg(feature = "algorithm")]
-impl Into<crate::tilemap::algorithm::path::PathTile> for SerializedPathTile {
-    fn into(self) -> crate::tilemap::algorithm::path::PathTile {
-        crate::tilemap::algorithm::path::PathTile { cost: self.cost }
     }
 }

@@ -67,7 +67,6 @@ pub fn draw_path(mut gizmos: Gizmos, path_query: Query<&Path>, tilemaps: Query<&
     }
 }
 
-#[cfg(feature = "debug")]
 pub fn draw_axis(mut gizmos: Gizmos) {
     gizmos.line_2d(Vec2::NEG_X * 1e10, Vec2::X * 1e10, Color::RED);
     gizmos.line_2d(Vec2::NEG_Y * 1e10, Vec2::Y * 1e10, Color::GREEN);

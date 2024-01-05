@@ -15,7 +15,7 @@ pub struct TilemapPattern {
     pub size: UVec2,
     pub tiles: Vec<Option<SerializedTile>>,
     #[cfg(feature = "algorithm")]
-    pub path_tiles: Option<bevy::utils::HashMap<IVec2, super::SerializedPathTile>>,
+    pub path_tiles: Option<bevy::utils::HashMap<IVec2, crate::tilemap::algorithm::path::PathTile>>,
 }
 
 impl TilemapPattern {
@@ -49,7 +49,7 @@ impl TilemapPattern {
         index.x >= self.size.x as i32 || index.y >= self.size.y as i32 || index.x < 0 || index.y < 0
     }
 
-    pub fn apply(&self, commands: &mut Commands, origin: IVec2, target: &mut Tilemap) {
+    pub fn apply_tiles(&self, commands: &mut Commands, origin: IVec2, target: &mut Tilemap) {
         target.fill_with_buffer(
             commands,
             origin,
@@ -69,17 +69,18 @@ impl TilemapPattern {
                     .collect(),
             },
         );
+    }
 
-        #[cfg(feature = "algorithm")]
+    #[cfg(feature = "algorithm")]
+    pub fn apply_path_tiles(
+        &self,
+        origin: IVec2,
+        target: &mut crate::tilemap::algorithm::path::PathTilemap,
+    ) {
         if let Some(path_tiles) = &self.path_tiles {
-            commands
-                .entity(target.id)
-                .insert(crate::tilemap::algorithm::path::PathTilemap {
-                    storage: path_tiles
-                        .iter()
-                        .map(|(k, v)| (*k, v.clone().into()))
-                        .collect(),
-                });
+            path_tiles.iter().for_each(|(index, tile)| {
+                target.set(origin + *index, Some(*tile));
+            });
         }
     }
 }

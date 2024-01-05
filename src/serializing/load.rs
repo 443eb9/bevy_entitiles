@@ -125,16 +125,14 @@ pub fn load(
         // algorithm
         #[cfg(feature = "algorithm")]
         if loader.layers & (1 << 1) != 0 {
-            let Ok(serialized_path_tilemap) =
-                load_object::<super::SerializedPathTilemap>(&map_path, PATH_TILES)
+            let Ok(path_tilemap) =
+                load_object::<crate::tilemap::algorithm::path::PathTilemap>(&map_path, PATH_TILES)
             else {
                 complete::<TilemapLoadFailure>(&mut commands, entity, loader.clone().into());
                 continue;
             };
 
-            commands
-                .entity(entity)
-                .insert(serialized_path_tilemap.into_path_tilemap());
+            commands.entity(entity).insert(path_tilemap);
         }
 
         let mut tilemap = serialized_tilemap.into_tilemap(entity, texture);

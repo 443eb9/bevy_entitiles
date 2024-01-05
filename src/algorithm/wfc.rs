@@ -643,7 +643,7 @@ pub fn wfc_applier(
 
                         wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                             let p = &patterns[*e as usize];
-                            p.apply(
+                            p.apply_tiles(
                                 &mut c,
                                 (runner.get_elem_idx(i) + runner.area.origin) * p.size.as_ivec2(),
                                 tilemap,
@@ -668,7 +668,7 @@ pub fn wfc_applier(
                                     new_layer.with_texture(texture.clone());
                                 }
                                 let mut tilemap = new_layer.build(&mut c);
-                                layer.apply(&mut c, IVec2::ZERO, &mut tilemap);
+                                layer.apply_tiles(&mut c, IVec2::ZERO, &mut tilemap);
                                 c.entity(tilemap.id).insert(tilemap);
                             });
                         });
@@ -720,7 +720,7 @@ pub fn wfc_applier(
 
                                     p.iter().enumerate().for_each(|(layer_index, layer)| {
                                         let mut target = &mut layers[layer_index];
-                                        layer.0.apply(
+                                        layer.0.apply_tiles(
                                             &mut c,
                                             ptn_idx * layer.0.size.as_ivec2(),
                                             &mut target,

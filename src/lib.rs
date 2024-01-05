@@ -26,6 +26,7 @@ pub const MAX_LAYER_COUNT: usize = 4;
 pub const MAX_ATLAS_COUNT: usize = 512;
 pub const MAX_ANIM_COUNT: usize = 64;
 pub const MAX_ANIM_SEQ_LENGTH: usize = 16;
+pub const DEFAULT_CHUNK_SIZE: u32 = 32;
 
 #[cfg(not(debug_assertions))]
 pub mod prelude {

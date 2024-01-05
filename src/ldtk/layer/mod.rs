@@ -40,7 +40,7 @@ pub struct LdtkLayers<'a> {
     #[cfg(feature = "algorithm")]
     pub path_layer: Option<(
         path::LdtkPathLayer,
-        crate::tilemap::algorithm::path::PathTilemap,
+        HashMap<IVec2, crate::tilemap::algorithm::path::PathTile>,
     )>,
     #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
     pub physics_layer: Option<(physics::LdtkPhysicsLayer, physics::LdtkPhysicsAabbs)>,
@@ -148,7 +148,7 @@ impl<'a> LdtkLayers<'a> {
                         .with_layer_opacities([opacity; 4])
                         .build(commands);
 
-                        pattern.apply(
+                        pattern.apply_tiles(
                             commands,
                             IVec2 {
                                 x: 0,
@@ -160,7 +160,14 @@ impl<'a> LdtkLayers<'a> {
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
                             if path_layer.parent == tilemap.name {
-                                commands.entity(tilemap.id).insert(path_tilemap.clone());
+                                commands.entity(tilemap.id).insert(
+                                    crate::tilemap::algorithm::path::PathTilemap {
+                                        storage: crate::tilemap::map::TilemapStorage::from_mapper(
+                                            path_tilemap.clone(),
+                                            None,
+                                        ),
+                                    },
+                                );
                             }
                         }
 
@@ -191,16 +198,9 @@ impl<'a> LdtkLayers<'a> {
                         #[allow(unused_mut)]
                         if let Some(mut p) = p {
                             #[cfg(feature = "algorithm")]
-                            if let Some((path_layer, path_tilemap)) = &self.path_layer {
+                            if let Some((path_layer, path_tiles)) = &self.path_layer {
                                 if path_layer.parent == p.0.label.clone().unwrap() {
-                                    p.0.path_tiles = Some(
-                                        path_tilemap
-                                            .storage
-                                            .clone()
-                                            .into_iter()
-                                            .map(|(k, v)| (k, v.into()))
-                                            .collect(),
-                                    );
+                                    p.0.path_tiles = Some(path_tiles.clone());
                                 }
                             }
 
@@ -228,7 +228,7 @@ impl<'a> LdtkLayers<'a> {
     pub fn assign_path_layer(
         &mut self,
         path: path::LdtkPathLayer,
-        tilemap: crate::tilemap::algorithm::path::PathTilemap,
+        tilemap: HashMap<IVec2, crate::tilemap::algorithm::path::PathTile>,
     ) {
         self.path_layer = Some((path, tilemap));
     }

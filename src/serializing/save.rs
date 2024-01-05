@@ -159,16 +159,11 @@ pub fn save(
         #[cfg(feature = "algorithm")]
         if saver.layers & (1 << 1) != 0 {
             if let Ok(path_tilemap) = path_tilemaps_query.get(entity) {
-                let ser_path_map = super::SerializedPathTilemap {
-                    storage: path_tilemap
-                        .storage
-                        .iter()
-                        .map(|(k, v)| (*k, (*v).into()))
-                        .collect(),
-                };
                 match saver.mode {
-                    TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &ser_path_map),
-                    TilemapSaverMode::MapPattern => pattern.path_tiles = Some(ser_path_map.storage),
+                    TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &path_tilemap),
+                    TilemapSaverMode::MapPattern => {
+                        pattern.path_tiles = Some(path_tilemap.storage.clone().into_mapper())
+                    }
                 }
             }
         }

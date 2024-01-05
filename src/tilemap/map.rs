@@ -14,7 +14,7 @@ use bevy::{
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor, TileArea},
     render::{buffer::TileAnimation, texture::TilemapTexture},
-    MAX_ANIM_COUNT, MAX_LAYER_COUNT,
+    DEFAULT_CHUNK_SIZE, MAX_ANIM_COUNT, MAX_LAYER_COUNT,
 };
 
 use super::{
@@ -120,7 +120,7 @@ impl TilemapBuilder {
             tile_slot_size: tile_render_size,
             pivot: Vec2::ZERO,
             texture: None,
-            chunk_size: 32,
+            chunk_size: DEFAULT_CHUNK_SIZE,
             transform: TilemapTransform::default(),
             anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
         }
@@ -220,6 +220,7 @@ impl TilemapBuilder {
 }
 
 #[derive(Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapStorage<T: Debug + Clone + Reflect> {
     pub chunk_size: UVec2,
     pub chunks: HashMap<IVec2, Vec<Option<T>>>,
@@ -235,6 +236,14 @@ impl<T: Debug + Clone + Reflect> TilemapStorage<T> {
             down_left: IVec2::ZERO,
             up_right: IVec2::ZERO,
         }
+    }
+
+    pub fn from_mapper(mapper: HashMap<IVec2, T>, chunk_size: Option<u32>) -> Self {
+        let mut storage = Self::new(chunk_size.unwrap_or(32));
+        mapper.into_iter().for_each(|(index, elem)| {
+            storage.set(index, Some(elem));
+        });
+        storage
     }
 
     pub fn get(&self, index: IVec2) -> Option<&T> {
@@ -281,6 +290,26 @@ impl<T: Debug + Clone + Reflect> TilemapStorage<T> {
     pub fn usize(&self) -> usize {
         let size = self.size();
         (size.x * size.y) as usize
+    }
+
+    #[inline]
+    pub fn into_mapper(mut self) -> HashMap<IVec2, T> {
+        let mut mapper = HashMap::new();
+        self.chunks.drain().for_each(|(chunk_index, chunk)| {
+            chunk.into_iter().enumerate().for_each(|(index, elem)| {
+                if let Some(elem) = elem {
+                    mapper.insert(
+                        chunk_index * self.chunk_size.as_ivec2()
+                            + IVec2 {
+                                x: index as i32 % self.chunk_size.x as i32,
+                                y: index as i32 / self.chunk_size.x as i32,
+                            },
+                        elem,
+                    );
+                }
+            });
+        });
+        mapper
     }
 }
 

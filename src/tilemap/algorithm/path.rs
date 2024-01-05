@@ -1,38 +1,42 @@
-use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect, utils::HashMap};
+use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 
-use crate::math::TileArea;
+use crate::{math::TileArea, tilemap::map::TilemapStorage, DEFAULT_CHUNK_SIZE};
 
 #[derive(Component, Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTile {
     pub cost: u32,
 }
 
 #[derive(Component, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTilemap {
-    pub(crate) storage: HashMap<IVec2, PathTile>,
+    pub(crate) storage: TilemapStorage<PathTile>,
 }
 
 impl PathTilemap {
     pub fn new() -> Self {
         Self {
-            storage: HashMap::new(),
+            storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE),
+        }
+    }
+
+    pub fn new_with_chunk_size(chunk_size: u32) -> Self {
+        Self {
+            storage: TilemapStorage::new(chunk_size),
         }
     }
 
     pub fn get(&self, index: IVec2) -> Option<&PathTile> {
-        self.storage.get(&index)
+        self.storage.get(index)
     }
 
     pub fn get_mut(&mut self, index: IVec2) -> Option<&mut PathTile> {
-        self.storage.get_mut(&index)
+        self.storage.get_mut(index)
     }
 
     pub fn set(&mut self, index: IVec2, new_tile: Option<PathTile>) {
-        if let Some(tile) = new_tile {
-            self.storage.insert(index, tile);
-        } else {
-            self.storage.remove(&index);
-        }
+        self.storage.set(index, new_tile)
     }
 
     /// Set path-finding data using a custom function.
