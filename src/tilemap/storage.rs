@@ -1,10 +1,6 @@
 use std::fmt::Debug;
 
-use bevy::{
-    math::{IVec2, UVec2},
-    reflect::Reflect,
-    utils::HashMap,
-};
+use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{math::extension::DivToFloor, DEFAULT_CHUNK_SIZE};
 
@@ -13,8 +9,6 @@ use crate::{math::extension::DivToFloor, DEFAULT_CHUNK_SIZE};
 pub struct ChunkedStorage<T: Debug + Clone + Reflect> {
     pub chunk_size: u32,
     pub chunks: HashMap<IVec2, Vec<Option<T>>>,
-    pub down_left: IVec2,
-    pub up_right: IVec2,
 }
 
 impl<T: Debug + Clone + Reflect> Default for ChunkedStorage<T> {
@@ -22,8 +16,6 @@ impl<T: Debug + Clone + Reflect> Default for ChunkedStorage<T> {
         Self {
             chunk_size: DEFAULT_CHUNK_SIZE,
             chunks: Default::default(),
-            down_left: Default::default(),
-            up_right: Default::default(),
         }
     }
 }
@@ -33,8 +25,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         Self {
             chunk_size,
             chunks: HashMap::new(),
-            down_left: IVec2::ZERO,
-            up_right: IVec2::ZERO,
         }
     }
 
@@ -69,9 +59,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
             .entry(idx.0)
             .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])[idx.1] =
             elem;
-
-        self.down_left = self.down_left.min(index);
-        self.up_right = self.up_right.max(index);
     }
 
     pub fn transform_index(&self, index: IVec2) -> (IVec2, usize) {
@@ -79,17 +66,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         let c = index.div_to_floor(isize);
         let idx = index - c * isize;
         (c, (idx.y * isize.x + idx.x) as usize)
-    }
-
-    #[inline]
-    pub fn size(&self) -> UVec2 {
-        (self.up_right - self.down_left + IVec2::ONE).as_uvec2()
-    }
-
-    #[inline]
-    pub fn usize(&self) -> usize {
-        let size = self.size();
-        (size.x * size.y) as usize
     }
 
     #[inline]
@@ -110,5 +86,10 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
             });
         });
         mapper
+    }
+
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = &Option<T>> {
+        self.chunks.values().map(|c| c.iter()).flatten()
     }
 }

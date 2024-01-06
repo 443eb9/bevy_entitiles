@@ -9,13 +9,14 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::{
-        buffer::TileAnimation,
-        texture::{TilemapTexture, TilemapTextureDescriptor},
-    },
+    render::buffer::TileAnimation,
     tilemap::{
-        map::{TilemapBuilder, TilemapRotation},
-        tile::{TileBuilder, TilemapType},
+        bundles::TilemapBundle,
+        map::{
+            TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTextureDescriptor, TilemapType,
+        },
+        tile::TileBuilder,
     },
     EntiTilesPlugin,
 };
@@ -33,36 +34,42 @@ fn main() {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let mut tilemap = TilemapBuilder::new(
-        TilemapType::Square,
-        Vec2 { x: 16., y: 16. },
-        "test_map".to_string(),
-    )
-    .with_texture(TilemapTexture::new(
-        asset_server.load("test_square.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 16, y: 16 },
-            FilterMode::Nearest,
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = TilemapBundle {
+        tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
+        slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
+        ty: TilemapType::Square,
+        storage: TilemapStorage::new(16, entity),
+        texture: TilemapTexture::new(
+            asset_server.load("test_square.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 16, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
         ),
-        TilemapRotation::None,
-    ))
-    .build(&mut commands);
+        ..Default::default()
+    };
 
-    let anim_a = tilemap.register_animation(TileAnimation::new(vec![0, 1, 2, 3], 2.));
-    let anim_b = tilemap.register_animation(TileAnimation::new(vec![0, 1, 2], 3.));
+    let anim_a = tilemap
+        .animations
+        .register_animation(TileAnimation::new(vec![0, 1, 2, 3], 2.));
+    let anim_b = tilemap
+        .animations
+        .register_animation(TileAnimation::new(vec![0, 1, 2], 3.));
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
         TileBuilder::new().with_animation(anim_a),
     );
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 10, y: 10 }),
         TileBuilder::new().with_animation(anim_b),
     );
 
-    commands.entity(tilemap.id()).insert(tilemap);
+    commands.entity(entity).insert(tilemap);
 }

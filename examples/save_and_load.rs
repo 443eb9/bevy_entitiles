@@ -1,6 +1,6 @@
 use bevy::{
     app::Update,
-    ecs::{entity::Entity, system::Query},
+    ecs::{entity::Entity, query::With, system::Query},
     input::{keyboard::KeyCode, Input},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
@@ -10,7 +10,6 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     serializing::{
         load::{TilemapLoadFailure, TilemapLoaderBuilder},
         save::TilemapSaverBuilder,
@@ -18,9 +17,12 @@ use bevy_entitiles::{
     },
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
-        layer::TileLayer,
-        map::{Tilemap, TilemapBuilder, TilemapRotation},
-        tile::{TileBuilder, TilemapType},
+        bundles::TilemapBundle,
+        map::{
+            TilePivot, TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize,
+            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapType,
+        },
+        tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
@@ -44,31 +46,33 @@ fn main() {
 fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let mut tilemap = TilemapBuilder::new(
-        TilemapType::Isometric,
-        Vec2 { x: 32.0, y: 16.0 },
-        "test_map".to_string(),
-    )
-    .with_texture(TilemapTexture::new(
-        assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 32, y: 16 },
-            FilterMode::Nearest,
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = TilemapBundle {
+        name: TilemapName("test_map".to_string()),
+        tile_render_size: TileRenderSize(Vec2::new(32., 16.)),
+        slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
+        ty: TilemapType::Isometric,
+        storage: TilemapStorage::new(64, entity),
+        tile_pivot: TilePivot(Vec2 { x: 0.5, y: 0. }),
+        texture: TilemapTexture::new(
+            assets_server.load("test_isometric.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 32, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
         ),
-        TilemapRotation::None,
-    ))
-    .with_pivot(Vec2 { x: 0.5, y: 0. })
-    .with_chunk_size(64)
-    .build(&mut commands);
+        ..Default::default()
+    };
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
@@ -81,12 +85,14 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         })
     });
 
-    commands
-        .entity(tilemap.id())
-        .insert((tilemap, path_tilemap));
+    commands.entity(entity).insert((tilemap, path_tilemap));
 }
 
-fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Query<&Tilemap>) {
+fn save_and_load(
+    mut commands: Commands,
+    input: Res<Input<KeyCode>>,
+    tilemap: Query<Entity, With<TilemapStorage>>,
+) {
     // save
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
@@ -94,7 +100,7 @@ fn save_and_load(mut commands: Commands, input: Res<Input<KeyCode>>, tilemap: Qu
                 .with_layer(TilemapLayer::All)
                 .with_texture("test_isometric.png".to_string())
                 .remove_map_after_done()
-                .build(&mut commands, t.id());
+                .build(&mut commands, t);
             println!("Saved tilemap!");
         }
     }

@@ -23,7 +23,7 @@ use bevy_entitiles::{
         resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
     },
     math::TileArea,
-    tilemap::tile::TilemapType,
+    tilemap::map::TilemapType,
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
@@ -38,7 +38,7 @@ fn main() {
             EntiTilesPlugin,
             EntiTilesHelpersPlugin,
             PhysicsPlugins::default(),
-            PhysicsDebugPlugin::default(),
+            // PhysicsDebugPlugin::default(),
         ))
         .insert_resource(LdtkLevelManager::new(
             "assets/ldtk/wfc_source.ldtk".to_string(),
@@ -85,7 +85,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
-        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
+        WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
     ));
 
     commands.spawn((

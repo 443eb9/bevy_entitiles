@@ -40,7 +40,7 @@ pub fn fill_physics_tile(
     ty: &TilemapType,
     transform: &TilemapTransform,
     tile_pivot: &TilePivot,
-    tile_slot_size: &TilemapSlotSize,
+    slot_size: &TilemapSlotSize,
 ) {
     for y in area.origin.y..=area.dest.y {
         for x in area.origin.x..=area.dest.x {
@@ -53,7 +53,7 @@ pub fn fill_physics_tile(
                 ty,
                 transform,
                 tile_pivot,
-                tile_slot_size,
+                slot_size,
             );
         }
     }
@@ -69,7 +69,7 @@ pub fn set_physics_tile(
     ty: &TilemapType,
     transform: &TilemapTransform,
     tile_pivot: &TilePivot,
-    tile_slot_size: &TilemapSlotSize,
+    slot_size: &TilemapSlotSize,
 ) {
     let Some(tile_entity) = storage.get(index) else {
         return;
@@ -83,7 +83,7 @@ pub fn set_physics_tile(
         ty,
         transform,
         tile_pivot,
-        tile_slot_size,
+        slot_size,
     ))
     .unwrap();
 

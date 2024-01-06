@@ -1,7 +1,7 @@
 use bevy::{
     ecs::{entity::Entity, system::Commands},
     hierarchy::{BuildChildren, DespawnRecursiveExt},
-    math::{IVec2, UVec2, Vec2, Vec4},
+    math::{IVec2, Vec2, Vec4},
     sprite::SpriteBundle,
     utils::HashMap,
 };
@@ -10,12 +10,11 @@ use crate::{
     serializing::pattern::TilemapPattern,
     tilemap::{
         bundles::TilemapBundle,
-        layer::TileLayer,
         map::{
-            TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapTexture,
-            TilemapTransform, TilemapType,
+            TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
+            TilemapTexture, TilemapTransform, TilemapType,
         },
-        tile::{TileBuilder, TileTexture},
+        tile::{TileBuilder, TileLayer, TileTexture},
     },
 };
 
@@ -83,13 +82,10 @@ impl<'a> LdtkLayers<'a> {
         let tile_size = texture.desc.tile_size;
         let tile_index = IVec2 {
             x: tile.px[0] / tile_size.x as i32,
-            y: pattern.size.y as i32 - 1 - tile.px[1] / tile_size.y as i32,
+            y: -tile.px[1] / tile_size.y as i32,
         };
-        if pattern.is_index_oobi(tile_index) {
-            return;
-        }
 
-        if let Some(ser_tile) = pattern.get_mut(tile_index.as_uvec2()) {
+        if let Some(ser_tile) = pattern.get_mut(tile_index) {
             let TileTexture::Static(tile_layers) = &mut ser_tile.texture else {
                 unreachable!()
             };
@@ -103,7 +99,7 @@ impl<'a> LdtkLayers<'a> {
                         .with_flip_raw(tile.flip as u32),
                 )
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
-            pattern.set(tile_index.as_uvec2(), Some(builder.into()));
+            pattern.set(tile_index, builder.into());
         }
     }
 
@@ -119,13 +115,7 @@ impl<'a> LdtkLayers<'a> {
         }
 
         self.layers[layer_index] = Some((
-            TilemapPattern::new(
-                Some(layer.identifier.clone()),
-                UVec2 {
-                    x: layer.c_wid as u32,
-                    y: layer.c_hei as u32,
-                },
-            ),
+            TilemapPattern::new(Some(layer.identifier.clone())),
             tileset,
             LayerIid(layer.iid.clone()),
             layer.opacity,
@@ -145,8 +135,9 @@ impl<'a> LdtkLayers<'a> {
                             name: TilemapName(pattern.label.clone().unwrap()),
                             ty: TilemapType::Square,
                             tile_render_size: TileRenderSize(texture.desc.tile_size.as_vec2()),
-                            tile_slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
+                            slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
                             texture: texture.clone(),
+                            storage: TilemapStorage::new(32, tilemap_entity),
                             tilemap_transform: TilemapTransform {
                                 translation: self.translation,
                                 z_index: self.base_z_index - index as i32 - 1,
@@ -156,14 +147,7 @@ impl<'a> LdtkLayers<'a> {
                             ..Default::default()
                         };
 
-                        pattern.apply_tiles(
-                            commands,
-                            IVec2 {
-                                x: 0,
-                                y: -(pattern.size.y as i32),
-                            },
-                            &mut tilemap.storage,
-                        );
+                        pattern.apply_tiles(commands, IVec2::NEG_Y, &mut tilemap.storage);
 
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
@@ -189,7 +173,7 @@ impl<'a> LdtkLayers<'a> {
                                     &tilemap.ty,
                                     &tilemap.tilemap_transform,
                                     &tilemap.tile_pivot,
-                                    &tilemap.tile_slot_size,
+                                    &tilemap.slot_size,
                                     physics_layer.frictions.as_ref(),
                                     Vec2::ZERO,
                                 );

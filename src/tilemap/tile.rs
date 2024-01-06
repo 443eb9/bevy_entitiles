@@ -1,11 +1,66 @@
 use bevy::{
+    ecs::system::{ParallelCommands, Query},
     hierarchy::BuildChildren,
     math::IVec2,
     prelude::{Commands, Component, Entity, UVec2, Vec4},
     reflect::Reflect,
+    utils::HashMap,
 };
 
-use super::{layer::TileLayer, map::TilemapStorage};
+use crate::math::aabb::IAabb2d;
+
+use super::map::TilemapStorage;
+
+#[derive(Debug, Default, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TileLayer {
+    pub(crate) texture_index: i32,
+    pub(crate) flip: u32,
+}
+
+impl TileLayer {
+    pub fn new() -> Self {
+        Self {
+            texture_index: -1,
+            flip: 0,
+        }
+    }
+
+    pub fn with_texture_index(mut self, texture_index: u32) -> Self {
+        self.texture_index = texture_index as i32;
+        self
+    }
+
+    pub fn with_flip(mut self, flip: TileFlip) -> Self {
+        self.flip |= flip as u32;
+        self
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn with_flip_raw(mut self, flip: u32) -> Self {
+        self.flip = flip;
+        self
+    }
+}
+
+#[derive(Debug, Clone, Copy, Reflect)]
+pub enum TileLayerPosition {
+    Top,
+    Bottom,
+    Index(usize),
+}
+
+#[derive(Clone, Reflect)]
+pub struct LayerUpdater {
+    pub position: TileLayerPosition,
+    pub layer: TileLayer,
+}
+
+#[derive(Default, Component, Clone, Reflect)]
+pub struct TileUpdater {
+    pub layer: Option<LayerUpdater>,
+    pub color: Option<Vec4>,
+}
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, Reflect)]
@@ -116,35 +171,80 @@ pub struct Tile {
 
 #[derive(Debug, Clone, Reflect)]
 pub struct TileBuffer {
-    pub(crate) size: UVec2,
-    pub(crate) tiles: Vec<Option<TileBuilder>>,
+    pub(crate) tiles: HashMap<IVec2, TileBuilder>,
+    pub(crate) aabb: IAabb2d,
 }
 
 impl TileBuffer {
-    pub fn new(size: UVec2) -> Self {
+    pub fn new() -> Self {
         Self {
-            size,
-            tiles: vec![None; (size.x * size.y) as usize],
+            tiles: HashMap::new(),
+            aabb: IAabb2d::default(),
         }
     }
 
-    pub fn size(&self) -> UVec2 {
-        self.size
+    pub fn set(&mut self, index: IVec2, tile: TileBuilder) {
+        self.tiles.insert(index, tile);
+        self.aabb.expand_to_contain(index);
     }
 
-    pub fn set(&mut self, index: UVec2, tile: TileBuilder) {
-        self.tiles[(index.y * self.size.x + index.x) as usize] = Some(tile);
+    /// Warning: this method will cause aabb to be recalculated.
+    pub fn remove(&mut self, index: IVec2) {
+        self.tiles.remove(&index);
+        self.recalculate_aabb();
     }
 
-    pub fn get(&self, index: UVec2) -> Option<&TileBuilder> {
-        self.tiles
-            .get((index.y * self.size.x + index.x) as usize)
-            .and_then(|t| t.as_ref())
+    pub fn get(&self, index: IVec2) -> Option<&TileBuilder> {
+        self.tiles.get(&index)
     }
 
-    pub fn get_mut(&mut self, index: UVec2) -> Option<&mut TileBuilder> {
-        self.tiles
-            .get_mut((index.y * self.size.x + index.x) as usize)
-            .and_then(|t| t.as_mut())
+    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut TileBuilder> {
+        self.tiles.get_mut(&index)
     }
+
+    pub fn recalculate_aabb(&mut self) {
+        self.aabb = IAabb2d::default();
+        for (index, _) in self.tiles.iter() {
+            self.aabb.expand_to_contain(*index);
+        }
+    }
+    
+    #[inline]
+    pub fn aabb(&self) -> IAabb2d {
+        self.aabb
+    }
+}
+
+pub fn tile_updater(
+    commands: ParallelCommands,
+    mut tiles_query: Query<(Entity, &mut Tile, &TileUpdater)>,
+) {
+    tiles_query
+        .par_iter_mut()
+        .for_each(|(entity, mut tile, updater)| {
+            if let Some(layer) = &updater.layer {
+                if let TileTexture::Static(ref mut tex) = tile.texture {
+                    match layer.position {
+                        TileLayerPosition::Top => {
+                            tex.push(layer.layer);
+                        }
+                        TileLayerPosition::Bottom => {
+                            tex.insert(0, layer.layer);
+                        }
+                        TileLayerPosition::Index(i) => {
+                            if i >= tex.len() {
+                                tex.resize(i + 1, TileLayer::new());
+                            }
+                            tex[i] = layer.layer;
+                        }
+                    }
+                }
+            }
+            if let Some(color) = updater.color {
+                tile.color = color;
+            }
+            commands.command_scope(|mut c| {
+                c.entity(entity).remove::<TileUpdater>();
+            });
+        });
 }

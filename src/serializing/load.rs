@@ -6,7 +6,10 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query, Res},
     },
+    hierarchy::DespawnRecursiveExt,
+    math::IVec2,
     reflect::Reflect,
+    utils::HashMap,
 };
 use ron::error::SpannedError;
 use serde::Deserialize;
@@ -94,7 +97,7 @@ pub fn load(
         let failure = <TilemapLoader as Into<TilemapLoadFailure>>::into(loader.clone());
 
         let Ok(ser_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META) else {
-            complete(&mut commands, entity, failure);
+            complete(&mut commands, entity, failure, false);
             continue;
         };
 
@@ -109,8 +112,10 @@ pub fn load(
         };
 
         // texture
-        let serialized_tiles = if loader.layers & 1 != 0 && ser_tilemap.layers & 1 != 0 {
-            Some(load_object::<Vec<Option<SerializedTile>>>(&map_path, TILES))
+        let ser_tiles = if loader.layers & 1 != 0 && ser_tilemap.layers & 1 != 0 {
+            Some(load_object::<HashMap<IVec2, SerializedTile>>(
+                &map_path, TILES,
+            ))
         } else {
             None
         };
@@ -121,7 +126,7 @@ pub fn load(
             let Ok(path_tilemap) =
                 load_object::<crate::tilemap::algorithm::path::PathTilemap>(&map_path, PATH_TILES)
             else {
-                complete(&mut commands, entity, failure);
+                complete(&mut commands, entity, failure, false);
                 continue;
             };
 
@@ -133,27 +138,25 @@ pub fn load(
             storage: ChunkedStorage::new(ser_tilemap.chunk_size),
         };
 
-        if let Some(ser_tiles) = serialized_tiles {
+        if let Some(ser_tiles) = ser_tiles {
             let Ok(ser_tiles) = ser_tiles else {
-                complete(&mut commands, entity, failure);
+                complete(&mut commands, entity, failure, false);
                 continue;
             };
 
-            for i in 0..ser_tiles.len() {
-                if let Some(ser_t) = &ser_tiles[i] {
-                    storage.set(&mut commands, ser_t.index, ser_t.clone().into());
-                }
-            }
+            ser_tiles.into_iter().for_each(|(index, tile)| {
+                storage.set(&mut commands, index, tile.into());
+            });
         }
 
         if let Some(tex) = texture {
             let mut bundle = ser_tilemap.into_tilemap(entity, tex);
             bundle.storage = storage;
-            complete(&mut commands, entity, bundle);
+            complete(&mut commands, entity, bundle, true);
         } else {
             let mut bundle = ser_tilemap.into_pure_color_tilemap(entity);
             bundle.storage = storage;
-            complete(&mut commands, entity, bundle);
+            complete(&mut commands, entity, bundle, true);
         }
     }
 }
@@ -162,7 +165,11 @@ fn load_object<T: for<'a> Deserialize<'a>>(path: &str, file_name: &str) -> Resul
     ron::from_str(std::fs::read_to_string(format!("{}{}", path, file_name))?.as_str())
 }
 
-fn complete(commands: &mut Commands, entity: Entity, bundle: impl Bundle) {
-    commands.entity(entity).remove::<TilemapLoader>();
-    commands.entity(entity).insert(bundle);
+fn complete(commands: &mut Commands, entity: Entity, bundle: impl Bundle, is_success: bool) {
+    if is_success {
+        commands.entity(entity).remove::<TilemapLoader>();
+        commands.entity(entity).insert(bundle);
+    } else {
+        commands.entity(entity).despawn_recursive();
+    }
 }

@@ -57,7 +57,7 @@ pub struct SerializedTilemapData {
 pub struct SerializedTilemap {
     pub name: TilemapName,
     pub tile_render_size: TileRenderSize,
-    pub tile_slot_size: TilemapSlotSize,
+    pub slot_size: TilemapSlotSize,
     pub ty: TilemapType,
     pub tile_pivot: TilePivot,
     pub layer_opacities: TilemapLayerOpacities,
@@ -72,7 +72,7 @@ impl SerializedTilemap {
     pub fn from_tilemap(
         name: TilemapName,
         tile_render_size: TileRenderSize,
-        tile_slot_size: TilemapSlotSize,
+        slot_size: TilemapSlotSize,
         ty: TilemapType,
         tile_pivot: TilePivot,
         layer_opacities: TilemapLayerOpacities,
@@ -86,7 +86,7 @@ impl SerializedTilemap {
             name: name.clone(),
             ty,
             tile_render_size,
-            tile_slot_size,
+            slot_size,
             tile_pivot,
             texture: texture.and_then(|tex| {
                 Some(SerializedTilemapTexture {
@@ -108,7 +108,7 @@ impl SerializedTilemap {
             name: self.name.clone(),
             ty: self.ty,
             tile_render_size: self.tile_render_size,
-            tile_slot_size: self.tile_slot_size,
+            slot_size: self.slot_size,
             tile_pivot: self.tile_pivot,
             layer_opacities: self.layer_opacities,
             storage: TilemapStorage {
@@ -127,7 +127,7 @@ impl SerializedTilemap {
             name: self.name.clone(),
             ty: self.ty,
             tile_render_size: self.tile_render_size,
-            slot_size: self.tile_slot_size,
+            slot_size: self.slot_size,
             tile_pivot: self.tile_pivot,
             layer_opacities: self.layer_opacities,
             storage: TilemapStorage {

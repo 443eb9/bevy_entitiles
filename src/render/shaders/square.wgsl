@@ -4,5 +4,5 @@
 
 fn get_mesh_origin(input: VertexInput) -> vec2<f32> {
     let index = vec2<f32>(input.index.xy);
-    return index.xy * tilemap.tile_slot_size;
+    return index.xy * tilemap.slot_size;
 }

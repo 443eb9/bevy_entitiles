@@ -4,7 +4,6 @@ use bevy::app::{Plugin, Update};
 pub mod algorithm;
 pub mod bundles;
 pub mod coordinates;
-pub mod layer;
 pub mod map;
 #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
 pub mod physics;
@@ -15,7 +14,7 @@ pub struct EntiTilesTilemapPlugin;
 
 impl Plugin for EntiTilesTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, map::transform_syncer);
+        app.add_systems(Update, (map::transform_syncer, tile::tile_updater));
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmTilemapPlugin);

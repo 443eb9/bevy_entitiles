@@ -19,14 +19,14 @@ pub fn draw_chunk_aabb(
         &TilemapStorage,
     )>,
 ) {
-    for (ty, tile_pivot, tile_slot_size, transform, storage) in tilemaps.iter() {
+    for (ty, tile_pivot, slot_size, transform, storage) in tilemaps.iter() {
         storage.storage.chunks.keys().for_each(|chunk| {
             let aabb = Aabb2d::from_tilemap(
                 *chunk,
                 storage.storage.chunk_size,
                 *ty,
                 tile_pivot.0,
-                tile_slot_size.0,
+                slot_size.0,
                 *transform,
             );
             gizmos.rect_2d(

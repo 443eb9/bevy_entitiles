@@ -13,9 +13,12 @@ use bevy_entitiles::{
         TilemapLayer,
     },
     tilemap::{
-        layer::TileLayer,
-        map::TilemapBuilder,
-        tile::{TileBuilder, TilemapType},
+        bundles::PureColorTilemapBundle,
+        map::{
+            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTransform,
+            TilemapType,
+        },
+        tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
@@ -48,22 +51,24 @@ fn setup(mut commands: Commands) {
 
     for row in 0..ROWS {
         for col in 0..COLS {
-            let mut tilemap = TilemapBuilder::new(
-                TilemapType::Square,
-                Vec2 { x: 8., y: 8. },
-                format!("{}{}", PREFIX, col * ROWS + row),
-            )
-            .with_translation(Vec2 {
-                x: (col * TILE_SIZE) as f32 * 8.,
-                y: (row * TILE_SIZE) as f32 * -8. - 8. * PATTERN_SIZE as f32,
-            })
-            .with_chunk_size(16)
-            .build(&mut commands);
+            let entity = commands.spawn_empty().id();
+            let mut tilemap = PureColorTilemapBundle {
+                name: TilemapName(format!("{}{}", PREFIX, col * ROWS + row)),
+                tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
+                slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
+                ty: TilemapType::Square,
+                storage: TilemapStorage::new(16, entity),
+                tilemap_transform: TilemapTransform::from_translation(Vec2 {
+                    x: (col * TILE_SIZE) as f32 * 8.,
+                    y: (row * TILE_SIZE) as f32 * -8. - 8. * PATTERN_SIZE as f32,
+                }),
+                ..Default::default()
+            };
 
             for y in 0..TILE_SIZE {
                 for x in 0..TILE_SIZE {
                     let pixel = wfc_img.get_pixel(col * TILE_SIZE + x, row * TILE_SIZE + y);
-                    tilemap.set(
+                    tilemap.storage.set(
                         &mut commands,
                         IVec2 {
                             x: x as i32,
@@ -81,8 +86,8 @@ fn setup(mut commands: Commands) {
                 }
             }
 
-            tilemaps[(col + row * COLS) as usize] = tilemap.id();
-            commands.entity(tilemap.id()).insert(tilemap);
+            tilemaps[(col + row * COLS) as usize] = entity;
+            commands.entity(entity).insert(tilemap);
         }
     }
 
@@ -98,16 +103,11 @@ fn setup(mut commands: Commands) {
     // you need to comment the code below and run it once.
     // So the patterns are generated and saved to disk.
 
-    let wfc_map = TilemapBuilder::new(
-        TilemapType::Square,
-        Vec2 { x: 8., y: 8. },
-        "wfc_map".to_string(),
-    )
-    .build(&mut commands);
+    let entity = commands.spawn_empty().id();
 
     let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
 
-    commands.entity(wfc_map.id()).insert((
+    commands.entity(entity).insert((
         WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules),
         WfcRunner::new(
             TilemapType::Square,
@@ -116,5 +116,13 @@ fn setup(mut commands: Commands) {
             Some(0),
         )
         .with_retrace_settings(Some(8), Some(1000000)),
+        PureColorTilemapBundle {
+            name: TilemapName("wfc_map".to_string()),
+            tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
+            slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
+            ty: TilemapType::Square,
+            storage: TilemapStorage::new(16, entity),
+            ..Default::default()
+        },
     ));
 }

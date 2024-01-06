@@ -21,12 +21,14 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
-        layer::TileLayer,
-        map::{TilemapBuilder, TilemapRotation},
-        physics::TileCollision,
-        tile::{TileBuilder, TilemapType},
+        bundles::TilemapBundle,
+        map::{
+            TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
+            TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
+        },
+        physics::{rapier, TileCollision},
+        tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
@@ -63,73 +65,109 @@ fn setup(
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    let mut tilemap = TilemapBuilder::new(
-        TilemapType::Isometric,
-        Vec2 { x: 32., y: 16. },
-        "test_map".to_string(),
-    )
-    .with_texture(TilemapTexture::new(
-        assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 32, y: 16 },
-            FilterMode::Nearest,
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = TilemapBundle {
+        name: TilemapName("test_map".to_string()),
+        tile_render_size: TileRenderSize(Vec2::new(32., 16.)),
+        slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
+        ty: TilemapType::Isometric,
+        storage: TilemapStorage::new(16, entity),
+        tilemap_transform: TilemapTransform::from_z_index(-1),
+        texture: TilemapTexture::new(
+            assets_server.load("test_isometric.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 32, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
         ),
-        TilemapRotation::None,
-    ))
-    .with_z_index(-1)
-    .build(&mut commands);
+        ..Default::default()
+    };
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    tilemap.set_physics_tile_rapier(&mut commands, IVec2 { x: 19, y: 9 }, None, true);
+    rapier::set_physics_tile(
+        &mut commands,
+        IVec2 { x: 19, y: 9 },
+        None,
+        true,
+        &tilemap.storage,
+        &tilemap.ty,
+        &tilemap.tilemap_transform,
+        &tilemap.tile_pivot,
+        &tilemap.slot_size,
+    );
 
-    tilemap.fill_physics_tile_rapier(
+    rapier::fill_physics_tile(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
         Some(0.8),
         false,
+        &tilemap.storage,
+        &tilemap.ty,
+        &tilemap.tilemap_transform,
+        &tilemap.tile_pivot,
+        &tilemap.slot_size,
     );
 
-    commands.entity(tilemap.id()).insert(tilemap);
+    commands.entity(entity).insert(tilemap);
 
-    let mut tilemap = TilemapBuilder::new(
-        TilemapType::Square,
-        Vec2 { x: 16., y: 16. },
-        "test_map".to_string(),
-    )
-    .with_translation(Vec2 { x: 500., y: -100. })
-    .with_texture(TilemapTexture::new(
-        assets_server.load("test_square.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 16, y: 16 },
-            FilterMode::Nearest,
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = TilemapBundle {
+        name: TilemapName("test_map".to_string()),
+        tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
+        slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
+        ty: TilemapType::Square,
+        storage: TilemapStorage::new(16, entity),
+        tilemap_transform: TilemapTransform::from_translation(Vec2::new(500., -100.)),
+        texture: TilemapTexture::new(
+            assets_server.load("test_square.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 16, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
         ),
-        TilemapRotation::None,
-    ))
-    .build(&mut commands);
+        ..Default::default()
+    };
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    tilemap.set_physics_tile_rapier(&mut commands, IVec2 { x: 19, y: 9 }, None, true);
+    rapier::set_physics_tile(
+        &mut commands,
+        IVec2 { x: 19, y: 9 },
+        None,
+        true,
+        &tilemap.storage,
+        &tilemap.ty,
+        &tilemap.tilemap_transform,
+        &tilemap.tile_pivot,
+        &tilemap.slot_size,
+    );
 
-    tilemap.fill_physics_tile_rapier(
+    rapier::fill_physics_tile(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
         Some(0.8),
         false,
+        &tilemap.storage,
+        &tilemap.ty,
+        &tilemap.tilemap_transform,
+        &tilemap.tile_pivot,
+        &tilemap.slot_size,
     );
 
-    commands.entity(tilemap.id()).insert(tilemap);
+    commands.entity(entity).insert(tilemap);
 
     // spawn a character
     commands.spawn((

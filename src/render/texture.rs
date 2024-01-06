@@ -1,9 +1,8 @@
 use bevy::{
     asset::{Assets, Handle},
     ecs::{
-        entity::Entity,
-        query::With,
-        system::{Commands, Query, ResMut, Resource},
+        query::Added,
+        system::{Query, ResMut, Resource},
     },
     math::Vec2,
     prelude::Image,
@@ -20,7 +19,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor, WaitForTextureUsageChange};
+use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -178,15 +177,10 @@ impl TilemapTexturesStorage {
 }
 
 pub fn set_texture_usage(
-    mut commands: Commands,
-    mut tilemaps_query: Query<(Entity, &mut TilemapTexture), With<WaitForTextureUsageChange>>,
+    mut tilemaps_query: Query<&mut TilemapTexture, Added<TilemapTexture>>,
     mut image_assets: ResMut<Assets<Image>>,
 ) {
-    for (entity, mut texture) in tilemaps_query.iter_mut() {
-        texture.set_usage(&mut image_assets);
-
-        commands
-            .entity(entity)
-            .remove::<WaitForTextureUsageChange>();
-    }
+    tilemaps_query
+        .iter_mut()
+        .for_each(|mut tex| tex.set_usage(&mut image_assets));
 }

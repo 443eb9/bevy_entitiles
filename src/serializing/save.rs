@@ -9,7 +9,6 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query},
     },
-    math::UVec2,
     reflect::Reflect,
 };
 use serde::Serialize;
@@ -137,7 +136,7 @@ pub fn save(
         entity,
         name,
         tile_render_size,
-        tile_slot_size,
+        slot_size,
         ty,
         tile_pivot,
         layer_opacities,
@@ -154,7 +153,7 @@ pub fn save(
             let serialized_tilemap = SerializedTilemap::from_tilemap(
                 name.clone(),
                 *tile_render_size,
-                *tile_slot_size,
+                *slot_size,
                 *ty,
                 *tile_pivot,
                 *layer_opacities,
@@ -166,36 +165,23 @@ pub fn save(
             );
             save_object(&map_path, TILEMAP_META, &serialized_tilemap);
         }
-        let mut pattern = TilemapPattern {
-            label: None,
-            size: UVec2::ZERO,
-            tiles: vec![],
-            #[cfg(feature = "algorithm")]
-            path_tiles: None,
-        };
+        let mut pattern = TilemapPattern::new(Some(name.0.clone()));
 
         // color
         if saver.layers & 1 != 0 {
             let ser_tiles = storage
                 .storage
-                .chunks
-                .values()
-                .map(|e| e.iter())
-                .flatten()
-                .map(|e| {
-                    if let Some(tile) = e {
-                        Some(tiles_query.get(tile.clone()).cloned().unwrap().into())
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
+                .clone()
+                .into_mapper()
+                .iter()
+                .map(|t| (*t.0, tiles_query.get(*t.1).unwrap().clone().into()))
+                .collect();
 
             match saver.mode {
                 TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &ser_tiles),
                 TilemapSaverMode::MapPattern => {
-                    pattern.size = storage.storage.size();
                     pattern.tiles = ser_tiles;
+                    pattern.recalculate_aabb();
                 }
             }
         }
@@ -207,7 +193,7 @@ pub fn save(
                 match saver.mode {
                     TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &path_tilemap),
                     TilemapSaverMode::MapPattern => {
-                        pattern.path_tiles = Some(path_tilemap.storage.clone().into_mapper())
+                        pattern.path_tiles = Some(path_tilemap.storage.clone().into_mapper());
                     }
                 }
             }

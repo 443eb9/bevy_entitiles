@@ -2,11 +2,7 @@ use std::fmt::Debug;
 
 use bevy::{
     asset::Handle,
-    ecs::{
-        component::Component,
-        query::{Added, Changed},
-        system::Query,
-    },
+    ecs::{component::Component, query::Changed, system::Query},
     hierarchy::{BuildChildren, DespawnRecursiveExt},
     math::{Mat2, Quat, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
@@ -22,9 +18,8 @@ use crate::{
 };
 
 use super::{
-    layer::TileUpdater,
     storage::ChunkedStorage,
-    tile::{TileBuffer, TileBuilder},
+    tile::{TileBuffer, TileBuilder, TileUpdater},
 };
 
 /// Defines the shape of tiles in a tilemap.
@@ -57,6 +52,31 @@ pub struct TilemapTransform {
 }
 
 impl TilemapTransform {
+    #[inline]
+    pub fn from_translation(translation: Vec2) -> Self {
+        Self {
+            translation,
+            ..Default::default()
+        }
+    }
+
+    #[inline]
+    pub fn from_translation_3d(translation: Vec2, z: i32) -> Self {
+        Self {
+            translation,
+            z_index: z,
+            ..Default::default()
+        }
+    }
+
+    #[inline]
+    pub fn from_z_index(z: i32) -> Self {
+        Self {
+            z_index: z,
+            ..Default::default()
+        }
+    }
+
     #[inline]
     pub fn transform_point(&self, point: Vec2) -> Vec2 {
         self.apply_translation(self.apply_rotation(point))
@@ -234,9 +254,9 @@ pub struct TilemapStorage {
 }
 
 impl TilemapStorage {
-    pub fn new(chunk_size: u32) -> Self {
+    pub fn new(chunk_size: u32, binded_tilemap: Entity) -> Self {
         Self {
-            tilemap: Entity::PLACEHOLDER,
+            tilemap: binded_tilemap,
             storage: ChunkedStorage::new(chunk_size),
         }
     }
@@ -270,8 +290,8 @@ impl TilemapStorage {
     }
 
     #[inline]
-    pub(crate) fn set_entity(&mut self, index: IVec2, entity: Entity) {
-        self.storage.set(index, Some(entity));
+    pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
+        self.storage.set(index, entity);
     }
 
     pub fn update(&mut self, commands: &mut Commands, index: IVec2, updater: TileUpdater) {
@@ -282,13 +302,9 @@ impl TilemapStorage {
 
     /// Remove a tile.
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
-        if self.get(index).is_none() {
-            return;
-        }
-
         if let Some(entity) = self.get(index) {
             commands.entity(entity).despawn_recursive();
-            self.set_entity(index, entity);
+            self.set_entity(index, None);
         }
     }
 
@@ -311,7 +327,7 @@ impl TilemapStorage {
                     e
                 } else {
                     let e = commands.spawn_empty().id();
-                    self.set_entity(index, e);
+                    self.set_entity(index, Some(e));
                     entities.push(e);
                     e
                 };
@@ -353,7 +369,7 @@ impl TilemapStorage {
                     e
                 } else {
                     let e = commands.spawn_empty().id();
-                    self.set_entity(index, e);
+                    self.set_entity(index, Some(e));
                     entities.push(e);
                     e
                 };
@@ -365,37 +381,23 @@ impl TilemapStorage {
         commands.entity(self.tilemap).push_children(&entities);
     }
 
-    /// Fill a rectangle area with tiles from a buffer. This can be faster than set them one by one.
+    /// Fill a rectangle area with tiles from a buffer. This can be faster than setting them one by one.
     pub fn fill_with_buffer(&mut self, commands: &mut Commands, origin: IVec2, buffer: TileBuffer) {
-        let mut entities = Vec::with_capacity((buffer.size.x * buffer.size.y) as usize);
+        let mut entities = Vec::with_capacity(buffer.tiles.len());
 
         let batch = buffer
             .tiles
             .into_iter()
-            .enumerate()
-            .filter_map(|(index, b)| {
-                if let Some(builder) = b {
-                    let tile = builder.build_component(
-                        UVec2 {
-                            x: index as u32 % buffer.size.x,
-                            y: index as u32 / buffer.size.x,
-                        }
-                        .as_ivec2()
-                            + origin,
-                        &self,
-                        self.tilemap,
-                    );
+            .filter_map(|(i, b)| {
+                let tile = b.build_component(i + origin, &self, self.tilemap);
 
-                    if let Some(e) = self.get(tile.index) {
-                        Some((e, tile))
-                    } else {
-                        let e = commands.spawn_empty().id();
-                        self.set_entity(tile.index, e);
-                        entities.push(e);
-                        Some((e, tile))
-                    }
+                if let Some(e) = self.get(tile.index) {
+                    Some((e, tile))
                 } else {
-                    None
+                    let e = commands.spawn_empty().id();
+                    self.set_entity(tile.index, Some(e));
+                    entities.push(e);
+                    Some((e, tile))
                 }
             })
             .collect::<Vec<_>>();
@@ -404,7 +406,7 @@ impl TilemapStorage {
         commands.entity(self.tilemap).push_children(&entities);
     }
 
-    /// Simlar to `Tilemap::fill_rect()`.
+    /// Simlar to `TilemapStorage::fill_rect()`.
     pub fn update_rect(&mut self, commands: &mut Commands, area: TileArea, updater: TileUpdater) {
         let mut batch = Vec::with_capacity(area.size());
 
@@ -419,7 +421,7 @@ impl TilemapStorage {
         commands.insert_or_spawn_batch(batch);
     }
 
-    /// Simlar to `Tilemap::fill_rect_custom()`.
+    /// Simlar to `TilemapStorage::fill_rect_custom()`.
     pub fn update_rect_custom(
         &mut self,
         commands: &mut Commands,
@@ -479,9 +481,6 @@ impl TilemapAnimations {
     }
 }
 
-#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
-pub struct WaitForTextureUsageChange;
-
 pub fn transform_syncer(
     mut tilemap_query: Query<(&TilemapTransform, &mut Transform), Changed<TilemapTransform>>,
 ) {
@@ -490,11 +489,5 @@ pub fn transform_syncer(
             .translation
             .extend(tilemap_transform.z_index as f32);
         transform.rotation = Quat::from_rotation_z(tilemap_transform.rotation as u32 as f32);
-    });
-}
-
-pub fn storage_binder(mut tilemap_query: Query<(Entity, &mut TilemapStorage), Added<TilemapStorage>>) {
-    tilemap_query.for_each_mut(|(entity, mut storage)| {
-        storage.tilemap = entity;
     });
 }

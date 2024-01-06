@@ -7,7 +7,6 @@ use bevy::{
     },
     render::Extract,
     time::Time,
-    window::Window,
 };
 
 use crate::tilemap::{
@@ -23,7 +22,7 @@ pub struct ExtractedTilemap {
     pub id: Entity,
     pub name: String,
     pub tile_render_size: Vec2,
-    pub tile_slot_size: Vec2,
+    pub slot_size: Vec2,
     pub ty: TilemapType,
     pub tile_pivot: Vec2,
     pub layer_opacities: Vec4,
@@ -34,7 +33,7 @@ pub struct ExtractedTilemap {
     pub time: f32,
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct ExtractedTile {
     pub tilemap: Entity,
     pub chunk_index: IVec2,
@@ -44,11 +43,10 @@ pub struct ExtractedTile {
     pub color: Vec4,
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct ExtractedView {
-    pub width: f32,
-    pub height: f32,
-    pub scale: f32,
+    pub min: Vec2,
+    pub max: Vec2,
     pub transform: Vec2,
 }
 
@@ -76,7 +74,7 @@ pub fn extract_tilemaps(
         entity,
         name,
         tile_render_size,
-        tile_slot_size,
+        slot_size,
         ty,
         tile_pivot,
         layer_opacities,
@@ -92,7 +90,7 @@ pub fn extract_tilemaps(
                 id: entity,
                 name: name.0.clone(),
                 tile_render_size: tile_render_size.0,
-                tile_slot_size: tile_slot_size.0,
+                slot_size: slot_size.0,
                 ty: *ty,
                 tile_pivot: tile_pivot.0,
                 layer_opacities: layer_opacities.0,
@@ -137,20 +135,14 @@ pub fn extract_view(
             Or<(Changed<Transform>, Changed<OrthographicProjection>)>,
         >,
     >,
-    windows: Extract<Query<&Window>>,
 ) {
-    let Ok(window) = windows.get_single() else {
-        return;
-    };
-
     let mut extracted_cameras = vec![];
     for (entity, projection, _, transform) in cameras.iter() {
         extracted_cameras.push((
             entity,
             ExtractedView {
-                width: window.width() / 2.,
-                height: window.height() / 2.,
-                scale: projection.scale,
+                min: projection.area.min,
+                max: projection.area.max,
                 transform: transform.translation.xy(),
             },
         ));

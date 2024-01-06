@@ -11,13 +11,11 @@ use bevy_entitiles::{
     math::TileArea,
     tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
-        layer::{LayerUpdater, TileLayer, TileLayerPosition, TileUpdater},
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTextureDescriptor, TilemapTransform,
+            TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
         },
-        storage::ChunkedStorage,
-        tile::{TileBuilder, TileFlip, TilemapType},
+        tile::{LayerUpdater, TileBuilder, TileFlip, TileLayer, TileLayerPosition, TileUpdater},
     },
     EntiTilesPlugin,
 };
@@ -50,9 +48,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let mut tilemap = TilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
-        tile_slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
+        slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
         ty: TilemapType::Square,
-        storage: TilemapStorage::new(32),
+        storage: TilemapStorage::new(16, entity),
         texture: TilemapTexture::new(
             assets_server.load("test_square.png"),
             TilemapTextureDescriptor::new(
@@ -125,7 +123,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileArea::new(IVec2 { x: 1, y: 3 }, UVec2 { x: 3, y: 3 }),
         TileUpdater {
             layer: Some(LayerUpdater {
-                position: TileLayerPosition::Index(1),
+                position: TileLayerPosition::Top,
                 layer: TileLayer::new().with_texture_index(3),
             }),
             ..Default::default()
@@ -138,9 +136,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     let mut tilemap = TilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 32., y: 16. }),
-        tile_slot_size: TilemapSlotSize(Vec2 { x: 32., y: 16. }),
+        slot_size: TilemapSlotSize(Vec2 { x: 32., y: 16. }),
         ty: TilemapType::Isometric,
-        storage: TilemapStorage::new(32),
+        storage: TilemapStorage::new(32, entity),
         texture: TilemapTexture::new(
             assets_server.load("test_isometric.png"),
             TilemapTextureDescriptor::new(
@@ -171,7 +169,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
         ty: TilemapType::Square,
-        storage: TilemapStorage::new(32),
+        storage: TilemapStorage::new(32, entity),
         tilemap_transform: TilemapTransform {
             translation: Vec2 { x: 0., y: -300. },
             ..Default::default()

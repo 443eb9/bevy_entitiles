@@ -25,7 +25,7 @@ use super::{
 };
 
 #[derive(Clone)]
-pub struct TileData {
+pub struct MeshTileData {
     // when the third component of index is 1,
     // it means this tile is a animated tile
     pub index: IVec3,
@@ -43,7 +43,7 @@ pub struct TilemapRenderChunk {
     pub ty: TilemapType,
     pub size: u32,
     pub texture: Option<TilemapTexture>,
-    pub tiles: Vec<Option<TileData>>,
+    pub tiles: Vec<Option<MeshTileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
     pub aabb: Aabb2d,
@@ -51,10 +51,9 @@ pub struct TilemapRenderChunk {
 
 impl TilemapRenderChunk {
     pub fn from_index(index: IVec2, tilemap: &ExtractedTilemap) -> Self {
-        let idx = index.div_to_floor(IVec2::splat(tilemap.chunk_size as i32));
         TilemapRenderChunk {
             visible: true,
-            index: idx,
+            index: index.div_to_floor(IVec2::splat(tilemap.chunk_size as i32)),
             size: tilemap.chunk_size,
             ty: tilemap.ty,
             texture: tilemap.texture.clone(),
@@ -67,7 +66,7 @@ impl TilemapRenderChunk {
                 tilemap.chunk_size,
                 tilemap.ty,
                 tilemap.tile_pivot,
-                tilemap.tile_slot_size,
+                tilemap.slot_size,
                 tilemap.transform,
             ),
         }
@@ -196,7 +195,7 @@ impl TilemapRenderChunk {
             }
         };
 
-        self.tiles[index] = Some(TileData {
+        self.tiles[index] = Some(MeshTileData {
             index: tile_index,
             texture_indices,
             color: tile.color,
@@ -236,7 +235,7 @@ impl RenderChunkStorage {
 
             let chunk = chunks
                 .entry(tile.chunk_index)
-                .or_insert_with(|| TilemapRenderChunk::from_index(tile.index, tilemap));
+                .or_insert_with(|| TilemapRenderChunk::from_index(tile.chunk_index, tilemap));
 
             chunk.set_tile(tile.in_chunk_index, tile);
         }

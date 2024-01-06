@@ -2,13 +2,12 @@ use bevy::{app::Update, prelude::Plugin};
 use math::{aabb::Aabb2d, TileArea};
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
-    layer::{LayerUpdater, TileLayer, TileUpdater},
     map::{
-        self, TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
         TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
         TilemapTransform, TilemapType,
     },
-    tile::{Tile, TileTexture},
+    tile::{LayerUpdater, Tile, TileLayer, TileTexture, TileUpdater},
     EntiTilesTilemapPlugin,
 };
 
@@ -48,13 +47,12 @@ pub mod prelude {
     pub use crate::tilemap::physics::TileCollision;
     pub use crate::tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
-        layer::{TileLayer, TileUpdater},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
             TilemapTransform, TilemapType,
         },
-        tile::TileBuilder,
+        tile::{TileBuilder, TileLayer, TileUpdater},
     };
     #[cfg(feature = "ui")]
     pub use crate::ui::UiTileMaterialRegistry;
@@ -64,7 +62,7 @@ pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, (texture::set_texture_usage, map::storage_binder));
+        app.add_systems(Update, texture::set_texture_usage);
 
         app.add_plugins((EntiTilesTilemapPlugin, EntiTilesRendererPlugin));
 
