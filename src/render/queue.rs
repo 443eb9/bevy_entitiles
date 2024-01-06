@@ -86,7 +86,7 @@ pub fn queue(
                 &entitile_pipeline,
                 EntiTilesPipelineKey {
                     msaa: msaa.samples(),
-                    map_type: tilemap.tile_type,
+                    map_type: tilemap.ty,
                     is_pure_color,
                 },
             );

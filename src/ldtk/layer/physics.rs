@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::system::Commands,
+    ecs::{entity::Entity, system::Commands},
     hierarchy::BuildChildren,
     math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
@@ -9,7 +9,10 @@ use bevy::{
 
 use crate::{
     ldtk::json::{definitions::LayerType, level::LayerInstance},
-    tilemap::map::Tilemap,
+    tilemap::{
+        coordinates,
+        map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
+    },
 };
 
 #[derive(Debug, Clone, Reflect)]
@@ -29,21 +32,37 @@ impl LdtkPhysicsAabbs {
     pub fn generate_colliders(
         &self,
         commands: &mut Commands,
-        tilemap: &Tilemap,
+        tilemap: Entity,
+        ty: &TilemapType,
+        transform: &TilemapTransform,
+        pivot: &TilePivot,
+        slot_size: &TilemapSlotSize,
         frictions: Option<&HashMap<i32, f32>>,
         offset: Vec2,
     ) {
         self.aabbs
             .iter()
             .map(|(i, (min, max))| {
-                let left_top = tilemap.index_to_rel(IVec2 {
-                    x: min.x as i32,
-                    y: -(min.y as i32),
-                });
-                let right_btm = tilemap.index_to_rel(IVec2 {
-                    x: (max.x + 1) as i32,
-                    y: -(max.y as i32) - 1,
-                });
+                let left_top = coordinates::index_to_rel(
+                    IVec2 {
+                        x: min.x as i32,
+                        y: -(min.y as i32),
+                    },
+                    ty,
+                    transform,
+                    pivot,
+                    slot_size,
+                );
+                let right_btm = coordinates::index_to_rel(
+                    IVec2 {
+                        x: (max.x + 1) as i32,
+                        y: -(max.y as i32) - 1,
+                    },
+                    ty,
+                    transform,
+                    pivot,
+                    slot_size,
+                );
                 (
                     i,
                     crate::math::aabb::Aabb2d {
@@ -63,7 +82,7 @@ impl LdtkPhysicsAabbs {
                     local: Transform::from_translation((aabb.center() + offset).extend(0.)),
                     ..Default::default()
                 });
-                collider.set_parent(tilemap.id);
+                collider.set_parent(tilemap);
 
                 #[cfg(feature = "physics_xpbd")]
                 {

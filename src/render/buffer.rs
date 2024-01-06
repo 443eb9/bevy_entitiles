@@ -15,7 +15,7 @@ use bevy::{
     utils::EntityHashMap,
 };
 
-use crate::{tilemap::tile::TileType, MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH};
+use crate::{tilemap::map::TilemapType, MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH};
 
 use super::extract::ExtractedTilemap;
 
@@ -111,7 +111,6 @@ pub struct TilemapUniform {
     pub rotation: Mat2,
     pub uv_rotation: u32,
     pub tile_render_size: Vec2,
-    pub ext_dir: Vec2,
     pub tile_slot_size: Vec2,
     pub pivot: Vec2,
     pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
@@ -137,18 +136,24 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
                 0
             }
         };
+        let mut anim_seqs = [TileAnimation::default(); MAX_ANIM_COUNT];
+        if let Some(anims) = extracted.animations.as_ref() {
+            anims.0.iter().enumerate().for_each(|(i, a)| {
+                anim_seqs[i] = *a;
+            });
+        }
+
         DynamicOffsetComponent::new(self.buffer.push(TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
             uv_rotation,
             tile_render_size: extracted.tile_render_size,
-            ext_dir: extracted.ext_dir,
             tile_slot_size: extracted.tile_slot_size,
-            pivot: extracted.pivot,
-            anim_seqs: extracted.anim_seqs,
+            pivot: extracted.tile_pivot,
+            anim_seqs,
             layer_opacities: extracted.layer_opacities,
-            hex_legs: match extracted.tile_type {
-                TileType::Hexagonal(legs) => legs as f32,
+            hex_legs: match extracted.ty {
+                TilemapType::Hexagonal(legs) => legs as f32,
                 _ => 0.,
             },
             time: extracted.time,

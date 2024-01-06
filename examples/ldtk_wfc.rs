@@ -23,7 +23,7 @@ use bevy_entitiles::{
         resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
     },
     math::TileArea,
-    tilemap::tile::TileType,
+    tilemap::tile::TilemapType,
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
@@ -77,10 +77,10 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
         })
         .load_all_patterns(&mut commands);
 
-    let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TileType::Square);
+    let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TilemapType::Square);
     commands.spawn((
         WfcRunner::new(
-            TileType::Square,
+            TilemapType::Square,
             rules,
             TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,

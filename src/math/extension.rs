@@ -3,7 +3,7 @@ use bevy::{
     prelude::{UVec2, Vec2},
 };
 
-use crate::tilemap::tile::TileType;
+use crate::tilemap::map::TilemapType;
 
 pub trait F32ToU32 {
     fn round_to_u32(self) -> u32;
@@ -97,13 +97,13 @@ impl ManhattanDistance<u32> for IVec2 {
 }
 
 pub trait TileIndex<T> {
-    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<T>>;
+    fn neighbours(self, ty: TilemapType, allow_diagonal: bool) -> Vec<Option<T>>;
 }
 
 impl TileIndex<IVec2> for IVec2 {
-    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<IVec2>> {
+    fn neighbours(self, ty: TilemapType, allow_diagonal: bool) -> Vec<Option<IVec2>> {
         match ty {
-            TileType::Hexagonal(_) => [
+            TilemapType::Hexagonal(_) => [
                 IVec2::ONE,
                 IVec2::ONE,
                 IVec2::NEG_ONE,
@@ -139,9 +139,9 @@ impl TileIndex<IVec2> for IVec2 {
 }
 
 impl TileIndex<UVec2> for UVec2 {
-    fn neighbours(self, ty: TileType, allow_diagonal: bool) -> Vec<Option<UVec2>> {
+    fn neighbours(self, ty: TilemapType, allow_diagonal: bool) -> Vec<Option<UVec2>> {
         match ty {
-            TileType::Hexagonal(_) => [
+            TilemapType::Hexagonal(_) => [
                 IVec2::ONE,
                 IVec2::ONE,
                 IVec2::NEG_ONE,

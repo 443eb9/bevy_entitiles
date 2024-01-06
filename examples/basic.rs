@@ -9,11 +9,15 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
+        bundles::{PureColorTilemapBundle, TilemapBundle},
         layer::{LayerUpdater, TileLayer, TileLayerPosition, TileUpdater},
-        map::{TilemapBuilder, TilemapRotation},
-        tile::{TileBuilder, TileFlip, TileType},
+        map::{
+            TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
+            TilemapTexture, TilemapTextureDescriptor, TilemapTransform,
+        },
+        storage::ChunkedStorage,
+        tile::{TileBuilder, TileFlip, TilemapType},
     },
     EntiTilesPlugin,
 };
@@ -42,29 +46,32 @@ fn main() {
 fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
-    let mut tilemap = TilemapBuilder::new(
-        TileType::Square,
-        Vec2 { x: 16., y: 16. },
-        "test_map".to_string(),
-    )
-    .with_texture(TilemapTexture::new(
-        assets_server.load("test_square.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 16, y: 16 },
-            FilterMode::Nearest,
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = TilemapBundle {
+        name: TilemapName("test_map".to_string()),
+        tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
+        tile_slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
+        ty: TilemapType::Square,
+        storage: TilemapStorage::new(32),
+        texture: TilemapTexture::new(
+            assets_server.load("test_square.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 16, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
         ),
-        TilemapRotation::None,
-    ))
-    .build(&mut commands);
+        ..Default::default()
+    };
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new()
@@ -72,7 +79,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             .with_color(Vec4::new(0.8, 1., 0.8, 0.5)),
     );
 
-    tilemap.set(
+    tilemap.storage.set(
         &mut commands,
         IVec2 { x: 18, y: 8 },
         TileBuilder::new()
@@ -80,7 +87,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             .with_color(Color::BLUE.into()),
     );
 
-    tilemap.set(
+    tilemap.storage.set(
         &mut commands,
         IVec2 { x: 1, y: 1 },
         TileBuilder::new().with_layer(
@@ -91,7 +98,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         ),
     );
 
-    tilemap.set(
+    tilemap.storage.set(
         &mut commands,
         IVec2 { x: 1, y: 2 },
         TileBuilder::new().with_layer(
@@ -102,7 +109,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         ),
     );
 
-    tilemap.set(
+    tilemap.storage.set(
         &mut commands,
         IVec2 { x: 1, y: 3 },
         TileBuilder::new().with_layer(
@@ -113,7 +120,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         ),
     );
 
-    tilemap.update_rect(
+    tilemap.storage.update_rect(
         &mut commands,
         TileArea::new(IVec2 { x: 1, y: 3 }, UVec2 { x: 3, y: 3 }),
         TileUpdater {
@@ -125,42 +132,54 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         },
     );
 
-    commands.entity(tilemap.id()).insert(tilemap);
+    commands.entity(entity).insert(tilemap);
 
-    let mut tilemap = TilemapBuilder::new(
-        TileType::Isometric,
-        Vec2 { x: 32., y: 16. },
-        "test_map".to_string(),
-    )
-    .with_texture(TilemapTexture::new(
-        assets_server.load("test_isometric.png"),
-        TilemapTextureDescriptor::new(
-            UVec2 { x: 32, y: 32 },
-            UVec2 { x: 32, y: 16 },
-            FilterMode::Nearest,
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = TilemapBundle {
+        name: TilemapName("test_map".to_string()),
+        tile_render_size: TileRenderSize(Vec2 { x: 32., y: 16. }),
+        tile_slot_size: TilemapSlotSize(Vec2 { x: 32., y: 16. }),
+        ty: TilemapType::Isometric,
+        storage: TilemapStorage::new(32),
+        texture: TilemapTexture::new(
+            assets_server.load("test_isometric.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 32, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
         ),
-        TilemapRotation::None,
-    ))
-    .with_translation(Vec2 { x: -400., y: 0. })
-    .build(&mut commands);
+        tilemap_transform: TilemapTransform {
+            translation: Vec2 { x: -400., y: 0. },
+            ..Default::default()
+        },
+        ..Default::default()
+    };
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    commands.entity(tilemap.id()).insert(tilemap);
+    commands.entity(entity).insert(tilemap);
 
-    let mut tilemap = TilemapBuilder::new(
-        TileType::Square,
-        Vec2 { x: 16., y: 16. },
-        "test_map".to_string(),
-    )
-    .with_translation(Vec2 { x: 0., y: -300. })
-    .build(&mut commands);
+    let entity = commands.spawn_empty().id();
+    let mut tilemap = PureColorTilemapBundle {
+        name: TilemapName("test_map".to_string()),
+        tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
+        slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
+        ty: TilemapType::Square,
+        storage: TilemapStorage::new(32),
+        tilemap_transform: TilemapTransform {
+            translation: Vec2 { x: 0., y: -300. },
+            ..Default::default()
+        },
+        ..Default::default()
+    };
 
-    tilemap.fill_rect(
+    tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new()
@@ -168,5 +187,5 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             .with_color(Vec4::new(1., 1., 0., 1.)),
     );
 
-    commands.entity(tilemap.id()).insert(tilemap);
+    commands.entity(entity).insert(tilemap);
 }

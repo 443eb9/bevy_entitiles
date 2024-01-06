@@ -45,7 +45,6 @@ struct Tilemap {
     rot_mat: mat2x2<f32>,
     uv_rot: u32,
     tile_render_size: vec2<f32>,
-    ext_dir: vec2<f32>,
     tile_slot_size: vec2<f32>,
     pivot: vec2<f32>,
     // MAX_ANIM_COUNT MAX_ANIM_SEQ_LENGTH

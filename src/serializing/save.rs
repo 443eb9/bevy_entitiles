@@ -14,7 +14,13 @@ use bevy::{
 };
 use serde::Serialize;
 
-use crate::tilemap::{map::Tilemap, tile::Tile};
+use crate::tilemap::{
+    map::{
+        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+    },
+    tile::Tile,
+};
 
 use super::{pattern::TilemapPattern, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
@@ -108,17 +114,56 @@ pub struct TilemapSaver {
 
 pub fn save(
     mut commands: Commands,
-    tilemaps_query: Query<(Entity, &Tilemap, &TilemapSaver)>,
+    tilemaps_query: Query<(
+        Entity,
+        &TilemapName,
+        &TileRenderSize,
+        &TilemapSlotSize,
+        &TilemapType,
+        &TilePivot,
+        &TilemapLayerOpacities,
+        &TilemapStorage,
+        &TilemapTransform,
+        Option<&TilemapTexture>,
+        Option<&TilemapAnimations>,
+        &TilemapSaver,
+    )>,
     tiles_query: Query<&Tile>,
     #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
         &crate::tilemap::algorithm::path::PathTilemap,
     >,
 ) {
-    for (entity, tilemap, saver) in tilemaps_query.iter() {
-        let map_path = format!("{}\\{}\\", saver.path, tilemap.name);
+    for (
+        entity,
+        name,
+        tile_render_size,
+        tile_slot_size,
+        ty,
+        tile_pivot,
+        layer_opacities,
+        storage,
+        transform,
+        texture,
+        animations,
+        saver,
+    ) in tilemaps_query.iter()
+    {
+        let map_path = format!("{}\\{}\\", saver.path, name.0);
 
         if saver.mode == TilemapSaverMode::Tilemap {
-            let serialized_tilemap = SerializedTilemap::from_tilemap(tilemap, saver);
+            let serialized_tilemap = SerializedTilemap::from_tilemap(
+                name.clone(),
+                *tile_render_size,
+                *tile_slot_size,
+                *ty,
+                *tile_pivot,
+                *layer_opacities,
+                storage.clone(),
+                transform.clone(),
+                texture.cloned(),
+                animations.cloned(),
+                saver,
+            );
             save_object(&map_path, TILEMAP_META, &serialized_tilemap);
         }
         let mut pattern = TilemapPattern {
@@ -131,7 +176,7 @@ pub fn save(
 
         // color
         if saver.layers & 1 != 0 {
-            let ser_tiles = tilemap
+            let ser_tiles = storage
                 .storage
                 .chunks
                 .values()
@@ -149,7 +194,7 @@ pub fn save(
             match saver.mode {
                 TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &ser_tiles),
                 TilemapSaverMode::MapPattern => {
-                    pattern.size = tilemap.storage.size();
+                    pattern.size = storage.storage.size();
                     pattern.tiles = ser_tiles;
                 }
             }
@@ -171,7 +216,7 @@ pub fn save(
         if saver.mode == TilemapSaverMode::MapPattern {
             save_object(
                 format!("{}\\", saver.path).as_str(),
-                format!("{}.ron", tilemap.name).as_str(),
+                format!("{}.ron", name.0).as_str(),
                 &pattern,
             );
         }

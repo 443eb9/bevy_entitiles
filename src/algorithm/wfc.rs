@@ -14,12 +14,15 @@ use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
     math::{extension::TileIndex, TileArea},
-    render::texture::TilemapTexture,
     serializing::{pattern::TilemapPattern, SerializedTile},
     tilemap::{
+        bundles::{PureColorTilemapBundle, TilemapBundle},
         layer::TileLayer,
-        map::{Tilemap, TilemapBuilder},
-        tile::{TileTexture, TileType},
+        map::{
+            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTransform, TilemapType,
+        },
+        tile::TileTexture,
     },
 };
 
@@ -37,7 +40,7 @@ const HEX_DIR: [&'static str; 6] = [
 pub struct WfcRules(pub Vec<Vec<u128>>);
 
 impl WfcRules {
-    pub fn from_file(rule_path: &str, tile_type: TileType) -> Self {
+    pub fn from_file(rule_path: &str, ty: TilemapType) -> Self {
         let rule_vec: Vec<Vec<Vec<u8>>> =
             ron::from_str(std::fs::read_to_string(rule_path).unwrap().as_str()).unwrap();
 
@@ -49,8 +52,8 @@ impl WfcRules {
         let mut rule_set = Vec::with_capacity(rule_vec.len());
         for tex_idx in 0..rule_vec.len() {
             let mut tex_rule: Vec<Vec<u8>> = {
-                match tile_type {
-                    TileType::Hexagonal(_) => vec![vec![]; 6],
+                match ty {
+                    TilemapType::Hexagonal(_) => vec![vec![]; 6],
                     _ => vec![vec![]; 4],
                 }
             };
@@ -65,8 +68,8 @@ impl WfcRules {
         let mut rule = Vec::with_capacity(rule_set.len());
         for tex_idx in 0..rule_set.len() {
             let mut tex_rule = {
-                match tile_type {
-                    TileType::Hexagonal(_) => vec![0; 6],
+                match ty {
+                    TilemapType::Hexagonal(_) => vec![0; 6],
                     _ => vec![0; 4],
                 }
             };
@@ -79,14 +82,14 @@ impl WfcRules {
         }
 
         let res = Self(rule);
-        res.check_rules(tile_type);
+        res.check_rules(ty);
         res
     }
 
     /// Check if there are conflicts in the rules.
-    pub fn check_rules(&self, tile_type: TileType) {
-        let (total_dirs, dir_names) = match tile_type {
-            TileType::Hexagonal(_) => (6, HEX_DIR.to_vec()),
+    pub fn check_rules(&self, ty: TilemapType) {
+        let (total_dirs, dir_names) = match ty {
+            TilemapType::Hexagonal(_) => (6, HEX_DIR.to_vec()),
             _ => (4, DIR.to_vec()),
         };
 
@@ -192,7 +195,7 @@ impl WfcSource {
 pub struct WfcRunner {
     conn_rules: Vec<Vec<u128>>,
     mode: WfcMode,
-    tile_type: TileType,
+    ty: TilemapType,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     seed: Option<u64>,
     area: TileArea,
@@ -203,12 +206,12 @@ pub struct WfcRunner {
 }
 
 impl WfcRunner {
-    pub fn new(tile_type: TileType, rules: WfcRules, area: TileArea, seed: Option<u64>) -> Self {
+    pub fn new(ty: TilemapType, rules: WfcRules, area: TileArea, seed: Option<u64>) -> Self {
         let size = area.size();
         Self {
             conn_rules: rules.0,
             mode: WfcMode::NonWeighted,
-            tile_type,
+            ty,
             sampler: None,
             area,
             seed,
@@ -370,7 +373,7 @@ pub struct WfcHistory {
 #[derive(Component)]
 pub struct WfcGrid {
     mode: WfcMode,
-    tile_type: TileType,
+    ty: TilemapType,
     area: TileArea,
     rng: StdRng,
     conn_rules: Vec<Vec<u128>>,
@@ -417,7 +420,7 @@ impl WfcGrid {
             elements,
             history: vec![None; runner.max_history],
             cur_hist: 0,
-            tile_type: runner.tile_type,
+            ty: runner.ty,
             rng: match runner.seed {
                 Some(seed) => StdRng::seed_from_u64(seed),
                 None => StdRng::from_entropy(),
@@ -483,7 +486,7 @@ impl WfcGrid {
             spreaded.insert(cur_center);
 
             let cur_elem = self.elements.get(&cur_center).cloned().unwrap();
-            let neis = cur_center.neighbours(self.tile_type, false);
+            let neis = cur_center.neighbours(self.ty, false);
             let nei_count = neis.len();
 
             for dir in 0..nei_count {
@@ -612,7 +615,7 @@ pub fn wfc_applier(
     commands: ParallelCommands,
     mut tilemaps_query: Query<(
         Entity,
-        Option<&mut Tilemap>,
+        Option<&mut TilemapStorage>,
         &WfcData,
         &WfcRunner,
         &WfcSource,
@@ -621,13 +624,12 @@ pub fn wfc_applier(
         bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>,
     >,
 ) {
-    tilemaps_query
-        .par_iter_mut()
-        .for_each(|(entity, mut tilemap, wfc_data, runner, source)| {
+    tilemaps_query.par_iter_mut().for_each(
+        |(entity, mut tilemap_storage, wfc_data, runner, source)| {
             commands.command_scope(|mut c| {
                 match source {
                     WfcSource::SingleTile(tiles) => {
-                        let tilemap = tilemap.as_mut().unwrap_or_else(|| {
+                        let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
                             panic!("SingleTile source requires a tilemap on the entity!")
                         });
 
@@ -637,7 +639,7 @@ pub fn wfc_applier(
                         }
                     }
                     WfcSource::MapPattern(patterns) => {
-                        let tilemap = tilemap.as_mut().unwrap_or_else(|| {
+                        let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
                             panic!("MapPattern source requires a tilemap on the entity!")
                         });
 
@@ -656,20 +658,38 @@ pub fn wfc_applier(
                             let size = size.as_ivec2();
 
                             p.iter().for_each(|layer| {
-                                let mut new_layer = TilemapBuilder::new(
-                                    TileType::Square,
-                                    size.as_vec2(),
-                                    layer.label.clone().unwrap(),
-                                );
-                                new_layer.with_translation(
-                                    (runner.get_elem_idx(i) * size * size).as_vec2(),
-                                );
                                 if let Some(texture) = tex {
-                                    new_layer.with_texture(texture.clone());
+                                    let mut bundle = TilemapBundle {
+                                        name: TilemapName(layer.label.clone().unwrap()),
+                                        ty: TilemapType::Square,
+                                        tile_render_size: TileRenderSize(size.as_vec2()),
+                                        tile_slot_size: TilemapSlotSize(size.as_vec2()),
+                                        texture: texture.clone(),
+                                        tilemap_transform: TilemapTransform {
+                                            translation: (runner.get_elem_idx(i) * size * size)
+                                                .as_vec2(),
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    };
+                                    layer.apply_tiles(&mut c, IVec2::ZERO, &mut bundle.storage);
+                                    c.spawn(bundle);
+                                } else {
+                                    let mut bundle = PureColorTilemapBundle {
+                                        name: TilemapName(layer.label.clone().unwrap()),
+                                        ty: TilemapType::Square,
+                                        tile_render_size: TileRenderSize(size.as_vec2()),
+                                        slot_size: TilemapSlotSize(size.as_vec2()),
+                                        tilemap_transform: TilemapTransform {
+                                            translation: (runner.get_elem_idx(i) * size * size)
+                                                .as_vec2(),
+                                            ..Default::default()
+                                        },
+                                        ..Default::default()
+                                    };
+                                    layer.apply_tiles(&mut c, IVec2::ZERO, &mut bundle.storage);
+                                    c.spawn(bundle);
                                 }
-                                let mut tilemap = new_layer.build(&mut c);
-                                layer.apply_tiles(&mut c, IVec2::ZERO, &mut tilemap);
-                                c.entity(tilemap.id).insert(tilemap);
                             });
                         });
                     }
@@ -681,7 +701,7 @@ pub fn wfc_applier(
                         if !patterns.is_ready() {
                             return;
                         }
-                        if tilemap.is_some() {
+                        if tilemap_storage.is_some() {
                             warn!("LdtkMapPattern source does NOT require tilemap on the entity!");
                         }
 
@@ -695,13 +715,20 @@ pub fn wfc_applier(
                                     .map(|layer_idx| {
                                         let tile_size = layer_sample[layer_idx].1.desc.tile_size;
 
-                                        TilemapBuilder::new(
-                                            TileType::Square,
-                                            tile_size.as_vec2(),
-                                            "".to_string(),
+                                        (
+                                            c.spawn_empty().id(),
+                                            TilemapBundle {
+                                                ty: TilemapType::Square,
+                                                tile_render_size: TileRenderSize(
+                                                    tile_size.as_vec2(),
+                                                ),
+                                                tile_slot_size: TilemapSlotSize(
+                                                    tile_size.as_vec2(),
+                                                ),
+                                                texture: layer_sample[layer_idx].1.clone(),
+                                                ..Default::default()
+                                            },
                                         )
-                                        .with_texture(layer_sample[layer_idx].1.clone())
-                                        .build(&mut c)
                                     })
                                     .collect::<Vec<_>>();
 
@@ -719,11 +746,11 @@ pub fn wfc_applier(
                                     c.entity(entity).add_child(bg_entity);
 
                                     p.iter().enumerate().for_each(|(layer_index, layer)| {
-                                        let mut target = &mut layers[layer_index];
+                                        let (entity, target) = &mut layers[layer_index];
                                         layer.0.apply_tiles(
                                             &mut c,
                                             ptn_idx * layer.0.size.as_ivec2(),
-                                            &mut target,
+                                            &mut target.storage,
                                         );
 
                                         #[cfg(any(
@@ -735,7 +762,11 @@ pub fn wfc_applier(
                                         {
                                             aabbs.generate_colliders(
                                                 &mut c,
-                                                &mut target,
+                                                *entity,
+                                                &target.ty,
+                                                &target.tilemap_transform,
+                                                &target.tile_pivot,
+                                                &target.tile_slot_size,
                                                 patterns.frictions.as_ref(),
                                                 (ptn_idx.as_vec2() + Vec2::Y)
                                                     * layer.0.size.as_vec2()
@@ -745,9 +776,9 @@ pub fn wfc_applier(
                                     });
                                 });
 
-                                layers.into_iter().for_each(|tilemap| {
-                                    c.entity(entity).add_child(tilemap.id);
-                                    c.entity(tilemap.id).insert(tilemap);
+                                layers.into_iter().for_each(|(tilemap, bundle)| {
+                                    c.entity(entity).add_child(tilemap);
+                                    c.entity(tilemap).insert(bundle);
                                 });
                             }
                             LdtkWfcMode::MultiMaps => {
@@ -772,5 +803,6 @@ pub fn wfc_applier(
                 commands.remove::<WfcSource>();
                 commands.remove::<WfcRunner>();
             });
-        });
+        },
+    );
 }

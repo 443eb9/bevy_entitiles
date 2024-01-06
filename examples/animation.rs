@@ -15,7 +15,7 @@ use bevy_entitiles::{
     },
     tilemap::{
         map::{TilemapBuilder, TilemapRotation},
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TilemapType},
     },
     EntiTilesPlugin,
 };
@@ -34,7 +34,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let mut tilemap = TilemapBuilder::new(
-        TileType::Square,
+        TilemapType::Square,
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )

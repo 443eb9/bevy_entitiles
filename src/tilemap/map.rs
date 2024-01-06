@@ -1,26 +1,42 @@
 use std::fmt::Debug;
 
 use bevy::{
-    ecs::component::Component,
+    asset::Handle,
+    ecs::{
+        component::Component,
+        query::{Added, Changed},
+        system::Query,
+    },
     hierarchy::{BuildChildren, DespawnRecursiveExt},
     math::{Mat2, Quat, Vec4},
-    prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, SpatialBundle, UVec2, Vec2},
+    prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     reflect::Reflect,
-    render::render_resource::TextureUsages,
+    render::render_resource::{FilterMode, TextureUsages},
+    sprite::TextureAtlas,
     transform::components::Transform,
-    utils::HashMap,
 };
 
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor, TileArea},
-    render::{buffer::TileAnimation, texture::TilemapTexture},
-    DEFAULT_CHUNK_SIZE, MAX_ANIM_COUNT, MAX_LAYER_COUNT,
+    render::buffer::TileAnimation,
 };
 
 use super::{
     layer::TileUpdater,
-    tile::{TileBuffer, TileBuilder, TileType},
+    storage::ChunkedStorage,
+    tile::{TileBuffer, TileBuilder},
 };
+
+/// Defines the shape of tiles in a tilemap.
+/// Check the `Coordinate Systems` chapter in README.md to see the details.
+#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect, Component)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub enum TilemapType {
+    #[default]
+    Square,
+    Isometric,
+    Hexagonal(u32),
+}
 
 #[derive(Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -32,7 +48,7 @@ pub enum TilemapRotation {
     Cw270 = 270,
 }
 
-#[derive(Debug, Clone, Copy, Default, Reflect)]
+#[derive(Component, Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapTransform {
     pub translation: Vec2,
@@ -94,245 +110,148 @@ impl Into<Transform> for TilemapTransform {
     }
 }
 
-pub struct TilemapBuilder {
-    pub(crate) name: String,
-    pub(crate) tile_type: TileType,
-    pub(crate) ext_dir: Vec2,
-    pub(crate) tile_render_size: Vec2,
-    pub(crate) layer_opacities: Vec4,
-    pub(crate) tile_slot_size: Vec2,
-    pub(crate) pivot: Vec2,
-    pub(crate) chunk_size: u32,
-    pub(crate) texture: Option<TilemapTexture>,
-    pub(crate) transform: TilemapTransform,
-    pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+#[derive(Component, Clone, Default, Debug, Reflect)]
+pub struct TilemapTexture {
+    pub(crate) texture: Handle<Image>,
+    pub(crate) desc: TilemapTextureDescriptor,
+    pub(crate) rotation: TilemapRotation,
 }
 
-impl TilemapBuilder {
-    /// Create a new tilemap builder.
-    pub fn new(ty: TileType, tile_render_size: Vec2, name: String) -> Self {
+impl TilemapTexture {
+    pub fn new(
+        texture: Handle<Image>,
+        desc: TilemapTextureDescriptor,
+        rotation: TilemapRotation,
+    ) -> Self {
         Self {
-            name,
-            tile_type: ty,
-            ext_dir: Vec2::ONE,
-            layer_opacities: Vec4::ONE,
-            tile_render_size,
-            tile_slot_size: tile_render_size,
-            pivot: Vec2::ZERO,
-            texture: None,
-            chunk_size: DEFAULT_CHUNK_SIZE,
-            transform: TilemapTransform::default(),
-            anim_seqs: [TileAnimation::default(); MAX_ANIM_COUNT],
+            texture,
+            desc,
+            rotation,
         }
     }
 
-    /// Override z index. Default is 0.
-    /// The higher the value of z_index, the less likely to be covered.
-    pub fn with_z_index(&mut self, z_index: i32) -> &mut Self {
-        self.transform.z_index = z_index;
-        self
+    pub fn clone_weak(&self) -> Handle<Image> {
+        self.texture.clone_weak()
     }
 
-    /// Override chunk size. Default is 32.
-    pub fn with_chunk_size(&mut self, size: u32) -> &mut Self {
-        self.chunk_size = size;
-        self
+    pub fn desc(&self) -> &TilemapTextureDescriptor {
+        &self.desc
     }
 
-    /// Override translation. Default is `Vec2::ZERO`.
-    pub fn with_translation(&mut self, translation: Vec2) -> &mut Self {
-        self.transform.translation = translation;
-        self
+    pub fn handle(&self) -> &Handle<Image> {
+        &self.texture
     }
 
-    /// Override rotation. Default is `TilemapRotation::None`.
-    pub fn with_rotation(&mut self, rotation: TilemapRotation) -> &mut Self {
-        self.transform.rotation = rotation;
-        self
+    pub fn as_texture_atlas(&self) -> TextureAtlas {
+        TextureAtlas::from_grid(
+            self.texture.clone(),
+            self.desc.tile_size.as_vec2(),
+            self.desc.size.x as usize,
+            self.desc.size.y as usize,
+            Some(Vec2::ZERO),
+            Some(Vec2::ZERO),
+        )
     }
 
-    /// Assign a texture to the tilemap.
-    pub fn with_texture(&mut self, texture: TilemapTexture) -> &mut Self {
-        self.texture = Some(texture);
-        self
-    }
-
-    /// Override the size of the tilemap slots. Default is equal to `tile_render_size`.
-    pub fn with_tile_slot_size(&mut self, tile_slot_size: Vec2) -> &mut Self {
-        self.tile_slot_size = tile_slot_size;
-        self
-    }
-
-    /// Override the pivot of the tile. Default is `[0., 0.]`.
-    pub fn with_pivot(&mut self, pivot: Vec2) -> &mut Self {
-        assert!(
-            pivot.x >= 0. && pivot.x <= 1. && pivot.y >= 0. && pivot.y <= 1.,
-            "pivot must be in range [0, 1]"
-        );
-        self.pivot = pivot;
-        self
-    }
-
-    /// Override the extend direction of the tilemap. Default is `Vec2::ONE`.
-    ///
-    /// You can set this to `[1, -1]` or something to change the direction of the tilemap.
-    pub fn with_extend_direction(&mut self, direction: Vec2) -> &mut Self {
-        self.ext_dir = direction;
-        self
-    }
-
-    /// Override the opacity of each layer. Default is `[1., 1., 1., 1.]`.
-    pub fn with_layer_opacities(&mut self, opacities: [f32; 4]) -> &mut Self {
-        self.layer_opacities = opacities.into();
-        self
-    }
-
-    /// Build the tilemap and spawn it into the world.
-    /// You can modify the component and insert it back.
-    pub fn build(&self, commands: &mut Commands) -> Tilemap {
-        let mut entity = commands.spawn_empty();
-        let tilemap = Tilemap {
-            id: entity.id(),
-            name: self.name.clone(),
-            tile_render_size: self.tile_render_size,
-            tile_type: self.tile_type,
-            ext_dir: self.ext_dir,
-            storage: TilemapStorage::new(self.chunk_size),
-            chunk_size: self.chunk_size,
-            tile_slot_size: self.tile_slot_size,
-            pivot: self.pivot,
-            texture: self.texture.clone(),
-            layer_opacities: self.layer_opacities,
-            transform: self.transform,
-            anim_seqs: self.anim_seqs,
-            anim_counts: 0,
+    /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
+    pub(crate) fn set_usage(&mut self, image_assets: &mut ResMut<Assets<Image>>) {
+        let Some(image) = image_assets.get(&self.clone_weak()) else {
+            return;
         };
-        entity.insert((
-            WaitForTextureUsageChange,
-            tilemap.clone(),
-            SpatialBundle {
-                transform: tilemap.transform.into(),
-                ..Default::default()
-            },
-        ));
-        tilemap
+
+        if !image
+            .texture_descriptor
+            .usage
+            .contains(TextureUsages::COPY_SRC)
+        {
+            image_assets
+                .get_mut(&self.clone_weak())
+                .unwrap()
+                .texture_descriptor
+                .usage
+                .set(TextureUsages::COPY_SRC, true);
+        }
     }
 }
 
-#[derive(Debug, Clone, Reflect)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TilemapStorage<T: Debug + Clone + Reflect> {
-    pub chunk_size: UVec2,
-    pub chunks: HashMap<IVec2, Vec<Option<T>>>,
-    pub down_left: IVec2,
-    pub up_right: IVec2,
+#[derive(Clone, Default, Debug, PartialEq, Reflect)]
+pub struct TilemapTextureDescriptor {
+    pub(crate) size: UVec2,
+    pub(crate) tile_size: UVec2,
+    #[reflect(ignore)]
+    pub(crate) filter_mode: FilterMode,
 }
 
-impl<T: Debug + Clone + Reflect> TilemapStorage<T> {
+impl TilemapTextureDescriptor {
+    pub fn new(size: UVec2, tile_size: UVec2, filter_mode: FilterMode) -> Self {
+        assert_eq!(
+            size % tile_size,
+            UVec2::ZERO,
+            "Invalid tilemap texture descriptor! The size must be divisible by the tile size! \
+            If the spare pixels are not needed and you are not using this texture for ui, \
+            you can \"lie\" to the descriptor by setting the size to fit the tiles."
+        );
+
+        Self {
+            size,
+            tile_size,
+            filter_mode,
+        }
+    }
+}
+
+#[derive(Component, Default, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilemapName(pub String);
+
+#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TileRenderSize(pub Vec2);
+
+#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilemapSlotSize(pub Vec2);
+
+#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilePivot(pub Vec2);
+
+#[derive(Component, Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilemapLayerOpacities(pub Vec4);
+
+impl Default for TilemapLayerOpacities {
+    fn default() -> Self {
+        Self(Vec4::ONE)
+    }
+}
+
+#[derive(Component, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilemapStorage {
+    pub(crate) tilemap: Entity,
+    pub(crate) storage: ChunkedStorage<Entity>,
+}
+
+impl TilemapStorage {
     pub fn new(chunk_size: u32) -> Self {
         Self {
-            chunk_size: UVec2::splat(chunk_size),
-            chunks: HashMap::new(),
-            down_left: IVec2::ZERO,
-            up_right: IVec2::ZERO,
+            tilemap: Entity::PLACEHOLDER,
+            storage: ChunkedStorage::new(chunk_size),
         }
-    }
-
-    pub fn from_mapper(mapper: HashMap<IVec2, T>, chunk_size: Option<u32>) -> Self {
-        let mut storage = Self::new(chunk_size.unwrap_or(32));
-        mapper.into_iter().for_each(|(index, elem)| {
-            storage.set(index, Some(elem));
-        });
-        storage
-    }
-
-    pub fn get(&self, index: IVec2) -> Option<&T> {
-        let idx = self.transform_index(index);
-        self.chunks
-            .get(&idx.0)
-            .and_then(|c| c.get(idx.1).as_ref().cloned())
-            .and_then(|t| t.as_ref())
-    }
-
-    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut T> {
-        let idx = self.transform_index(index);
-        if let Some(chunk) = self.chunks.get_mut(&idx.0) {
-            chunk.get_mut(idx.1).map(|t| t.as_mut()).flatten()
-        } else {
-            None
-        }
-    }
-
-    pub fn set(&mut self, index: IVec2, elem: Option<T>) {
-        let idx = self.transform_index(index);
-        self.chunks
-            .entry(idx.0)
-            .or_insert_with(|| vec![None; (self.chunk_size.x * self.chunk_size.y) as usize])
-            [idx.1] = elem;
-
-        self.down_left = self.down_left.min(index);
-        self.up_right = self.up_right.max(index);
-    }
-
-    pub fn transform_index(&self, index: IVec2) -> (IVec2, usize) {
-        let isize = self.chunk_size.as_ivec2();
-        let c = index.div_to_floor(isize);
-        let idx = index - c * isize;
-        (c, (idx.y * isize.x + idx.x) as usize)
-    }
-
-    #[inline]
-    pub fn size(&self) -> UVec2 {
-        (self.up_right - self.down_left + IVec2::ONE).as_uvec2()
-    }
-
-    #[inline]
-    pub fn usize(&self) -> usize {
-        let size = self.size();
-        (size.x * size.y) as usize
-    }
-
-    #[inline]
-    pub fn into_mapper(mut self) -> HashMap<IVec2, T> {
-        let mut mapper = HashMap::new();
-        self.chunks.drain().for_each(|(chunk_index, chunk)| {
-            chunk.into_iter().enumerate().for_each(|(index, elem)| {
-                if let Some(elem) = elem {
-                    mapper.insert(
-                        chunk_index * self.chunk_size.as_ivec2()
-                            + IVec2 {
-                                x: index as i32 % self.chunk_size.x as i32,
-                                y: index as i32 / self.chunk_size.x as i32,
-                            },
-                        elem,
-                    );
-                }
-            });
-        });
-        mapper
     }
 }
 
-#[derive(Component, Clone, Reflect)]
-pub struct Tilemap {
-    pub(crate) id: Entity,
-    pub(crate) name: String,
-    pub(crate) tile_type: TileType,
-    pub(crate) ext_dir: Vec2,
-    pub(crate) tile_render_size: Vec2,
-    pub(crate) tile_slot_size: Vec2,
-    pub(crate) pivot: Vec2,
-    pub(crate) chunk_size: u32,
-    pub(crate) texture: Option<TilemapTexture>,
-    pub(crate) layer_opacities: Vec4,
-    pub(crate) storage: TilemapStorage<Entity>,
-    // pub(crate) aabb: Aabb2d,
-    pub(crate) transform: TilemapTransform,
-    pub(crate) anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
-    pub(crate) anim_counts: usize,
+impl Default for TilemapStorage {
+    fn default() -> Self {
+        Self {
+            tilemap: Entity::PLACEHOLDER,
+            storage: Default::default(),
+        }
+    }
 }
 
-impl Tilemap {
+impl TilemapStorage {
     /// Get a tile.
     #[inline]
     pub fn get(&self, index: IVec2) -> Option<Entity> {
@@ -346,7 +265,7 @@ impl Tilemap {
         if let Some(previous) = self.storage.get(index) {
             commands.entity(previous.clone()).despawn();
         }
-        let new_tile = tile_builder.build(commands, index, self);
+        let new_tile = tile_builder.build(commands, index, &self, self.tilemap);
         self.storage.set(index, Some(new_tile));
     }
 
@@ -359,17 +278,6 @@ impl Tilemap {
         if let Some(entity) = self.get(index) {
             commands.entity(entity).insert(updater);
         }
-    }
-
-    /// Set the opacity of a layer. Default is 1 for each layer.
-    pub fn set_layer_opacity(&mut self, layer: usize, opacity: f32) -> &mut Self {
-        assert!(
-            layer <= MAX_LAYER_COUNT,
-            "Currently we only support up to 4 layers!"
-        );
-
-        self.layer_opacities[layer] = opacity;
-        self
     }
 
     /// Remove a tile.
@@ -398,7 +306,7 @@ impl Tilemap {
             for x in area.origin.x..=area.dest.x {
                 let index = IVec2 { x, y };
                 self.remove(commands, index);
-                let tile = tile_builder.build_component(index, self);
+                let tile = tile_builder.build_component(index, &self, self.tilemap);
                 let entity = if let Some(e) = self.get(index) {
                     e
                 } else {
@@ -412,7 +320,7 @@ impl Tilemap {
         }
 
         commands.insert_or_spawn_batch(tile_batch);
-        commands.entity(self.id).push_children(&entities);
+        commands.entity(self.tilemap).push_children(&entities);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -432,13 +340,15 @@ impl Tilemap {
             for x in area.origin.x..=area.dest.x {
                 let index = IVec2 { x, y };
                 self.remove(commands, index);
-                let builder = tile_builder(if relative_index {
-                    index - area.origin
-                } else {
-                    index
+                let builder = tile_builder({
+                    if relative_index {
+                        index - area.origin
+                    } else {
+                        index
+                    }
                 });
 
-                let tile = builder.build_component(index, self);
+                let tile = builder.build_component(index, &self, self.tilemap);
                 let entity = if let Some(e) = self.get(index) {
                     e
                 } else {
@@ -452,7 +362,7 @@ impl Tilemap {
         }
 
         commands.insert_or_spawn_batch(tile_batch);
-        commands.entity(self.id).push_children(&entities);
+        commands.entity(self.tilemap).push_children(&entities);
     }
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than set them one by one.
@@ -472,7 +382,8 @@ impl Tilemap {
                         }
                         .as_ivec2()
                             + origin,
-                        self,
+                        &self,
+                        self.tilemap,
                     );
 
                     if let Some(e) = self.get(tile.index) {
@@ -490,7 +401,7 @@ impl Tilemap {
             .collect::<Vec<_>>();
 
         commands.insert_or_spawn_batch(batch);
-        commands.entity(self.id).push_children(&entities);
+        commands.entity(self.tilemap).push_children(&entities);
     }
 
     /// Simlar to `Tilemap::fill_rect()`.
@@ -536,171 +447,54 @@ impl Tilemap {
         commands.insert_or_spawn_batch(batch);
     }
 
+    /// Transform a tile index to (chunk_index, in_chunk_index)
+    #[inline]
+    pub fn transform_index(&self, index: IVec2) -> (IVec2, UVec2) {
+        let c = index.div_to_floor(IVec2::splat(self.storage.chunk_size as i32));
+        (
+            c,
+            (index - c * IVec2::splat(self.storage.chunk_size as i32)).as_uvec2(),
+        )
+    }
+}
+
+#[derive(Component, Default, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TilemapAnimations(pub(crate) Vec<TileAnimation>);
+
+impl TilemapAnimations {
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.
     ///
     /// Returns the sequence index of the animation.
     pub fn register_animation(&mut self, anim: TileAnimation) -> u32 {
-        assert!(
-            self.anim_counts + 1 < MAX_ANIM_COUNT,
-            "too many animations!, max is {}",
-            MAX_ANIM_COUNT
-        );
-
-        let index = self.anim_counts;
-        self.anim_seqs[index] = anim;
-        self.anim_counts += 1;
-        index as u32
+        self.0.push(anim);
+        (self.0.len() - 1) as u32
     }
 
     /// Update a tile animation by overwriting the element at `index`.
     ///
     /// This does nothing if `index` is out of range.
     pub fn update_animation(&mut self, anim: TileAnimation, index: usize) {
-        if index < MAX_ANIM_COUNT {
-            self.anim_seqs[index] = anim;
-        }
-    }
-
-    /// Remove the whole tilemap.
-    pub fn delete(&mut self, commands: &mut Commands) {
-        commands.entity(self.id).despawn_recursive();
-    }
-
-    /// Get the id of the tilemap.
-    #[inline]
-    pub fn id(&self) -> Entity {
-        self.id
-    }
-
-    /// Get the name of the tilemap.
-    #[inline]
-    pub fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    #[inline]
-    pub fn transform(&self) -> TilemapTransform {
-        self.transform
-    }
-
-    /// Get the world position of the center of a slot.
-    pub fn index_to_world(&self, index: IVec2) -> Vec2 {
-        let index = index.as_vec2();
-        self.transform.transform_point({
-            match self.tile_type {
-                TileType::Square => (index - self.pivot) * self.tile_slot_size,
-                TileType::Isometric => {
-                    (Vec2 {
-                        x: (index.x - index.y - 1.),
-                        y: (index.x + index.y),
-                    } / 2.
-                        - self.pivot)
-                        * self.tile_slot_size
-                }
-                TileType::Hexagonal(legs) => Vec2 {
-                    x: self.tile_slot_size.x * (index.x - 0.5 * index.y - self.pivot.x),
-                    y: (self.tile_slot_size.y + legs as f32) / 2. * (index.y - self.pivot.y),
-                },
-            }
-        })
-    }
-
-    pub fn index_to_rel(&self, index: IVec2) -> Vec2 {
-        self.index_to_world(index) - self.transform.translation
-    }
-
-    #[inline]
-    pub fn transform_index(&self, index: IVec2) -> (IVec2, UVec2) {
-        let c = index.div_to_floor(IVec2::splat(self.chunk_size as i32));
-        (
-            c,
-            (index - c * IVec2::splat(self.chunk_size as i32)).as_uvec2(),
-        )
-    }
-
-    pub fn get_tile_convex_hull(&self) -> Vec<Vec2> {
-        let (x, y) = (self.tile_slot_size.x, self.tile_slot_size.y);
-        match self.tile_type {
-            TileType::Square => vec![
-                Vec2 { x: 0., y: 0. },
-                Vec2 { x: 0., y },
-                Vec2 { x, y },
-                Vec2 { x, y: 0. },
-            ],
-            TileType::Isometric => vec![
-                Vec2 { x: 0., y: y / 2. },
-                Vec2 { x: x / 2., y },
-                Vec2 { x, y: y / 2. },
-                Vec2 { x: x / 2., y: 0. },
-            ],
-            TileType::Hexagonal(c) => {
-                let c = c as f32;
-                let Vec2 { x: a, y: b } = self.tile_render_size;
-                let half = (b - c) / 2.;
-
-                vec![
-                    Vec2 { x: 0., y: half },
-                    Vec2 { x: 0., y: half + c },
-                    Vec2 { x: a / 2., y: b },
-                    Vec2 { x: a, y: half + c },
-                    Vec2 { x: a, y: half },
-                    Vec2 { x: a / 2., y: 0. },
-                ]
-            }
-        }
-    }
-
-    pub fn get_tile_convex_hull_rel(&self, index: IVec2) -> Vec<Vec2> {
-        let offset = self.index_to_rel(index);
-        self.get_tile_convex_hull()
-            .into_iter()
-            .map(|p| self.transform.apply_rotation(p) + offset)
-            .collect()
-    }
-
-    pub fn get_tile_convex_hull_world(&self, index: IVec2) -> Vec<Vec2> {
-        let offset = self.index_to_world(index);
-        self.get_tile_convex_hull()
-            .into_iter()
-            .map(|p| self.transform.apply_rotation(p) + offset)
-            .collect()
-    }
-
-    /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
-    pub(crate) fn set_usage(
-        &mut self,
-        commands: &mut Commands,
-        image_assets: &mut ResMut<Assets<Image>>,
-    ) {
-        let Some(texture) = &self.texture else {
-            commands
-                .entity(self.id)
-                .remove::<WaitForTextureUsageChange>();
-            return;
-        };
-
-        let Some(image) = image_assets.get(&texture.clone_weak()) else {
-            return;
-        };
-
-        if !image
-            .texture_descriptor
-            .usage
-            .contains(TextureUsages::COPY_SRC)
-        {
-            image_assets
-                .get_mut(&texture.clone_weak())
-                .unwrap()
-                .texture_descriptor
-                .usage
-                .set(TextureUsages::COPY_SRC, true);
-        }
-
-        commands
-            .entity(self.id)
-            .remove::<WaitForTextureUsageChange>();
+        self.0.get(index).replace(&anim);
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 pub struct WaitForTextureUsageChange;
+
+pub fn transform_syncer(
+    mut tilemap_query: Query<(&TilemapTransform, &mut Transform), Changed<TilemapTransform>>,
+) {
+    tilemap_query.for_each_mut(|(tilemap_transform, mut transform)| {
+        transform.translation = tilemap_transform
+            .translation
+            .extend(tilemap_transform.z_index as f32);
+        transform.rotation = Quat::from_rotation_z(tilemap_transform.rotation as u32 as f32);
+    });
+}
+
+pub fn storage_binder(mut tilemap_query: Query<(Entity, &mut TilemapStorage), Added<TilemapStorage>>) {
+    tilemap_query.for_each_mut(|(entity, mut storage)| {
+        storage.tilemap = entity;
+    });
+}

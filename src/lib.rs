@@ -3,7 +3,11 @@ use math::{aabb::Aabb2d, TileArea};
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
     layer::{LayerUpdater, TileLayer, TileUpdater},
-    map::{Tilemap, TilemapTransform},
+    map::{
+        self, TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
+        TilemapTransform, TilemapType,
+    },
     tile::{Tile, TileTexture},
     EntiTilesTilemapPlugin,
 };
@@ -28,27 +32,28 @@ pub const MAX_ANIM_COUNT: usize = 64;
 pub const MAX_ANIM_SEQ_LENGTH: usize = 16;
 pub const DEFAULT_CHUNK_SIZE: u32 = 32;
 
-#[cfg(not(debug_assertions))]
 pub mod prelude {
     #[cfg(feature = "algorithm")]
     pub use crate::algorithm::{
         pathfinding::{AsyncPathfinder, Path, Pathfinder},
-        wfc::{AsyncWfcRunner, WfcRunner},
+        wfc::WfcRunner,
     };
     #[cfg(feature = "ldtk")]
-    pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager, LdtkLoaderMode};
+    pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager};
     pub use crate::math::{aabb::Aabb2d, TileArea};
-    pub use crate::render::{
-        buffer::TileAnimation,
-        texture::{TilemapTexture, TilemapTextureDescriptor},
-    };
+    pub use crate::render::buffer::TileAnimation;
     #[cfg(feature = "serializing")]
     pub use crate::serializing::{load::TilemapLoaderBuilder, save::TilemapSaverBuilder};
     #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
     pub use crate::tilemap::physics::TileCollision;
     pub use crate::tilemap::{
+        bundles::{PureColorTilemapBundle, TilemapBundle},
         layer::{TileLayer, TileUpdater},
-        map::TilemapBuilder,
+        map::{
+            TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+            TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
+            TilemapTransform, TilemapType,
+        },
         tile::TileBuilder,
     };
     #[cfg(feature = "ui")]
@@ -59,7 +64,7 @@ pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, texture::set_texture_usage);
+        app.add_systems(Update, (texture::set_texture_usage, map::storage_binder));
 
         app.add_plugins((EntiTilesTilemapPlugin, EntiTilesRendererPlugin));
 
@@ -77,9 +82,19 @@ impl Plugin for EntiTilesPlugin {
         app.register_type::<TileLayer>()
             .register_type::<LayerUpdater>()
             .register_type::<TileUpdater>()
-            .register_type::<TilemapTransform>()
-            .register_type::<Tilemap>()
             .register_type::<Tile>()
             .register_type::<TileTexture>();
+
+        app.register_type::<TilemapName>()
+            .register_type::<TileRenderSize>()
+            .register_type::<TilemapSlotSize>()
+            .register_type::<TilemapType>()
+            .register_type::<TilePivot>()
+            .register_type::<TilemapLayerOpacities>()
+            .register_type::<TilemapStorage>()
+            .register_type::<TilemapTransform>()
+            .register_type::<TilemapTexture>()
+            .register_type::<TilemapTextureDescriptor>()
+            .register_type::<TilemapAnimations>();
     }
 }

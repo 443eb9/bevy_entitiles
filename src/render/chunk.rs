@@ -11,13 +11,15 @@ use bevy::{
 
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor},
-    tilemap::tile::{TileTexture, TileType},
+    tilemap::{
+        map::{TilemapTexture, TilemapType},
+        tile::TileTexture,
+    },
     MAX_LAYER_COUNT,
 };
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
-    texture::TilemapTexture,
     TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX,
     TILEMAP_MESH_ATTR_TEX_INDICES,
 };
@@ -38,7 +40,7 @@ pub struct TilemapRenderChunk {
     pub visible: bool,
     pub index: IVec2,
     pub dirty_mesh: bool,
-    pub tile_type: TileType,
+    pub ty: TilemapType,
     pub size: u32,
     pub texture: Option<TilemapTexture>,
     pub tiles: Vec<Option<TileData>>,
@@ -54,13 +56,20 @@ impl TilemapRenderChunk {
             visible: true,
             index: idx,
             size: tilemap.chunk_size,
-            tile_type: tilemap.tile_type,
+            ty: tilemap.ty,
             texture: tilemap.texture.clone(),
             tiles: vec![None; (tilemap.chunk_size * tilemap.chunk_size) as usize],
             mesh: Mesh::new(PrimitiveTopology::TriangleList),
             gpu_mesh: None,
             dirty_mesh: true,
-            aabb: Aabb2d::from_chunk(idx, tilemap),
+            aabb: Aabb2d::from_tilemap(
+                index,
+                tilemap.chunk_size,
+                tilemap.ty,
+                tilemap.tile_pivot,
+                tilemap.tile_slot_size,
+                tilemap.transform,
+            ),
         }
     }
 

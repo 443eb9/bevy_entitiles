@@ -5,7 +5,7 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::tilemap::{map::Tilemap, tile::TileBuffer};
+use crate::tilemap::{map::TilemapStorage, tile::TileBuffer};
 
 use super::SerializedTile;
 
@@ -49,7 +49,7 @@ impl TilemapPattern {
         index.x >= self.size.x as i32 || index.y >= self.size.y as i32 || index.x < 0 || index.y < 0
     }
 
-    pub fn apply_tiles(&self, commands: &mut Commands, origin: IVec2, target: &mut Tilemap) {
+    pub fn apply_tiles(&self, commands: &mut Commands, origin: IVec2, target: &mut TilemapStorage) {
         target.fill_with_buffer(
             commands,
             origin,

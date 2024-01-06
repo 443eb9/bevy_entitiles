@@ -8,7 +8,10 @@ use bevy::{
 
 use crate::{
     math::extension::{ManhattanDistance, TileIndex},
-    tilemap::{algorithm::path::PathTilemap, map::Tilemap},
+    tilemap::{
+        algorithm::path::PathTilemap,
+        map::{TilemapStorage, TilemapType},
+    },
 };
 
 use super::{HeapElement, LookupHeap};
@@ -138,13 +141,16 @@ impl PathGrid {
     pub fn neighbours(
         &mut self,
         node: &PathNode,
-        tilemap: &Tilemap,
+        ty: &TilemapType,
+        tilemap_storage: &TilemapStorage,
         path_tilemap: &PathTilemap,
     ) -> Vec<IVec2> {
         node.index
-            .neighbours(tilemap.tile_type, self.allow_diagonal)
+            .neighbours(*ty, self.allow_diagonal)
             .into_iter()
-            .filter_map(|n| self.get_or_register_new(n.unwrap(), self.dest, tilemap, path_tilemap))
+            .filter_map(|n| {
+                self.get_or_register_new(n.unwrap(), self.dest, tilemap_storage, path_tilemap)
+            })
             .collect()
     }
 
@@ -174,7 +180,7 @@ impl PathGrid {
         &mut self,
         index: IVec2,
         dest: IVec2,
-        tilemap: &Tilemap,
+        tilemap: &TilemapStorage,
         path_tilemap: &PathTilemap,
     ) -> Option<IVec2> {
         if tilemap.get(index).is_none() {
@@ -222,16 +228,16 @@ impl PathGrid {
 pub fn pathfinding(
     commands: ParallelCommands,
     mut finders: Query<(Entity, &Pathfinder), Without<AsyncPathfinder>>,
-    tilemaps_query: Query<(&Tilemap, &PathTilemap)>,
+    tilemaps_query: Query<(&TilemapType, &TilemapStorage, &PathTilemap)>,
 ) {
     finders.par_iter_mut().for_each(|(finder_entity, finder)| {
-        let Ok((tilemap, path_tilemap)) = tilemaps_query.get(finder.tilemap) else {
+        let Ok((ty, tilemap_storage, path_tilemap)) = tilemaps_query.get(finder.tilemap) else {
             panic!("Failed to find the tilemap! Did you add the tilemap and path tilemap to the same entity?");
         };
 
         // check if origin or dest doesn't exists
-        if tilemap.get(finder.origin).is_none()
-            || tilemap.get(finder.dest).is_none()
+        if tilemap_storage.get(finder.origin).is_none()
+            || tilemap_storage.get(finder.dest).is_none()
         {
             complete_pathfinding(&commands, finder_entity, None);
             return;
@@ -244,7 +250,8 @@ pub fn pathfinding(
             &mut path_grid,
             finder_entity,
             finder,
-            tilemap,
+            ty,
+            tilemap_storage,
             path_tilemap,
             None,
         );
@@ -254,12 +261,12 @@ pub fn pathfinding(
 pub fn pathfinding_async(
     commands: ParallelCommands,
     mut finders: Query<(Entity, &Pathfinder, &AsyncPathfinder, Option<&mut PathGrid>)>,
-    tilemaps_query: Query<(&Tilemap, &PathTilemap)>,
+    tilemaps_query: Query<(&TilemapType, &TilemapStorage, &PathTilemap)>,
 ) {
     finders
         .par_iter_mut()
         .for_each(|(finder_entity, finder, async_finder, path_grid)| {
-            let (tilemap, path_tilemap) = tilemaps_query.get(finder.tilemap).unwrap();
+            let (ty, tilemap_storage, path_tilemap) = tilemaps_query.get(finder.tilemap).unwrap();
 
             if let Some(mut grid) = path_grid {
                 find_path(
@@ -267,31 +274,25 @@ pub fn pathfinding_async(
                     &mut grid,
                     finder_entity,
                     finder,
-                    tilemap,
+                    ty,
+                    tilemap_storage,
                     path_tilemap,
                     Some(async_finder),
                 );
             } else {
                 // check if origin or dest doesn't exists
-                if tilemap.get(finder.origin).is_none() || tilemap.get(finder.dest).is_none() {
+                if tilemap_storage.get(finder.origin).is_none()
+                    || tilemap_storage.get(finder.dest).is_none()
+                {
                     complete_pathfinding(&commands, finder_entity, None);
                     return;
                 };
-                let mut path_grid =
-                    PathGrid::new(finder, &PathNode::new(finder.origin, 0, finder.dest, 1, 0));
-
-                find_path(
-                    &commands,
-                    &mut path_grid,
-                    finder_entity,
-                    finder,
-                    tilemap,
-                    path_tilemap,
-                    Some(async_finder),
-                );
 
                 commands.command_scope(|mut c| {
-                    c.entity(finder_entity).insert(path_grid);
+                    c.entity(finder_entity).insert(PathGrid::new(
+                        finder,
+                        &PathNode::new(finder.origin, 0, finder.dest, 1, 0),
+                    ));
                 });
             };
         });
@@ -314,7 +315,8 @@ fn find_path(
     path_grid: &mut PathGrid,
     finder_entity: Entity,
     finder: &Pathfinder,
-    tilemap: &Tilemap,
+    ty: &TilemapType,
+    tilemap_storage: &TilemapStorage,
     path_tilemap: &PathTilemap,
     async_finder: Option<&AsyncPathfinder>,
 ) {
@@ -354,7 +356,7 @@ fn find_path(
             return;
         }
 
-        let neighbours = path_grid.neighbours(&current, tilemap, &path_tilemap);
+        let neighbours = path_grid.neighbours(&current, ty, tilemap_storage, &path_tilemap);
 
         // explore neighbours
         for neighbour in neighbours {

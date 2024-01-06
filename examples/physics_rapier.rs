@@ -26,7 +26,7 @@ use bevy_entitiles::{
         layer::TileLayer,
         map::{TilemapBuilder, TilemapRotation},
         physics::TileCollision,
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TilemapType},
     },
     EntiTilesPlugin,
 };
@@ -64,7 +64,7 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
 
     let mut tilemap = TilemapBuilder::new(
-        TileType::Isometric,
+        TilemapType::Isometric,
         Vec2 { x: 32., y: 16. },
         "test_map".to_string(),
     )
@@ -98,7 +98,7 @@ fn setup(
     commands.entity(tilemap.id()).insert(tilemap);
 
     let mut tilemap = TilemapBuilder::new(
-        TileType::Square,
+        TilemapType::Square,
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )

@@ -11,7 +11,7 @@ use bevy::{
     },
 };
 
-use crate::tilemap::tile::TileType;
+use crate::tilemap::map::TilemapType;
 
 use super::{binding::TilemapBindGroupLayouts, TILEMAP_SHADER};
 
@@ -26,7 +26,7 @@ pub struct EntiTilesPipeline {
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct EntiTilesPipelineKey {
     pub msaa: u32,
-    pub map_type: TileType,
+    pub map_type: TilemapType,
     pub is_pure_color: bool,
 }
 
@@ -50,9 +50,9 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
         shader_defs.push(
             {
                 match key.map_type {
-                    TileType::Square => "SQUARE",
-                    TileType::Isometric => "ISOMETRIC",
-                    TileType::Hexagonal(_) => "HEXAGONAL",
+                    TilemapType::Square => "SQUARE",
+                    TilemapType::Isometric => "ISOMETRIC",
+                    TilemapType::Hexagonal(_) => "HEXAGONAL",
                 }
             }
             .into(),

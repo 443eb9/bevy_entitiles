@@ -1,22 +1,21 @@
 use bevy::{
     app::{Plugin, Update},
     ecs::entity::Entity,
-    math::{IVec2, UVec2, Vec2, Vec4},
+    math::{IVec2, UVec2, Vec4},
     reflect::Reflect,
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    render::{
-        buffer::TileAnimation,
-        texture::{TilemapTexture, TilemapTextureDescriptor},
+use crate::tilemap::{
+    bundles::{PureColorTilemapBundle, TilemapBundle},
+    map::{
+        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+        TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
+        TilemapTransform, TilemapType,
     },
-    tilemap::{
-        map::{Tilemap, TilemapRotation, TilemapStorage, TilemapTransform},
-        tile::{Tile, TileBuilder, TileTexture, TileType},
-    },
-    MAX_ANIM_COUNT,
+    storage::ChunkedStorage,
+    tile::{Tile, TileBuilder, TileTexture},
 };
 
 use self::{
@@ -56,68 +55,87 @@ pub struct SerializedTilemapData {
 
 #[derive(Serialize, Deserialize, Reflect)]
 pub struct SerializedTilemap {
-    pub name: String,
-    pub tile_type: TileType,
-    pub ext_dir: Vec2,
-    pub tile_render_size: Vec2,
-    pub tile_slot_size: Vec2,
-    pub pivot: Vec2,
-    pub chunk_size: u32,
+    pub name: TilemapName,
+    pub tile_render_size: TileRenderSize,
+    pub tile_slot_size: TilemapSlotSize,
+    pub ty: TilemapType,
+    pub tile_pivot: TilePivot,
+    pub layer_opacities: TilemapLayerOpacities,
+    pub tilemap_transform: TilemapTransform,
     pub texture: Option<SerializedTilemapTexture>,
-    pub layer_opacities: Vec4,
-    pub transform: TilemapTransform,
+    pub animations: Option<TilemapAnimations>,
     pub layers: u32,
-    pub anim_seqs: Vec<TileAnimation>,
-    pub anim_counts: usize,
+    pub chunk_size: u32,
 }
 
 impl SerializedTilemap {
-    pub fn from_tilemap(tilemap: &Tilemap, saver: &TilemapSaver) -> Self {
+    pub fn from_tilemap(
+        name: TilemapName,
+        tile_render_size: TileRenderSize,
+        tile_slot_size: TilemapSlotSize,
+        ty: TilemapType,
+        tile_pivot: TilePivot,
+        layer_opacities: TilemapLayerOpacities,
+        storage: TilemapStorage,
+        tilemap_transform: TilemapTransform,
+        texture: Option<TilemapTexture>,
+        animations: Option<TilemapAnimations>,
+        saver: &TilemapSaver,
+    ) -> Self {
         SerializedTilemap {
-            name: tilemap.name.clone(),
-            tile_type: tilemap.tile_type,
-            ext_dir: tilemap.ext_dir,
-            tile_render_size: tilemap.tile_render_size,
-            tile_slot_size: tilemap.tile_slot_size,
-            pivot: tilemap.pivot,
-            chunk_size: tilemap.chunk_size,
-            texture: if let Some(tex) = &saver.texture_path {
+            name: name.clone(),
+            ty,
+            tile_render_size,
+            tile_slot_size,
+            tile_pivot,
+            texture: texture.and_then(|tex| {
                 Some(SerializedTilemapTexture {
-                    path: tex.clone(),
-                    desc: tilemap.texture.as_ref().unwrap().desc.clone().into(),
-                    rotation: tilemap.texture.as_ref().unwrap().rotation,
+                    path: saver.texture_path.clone().unwrap(),
+                    desc: tex.desc.into(),
+                    rotation: tex.rotation,
                 })
-            } else {
-                None
-            },
-            layer_opacities: tilemap.layer_opacities,
-            transform: tilemap.transform,
+            }),
+            layer_opacities,
+            tilemap_transform,
             layers: saver.layers,
-            anim_seqs: tilemap.anim_seqs.to_vec(),
-            anim_counts: tilemap.anim_counts,
+            animations,
+            chunk_size: storage.storage.chunk_size,
         }
     }
 
-    pub fn into_tilemap(&self, entity: Entity, texture: Option<TilemapTexture>) -> Tilemap {
-        let mut anim_seqs = [TileAnimation::default(); MAX_ANIM_COUNT];
-        for (i, anim) in self.anim_seqs.iter().enumerate() {
-            anim_seqs[i] = *anim;
-        }
-        Tilemap {
-            id: entity,
+    pub fn into_tilemap(&self, tilemap: Entity, texture: TilemapTexture) -> TilemapBundle {
+        TilemapBundle {
             name: self.name.clone(),
-            tile_type: self.tile_type,
-            ext_dir: self.ext_dir,
+            ty: self.ty,
             tile_render_size: self.tile_render_size,
             tile_slot_size: self.tile_slot_size,
-            pivot: self.pivot,
-            chunk_size: self.chunk_size,
-            texture,
+            tile_pivot: self.tile_pivot,
             layer_opacities: self.layer_opacities,
-            storage: TilemapStorage::new(self.chunk_size),
-            transform: self.transform,
-            anim_seqs,
-            anim_counts: self.anim_counts,
+            storage: TilemapStorage {
+                tilemap,
+                storage: ChunkedStorage::new(self.chunk_size),
+            },
+            tilemap_transform: self.tilemap_transform,
+            texture,
+            animations: self.animations.clone().unwrap(),
+            ..Default::default()
+        }
+    }
+
+    pub fn into_pure_color_tilemap(&self, tilemap: Entity) -> PureColorTilemapBundle {
+        PureColorTilemapBundle {
+            name: self.name.clone(),
+            ty: self.ty,
+            tile_render_size: self.tile_render_size,
+            slot_size: self.tile_slot_size,
+            tile_pivot: self.tile_pivot,
+            layer_opacities: self.layer_opacities,
+            storage: TilemapStorage {
+                tilemap,
+                storage: ChunkedStorage::new(self.chunk_size),
+            },
+            tilemap_transform: self.tilemap_transform,
+            ..Default::default()
         }
     }
 }

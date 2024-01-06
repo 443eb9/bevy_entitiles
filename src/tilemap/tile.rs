@@ -5,18 +5,7 @@ use bevy::{
     reflect::Reflect,
 };
 
-use super::{layer::TileLayer, map::Tilemap};
-
-/// Defines the shape of tiles in a tilemap.
-/// Check the `Coordinate Systems` chapter in README.md to see the details.
-#[derive(Default, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub enum TileType {
-    #[default]
-    Square,
-    Isometric,
-    Hexagonal(u32),
-}
+use super::{layer::TileLayer, map::TilemapStorage};
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, Reflect)]
@@ -74,20 +63,31 @@ impl TileBuilder {
         self
     }
 
-    pub(crate) fn build(&self, commands: &mut Commands, index: IVec2, tilemap: &Tilemap) -> Entity {
-        let tile = self.build_component(index, tilemap);
+    pub(crate) fn build(
+        &self,
+        commands: &mut Commands,
+        index: IVec2,
+        storage: &TilemapStorage,
+        tilemap: Entity,
+    ) -> Entity {
+        let tile = self.build_component(index, storage, tilemap);
 
         let mut tile_entity = commands.spawn_empty();
         tile_entity.insert(tile);
         let tile_entity = tile_entity.id();
-        commands.entity(tilemap.id).add_child(tile_entity);
+        commands.entity(tilemap).add_child(tile_entity);
         tile_entity
     }
 
-    pub(crate) fn build_component(&self, index: IVec2, tilemap: &Tilemap) -> Tile {
-        let indices = tilemap.transform_index(index);
+    pub(crate) fn build_component(
+        &self,
+        index: IVec2,
+        storage: &TilemapStorage,
+        tilemap: Entity,
+    ) -> Tile {
+        let indices = storage.transform_index(index);
         Tile {
-            tilemap_id: tilemap.id,
+            tilemap_id: tilemap,
             chunk_index: indices.0,
             in_chunk_index: indices.1,
             index,

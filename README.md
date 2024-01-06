@@ -10,7 +10,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Infinite Tilemap
 - Chunk Unloading
 - Custom Material
 - Runtime Mesh & Texture Baking
@@ -24,6 +23,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - ~~Pathfinding~~
 - ~~Physics~~
 - ~~[LDtk](https://ldtk.io/) Full Support~~
+- ~~Infinite Tilemap~~
 
 ## Known Issues
 

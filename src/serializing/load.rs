@@ -1,9 +1,9 @@
 use bevy::{
     asset::AssetServer,
     ecs::{
+        bundle::Bundle,
         component::Component,
         entity::Entity,
-        query::Without,
         system::{Commands, Query, Res},
     },
     reflect::Reflect,
@@ -11,7 +11,10 @@ use bevy::{
 use ron::error::SpannedError;
 use serde::Deserialize;
 
-use crate::{render::texture::TilemapTexture, tilemap::map::Tilemap};
+use crate::tilemap::{
+    map::{TilemapStorage, TilemapTexture},
+    storage::ChunkedStorage,
+};
 
 use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
@@ -83,29 +86,19 @@ impl From<TilemapLoader> for TilemapLoadFailure {
 
 pub fn load(
     mut commands: Commands,
-    #[cfg(feature = "algorithm")] tilemaps_query: Query<
-        (Entity, &TilemapLoader),
-        (
-            Without<Tilemap>,
-            Without<crate::tilemap::algorithm::path::PathTilemap>,
-        ),
-    >,
-    #[cfg(not(feature = "algorithm"))] tilemaps_query: Query<
-        (Entity, &TilemapLoader),
-        Without<Tilemap>,
-    >,
+    tilemaps_query: Query<(Entity, &TilemapLoader)>,
     asset_server: Res<AssetServer>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
         let map_path = format!("{}\\{}\\", loader.path, loader.map_name);
+        let failure = <TilemapLoader as Into<TilemapLoadFailure>>::into(loader.clone());
 
-        let Ok(serialized_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META)
-        else {
-            complete::<TilemapLoadFailure>(&mut commands, entity, loader.clone().into());
+        let Ok(ser_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META) else {
+            complete(&mut commands, entity, failure);
             continue;
         };
 
-        let texture = if let Some(tex) = &serialized_tilemap.texture {
+        let texture = if let Some(tex) = &ser_tilemap.texture {
             Some(TilemapTexture {
                 texture: asset_server.load(tex.path.clone()),
                 desc: tex.desc.clone().into(),
@@ -116,7 +109,7 @@ pub fn load(
         };
 
         // texture
-        let serialized_tiles = if loader.layers & 1 != 0 && serialized_tilemap.layers & 1 != 0 {
+        let serialized_tiles = if loader.layers & 1 != 0 && ser_tilemap.layers & 1 != 0 {
             Some(load_object::<Vec<Option<SerializedTile>>>(&map_path, TILES))
         } else {
             None
@@ -128,29 +121,40 @@ pub fn load(
             let Ok(path_tilemap) =
                 load_object::<crate::tilemap::algorithm::path::PathTilemap>(&map_path, PATH_TILES)
             else {
-                complete::<TilemapLoadFailure>(&mut commands, entity, loader.clone().into());
+                complete(&mut commands, entity, failure);
                 continue;
             };
 
             commands.entity(entity).insert(path_tilemap);
         }
 
-        let mut tilemap = serialized_tilemap.into_tilemap(entity, texture);
+        let mut storage = TilemapStorage {
+            tilemap: entity,
+            storage: ChunkedStorage::new(ser_tilemap.chunk_size),
+        };
 
         if let Some(ser_tiles) = serialized_tiles {
             let Ok(ser_tiles) = ser_tiles else {
-                complete::<TilemapLoadFailure>(&mut commands, entity, loader.clone().into());
+                complete(&mut commands, entity, failure);
                 continue;
             };
 
             for i in 0..ser_tiles.len() {
                 if let Some(ser_t) = &ser_tiles[i] {
-                    tilemap.set(&mut commands, ser_t.index, ser_t.clone().into());
+                    storage.set(&mut commands, ser_t.index, ser_t.clone().into());
                 }
             }
         }
 
-        complete(&mut commands, entity, tilemap);
+        if let Some(tex) = texture {
+            let mut bundle = ser_tilemap.into_tilemap(entity, tex);
+            bundle.storage = storage;
+            complete(&mut commands, entity, bundle);
+        } else {
+            let mut bundle = ser_tilemap.into_pure_color_tilemap(entity);
+            bundle.storage = storage;
+            complete(&mut commands, entity, bundle);
+        }
     }
 }
 
@@ -158,7 +162,7 @@ fn load_object<T: for<'a> Deserialize<'a>>(path: &str, file_name: &str) -> Resul
     ron::from_str(std::fs::read_to_string(format!("{}{}", path, file_name))?.as_str())
 }
 
-fn complete<T: Component>(commands: &mut Commands, entity: Entity, component: T) {
+fn complete(commands: &mut Commands, entity: Entity, bundle: impl Bundle) {
     commands.entity(entity).remove::<TilemapLoader>();
-    commands.entity(entity).insert(component);
+    commands.entity(entity).insert(bundle);
 }

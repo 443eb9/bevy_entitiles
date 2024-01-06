@@ -7,12 +7,15 @@ use bevy::{
 };
 
 use crate::{
-    render::texture::TilemapTexture,
     serializing::pattern::TilemapPattern,
     tilemap::{
+        bundles::TilemapBundle,
         layer::TileLayer,
-        map::TilemapBuilder,
-        tile::{TileBuilder, TileTexture, TileType},
+        map::{
+            TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapTexture,
+            TilemapTransform, TilemapType,
+        },
+        tile::{TileBuilder, TileTexture},
     },
 };
 
@@ -137,16 +140,21 @@ impl<'a> LdtkLayers<'a> {
                     .filter_map(|e| if let Some(e) = e { Some(e) } else { None })
                     .enumerate()
                     .for_each(|(index, (pattern, texture, iid, opacity))| {
-                        let mut tilemap = TilemapBuilder::new(
-                            TileType::Square,
-                            texture.desc.tile_size.as_vec2(),
-                            pattern.label.clone().unwrap(),
-                        )
-                        .with_texture(texture)
-                        .with_translation(self.translation)
-                        .with_z_index(self.base_z_index - index as i32 - 1)
-                        .with_layer_opacities([opacity; 4])
-                        .build(commands);
+                        let tilemap_entity = commands.spawn_empty().id();
+                        let mut tilemap = TilemapBundle {
+                            name: TilemapName(pattern.label.clone().unwrap()),
+                            ty: TilemapType::Square,
+                            tile_render_size: TileRenderSize(texture.desc.tile_size.as_vec2()),
+                            tile_slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
+                            texture: texture.clone(),
+                            tilemap_transform: TilemapTransform {
+                                translation: self.translation,
+                                z_index: self.base_z_index - index as i32 - 1,
+                                ..Default::default()
+                            },
+                            layer_opacities: TilemapLayerOpacities([opacity; 4].into()),
+                            ..Default::default()
+                        };
 
                         pattern.apply_tiles(
                             commands,
@@ -154,18 +162,19 @@ impl<'a> LdtkLayers<'a> {
                                 x: 0,
                                 y: -(pattern.size.y as i32),
                             },
-                            &mut tilemap,
+                            &mut tilemap.storage,
                         );
 
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
-                            if path_layer.parent == tilemap.name {
-                                commands.entity(tilemap.id).insert(
+                            if path_layer.parent == tilemap.name.0 {
+                                commands.entity(tilemap_entity).insert(
                                     crate::tilemap::algorithm::path::PathTilemap {
-                                        storage: crate::tilemap::map::TilemapStorage::from_mapper(
-                                            path_tilemap.clone(),
-                                            None,
-                                        ),
+                                        storage:
+                                            crate::tilemap::storage::ChunkedStorage::from_mapper(
+                                                path_tilemap.clone(),
+                                                None,
+                                            ),
                                     },
                                 );
                             }
@@ -173,18 +182,22 @@ impl<'a> LdtkLayers<'a> {
 
                         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
                         if let Some((physics_layer, aabbs)) = &self.physics_layer {
-                            if physics_layer.parent == tilemap.name {
+                            if physics_layer.parent == tilemap.name.0 {
                                 aabbs.generate_colliders(
                                     commands,
-                                    &tilemap,
+                                    tilemap_entity,
+                                    &tilemap.ty,
+                                    &tilemap.tilemap_transform,
+                                    &tilemap.tile_pivot,
+                                    &tilemap.tile_slot_size,
                                     physics_layer.frictions.as_ref(),
                                     Vec2::ZERO,
                                 );
                             }
                         }
 
-                        commands.entity(self.level_entity).add_child(tilemap.id);
-                        commands.entity(tilemap.id).insert((tilemap, iid));
+                        commands.entity(self.level_entity).add_child(tilemap_entity);
+                        commands.entity(tilemap_entity).insert((tilemap, iid));
                     });
 
                 let bg = commands.spawn(self.background.clone()).id();

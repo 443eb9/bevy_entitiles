@@ -1,6 +1,6 @@
 use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 
-use crate::{math::TileArea, tilemap::map::TilemapStorage, DEFAULT_CHUNK_SIZE};
+use crate::{math::TileArea, tilemap::storage::ChunkedStorage, DEFAULT_CHUNK_SIZE};
 
 #[derive(Component, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -11,19 +11,19 @@ pub struct PathTile {
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTilemap {
-    pub(crate) storage: TilemapStorage<PathTile>,
+    pub(crate) storage: ChunkedStorage<PathTile>,
 }
 
 impl PathTilemap {
     pub fn new() -> Self {
         Self {
-            storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE),
+            storage: ChunkedStorage::new(DEFAULT_CHUNK_SIZE),
         }
     }
 
     pub fn new_with_chunk_size(chunk_size: u32) -> Self {
         Self {
-            storage: TilemapStorage::new(chunk_size),
+            storage: ChunkedStorage::new(chunk_size),
         }
     }
 

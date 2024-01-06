@@ -1,27 +1,26 @@
 use bevy::{
     asset::{Assets, Handle},
     ecs::{
+        entity::Entity,
         query::With,
         system::{Commands, Query, ResMut, Resource},
     },
     math::Vec2,
-    prelude::{Image, UVec2},
-    reflect::Reflect,
+    prelude::Image,
     render::{
         render_asset::RenderAssets,
         render_resource::{
-            AddressMode, Extent3d, FilterMode, ImageCopyTexture, Origin3d, SamplerDescriptor,
-            TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            AddressMode, Extent3d, ImageCopyTexture, Origin3d, SamplerDescriptor, TextureAspect,
+            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
             TextureViewDescriptor, TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
         texture::GpuImage,
     },
-    sprite::TextureAtlas,
     utils::HashMap,
 };
 
-use crate::tilemap::map::{Tilemap, TilemapRotation, WaitForTextureUsageChange};
+use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor, WaitForTextureUsageChange};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -178,82 +177,16 @@ impl TilemapTexturesStorage {
     }
 }
 
-#[derive(Clone, Default, Debug, Reflect)]
-pub struct TilemapTexture {
-    pub(crate) texture: Handle<Image>,
-    pub(crate) desc: TilemapTextureDescriptor,
-    pub(crate) rotation: TilemapRotation,
-}
-
-impl TilemapTexture {
-    pub fn new(
-        texture: Handle<Image>,
-        desc: TilemapTextureDescriptor,
-        rotation: TilemapRotation,
-    ) -> Self {
-        Self {
-            texture,
-            desc,
-            rotation,
-        }
-    }
-
-    pub fn clone_weak(&self) -> Handle<Image> {
-        self.texture.clone_weak()
-    }
-
-    pub fn desc(&self) -> &TilemapTextureDescriptor {
-        &self.desc
-    }
-
-    pub fn handle(&self) -> &Handle<Image> {
-        &self.texture
-    }
-
-    pub fn as_texture_atlas(&self) -> TextureAtlas {
-        TextureAtlas::from_grid(
-            self.texture.clone(),
-            self.desc.tile_size.as_vec2(),
-            self.desc.size.x as usize,
-            self.desc.size.y as usize,
-            Some(Vec2::ZERO),
-            Some(Vec2::ZERO),
-        )
-    }
-}
-
-#[derive(Clone, Default, Debug, PartialEq, Reflect)]
-pub struct TilemapTextureDescriptor {
-    pub(crate) size: UVec2,
-    pub(crate) tile_size: UVec2,
-    #[reflect(ignore)]
-    pub(crate) filter_mode: FilterMode,
-}
-
-impl TilemapTextureDescriptor {
-    pub fn new(size: UVec2, tile_size: UVec2, filter_mode: FilterMode) -> Self {
-        assert_eq!(
-            size % tile_size,
-            UVec2::ZERO,
-            "Invalid tilemap texture descriptor! The size must be divisible by the tile size! \
-            If the spare pixels are not needed and you are not using this texture for ui, \
-            you can \"lie\" to the descriptor by setting the size to fit the tiles."
-        );
-
-        Self {
-            size,
-            tile_size,
-            filter_mode,
-        }
-    }
-}
-
 pub fn set_texture_usage(
     mut commands: Commands,
-    mut tilemaps_query: Query<&mut Tilemap, With<WaitForTextureUsageChange>>,
+    mut tilemaps_query: Query<(Entity, &mut TilemapTexture), With<WaitForTextureUsageChange>>,
     mut image_assets: ResMut<Assets<Image>>,
 ) {
-    for mut tilemap in tilemaps_query.iter_mut() {
-        tilemap.set_usage(&mut commands, &mut image_assets);
+    for (entity, mut texture) in tilemaps_query.iter_mut() {
+        texture.set_usage(&mut image_assets);
+
+        commands
+            .entity(entity)
+            .remove::<WaitForTextureUsageChange>();
     }
 }

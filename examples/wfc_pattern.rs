@@ -15,7 +15,7 @@ use bevy_entitiles::{
     tilemap::{
         layer::TileLayer,
         map::TilemapBuilder,
-        tile::{TileBuilder, TileType},
+        tile::{TileBuilder, TilemapType},
     },
     EntiTilesPlugin,
 };
@@ -49,7 +49,7 @@ fn setup(mut commands: Commands) {
     for row in 0..ROWS {
         for col in 0..COLS {
             let mut tilemap = TilemapBuilder::new(
-                TileType::Square,
+                TilemapType::Square,
                 Vec2 { x: 8., y: 8. },
                 format!("{}{}", PREFIX, col * ROWS + row),
             )
@@ -99,18 +99,18 @@ fn setup(mut commands: Commands) {
     // So the patterns are generated and saved to disk.
 
     let wfc_map = TilemapBuilder::new(
-        TileType::Square,
+        TilemapType::Square,
         Vec2 { x: 8., y: 8. },
         "wfc_map".to_string(),
     )
     .build(&mut commands);
 
-    let rules = WfcRules::from_file("examples/wfc_config.ron", TileType::Square);
+    let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
 
     commands.entity(wfc_map.id()).insert((
         WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules),
         WfcRunner::new(
-            TileType::Square,
+            TilemapType::Square,
             rules,
             TileArea::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
             Some(0),

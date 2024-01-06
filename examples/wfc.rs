@@ -12,7 +12,7 @@ use bevy_entitiles::{
     render::texture::{TilemapTexture, TilemapTextureDescriptor},
     tilemap::{
         map::{TilemapBuilder, TilemapRotation},
-        tile::TileType,
+        tile::TilemapType,
     },
     EntiTilesPlugin,
 };
@@ -31,7 +31,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let tilemap = TilemapBuilder::new(
-        TileType::Square,
+        TilemapType::Square,
         Vec2 { x: 16., y: 16. },
         "test_map".to_string(),
     )
@@ -46,12 +46,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     ))
     .build(&mut commands);
 
-    let rules = WfcRules::from_file("examples/wfc_config.ron", TileType::Square);
+    let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
 
     commands.entity(tilemap.id()).insert((
         WfcSource::from_texture_indices(&rules),
         WfcRunner::new(
-            TileType::Square,
+            TilemapType::Square,
             rules,
             TileArea::new(IVec2::ZERO, UVec2 { x: 16, y: 16 }),
             Some(0),

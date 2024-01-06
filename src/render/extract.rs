@@ -10,29 +10,27 @@ use bevy::{
     window::Window,
 };
 
-use crate::{
-    tilemap::{
-        map::{Tilemap, TilemapTransform},
-        tile::{Tile, TileTexture, TileType},
+use crate::tilemap::{
+    map::{
+        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
     },
-    MAX_ANIM_COUNT,
+    tile::{Tile, TileTexture},
 };
-
-use super::{buffer::TileAnimation, texture::TilemapTexture};
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {
     pub id: Entity,
-    pub tile_type: TileType,
-    pub ext_dir: Vec2,
+    pub name: String,
     pub tile_render_size: Vec2,
     pub tile_slot_size: Vec2,
-    pub pivot: Vec2,
-    pub chunk_size: u32,
-    pub texture: Option<TilemapTexture>,
-    pub transform: TilemapTransform,
-    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
+    pub ty: TilemapType,
+    pub tile_pivot: Vec2,
     pub layer_opacities: Vec4,
+    pub transform: TilemapTransform,
+    pub texture: Option<TilemapTexture>,
+    pub animations: Option<TilemapAnimations>,
+    pub chunk_size: u32,
     pub time: f32,
 }
 
@@ -56,25 +54,52 @@ pub struct ExtractedView {
 
 pub fn extract_tilemaps(
     mut commands: Commands,
-    tilemaps_query: Extract<Query<(Entity, &Tilemap)>>,
+    tilemaps_query: Extract<
+        Query<(
+            Entity,
+            &TilemapName,
+            &TileRenderSize,
+            &TilemapSlotSize,
+            &TilemapType,
+            &TilePivot,
+            &TilemapLayerOpacities,
+            &TilemapTransform,
+            &TilemapStorage,
+            Option<&TilemapTexture>,
+            Option<&TilemapAnimations>,
+        )>,
+    >,
     time: Extract<Res<Time>>,
 ) {
     let mut extracted_tilemaps = vec![];
-    for (entity, tilemap) in tilemaps_query.iter() {
+    for (
+        entity,
+        name,
+        tile_render_size,
+        tile_slot_size,
+        ty,
+        tile_pivot,
+        layer_opacities,
+        transform,
+        storage,
+        texture,
+        animations,
+    ) in tilemaps_query.iter()
+    {
         extracted_tilemaps.push((
             entity,
             ExtractedTilemap {
-                id: tilemap.id,
-                tile_type: tilemap.tile_type,
-                ext_dir: tilemap.ext_dir,
-                tile_render_size: tilemap.tile_render_size,
-                tile_slot_size: tilemap.tile_slot_size,
-                chunk_size: tilemap.chunk_size,
-                pivot: tilemap.pivot,
-                texture: tilemap.texture.clone(),
-                transform: tilemap.transform,
-                anim_seqs: tilemap.anim_seqs,
-                layer_opacities: tilemap.layer_opacities,
+                id: entity,
+                name: name.0.clone(),
+                tile_render_size: tile_render_size.0,
+                tile_slot_size: tile_slot_size.0,
+                ty: *ty,
+                tile_pivot: tile_pivot.0,
+                layer_opacities: layer_opacities.0,
+                transform: *transform,
+                texture: texture.cloned(),
+                animations: animations.cloned(),
+                chunk_size: storage.storage.chunk_size,
                 time: time.elapsed_seconds(),
             },
         ));
