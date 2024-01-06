@@ -38,7 +38,7 @@ fn main() {
             EntiTilesPlugin,
             EntiTilesHelpersPlugin,
             PhysicsPlugins::default(),
-            // PhysicsDebugPlugin::default(),
+            PhysicsDebugPlugin::default(),
         ))
         .insert_resource(LdtkLevelManager::new(
             "assets/ldtk/wfc_source.ldtk".to_string(),
@@ -85,6 +85,8 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
+        // you can also switch this to SingleMap mode
+        // which will apply the result on a single tilemap
         WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
     ));
 
