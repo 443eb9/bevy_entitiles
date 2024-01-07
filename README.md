@@ -11,14 +11,14 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 *The higher the priority, the more towards the front in the following list.*
 
 - Chunk Unloading
-- Custom Material
-- Runtime Mesh & Texture Baking
-- Wang Tilling
-- Tilemap Mask
 - [Tiled](https://www.mapeditor.org/) Support
+- Custom Material
 - Volumetric Clouds / Fog
 - SSAO
 - Realtime Lighting
+- Runtime Mesh & Texture Baking
+- Wang Tiling
+- Tilemap Mask
 - ~~Frustum Culling~~
 - ~~Pathfinding~~
 - ~~Physics~~
