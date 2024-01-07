@@ -78,6 +78,12 @@ impl TilemapChunkSaver {
     }
 
     pub fn with_range(mut self, start_index: IVec2, end_index: IVec2) -> Self {
+        assert!(
+            start_index.x <= end_index.x && start_index.y <= end_index.y,
+            "start_index({}) must be less than (or equal to) end_index({})!",
+            start_index, end_index
+        );
+
         self.ranges.push(IAabb2d {
             min: start_index,
             max: end_index,

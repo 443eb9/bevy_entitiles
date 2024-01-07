@@ -93,8 +93,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         TextBundle::from_sections([
             TextSection {
-                value: "Enter the index of the chunk (eg: 0_0)\nAnd press enter to unload\n"
-                    .to_string(),
+                value:
+                    "Enter the index of the chunk (eg: 0_0, 0_0~1_2)\nAnd press enter to unload\n"
+                        .to_string(),
                 style: TextStyle {
                     font_size: 30.,
                     ..Default::default()
@@ -156,34 +157,73 @@ fn manual_unload(
 ) {
     if keyboard.just_pressed(KeyCode::Return) {
         let mut info = info.single_mut();
-        let value = text.single().sections[0].value.clone();
-        let mut iter = value.split('_').clone();
-        let mut xy = [0; 2];
-        let mut is_success = false;
+        let mut text = text.single_mut();
+        let value = text.sections[0].value.clone();
 
-        for i in 0..2 {
-            if let Some(e) = iter.next() {
-                if let Ok(e) = e.parse() {
-                    xy[i] = e;
-                    is_success = true;
+        let mut component = TilemapChunkSaver::new("C:\\maps".to_string())
+            .with_layer(TilemapLayer::All)
+            .remove_after_save();
+
+        // some low quality trash
+        let mut iter_mul = value.split('~');
+        let count = iter_mul.clone().count();
+
+        if count == 2 {
+            let mut bounds = [IVec2::ZERO; 2];
+            for i in 0..=1 {
+                let cur = if let Some(input) = iter_mul.next() {
+                    input
                 } else {
-                    info.sections[1].value = format!("Failed to parse:\n{}", e);
+                    println!("aa");
+                    fail(&mut info, &value, &mut text);
+                    return;
+                };
+
+                if let Some(idx) = parse_index(cur) {
+                    bounds[i] = idx;
+                } else {
+                    println!("bb");
+                    fail(&mut info, &value, &mut text);
+                    return;
                 }
-            } else {
-                info.sections[1].value = format!("Invalid input:\n{}", value);
             }
-        }
-
-        text.single_mut().sections[0].value = "".to_string();
-        if !is_success {
+            component = component.with_range(bounds[0], bounds[1]);
+        } else if count == 1 {
+            let Some(idx) = parse_index(&value) else {
+                fail(&mut info, &value, &mut text);
+                return;
+            };
+            component = component.with_single(idx);
+        } else {
+            fail(&mut info, &value, &mut text);
             return;
-        }
+        };
 
-        commands.entity(tilemaps_query.single()).insert(
-            TilemapChunkSaver::new("C:\\maps".to_string())
-                .with_layer(TilemapLayer::All)
-                .with_single(IVec2::from(xy))
-                .remove_after_save(),
-        );
+        text.sections[0].value = "".to_string();
+        commands.entity(tilemaps_query.single()).insert(component);
     }
+}
+
+fn parse_index(value: &str) -> Option<IVec2> {
+    let mut iter_sig = value.split('_');
+    let mut xy = IVec2::ZERO;
+
+    for i in 0..=1 {
+        if let Some(e) = iter_sig.next() {
+            if let Ok(e) = e.parse() {
+                xy[i] = e;
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        }
+    }
+
+    Some(xy)
+}
+
+fn fail(info: &mut Text, value: &str, text: &mut Text) {
+    info.sections[1].value = format!("Invalid input:\n{}", value);
+    text.sections[0].value = "".to_string();
 }
