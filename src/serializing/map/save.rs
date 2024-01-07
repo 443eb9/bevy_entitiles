@@ -1,7 +1,4 @@
-use std::{
-    fs::{create_dir_all, File},
-    io::Write,
-};
+use std::{fs::File, io::Write, path::Path};
 
 use bevy::{
     ecs::{
@@ -36,7 +33,7 @@ pub struct TilemapSaverBuilder {
     path: String,
     texture_path: Option<String>,
     layers: u32,
-    remove_map_after_done: bool,
+    remove_after_save: bool,
     mode: TilemapSaverMode,
 }
 
@@ -61,7 +58,7 @@ impl TilemapSaverBuilder {
             path,
             texture_path: None,
             layers: 0,
-            remove_map_after_done: false,
+            remove_after_save: false,
             mode: TilemapSaverMode::Tilemap,
         }
     }
@@ -80,8 +77,8 @@ impl TilemapSaverBuilder {
     }
 
     /// Despawn the tilemap after saving.
-    pub fn remove_map_after_done(mut self) -> Self {
-        self.remove_map_after_done = true;
+    pub fn remove_after_save(mut self) -> Self {
+        self.remove_after_save = true;
         self
     }
 
@@ -96,7 +93,7 @@ impl TilemapSaverBuilder {
             path: self.path,
             texture_path: self.texture_path,
             layers: self.layers,
-            remove_map_after_done: self.remove_map_after_done,
+            remove_map_after_done: self.remove_after_save,
             mode: self.mode,
         });
     }
@@ -147,7 +144,8 @@ pub fn save(
         saver,
     ) in tilemaps_query.iter()
     {
-        let map_path = format!("{}\\{}\\", saver.path, name.0);
+        let map_dir = Path::new(&saver.path);
+        let map_path = map_dir.join(&name.0);
 
         if saver.mode == TilemapSaverMode::Tilemap {
             let serialized_tilemap = SerializedTilemap::from_tilemap(
@@ -200,11 +198,7 @@ pub fn save(
         }
 
         if saver.mode == TilemapSaverMode::MapPattern {
-            save_object(
-                format!("{}\\", saver.path).as_str(),
-                format!("{}.ron", name.0).as_str(),
-                &pattern,
-            );
+            save_object(map_dir, format!("{}.ron", name.0).as_str(), &pattern);
         }
 
         if saver.remove_map_after_done {
@@ -215,10 +209,11 @@ pub fn save(
     }
 }
 
-fn save_object<T: Serialize>(path: &str, file_name: &str, object: &T) {
-    let _ = create_dir_all(path);
-    let path = format!("{}{}", path, file_name);
-    let _ = File::create(path.clone())
+fn save_object<T: Serialize>(path: &Path, file_name: &str, object: &T) {
+    std::fs::create_dir_all(path).unwrap_or_else(|err| panic!("{:?}", err));
+    let path = path.join(file_name);
+    File::create(path.clone())
         .unwrap_or(File::open(path).unwrap())
-        .write(ron::to_string(object).unwrap().as_bytes());
+        .write(ron::to_string(object).unwrap().as_bytes())
+        .unwrap_or_else(|err| panic!("{:?}", err));
 }

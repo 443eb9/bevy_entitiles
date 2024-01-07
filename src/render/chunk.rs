@@ -1,12 +1,13 @@
 use bevy::{
+    ecs::component::Component,
     math::{IVec2, IVec3, IVec4, UVec4},
-    prelude::{Entity, Mesh, Query, Resource, UVec2, Vec3, Vec4},
+    prelude::{Entity, Mesh, Resource, UVec2, Vec3, Vec4},
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
     },
-    utils::HashMap,
+    utils::{EntityHashMap, HashMap},
 };
 
 use crate::{
@@ -23,6 +24,9 @@ use super::{
     TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX,
     TILEMAP_MESH_ATTR_TEX_INDICES,
 };
+
+#[derive(Component, Debug, Clone)]
+pub struct UnloadedRenderChunk(pub Vec<IVec2>);
 
 #[derive(Clone)]
 pub struct MeshTileData {
@@ -207,7 +211,7 @@ impl TilemapRenderChunk {
 
 #[derive(Resource, Default)]
 pub struct RenderChunkStorage {
-    pub(crate) value: HashMap<Entity, HashMap<IVec2, TilemapRenderChunk>>,
+    pub(crate) value: EntityHashMap<Entity, HashMap<IVec2, TilemapRenderChunk>>,
 }
 
 impl RenderChunkStorage {
@@ -217,27 +221,6 @@ impl RenderChunkStorage {
             chunks
                 .values_mut()
                 .for_each(|c| c.update_mesh(render_device));
-        }
-    }
-
-    /// Add tiles to the storage from a query.
-    pub fn add_tiles_with_query(
-        &mut self,
-        tilemaps_query: &Query<&ExtractedTilemap>,
-        changed_tiles_query: &Query<&mut ExtractedTile>,
-    ) {
-        for tile in changed_tiles_query.iter() {
-            let Ok(tilemap) = tilemaps_query.get(tile.tilemap) else {
-                continue;
-            };
-
-            let chunks = self.value.entry(tile.tilemap).or_default();
-
-            let chunk = chunks
-                .entry(tile.chunk_index)
-                .or_insert_with(|| TilemapRenderChunk::from_index(tile.chunk_index, tilemap));
-
-            chunk.set_tile(tile.in_chunk_index, tile);
         }
     }
 
@@ -252,5 +235,10 @@ impl RenderChunkStorage {
         tilemap: Entity,
     ) -> Option<&mut HashMap<IVec2, TilemapRenderChunk>> {
         self.value.get_mut(&tilemap)
+    }
+
+    #[inline]
+    pub fn remove_chunk(&mut self, tilemap: Entity, index: IVec2) -> Option<TilemapRenderChunk> {
+        self.value.get_mut(&tilemap).and_then(|c| c.remove(&index))
     }
 }

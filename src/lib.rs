@@ -42,7 +42,7 @@ pub mod prelude {
     pub use crate::math::{aabb::Aabb2d, TileArea};
     pub use crate::render::buffer::TileAnimation;
     #[cfg(feature = "serializing")]
-    pub use crate::serializing::{load::TilemapLoaderBuilder, save::TilemapSaverBuilder};
+    pub use crate::serializing::{map::load::TilemapLoaderBuilder, map::save::TilemapSaverBuilder};
     #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
     pub use crate::tilemap::physics::TileCollision;
     pub use crate::tilemap::{

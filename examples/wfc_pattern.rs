@@ -8,7 +8,7 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
-    serializing::{
+    serializing::map::{
         save::{TilemapSaverBuilder, TilemapSaverMode},
         TilemapLayer,
     },
@@ -95,7 +95,7 @@ fn setup(mut commands: Commands) {
         TilemapSaverBuilder::new(PATTERNS_PATH.to_string())
             .with_mode(TilemapSaverMode::MapPattern)
             .with_layer(TilemapLayer::Color)
-            .remove_map_after_done()
+            .remove_after_save()
             .build(&mut commands, *map);
     });
 

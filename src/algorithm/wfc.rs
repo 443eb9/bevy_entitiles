@@ -12,7 +12,7 @@ use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
     math::{extension::TileIndex, TileArea},
-    serializing::{pattern::TilemapPattern, SerializedTile},
+    serializing::map::{pattern::TilemapPattern, SerializedTile},
     tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
         map::{

@@ -10,7 +10,7 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    serializing::{
+    serializing::map::{
         load::{TilemapLoadFailure, TilemapLoaderBuilder},
         save::TilemapSaverBuilder,
         TilemapLayer,
@@ -96,10 +96,10 @@ fn save_and_load(
     // save
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
-            TilemapSaverBuilder::new("C:\\saves\\".to_string())
+            TilemapSaverBuilder::new("C:\\saves".to_string())
                 .with_layer(TilemapLayer::All)
                 .with_texture("test_isometric.png".to_string())
-                .remove_map_after_done()
+                .remove_after_save()
                 .build(&mut commands, t);
             println!("Saved tilemap!");
         }

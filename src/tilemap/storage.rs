@@ -92,4 +92,8 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     pub fn iter(&self) -> impl Iterator<Item = &Option<T>> {
         self.chunks.values().map(|c| c.iter()).flatten()
     }
+
+    pub fn remove_chunk(&mut self, index: IVec2) -> Option<Vec<Option<T>>> {
+        self.chunks.remove(&index)
+    }
 }

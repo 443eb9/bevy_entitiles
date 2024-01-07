@@ -25,9 +25,9 @@ pub fn cull_chunks(
 
         chunks.values_mut().for_each(|c| {
             if c.aabb.is_intersected(&camera_aabb) {
-                c.visible = true;
+                c.visible |= true;
             } else {
-                c.visible = false;
+                c.visible |= false;
             }
         })
     }

@@ -308,6 +308,15 @@ impl TilemapStorage {
         }
     }
 
+    /// Remove the whole chunk and despawn all the tiles in it.
+    pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
+        if let Some(chunk) = self.storage.remove_chunk(index) {
+            chunk.into_iter().filter_map(|e| e).for_each(|e| {
+                commands.entity(e).despawn_recursive();
+            });
+        }
+    }
+
     /// Fill a rectangle area with tiles.
     pub fn fill_rect(
         &mut self,

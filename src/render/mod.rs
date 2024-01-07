@@ -73,11 +73,18 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_tilemaps,
                     extract::extract_tiles,
                     extract::extract_view,
+                    extract::extract_unloaded_chunks,
                 ),
             )
             .add_systems(
                 Render,
-                (prepare::prepare, culling::cull_chunks).in_set(RenderSet::Prepare),
+                (
+                    prepare::prepare_tilemaps,
+                    prepare::prepare_tiles,
+                    prepare::prepare_unloaded_chunks,
+                    culling::cull_chunks,
+                )
+                    .in_set(RenderSet::Prepare),
             )
             .add_systems(Render, queue::queue.in_set(RenderSet::Queue));
 

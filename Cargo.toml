@@ -97,7 +97,7 @@ required-features = ["physics_rapier"]
 [[example]]
 name = "save_and_load"
 path = "examples/save_and_load.rs"
-required-features = ["serializing", "algorithm"]
+required-features = ["algorithm"]
 
 [[example]]
 name = "ldtk"
@@ -112,9 +112,14 @@ required-features = ["ui"]
 [[example]]
 name = "wfc_pattern"
 path = "examples/wfc_pattern.rs"
-required-features = ["algorithm", "serializing"]
+required-features = ["algorithm"]
 
 [[example]]
 name = "ldtk_wfc"
 path = "examples/ldtk_wfc.rs"
 required-features = ["algorithm", "ldtk", "physics_xpbd"]
+
+[[example]]
+name = "chunk_unloading"
+path = "examples/chunk_unloading.rs"
+required-features = ["debug", "algorithm"]

@@ -168,4 +168,16 @@ impl IAabb2d {
     pub fn size(&self) -> IVec2 {
         self.max - self.min + IVec2::ONE
     }
+
+    #[inline]
+    pub fn into_iter(self) -> impl Iterator<Item = IVec2> {
+        (self.min.y..=self.max.y)
+            .into_iter()
+            .map(move |y| {
+                (self.min.x..=self.max.x)
+                    .into_iter()
+                    .map(move |x| IVec2 { x, y })
+            })
+            .flatten()
+    }
 }

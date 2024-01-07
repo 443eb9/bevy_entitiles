@@ -250,6 +250,16 @@ impl DivToFloor for UVec2 {
     }
 }
 
+pub trait ChunkIndex {
+    fn chunk_file_name(self) -> String;
+}
+
+impl ChunkIndex for IVec2 {
+    fn chunk_file_name(self) -> String {
+        format!("{}_{}", self.x, self.y)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
