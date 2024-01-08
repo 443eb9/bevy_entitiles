@@ -317,7 +317,7 @@ impl TilemapStorage {
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
             chunk.into_iter().filter_map(|e| e).for_each(|e| {
-                commands.entity(e).despawn_recursive();
+                commands.entity(e).despawn();
             });
         }
     }

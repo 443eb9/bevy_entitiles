@@ -9,7 +9,7 @@ use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
     serializing::map::{
-        save::{TilemapSaverBuilder, TilemapSaverMode},
+        save::{TilemapSaver, TilemapSaverMode},
         TilemapLayer,
     },
     tilemap::{
@@ -91,12 +91,13 @@ fn setup(mut commands: Commands) {
         }
     }
 
-    tilemaps.iter().for_each(|map| {
-        TilemapSaverBuilder::new(PATTERNS_PATH.to_string())
-            .with_mode(TilemapSaverMode::MapPattern)
-            .with_layer(TilemapLayer::Color)
-            .remove_after_save()
-            .build(&mut commands, *map);
+    tilemaps.into_iter().for_each(|map| {
+        commands.entity(map).insert(
+            TilemapSaver::new(PATTERNS_PATH.to_string())
+                .with_mode(TilemapSaverMode::MapPattern)
+                .with_layer(TilemapLayer::Color)
+                .remove_after_save(),
+        );
     });
 
     // If you are running this example for the first time,

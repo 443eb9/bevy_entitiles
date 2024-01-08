@@ -82,7 +82,7 @@ impl Plugin for EntiTilesRendererPlugin {
                     prepare::prepare_tilemaps,
                     prepare::prepare_tiles,
                     prepare::prepare_unloaded_chunks,
-                    culling::cull_chunks,
+                    // culling::cull_chunks,
                 )
                     .in_set(RenderSet::Prepare),
             )

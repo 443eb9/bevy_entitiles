@@ -20,8 +20,9 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    serializing::{chunk::save::TilemapChunkUnloader, map::TilemapLayer},
+    serializing::chunk::save::{TilemapChunkSaver, TilemapPathChunkSaver},
     tilemap::{
+        algorithm::path::{PathTile, PathTilemap},
         bundles::TilemapBundle,
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
@@ -34,6 +35,8 @@ use bevy_entitiles::{
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
+
+const CHUNK_SIZE: u32 = 32;
 
 fn main() {
     App::new()
@@ -69,7 +72,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,
-        storage: TilemapStorage::new(64, entity),
+        storage: TilemapStorage::new(CHUNK_SIZE, entity),
         texture: TilemapTexture::new(
             asset_server.load("test_square.png"),
             TilemapTextureDescriptor::new(
@@ -88,7 +91,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    commands.entity(entity).insert(tilemap);
+    let mut path_tilemap = PathTilemap::new_with_chunk_size(CHUNK_SIZE);
+    path_tilemap.fill_path_rect_custom(
+        TileArea::new(IVec2 { x: -250, y: -250 }, UVec2 { x: 500, y: 500 }),
+        |_| {
+            Some(PathTile {
+                cost: rand::random::<u32>() % 10,
+            })
+        },
+    );
+
+    commands.entity(entity).insert((tilemap, path_tilemap));
 
     commands.spawn((
         TextBundle::from_sections([
@@ -160,45 +173,56 @@ fn manual_unload(
         let mut text = text.single_mut();
         let value = text.sections[0].value.clone();
 
-        let mut component = TilemapChunkUnloader::new("C:\\maps".to_string())
-            .with_layer(TilemapLayer::Color)
-            .remove_after_save();
+        let mut col_saver = TilemapChunkSaver::new("C:\\maps".to_string()).remove_after_save();
+        let mut path_saver = TilemapPathChunkSaver::new("C:\\maps".to_string()).remove_after_save();
 
         // some low quality trash
-        let mut iter_mul = value.split('~');
-        let count = iter_mul.clone().count();
+        // =============================================================
+        {
+            let mut iter_mul = value.split('~');
+            let count = iter_mul.clone().count();
 
-        if count == 2 {
-            let mut bounds = [IVec2::ZERO; 2];
-            for i in 0..=1 {
-                let cur = if let Some(input) = iter_mul.next() {
-                    input
-                } else {
+            if count == 2 {
+                let mut bounds = [IVec2::ZERO; 2];
+                for i in 0..=1 {
+                    let cur = if let Some(input) = iter_mul.next() {
+                        input
+                    } else {
+                        fail(&mut info, &value, &mut text);
+                        return;
+                    };
+
+                    if let Some(idx) = parse_index(cur) {
+                        bounds[i] = idx;
+                    } else {
+                        fail(&mut info, &value, &mut text);
+                        return;
+                    }
+                }
+                // BUT THESE 2 LINES ARE IMPORTANT!!!!!!
+                col_saver = col_saver.with_range(bounds[0], bounds[1]);
+                path_saver = path_saver.with_range(bounds[0], bounds[1]);
+            } else if count == 1 {
+                let Some(idx) = parse_index(&value) else {
                     fail(&mut info, &value, &mut text);
                     return;
                 };
-
-                if let Some(idx) = parse_index(cur) {
-                    bounds[i] = idx;
-                } else {
-                    fail(&mut info, &value, &mut text);
-                    return;
-                }
-            }
-            component = component.with_range(bounds[0], bounds[1]);
-        } else if count == 1 {
-            let Some(idx) = parse_index(&value) else {
+                // ALSO THESE 2!!!
+                col_saver = col_saver.with_single(idx);
+                path_saver = path_saver.with_single(idx);
+            } else {
                 fail(&mut info, &value, &mut text);
                 return;
             };
-            component = component.with_single(idx);
-        } else {
-            fail(&mut info, &value, &mut text);
-            return;
-        };
+        }
+        // just to parse your input don't mind this trash
+        // I put them into a code block so you can fold and ignore them :)
+        // =============================================================
 
         text.sections[0].value = "".to_string();
-        commands.entity(tilemaps_query.single()).insert(component);
+        commands
+            .entity(tilemaps_query.single())
+            .insert((col_saver, path_saver));
     }
 }
 

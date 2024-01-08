@@ -12,7 +12,7 @@ use bevy_entitiles::{
     math::TileArea,
     serializing::map::{
         load::{TilemapLoadFailure, TilemapLoaderBuilder},
-        save::TilemapSaverBuilder,
+        save::TilemapSaver,
         TilemapLayer,
     },
     tilemap::{
@@ -96,12 +96,13 @@ fn save_and_load(
     // save
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
-            TilemapSaverBuilder::new("C:\\saves".to_string())
-                .with_layer(TilemapLayer::Color)
-                .with_layer(TilemapLayer::Algorithm)
-                .with_texture("test_isometric.png".to_string())
-                .remove_after_save()
-                .build(&mut commands, t);
+            commands.entity(t).insert(
+                TilemapSaver::new("C:\\saves".to_string())
+                    .with_layer(TilemapLayer::Color)
+                    .with_layer(TilemapLayer::Path)
+                    .with_texture("test_isometric.png".to_string())
+                    .remove_after_save(),
+            );
             println!("Saved tilemap!");
         }
     }
@@ -111,7 +112,7 @@ fn save_and_load(
         let entity = commands.spawn_empty().id();
         TilemapLoaderBuilder::new("C:\\saves".to_string(), "test_map".to_string())
             .with_layer(TilemapLayer::Color)
-            .with_layer(TilemapLayer::Algorithm)
+            .with_layer(TilemapLayer::Path)
             .build(&mut commands, entity);
         println!("Loading tilemap...");
     }

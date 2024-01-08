@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write, path::Path};
+use std::path::Path;
 
 use bevy::{
     ecs::{
@@ -8,14 +8,16 @@ use bevy::{
     },
     reflect::Reflect,
 };
-use serde::Serialize;
 
-use crate::tilemap::{
-    map::{
-        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+use crate::{
+    serializing::save_object,
+    tilemap::{
+        map::{
+            TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+            TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+        },
+        tile::Tile,
     },
-    tile::Tile,
 };
 
 use super::{pattern::TilemapPattern, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
@@ -29,15 +31,16 @@ pub enum TilemapSaverMode {
     MapPattern,
 }
 
-pub struct TilemapSaverBuilder {
-    path: String,
-    texture_path: Option<String>,
-    layers: u32,
-    remove_after_save: bool,
-    mode: TilemapSaverMode,
+#[derive(Component, Reflect)]
+pub struct TilemapSaver {
+    pub(crate) path: String,
+    pub(crate) texture_path: Option<String>,
+    pub(crate) layers: u32,
+    pub(crate) remove_after_save: bool,
+    pub(crate) mode: TilemapSaverMode,
 }
 
-impl TilemapSaverBuilder {
+impl TilemapSaver {
     /// For example if path = C:\\maps, then the crate will create:
     /// ```
     /// C
@@ -54,7 +57,7 @@ impl TilemapSaverBuilder {
     ///     └── (your tilemap's name).pattern
     /// ```
     pub fn new(path: String) -> Self {
-        TilemapSaverBuilder {
+        TilemapSaver {
             path,
             texture_path: None,
             layers: 0,
@@ -87,25 +90,6 @@ impl TilemapSaverBuilder {
         self.mode = mode;
         self
     }
-
-    pub fn build(self, commands: &mut Commands, target: Entity) {
-        commands.entity(target).insert(TilemapSaver {
-            path: self.path,
-            texture_path: self.texture_path,
-            layers: self.layers,
-            remove_map_after_done: self.remove_after_save,
-            mode: self.mode,
-        });
-    }
-}
-
-#[derive(Component, Reflect)]
-pub struct TilemapSaver {
-    pub(crate) path: String,
-    pub(crate) texture_path: Option<String>,
-    pub(crate) layers: u32,
-    pub(crate) remove_map_after_done: bool,
-    pub(crate) mode: TilemapSaverMode,
 }
 
 pub fn save(
@@ -201,19 +185,10 @@ pub fn save(
             save_object(map_dir, format!("{}.ron", name.0).as_str(), &pattern);
         }
 
-        if saver.remove_map_after_done {
+        if saver.remove_after_save {
             commands.entity(entity).despawn();
         }
 
         commands.entity(entity).remove::<TilemapSaver>();
     }
-}
-
-fn save_object<T: Serialize>(path: &Path, file_name: &str, object: &T) {
-    std::fs::create_dir_all(path).unwrap_or_else(|err| panic!("{:?}", err));
-    let path = path.join(file_name);
-    File::create(path.clone())
-        .unwrap_or(File::open(path).unwrap())
-        .write(ron::to_string(object).unwrap().as_bytes())
-        .unwrap_or_else(|err| panic!("{:?}", err));
 }

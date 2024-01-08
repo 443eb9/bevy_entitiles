@@ -40,12 +40,10 @@ impl PathTilemap {
     }
 
     /// Set path-finding data using a custom function.
-    /// Before fill path, you need to fill the tiles first.
-    /// Those empty indices will be ignored.
     pub fn fill_path_rect_custom(
         &mut self,
         area: TileArea,
-        mut path_tile: impl FnMut(IVec2) -> Option<PathTile>,
+        path_tile: impl Fn(IVec2) -> Option<PathTile>,
     ) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -56,8 +54,6 @@ impl PathTilemap {
     }
 
     /// Fill path-finding data using `PathTile`.
-    /// Before fill path, you need to fill the tiles first.
-    /// Those empty indices will be ignored.
     pub fn fill_path_rect(&mut self, area: TileArea, path_tile: &PathTile) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {

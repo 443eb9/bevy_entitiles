@@ -11,6 +11,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 *The higher the priority, the more towards the front in the following list.*
 
 - Chunk Unloading
+- Optimization
 - [Tiled](https://www.mapeditor.org/) Support
 - Custom Material
 - Volumetric Clouds / Fog
@@ -55,6 +56,8 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 
 Platform: 10600KF
 
+**Notice: Due to the performance overhead caused by the recorder, the fps value maybe inaccurate!**
+
 ### LDtk
 
 The gif on the right is the map generated with wave function collapse. And the orange boxes in the left image is procedural generated colliders.
@@ -68,7 +71,7 @@ The gif on the right is the map generated with wave function collapse. And the o
 
 ### Chunk Unloading
 
-In the following picture, the tilemap has a `chunk_size` of `64`.
+In the following picture, the tilemap has a `chunk_size` of `32`.
 
 <div>
 	<img src="./docs/imgs/chunk_unloading.gif" width="500px">

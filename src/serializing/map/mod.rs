@@ -179,6 +179,7 @@ impl Into<FilterMode> for SerializedFilterMode {
 #[derive(Serialize, Deserialize, Reflect, Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum TilemapLayer {
     Color = 1,
-    Algorithm = 1 << 1,
-    Physics = 1 << 2,
+    Path = 1 << 1,
+    // TODO
+    // Physics = 1 << 2,
 }
