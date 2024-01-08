@@ -3,15 +3,16 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     math::aabb::IAabb2d,
-    tilemap::{map::TilemapStorage, tile::TileBuffer},
+    tilemap::{
+        map::TilemapStorage,
+        tile::{TileBuffer, TileBuilder},
+    },
 };
-
-use super::SerializedTile;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct TilemapPattern {
     pub(crate) label: Option<String>,
-    pub(crate) tiles: HashMap<IVec2, SerializedTile>,
+    pub(crate) tiles: HashMap<IVec2, TileBuilder>,
     #[cfg(feature = "algorithm")]
     pub(crate) path_tiles: Option<HashMap<IVec2, crate::tilemap::algorithm::path::PathTile>>,
     pub(crate) aabb: IAabb2d,
@@ -28,15 +29,15 @@ impl TilemapPattern {
         }
     }
 
-    pub fn get(&self, index: IVec2) -> Option<&SerializedTile> {
+    pub fn get(&self, index: IVec2) -> Option<&TileBuilder> {
         self.tiles.get(&index)
     }
 
-    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut SerializedTile> {
+    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut TileBuilder> {
         self.tiles.get_mut(&index)
     }
 
-    pub fn set(&mut self, index: IVec2, tile: SerializedTile) {
+    pub fn set(&mut self, index: IVec2, tile: TileBuilder) {
         self.tiles.insert(index, tile);
         self.aabb.expand_to_contain(index);
     }
@@ -78,7 +79,7 @@ impl TilemapPattern {
 impl Into<TileBuffer> for TilemapPattern {
     fn into(self) -> TileBuffer {
         TileBuffer {
-            tiles: self.tiles.into_iter().map(|t| (t.0, t.1.into())).collect(),
+            tiles: self.tiles,
             aabb: self.aabb,
         }
     }

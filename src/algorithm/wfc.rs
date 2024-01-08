@@ -3,7 +3,7 @@ use std::{collections::VecDeque, vec};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
-    math::{IVec2, Vec4},
+    math::IVec2,
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     reflect::Reflect,
     utils::{HashMap, HashSet},
@@ -12,14 +12,14 @@ use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
 
 use crate::{
     math::{extension::TileIndex, TileArea},
-    serializing::map::{pattern::TilemapPattern, SerializedTile},
+    serializing::map::pattern::TilemapPattern,
     tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
         map::{
             TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTransform, TilemapType,
         },
-        tile::{TileLayer, TileTexture},
+        tile::{TileBuilder, TileLayer},
     },
     DEFAULT_CHUNK_SIZE,
 };
@@ -136,7 +136,7 @@ pub enum LdtkWfcMode {
 
 #[derive(Component, Clone, Reflect)]
 pub enum WfcSource {
-    SingleTile(Vec<SerializedTile>),
+    SingleTile(Vec<TileBuilder>),
     MapPattern(Vec<TilemapPattern>),
     MultiLayerMapPattern(UVec2, Vec<(Vec<TilemapPattern>, Option<TilemapTexture>)>),
     #[cfg(feature = "ldtk")]
@@ -150,10 +150,8 @@ impl WfcSource {
     pub fn from_texture_indices(conn_rules: &WfcRules) -> Self {
         let tiles = (0..conn_rules.0.len())
             .into_iter()
-            .map(|r| SerializedTile {
-                index: IVec2::ZERO,
-                color: Vec4::ONE,
-                texture: TileTexture::Static(vec![TileLayer::new().with_texture_index(r as u32)]),
+            .map(|r| {
+                TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(r as u32))
             })
             .collect();
         Self::SingleTile(tiles)

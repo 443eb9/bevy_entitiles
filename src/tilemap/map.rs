@@ -275,23 +275,28 @@ impl TilemapStorage {
     /// Get a tile.
     #[inline]
     pub fn get(&self, index: IVec2) -> Option<Entity> {
-        self.storage.get(index).cloned()
+        self.storage.get_elem(index).cloned()
+    }
+
+    #[inline]
+    pub fn get_chunk(&self, index: IVec2) -> Option<&Vec<Option<Entity>>> {
+        self.storage.chunks.get(&index)
     }
 
     /// Set a tile.
     ///
     /// Overwrites the tile if it already exists.
     pub fn set(&mut self, commands: &mut Commands, index: IVec2, tile_builder: TileBuilder) {
-        if let Some(previous) = self.storage.get(index) {
+        if let Some(previous) = self.storage.get_elem(index) {
             commands.entity(previous.clone()).despawn();
         }
         let new_tile = tile_builder.build(commands, index, &self, self.tilemap);
-        self.storage.set(index, Some(new_tile));
+        self.storage.set_elem(index, Some(new_tile));
     }
 
     #[inline]
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
-        self.storage.set(index, entity);
+        self.storage.set_elem(index, entity);
     }
 
     pub fn update(&mut self, commands: &mut Commands, index: IVec2, updater: TileUpdater) {

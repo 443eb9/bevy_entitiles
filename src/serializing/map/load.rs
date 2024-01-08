@@ -17,9 +17,10 @@ use serde::Deserialize;
 use crate::tilemap::{
     map::{TilemapStorage, TilemapTexture},
     storage::ChunkedStorage,
+    tile::TileBuilder,
 };
 
-use super::{SerializedTile, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
+use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
@@ -113,9 +114,7 @@ pub fn load(
 
         // texture
         let ser_tiles = if loader.layers & 1 != 0 && ser_tilemap.layers & 1 != 0 {
-            Some(load_object::<HashMap<IVec2, SerializedTile>>(
-                &map_path, TILES,
-            ))
+            Some(load_object::<HashMap<IVec2, TileBuilder>>(&map_path, TILES))
         } else {
             None
         };

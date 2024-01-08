@@ -10,7 +10,10 @@ use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use crate::helpers::camera_movement::camera_control;
 
-use self::common::{debug_info_display, DebugFpsText};
+use self::{
+    camera_movement::CameraControl,
+    common::{debug_info_display, DebugFpsText},
+};
 
 pub mod camera_movement;
 pub mod common;
@@ -31,6 +34,8 @@ impl Plugin for EntiTilesHelpersPlugin {
             bevy::diagnostic::FrameTimeDiagnosticsPlugin,
             WorldInspectorPlugin::default(),
         ));
+
+        app.init_resource::<CameraControl>();
     }
 
     fn finish(&self, _app: &mut bevy::prelude::App) {

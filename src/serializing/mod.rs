@@ -1,7 +1,7 @@
 use bevy::app::{Plugin, Update};
 
 use self::{
-    chunk::save::TilemapChunkSaver,
+    chunk::{save::TilemapChunkUnloader, TilemapChunkCache},
     map::{
         load::{TilemapLoadFailure, TilemapLoader},
         save::TilemapSaver,
@@ -30,6 +30,16 @@ impl Plugin for EntiTilesSerializingPlugin {
             .register_type::<SerializedTilemapTextureDescriptor>()
             .register_type::<SerializedTilemapTexture>();
 
-        app.register_type::<TilemapChunkSaver>();
+        app.register_type::<TilemapChunkUnloader>()
+            .register_type::<TilemapChunkCache>();
+
+        app.init_resource::<TilemapChunkCache>();
+
+        #[cfg(feature = "algorithm")]
+        {
+            app.register_type::<chunk::TilemapPathChunkCache>();
+            
+            app.init_resource::<chunk::TilemapPathChunkCache>();
+        }
     }
 }

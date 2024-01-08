@@ -8,34 +8,43 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        system::{ParallelCommands, Query},
+        system::{Commands, Query, ResMut},
     },
     math::IVec2,
     reflect::Reflect,
+    utils::HashMap, hierarchy::DespawnRecursiveExt,
 };
 
 use crate::{
     math::{aabb::IAabb2d, extension::ChunkIndex},
-    render::chunk::UnloadedRenderChunk,
-    serializing::map::{SerializedTile, TilemapLayer},
+    render::chunk::UnloadRenderChunk,
+    serializing::map::TilemapLayer,
     tilemap::{
         map::{TilemapName, TilemapStorage},
-        tile::Tile,
+        storage::ChunkedStorage,
+        tile::{Tile, TileBuilder},
     },
 };
+
+use super::{ChunkCache, TilemapChunkCache};
 
 pub const TILE_CHUNKS_FOLDER: &str = "tile_chunks";
 pub const PATH_TILE_CHUNKS_FOLDER: &str = "path_tile_chunks";
 
+/// As this operation is performance heavy, the crate will do it asynchronously by default.
+/// But the target chunk(s) will be excluded from rendering immediately.
 #[derive(Component, Debug, Clone, Reflect)]
-pub struct TilemapChunkSaver {
+pub struct TilemapChunkUnloader {
     pub(crate) path: String,
     pub(crate) layer: u32,
-    pub(crate) ranges: Vec<IAabb2d>,
+    /// The usize is the progress
+    pub(crate) chunks: HashMap<TilemapLayer, (Vec<IVec2>, usize)>,
+    pub(crate) entity_cache: Option<ChunkedStorage<Entity>>,
+    pub(crate) tiles_per_frame: usize,
     pub(crate) remove_after_save: bool,
 }
 
-impl TilemapChunkSaver {
+impl TilemapChunkUnloader {
     /// For example if path = C:\\maps, then the crate will create:
     /// ```
     /// C
@@ -59,21 +68,21 @@ impl TilemapChunkSaver {
         Self {
             path,
             layer: 0,
-            ranges: vec![],
+            chunks: HashMap::new(),
             remove_after_save: false,
+            tiles_per_frame: 32,
+            entity_cache: None,
         }
     }
 
     pub fn with_layer(mut self, layer: TilemapLayer) -> Self {
         self.layer |= layer as u32;
+        self.chunks.insert(layer, (Vec::new(), 0));
         self
     }
 
     pub fn with_single(mut self, chunk_index: IVec2) -> Self {
-        self.ranges.push(IAabb2d {
-            min: chunk_index,
-            max: chunk_index,
-        });
+        self.chunks.values_mut().for_each(|v| v.0.push(chunk_index));
         self
     }
 
@@ -81,18 +90,24 @@ impl TilemapChunkSaver {
         assert!(
             start_index.x <= end_index.x && start_index.y <= end_index.y,
             "start_index({}) must be less than (or equal to) end_index({})!",
-            start_index, end_index
+            start_index,
+            end_index
         );
 
-        self.ranges.push(IAabb2d {
-            min: start_index,
-            max: end_index,
+        self.chunks.values_mut().for_each(|v| {
+            v.0.extend((start_index.y..=end_index.y).into_iter().flat_map(|y| {
+                (start_index.x..=end_index.x)
+                    .into_iter()
+                    .map(move |x| IVec2 { x, y })
+            }));
         });
         self
     }
 
     pub fn with_multiple_ranges(mut self, ranges: Vec<IAabb2d>) -> Self {
-        self.ranges = ranges;
+        self.chunks.values_mut().for_each(|v| {
+            v.0.extend(ranges.iter().flat_map(|aabb| (*aabb).into_iter()));
+        });
         self
     }
 
@@ -100,113 +115,115 @@ impl TilemapChunkSaver {
         self.remove_after_save = true;
         self
     }
+
+    pub fn with_tiles_per_frame(mut self, tiles_per_frame: usize) -> Self {
+        self.tiles_per_frame = tiles_per_frame;
+        self
+    }
 }
 
 pub fn save(
-    commands: ParallelCommands,
+    mut commands: Commands,
     mut tilemaps_query: Query<(
         Entity,
         &TilemapName,
         &mut TilemapStorage,
-        &TilemapChunkSaver,
-        Option<&UnloadedRenderChunk>,
+        &mut TilemapChunkUnloader,
+        Option<&UnloadRenderChunk>,
     )>,
     tiles_query: Query<&Tile>,
     #[cfg(feature = "algorithm")] mut path_tilemaps_query: Query<
         &mut crate::tilemap::algorithm::path::PathTilemap,
     >,
+    mut tile_cache: ResMut<TilemapChunkCache>,
 ) {
     tilemaps_query
         .iter_mut()
-        .for_each(|(entity, name, mut storage, saver, unloaded)| {
-            let chunks = saver
-                .ranges
-                .iter()
-                .flat_map(|aabb| aabb.into_iter())
-                .collect::<Vec<_>>();
+        .for_each(|(entity, name, mut storage, mut saver, unloaded)| {
             let map_path = Path::new(&saver.path).join(&name.0);
+            let tiles_per_frame = saver.tiles_per_frame;
+            let chunk_area = (storage.storage.chunk_size * storage.storage.chunk_size) as usize;
+            let remove_after_save = saver.remove_after_save;
 
             if saver.layer & TilemapLayer::Color as u32 != 0 {
-                chunks
-                    .iter()
-                    .flat_map(|chunk_index| {
-                        storage
-                            .storage
-                            .chunks
-                            .get(chunk_index)
-                            .map(|c| (chunk_index, c))
+                let cur_chunk = saver.chunks.get_mut(&TilemapLayer::Color).unwrap();
+                (cur_chunk.1..cur_chunk.1 + tiles_per_frame)
+                    .into_iter()
+                    .filter_map(|i| {
+                        if let Some(chunk_index) = cur_chunk.0.get(i / chunk_area) {
+                            Some((*chunk_index, i % chunk_area))
+                        } else {
+                            None
+                        }
                     })
-                    .map(|(chunk_index, chunk)| {
-                        (
-                            chunk_index,
-                            chunk
-                                .iter()
-                                .filter_map(|t_e| {
-                                    t_e.map(|e| {
-                                        tiles_query.get(e).ok().map(|t| {
-                                            <Tile as Into<SerializedTile>>::into(t.clone())
-                                        })
-                                    })
-                                })
-                                .filter_map(|t| t)
-                                .collect::<Vec<_>>(),
-                        )
-                    })
-                    .for_each(|(chunk_index, chunk)| {
-                        save_object(
-                            &map_path,
-                            TILE_CHUNKS_FOLDER,
-                            format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                            &chunk,
-                        );
-                    });
+                    .for_each(|(chunk_index, in_chunk_index)| {
+                        if let Some(tile) = storage
+                            .get_chunk(chunk_index)
+                            .and_then(|c| c[in_chunk_index])
+                        {
+                            tile_cache
+                                .get_cache_or_insert(entity, storage.storage.chunk_size)
+                                .get_chunk_or_insert(chunk_index)[in_chunk_index] = tiles_query
+                                .get(tile)
+                                .ok()
+                                .and_then(|t| Some(t.clone().into()));
 
-                if saver.remove_after_save {
-                    commands.command_scope(|mut c| {
-                        chunks.iter().for_each(|ci| {
-                            storage.remove_chunk(&mut c, *ci);
-                        });
-                        let mut unloaded =
-                            unloaded.as_ref().map(|u| u.0.clone()).unwrap_or_default();
-                        unloaded.extend(&chunks);
-                        c.entity(entity).insert(UnloadedRenderChunk(unloaded));
-                    });
-                }
-            }
+                            if remove_after_save {
+                                commands.entity(tile).despawn();
+                            }
+                        }
 
-            #[cfg(feature = "algorithm")]
-            if saver.layer & TilemapLayer::Algorithm as u32 != 0 {
-                if let Ok(mut path_tilemap) = path_tilemaps_query.get_mut(entity) {
-                    chunks
-                        .iter()
-                        .filter_map(|chunk_index| {
-                            path_tilemap
-                                .storage
-                                .chunks
-                                .get(chunk_index)
-                                .map(|c| (chunk_index, c))
-                        })
-                        .map(|(ci, c)| (ci, c.iter().filter_map(|t| t.clone()).collect::<Vec<_>>()))
-                        .for_each(|(chunk_index, chunk)| {
-                            save_object(
-                                &map_path,
-                                PATH_TILE_CHUNKS_FOLDER,
-                                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                                &chunk,
+                        if in_chunk_index == chunk_area - 1 {
+                            tile_cache.write(
+                                entity,
+                                chunk_index,
+                                &map_path.join(TILE_CHUNKS_FOLDER),
+                                format!("{}.ron", chunk_index.chunk_file_name()),
                             );
-                        });
 
-                    if saver.remove_after_save {
-                        chunks.iter().for_each(|ci| {
-                            path_tilemap.storage.remove_chunk(*ci);
-                        });
-                    }
+                            if remove_after_save {
+                                let mut unloaded =
+                                    unloaded.as_ref().map(|u| u.0.clone()).unwrap_or_default();
+                                unloaded.push(chunk_index);
+                                storage.storage.chunks.remove(&chunk_index);
+                                commands.entity(entity).insert(UnloadRenderChunk(unloaded));
+                            }
+                        }
+                    });
+
+                cur_chunk.1 += tiles_per_frame;
+                if cur_chunk.1 / chunk_area >= cur_chunk.0.len() {
+                    saver.chunks.remove(&TilemapLayer::Color);
                 }
             }
 
-            commands.command_scope(|mut c| {
-                c.entity(entity).remove::<TilemapChunkSaver>();
-            });
+            // #[cfg(feature = "algorithm")]
+            // if saver.layer & TilemapLayer::Algorithm as u32 != 0 {
+            //     if let Ok(mut path_tilemap) = path_tilemaps_query.get_mut(entity) {
+            //         let cur_chunk = saver.chunks.get_mut(&TilemapLayer::Algorithm).unwrap();
+            //         let Some(target_chunk) = cur_chunk.0.last().cloned() else {
+            //             saver.chunks.remove(&TilemapLayer::Algorithm);
+            //             return;
+            //         };
+
+            //         path_tilemap.storage.get_chunk(target_chunk).map(|chunk| {
+            //             save_object(
+            //                 &map_path,
+            //                 PATH_TILE_CHUNKS_FOLDER,
+            //                 format!("{}.ron", target_chunk.chunk_file_name()).as_str(),
+            //                 &chunk,
+            //             );
+            //         });
+
+            //         if saver.remove_after_save {
+            //             path_tilemap.storage.remove_chunk(target_chunk);
+            //         }
+            //     }
+            // }
+
+            if saver.chunks.is_empty() {
+                commands.entity(entity).remove::<TilemapChunkUnloader>();
+            }
         });
 }
 

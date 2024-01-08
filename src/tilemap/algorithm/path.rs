@@ -28,15 +28,15 @@ impl PathTilemap {
     }
 
     pub fn get(&self, index: IVec2) -> Option<&PathTile> {
-        self.storage.get(index)
+        self.storage.get_elem(index)
     }
 
     pub fn get_mut(&mut self, index: IVec2) -> Option<&mut PathTile> {
-        self.storage.get_mut(index)
+        self.storage.get_elem_mut(index)
     }
 
     pub fn set(&mut self, index: IVec2, new_tile: Option<PathTile>) {
-        self.storage.set(index, new_tile)
+        self.storage.set_elem(index, new_tile)
     }
 
     /// Set path-finding data using a custom function.

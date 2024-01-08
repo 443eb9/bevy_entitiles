@@ -17,7 +17,7 @@ use crate::tilemap::{
     tile::{Tile, TileTexture},
 };
 
-use super::chunk::UnloadedRenderChunk;
+use super::chunk::UnloadRenderChunk;
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {
@@ -154,7 +154,9 @@ pub fn extract_view(
 
 pub fn extract_unloaded_chunks(
     mut commands: Commands,
-    tilemaps_query: Extract<Query<(Entity, &UnloadedRenderChunk), With<TilemapStorage>>>,
+    tilemaps_query: Extract<
+        Query<(Entity, &UnloadRenderChunk), (With<TilemapStorage>, Changed<UnloadRenderChunk>)>,
+    >,
 ) {
     commands.insert_or_spawn_batch(
         tilemaps_query

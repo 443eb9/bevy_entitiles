@@ -66,21 +66,15 @@ The gif on the right is the map generated with wave function collapse. And the o
 
 > *Bevy 0.12.1, crate 0.2.6, LDtk 1.4.1*
 
-### Animation
+### Chunk Unloading
+
+In the following picture, the tilemap has a `chunk_size` of `64`.
 
 <div>
-	<img src="./docs/imgs/animation.gif" width="500px">
+	<img src="./docs/imgs/chunk_unloading.gif" width="500px">
 </div>
 
-> *Bevy 0.12.1, crate 0.2.3*
-
-### Ui System
-
-<div>
-	<img src="./docs/imgs/ui.gif" width="500px">
-</div>
-
-> *Bevy 0.12.1, crate 0.2.4*
+> *Bevy 0.12.1, crate 0.2.7*
 
 ### Pathfinding
 

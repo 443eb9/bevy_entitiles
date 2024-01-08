@@ -99,7 +99,7 @@ impl<'a> LdtkLayers<'a> {
                         .with_flip_raw(tile.flip as u32),
                 )
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
-            pattern.set(tile_index, builder.into());
+            pattern.set(tile_index, builder);
         }
     }
 

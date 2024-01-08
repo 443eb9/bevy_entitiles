@@ -1,8 +1,5 @@
 use bevy::{
-    ecs::entity::Entity,
-    math::{IVec2, UVec2, Vec4},
-    reflect::Reflect,
-    render::render_resource::FilterMode,
+    ecs::entity::Entity, math::UVec2, reflect::Reflect, render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +11,7 @@ use crate::tilemap::{
         TilemapTransform, TilemapType,
     },
     storage::ChunkedStorage,
-    tile::{Tile, TileBuilder, TileTexture},
+    tile::TileBuilder,
 };
 
 use self::save::TilemapSaver;
@@ -30,7 +27,7 @@ pub mod save;
 #[derive(Serialize, Deserialize, Reflect)]
 pub struct SerializedTilemapData {
     pub tilemap: SerializedTilemap,
-    pub tiles: Vec<SerializedTile>,
+    pub tiles: Vec<TileBuilder>,
 }
 
 #[derive(Serialize, Deserialize, Reflect)]
@@ -179,46 +176,9 @@ impl Into<FilterMode> for SerializedFilterMode {
 }
 
 #[repr(u32)]
-#[derive(Serialize, Deserialize, Reflect)]
+#[derive(Serialize, Deserialize, Reflect, Hash, Eq, PartialEq, Clone, Copy, Debug)]
 pub enum TilemapLayer {
     Color = 1,
     Algorithm = 1 << 1,
     Physics = 1 << 2,
-    All = !0,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
-pub struct SerializedTile {
-    pub index: IVec2,
-    pub texture: TileTexture,
-    pub color: Vec4,
-}
-
-impl From<TileBuilder> for SerializedTile {
-    fn from(value: TileBuilder) -> Self {
-        Self {
-            index: IVec2::ZERO,
-            texture: value.texture,
-            color: value.color,
-        }
-    }
-}
-
-impl From<Tile> for SerializedTile {
-    fn from(value: Tile) -> Self {
-        Self {
-            index: value.index,
-            texture: value.texture,
-            color: value.color,
-        }
-    }
-}
-
-impl Into<TileBuilder> for SerializedTile {
-    fn into(self) -> TileBuilder {
-        TileBuilder {
-            texture: self.texture,
-            color: self.color,
-        }
-    }
 }

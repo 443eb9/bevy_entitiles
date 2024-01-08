@@ -26,7 +26,7 @@ use super::{
 };
 
 #[derive(Component, Debug, Clone)]
-pub struct UnloadedRenderChunk(pub Vec<IVec2>);
+pub struct UnloadRenderChunk(pub Vec<IVec2>);
 
 #[derive(Clone)]
 pub struct MeshTileData {

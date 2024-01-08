@@ -31,12 +31,12 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     pub fn from_mapper(mapper: HashMap<IVec2, T>, chunk_size: Option<u32>) -> Self {
         let mut storage = Self::new(chunk_size.unwrap_or(32));
         mapper.into_iter().for_each(|(index, elem)| {
-            storage.set(index, Some(elem));
+            storage.set_elem(index, Some(elem));
         });
         storage
     }
 
-    pub fn get(&self, index: IVec2) -> Option<&T> {
+    pub fn get_elem(&self, index: IVec2) -> Option<&T> {
         let idx = self.transform_index(index);
         self.chunks
             .get(&idx.0)
@@ -44,7 +44,7 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
             .and_then(|t| t.as_ref())
     }
 
-    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut T> {
+    pub fn get_elem_mut(&mut self, index: IVec2) -> Option<&mut T> {
         let idx = self.transform_index(index);
         if let Some(chunk) = self.chunks.get_mut(&idx.0) {
             chunk.get_mut(idx.1).map(|t| t.as_mut()).flatten()
@@ -53,12 +53,41 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         }
     }
 
-    pub fn set(&mut self, index: IVec2, elem: Option<T>) {
+    pub fn set_elem(&mut self, index: IVec2, elem: Option<T>) {
         let idx = self.transform_index(index);
         self.chunks
             .entry(idx.0)
             .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])[idx.1] =
             elem;
+    }
+
+    pub fn set_elem_precise(&mut self, chunk_index: IVec2, in_chunk_index: usize, elem: Option<T>) {
+        self.chunks
+            .entry(chunk_index)
+            .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])
+            [in_chunk_index] = elem;
+    }
+
+    #[inline]
+    pub fn get_chunk(&self, index: IVec2) -> Option<&Vec<Option<T>>> {
+        self.chunks.get(&index)
+    }
+
+    #[inline]
+    pub fn get_chunk_mut(&mut self, index: IVec2) -> Option<&mut Vec<Option<T>>> {
+        self.chunks.get_mut(&index)
+    }
+
+    #[inline]
+    pub fn get_chunk_or_insert(&mut self, index: IVec2) -> &mut Vec<Option<T>> {
+        self.chunks
+            .entry(index)
+            .or_insert(vec![None; (self.chunk_size * self.chunk_size) as usize])
+    }
+
+    #[inline]
+    pub fn set_chunk(&mut self, index: IVec2, chunk: Vec<Option<T>>) {
+        self.chunks.insert(index, chunk);
     }
 
     pub fn transform_index(&self, index: IVec2) -> (IVec2, usize) {
@@ -93,6 +122,7 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         self.chunks.values().map(|c| c.iter()).flatten()
     }
 
+    #[inline]
     pub fn remove_chunk(&mut self, index: IVec2) -> Option<Vec<Option<T>>> {
         self.chunks.remove(&index)
     }

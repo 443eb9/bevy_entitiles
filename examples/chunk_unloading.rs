@@ -20,7 +20,7 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    serializing::{chunk::save::TilemapChunkSaver, map::TilemapLayer},
+    serializing::{chunk::save::TilemapChunkUnloader, map::TilemapLayer},
     tilemap::{
         bundles::TilemapBundle,
         map::{
@@ -160,8 +160,8 @@ fn manual_unload(
         let mut text = text.single_mut();
         let value = text.sections[0].value.clone();
 
-        let mut component = TilemapChunkSaver::new("C:\\maps".to_string())
-            .with_layer(TilemapLayer::All)
+        let mut component = TilemapChunkUnloader::new("C:\\maps".to_string())
+            .with_layer(TilemapLayer::Color)
             .remove_after_save();
 
         // some low quality trash
@@ -174,7 +174,6 @@ fn manual_unload(
                 let cur = if let Some(input) = iter_mul.next() {
                     input
                 } else {
-                    println!("aa");
                     fail(&mut info, &value, &mut text);
                     return;
                 };
@@ -182,7 +181,6 @@ fn manual_unload(
                 if let Some(idx) = parse_index(cur) {
                     bounds[i] = idx;
                 } else {
-                    println!("bb");
                     fail(&mut info, &value, &mut text);
                     return;
                 }

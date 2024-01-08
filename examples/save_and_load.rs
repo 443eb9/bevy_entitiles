@@ -97,7 +97,8 @@ fn save_and_load(
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
             TilemapSaverBuilder::new("C:\\saves".to_string())
-                .with_layer(TilemapLayer::All)
+                .with_layer(TilemapLayer::Color)
+                .with_layer(TilemapLayer::Algorithm)
                 .with_texture("test_isometric.png".to_string())
                 .remove_after_save()
                 .build(&mut commands, t);
@@ -109,7 +110,8 @@ fn save_and_load(
     if input.just_pressed(KeyCode::AltRight) {
         let entity = commands.spawn_empty().id();
         TilemapLoaderBuilder::new("C:\\saves".to_string(), "test_map".to_string())
-            .with_layer(TilemapLayer::All)
+            .with_layer(TilemapLayer::Color)
+            .with_layer(TilemapLayer::Algorithm)
             .build(&mut commands, entity);
         println!("Loading tilemap...");
     }

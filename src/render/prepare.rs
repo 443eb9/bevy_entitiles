@@ -6,7 +6,7 @@ use bevy::{
 
 use super::{
     buffer::{TilemapUniformBuffers, UniformBuffer},
-    chunk::{TilemapRenderChunk, UnloadedRenderChunk},
+    chunk::{TilemapRenderChunk, UnloadRenderChunk},
     extract::{ExtractedTile, ExtractedTilemap},
     texture::TilemapTexturesStorage,
     RenderChunkStorage,
@@ -69,7 +69,7 @@ pub fn prepare_tiles(
 
 pub fn prepare_unloaded_chunks(
     mut render_chunks: ResMut<RenderChunkStorage>,
-    extracted_tilemaps: Query<(Entity, &UnloadedRenderChunk)>,
+    extracted_tilemaps: Query<(Entity, &UnloadRenderChunk)>,
 ) {
     extracted_tilemaps.for_each(|(entity, unloaded)| {
         unloaded.0.iter().for_each(|c| {

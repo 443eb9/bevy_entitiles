@@ -84,6 +84,7 @@ impl From<u32> for TileFlip {
 }
 
 #[derive(Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuilder {
     pub(crate) texture: TileTexture,
     pub(crate) color: Vec4,
@@ -169,6 +170,15 @@ pub struct Tile {
     pub color: Vec4,
 }
 
+impl Into<TileBuilder> for Tile {
+    fn into(self) -> TileBuilder {
+        TileBuilder {
+            texture: self.texture,
+            color: self.color,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Reflect)]
 pub struct TileBuffer {
     pub(crate) tiles: HashMap<IVec2, TileBuilder>,
@@ -208,7 +218,7 @@ impl TileBuffer {
             self.aabb.expand_to_contain(*index);
         }
     }
-    
+
     #[inline]
     pub fn aabb(&self) -> IAabb2d {
         self.aabb
