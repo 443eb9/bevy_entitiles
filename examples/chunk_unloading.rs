@@ -20,7 +20,10 @@ use bevy::{
 use bevy_entitiles::{
     debug::EntiTilesDebugPlugin,
     math::TileArea,
-    serializing::chunk::save::{TilemapChunkSaver, TilemapPathChunkSaver},
+    serializing::{
+        chunk::{load::TilemapChunkLoader, save::TilemapChunkSaver},
+        map::TilemapLayer,
+    },
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
         bundles::TilemapBundle,
@@ -36,7 +39,7 @@ use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
-const CHUNK_SIZE: u32 = 32;
+const CHUNK_SIZE: u32 = 16;
 
 fn main() {
     App::new()
@@ -53,7 +56,7 @@ fn main() {
             EntiTilesHelpersPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (manual_unload, keyboard_input))
+        .add_systems(Update, (manual, keyboard_input))
         .run()
 }
 
@@ -85,11 +88,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     };
 
-    tilemap.storage.fill_rect(
-        &mut commands,
-        TileArea::new(IVec2 { x: -250, y: -250 }, UVec2 { x: 500, y: 500 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
-    );
+    // tilemap.storage.fill_rect(
+    //     &mut commands,
+    //     TileArea::new(IVec2 { x: -250, y: -250 }, UVec2 { x: 500, y: 500 }),
+    //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+    // );
 
     let mut path_tilemap = PathTilemap::new_with_chunk_size(CHUNK_SIZE);
     path_tilemap.fill_path_rect_custom(
@@ -161,7 +164,7 @@ fn keyboard_input(
     });
 }
 
-fn manual_unload(
+fn manual(
     mut commands: Commands,
     tilemaps_query: Query<Entity, With<TilemapStorage>>,
     mut text: Query<&mut Text, (With<ChunkIndexInput>, Without<InfoDisplay>)>,
@@ -171,19 +174,22 @@ fn manual_unload(
     if keyboard.just_pressed(KeyCode::Return) {
         let mut info = info.single_mut();
         let mut text = text.single_mut();
-        let value = text.sections[0].value.clone();
+        let mut value = text.sections[0].value.clone();
 
-        let mut col_saver = TilemapChunkSaver::new("C:\\maps".to_string()).remove_after_save();
-        let mut path_saver = TilemapPathChunkSaver::new("C:\\maps".to_string()).remove_after_save();
+        let mut range = [IVec2::ZERO; 2];
+        let mut load = false;
 
         // some low quality trash
         // =============================================================
         {
+            if value.starts_with("!") {
+                load = true;
+                value.remove(0);
+            }
             let mut iter_mul = value.split('~');
             let count = iter_mul.clone().count();
 
             if count == 2 {
-                let mut bounds = [IVec2::ZERO; 2];
                 for i in 0..=1 {
                     let cur = if let Some(input) = iter_mul.next() {
                         input
@@ -193,23 +199,19 @@ fn manual_unload(
                     };
 
                     if let Some(idx) = parse_index(cur) {
-                        bounds[i] = idx;
+                        range[i] = idx;
                     } else {
                         fail(&mut info, &value, &mut text);
                         return;
                     }
                 }
-                // BUT THESE 2 LINES ARE IMPORTANT!!!!!!
-                col_saver = col_saver.with_range(bounds[0], bounds[1]);
-                path_saver = path_saver.with_range(bounds[0], bounds[1]);
             } else if count == 1 {
                 let Some(idx) = parse_index(&value) else {
                     fail(&mut info, &value, &mut text);
                     return;
                 };
-                // ALSO THESE 2!!!
-                col_saver = col_saver.with_single(idx);
-                path_saver = path_saver.with_single(idx);
+                range[0] = idx;
+                range[1] = idx;
             } else {
                 fail(&mut info, &value, &mut text);
                 return;
@@ -220,9 +222,22 @@ fn manual_unload(
         // =============================================================
 
         text.sections[0].value = "".to_string();
-        commands
-            .entity(tilemaps_query.single())
-            .insert((col_saver, path_saver));
+        if load {
+            commands.entity(tilemaps_query.single()).insert(
+                TilemapChunkLoader::new("C:\\maps".to_string(), "test_map".to_string())
+                    .with_layer(TilemapLayer::Color)
+                    .with_layer(TilemapLayer::Path)
+                    .with_range(range[0], range[1]),
+            );
+        } else {
+            commands.entity(tilemaps_query.single()).insert(
+                TilemapChunkSaver::new("C:\\maps".to_string())
+                    .remove_after_save()
+                    .with_layer(TilemapLayer::Color)
+                    .with_layer(TilemapLayer::Path)
+                    .with_range(range[0], range[1]),
+            );
+        }
     }
 }
 

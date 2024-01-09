@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use crate::{
-    serializing::map::pattern::TilemapPattern,
+    serializing::pattern::TilemapPattern,
     tilemap::{
         bundles::TilemapBundle,
         map::{

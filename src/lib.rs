@@ -1,5 +1,5 @@
 use bevy::{app::Update, prelude::Plugin};
-use math::{aabb::Aabb2d, TileArea};
+use math::EntiTilesMathPlugin;
 use render::{texture, EntiTilesRendererPlugin};
 use tilemap::{
     map::{
@@ -64,7 +64,11 @@ impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_systems(Update, texture::set_texture_usage);
 
-        app.add_plugins((EntiTilesTilemapPlugin, EntiTilesRendererPlugin));
+        app.add_plugins((
+            EntiTilesTilemapPlugin,
+            EntiTilesRendererPlugin,
+            EntiTilesMathPlugin,
+        ));
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmPlugin);
@@ -74,8 +78,6 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(ldtk::EntiTilesLdtkPlugin);
         #[cfg(feature = "ui")]
         app.add_plugins(ui::EntiTilesUiPlugin);
-
-        app.register_type::<Aabb2d>().register_type::<TileArea>();
 
         app.register_type::<TileLayer>()
             .register_type::<LayerUpdater>()

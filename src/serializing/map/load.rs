@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bevy::{
     asset::AssetServer,
     ecs::{
@@ -11,13 +13,14 @@ use bevy::{
     reflect::Reflect,
     utils::HashMap,
 };
-use ron::error::SpannedError;
-use serde::Deserialize;
 
-use crate::tilemap::{
-    map::{TilemapStorage, TilemapTexture},
-    storage::ChunkedStorage,
-    tile::TileBuilder,
+use crate::{
+    serializing::load_object,
+    tilemap::{
+        map::{TilemapStorage, TilemapTexture},
+        storage::ChunkedStorage,
+        tile::TileBuilder,
+    },
 };
 
 use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
@@ -94,7 +97,7 @@ pub fn load(
     asset_server: Res<AssetServer>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
-        let map_path = format!("{}\\{}\\", loader.path, loader.map_name);
+        let map_path = Path::new(&loader.path).join(&loader.map_name);
         let failure = <TilemapLoader as Into<TilemapLoadFailure>>::into(loader.clone());
 
         let Ok(ser_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META) else {
@@ -158,10 +161,6 @@ pub fn load(
             complete(&mut commands, entity, bundle, true);
         }
     }
-}
-
-fn load_object<T: for<'a> Deserialize<'a>>(path: &str, file_name: &str) -> Result<T, SpannedError> {
-    ron::from_str(std::fs::read_to_string(format!("{}{}", path, file_name))?.as_str())
 }
 
 fn complete(commands: &mut Commands, entity: Entity, bundle: impl Bundle, is_success: bool) {

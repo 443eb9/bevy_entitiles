@@ -18,7 +18,7 @@ use bevy::{
 };
 
 use crate::{
-    serializing::map::pattern::TilemapPattern,
+    serializing::pattern::TilemapPattern,
     tilemap::map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
 };
 

@@ -408,16 +408,16 @@ impl TilemapStorage {
         let batch = buffer
             .tiles
             .into_iter()
-            .filter_map(|(i, b)| {
+            .map(|(i, b)| {
                 let tile = b.build_component(i + origin, &self, self.tilemap);
 
                 if let Some(e) = self.get(tile.index) {
-                    Some((e, tile))
+                    (e, tile)
                 } else {
                     let e = commands.spawn_empty().id();
                     self.set_entity(tile.index, Some(e));
                     entities.push(e);
-                    Some((e, tile))
+                    (e, tile)
                 }
             })
             .collect::<Vec<_>>();

@@ -21,7 +21,6 @@ pub const TILES: &str = "tiles.ron";
 pub const PATH_TILES: &str = "path_tiles.ron";
 
 pub mod load;
-pub mod pattern;
 pub mod save;
 
 #[derive(Serialize, Deserialize, Reflect)]

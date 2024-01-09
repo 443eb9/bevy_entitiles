@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{query::With, system::Res},
+    ecs::{event::EventReader, system::Res},
     math::{IVec2, Vec3Swizzles},
     prelude::{
         Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
@@ -7,6 +7,7 @@ use bevy::{
     },
     render::Extract,
     time::Time,
+    utils::EntityHashMap,
 };
 
 use crate::tilemap::{
@@ -17,7 +18,7 @@ use crate::tilemap::{
     tile::{Tile, TileTexture},
 };
 
-use super::chunk::UnloadRenderChunk;
+use super::chunk::{ChunkUnload, UnloadRenderChunk};
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {
@@ -152,16 +153,12 @@ pub fn extract_view(
     commands.insert_or_spawn_batch(extracted_cameras);
 }
 
-pub fn extract_unloaded_chunks(
-    mut commands: Commands,
-    tilemaps_query: Extract<
-        Query<(Entity, &UnloadRenderChunk), (With<TilemapStorage>, Changed<UnloadRenderChunk>)>,
-    >,
-) {
-    commands.insert_or_spawn_batch(
-        tilemaps_query
-            .iter()
-            .map(|(e, u)| (e, u.clone()))
-            .collect::<Vec<_>>(),
-    );
+pub fn extract_unloaded_chunks(mut commands: Commands, mut chunk_unload: Extract<EventReader<ChunkUnload>>) {
+    commands.insert_or_spawn_batch(chunk_unload.read().fold(
+        EntityHashMap::<Entity, UnloadRenderChunk>::default(),
+        |mut acc, elem| {
+            acc.entry(elem.tilemap).or_default().0.push(elem.index);
+            acc
+        },
+    ));
 }

@@ -11,7 +11,7 @@ use bevy::{
 };
 
 use crate::{
-    serializing::save_object,
+    serializing::{save_object, pattern::TilemapPattern},
     tilemap::{
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -21,7 +21,7 @@ use crate::{
     },
 };
 
-use super::{pattern::TilemapPattern, SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
+use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;

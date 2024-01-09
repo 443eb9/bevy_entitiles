@@ -32,7 +32,7 @@ pub fn camera_control(
     if input_mouse.pressed(MouseButton::Left) {
         for ev in event_move.read() {
             control.target_pos +=
-                150. * projection.scale * time.delta_seconds() * ev.delta * Vec2::new(-1., 1.);
+                200. * projection.scale * time.delta_seconds() * ev.delta * Vec2::new(-1., 1.);
         }
     } else {
         let mut step = 90. * time.delta_seconds();

@@ -1,10 +1,11 @@
 use std::{fs::File, io::Write, path::Path};
 
 use bevy::app::{Plugin, Update};
-use serde::Serialize;
+use ron::error::SpannedError;
+use serde::{Deserialize, Serialize};
 
 use self::{
-    chunk::save::TilemapChunkSaver,
+    chunk::save::TilemapColorChunkSaver,
     map::{
         load::{TilemapLoadFailure, TilemapLoader},
         save::TilemapSaver,
@@ -15,6 +16,7 @@ use self::{
 
 pub mod chunk;
 pub mod map;
+pub mod pattern;
 
 pub struct EntiTilesSerializingPlugin;
 
@@ -26,7 +28,14 @@ impl Plugin for EntiTilesSerializingPlugin {
                 map::save::save,
                 map::load::load,
                 chunk::save::save_color_layer,
-                // chunk::save::render_chunk_remover,
+                #[cfg(feature = "algorithm")]
+                chunk::save::save_path_layer,
+                chunk::save::render_chunk_remover,
+                chunk::save::saver_expander,
+                chunk::load::loader_expander,
+                chunk::load::load_color_layer,
+                #[cfg(feature = "algorithm")]
+                chunk::load::load_path_layer,
             ),
         );
 
@@ -38,13 +47,13 @@ impl Plugin for EntiTilesSerializingPlugin {
             .register_type::<SerializedTilemapTextureDescriptor>()
             .register_type::<SerializedTilemapTexture>();
 
-        app.register_type::<TilemapChunkSaver>();
+        app.register_type::<TilemapColorChunkSaver>();
 
         #[cfg(feature = "algorithm")]
         {
             app.register_type::<chunk::save::TilemapPathChunkSaver>();
 
-            app.add_systems(Update, chunk::save::save_algo_layer);
+            app.add_systems(Update, chunk::save::save_path_layer);
         }
     }
 }
@@ -56,4 +65,11 @@ pub fn save_object<T: Serialize>(path: &Path, file_name: &str, object: &T) {
         .unwrap_or(File::open(path).unwrap())
         .write(ron::to_string(object).unwrap().as_bytes())
         .unwrap_or_else(|err| panic!("{:?}", err));
+}
+
+pub fn load_object<T: for<'a> Deserialize<'a>>(
+    path: &Path,
+    file_name: &str,
+) -> Result<T, SpannedError> {
+    ron::from_str(std::fs::read_to_string(path.join(file_name))?.as_str())
 }

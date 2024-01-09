@@ -1,7 +1,8 @@
 use bevy::{
-    ecs::component::Component,
+    ecs::{component::Component, event::Event},
     math::{IVec2, IVec3, IVec4, UVec4},
     prelude::{Entity, Mesh, Resource, UVec2, Vec3, Vec4},
+    reflect::Reflect,
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
@@ -25,8 +26,14 @@ use super::{
     TILEMAP_MESH_ATTR_TEX_INDICES,
 };
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Default, Debug, Clone, Reflect)]
 pub struct UnloadRenderChunk(pub Vec<IVec2>);
+
+#[derive(Event, Debug, Clone)]
+pub struct ChunkUnload {
+    pub tilemap: Entity,
+    pub index: IVec2,
+}
 
 #[derive(Clone)]
 pub struct MeshTileData {

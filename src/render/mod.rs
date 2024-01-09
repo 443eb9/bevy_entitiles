@@ -13,7 +13,7 @@ use bevy::{
 use crate::render::{
     binding::{TilemapBindGroupLayouts, TilemapBindGroups},
     buffer::{TilemapStorageBuffers, TilemapUniformBuffers},
-    chunk::RenderChunkStorage,
+    chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
     draw::{DrawTilemap, DrawTilemapPureColor},
     pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
@@ -63,6 +63,9 @@ impl Plugin for EntiTilesRendererPlugin {
             "shaders/tilemap.wgsl",
             Shader::from_wgsl
         );
+
+        app.register_type::<UnloadRenderChunk>();
+        app.add_event::<ChunkUnload>();
 
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 

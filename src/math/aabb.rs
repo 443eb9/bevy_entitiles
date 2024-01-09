@@ -181,3 +181,12 @@ impl IAabb2d {
             .flatten()
     }
 }
+
+impl Into<Aabb2d> for IAabb2d {
+    fn into(self) -> Aabb2d {
+        Aabb2d {
+            min: self.min.as_vec2(),
+            max: self.max.as_vec2(),
+        }
+    }
+}
