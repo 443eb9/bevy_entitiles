@@ -645,10 +645,10 @@ pub fn wfc_applier(
 
                         wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                             let p = &patterns[*e as usize];
-                            p.apply_tiles(
+                            tilemap.fill_with_buffer(
                                 &mut c,
                                 (runner.elem_idx_to_grid(i) + runner.area.origin) * p.aabb.size(),
-                                tilemap,
+                                p.tiles.clone(),
                             );
                         });
                     }
@@ -676,7 +676,11 @@ pub fn wfc_applier(
                                         },
                                         ..Default::default()
                                     };
-                                    layer.apply_tiles(&mut c, IVec2::ZERO, &mut bundle.storage);
+                                    bundle.storage.fill_with_buffer(
+                                        &mut c,
+                                        IVec2::ZERO,
+                                        layer.tiles.clone(),
+                                    );
                                     c.entity(bundle.storage.tilemap).insert(bundle);
                                 } else {
                                     let mut bundle = PureColorTilemapBundle {
@@ -691,7 +695,11 @@ pub fn wfc_applier(
                                         },
                                         ..Default::default()
                                     };
-                                    layer.apply_tiles(&mut c, IVec2::ZERO, &mut bundle.storage);
+                                    bundle.storage.fill_with_buffer(
+                                        &mut c,
+                                        IVec2::ZERO,
+                                        layer.tiles.clone(),
+                                    );
                                     c.spawn(bundle);
                                 }
                             });
@@ -757,12 +765,12 @@ pub fn wfc_applier(
 
                                     p.iter().enumerate().for_each(|(layer_index, layer)| {
                                         let (entity, target) = &mut layers[layer_index];
-                                        layer.0.apply_tiles(
+                                        target.storage.fill_with_buffer(
                                             &mut c,
                                             // as the y axis in LDtk is reversed
                                             // all the patterns will extend downwards
                                             (ptn_idx + IVec2::Y) * layer.0.aabb.size() - IVec2::Y,
-                                            &mut target.storage,
+                                            layer.0.tiles.clone(),
                                         );
 
                                         #[cfg(any(

@@ -7,6 +7,7 @@ use bevy::{
         system::{Commands, Query},
     },
     reflect::Reflect,
+    utils::HashMap,
 };
 
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
         },
-        tile::Tile,
+        tile::{Tile, TileBuilder},
     },
 };
 
@@ -156,14 +157,19 @@ pub fn save(
                 .clone()
                 .into_mapper()
                 .iter()
-                .map(|t| (*t.0, tiles_query.get(*t.1).unwrap().clone().into()))
-                .collect();
+                .map(|t| {
+                    (
+                        *t.0,
+                        <Tile as Into<TileBuilder>>::into(tiles_query.get(*t.1).unwrap().clone()),
+                    )
+                })
+                .collect::<HashMap<_, _>>();
 
             match saver.mode {
                 TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &ser_tiles),
                 TilemapSaverMode::MapPattern => {
-                    pattern.tiles = ser_tiles;
-                    pattern.recalculate_aabb();
+                    pattern.tiles.tiles = ser_tiles;
+                    pattern.tiles.recalculate_aabb();
                 }
             }
         }
@@ -175,7 +181,8 @@ pub fn save(
                 match saver.mode {
                     TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &path_tilemap),
                     TilemapSaverMode::MapPattern => {
-                        pattern.path_tiles = Some(path_tilemap.storage.clone().into_mapper());
+                        pattern.path_tiles.tiles = path_tilemap.storage.clone().into_mapper();
+                        pattern.path_tiles.recalculate_aabb();
                     }
                 }
             }

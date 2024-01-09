@@ -2,6 +2,7 @@ use bevy::app::{Plugin, Update};
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
+pub mod buffers;
 pub mod bundles;
 pub mod coordinates;
 pub mod map;

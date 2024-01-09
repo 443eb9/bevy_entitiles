@@ -85,7 +85,7 @@ impl<'a> LdtkLayers<'a> {
             y: -tile.px[1] / tile_size.y as i32,
         };
 
-        if let Some(ser_tile) = pattern.get_mut(tile_index) {
+        if let Some(ser_tile) = pattern.tiles.get_mut(tile_index) {
             let TileTexture::Static(tile_layers) = &mut ser_tile.texture else {
                 unreachable!()
             };
@@ -99,7 +99,7 @@ impl<'a> LdtkLayers<'a> {
                         .with_flip_raw(tile.flip as u32),
                 )
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
-            pattern.set(tile_index, builder);
+            pattern.tiles.set(tile_index, builder);
         }
     }
 
@@ -147,7 +147,9 @@ impl<'a> LdtkLayers<'a> {
                             ..Default::default()
                         };
 
-                        pattern.apply_tiles(commands, IVec2::NEG_Y, &mut tilemap.storage);
+                        tilemap
+                            .storage
+                            .fill_with_buffer(commands, IVec2::NEG_Y, pattern.tiles);
 
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
@@ -197,7 +199,8 @@ impl<'a> LdtkLayers<'a> {
                             #[cfg(feature = "algorithm")]
                             if let Some((path_layer, path_tiles)) = &self.path_layer {
                                 if path_layer.parent == p.0.label.clone().unwrap() {
-                                    p.0.path_tiles = Some(path_tiles.clone());
+                                    p.0.path_tiles.tiles = path_tiles.clone();
+                                    p.0.path_tiles.recalculate_aabb();
                                 }
                             }
 

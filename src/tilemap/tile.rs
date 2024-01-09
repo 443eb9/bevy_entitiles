@@ -4,12 +4,9 @@ use bevy::{
     math::IVec2,
     prelude::{Commands, Component, Entity, UVec2, Vec4},
     reflect::Reflect,
-    utils::HashMap,
 };
 
-use crate::math::aabb::IAabb2d;
-
-use super::map::TilemapStorage;
+use super::{buffers::Tiles, map::TilemapStorage};
 
 #[derive(Debug, Default, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -89,6 +86,8 @@ pub struct TileBuilder {
     pub(crate) texture: TileTexture,
     pub(crate) color: Vec4,
 }
+
+impl Tiles for TileBuilder {}
 
 impl TileBuilder {
     /// Create a new tile builder.
@@ -170,58 +169,14 @@ pub struct Tile {
     pub color: Vec4,
 }
 
+impl Tiles for Tile {}
+
 impl Into<TileBuilder> for Tile {
     fn into(self) -> TileBuilder {
         TileBuilder {
             texture: self.texture,
             color: self.color,
         }
-    }
-}
-
-#[derive(Debug, Clone, Reflect)]
-pub struct TileBuffer {
-    pub(crate) tiles: HashMap<IVec2, TileBuilder>,
-    pub(crate) aabb: IAabb2d,
-}
-
-impl TileBuffer {
-    pub fn new() -> Self {
-        Self {
-            tiles: HashMap::new(),
-            aabb: IAabb2d::default(),
-        }
-    }
-
-    pub fn set(&mut self, index: IVec2, tile: TileBuilder) {
-        self.tiles.insert(index, tile);
-        self.aabb.expand_to_contain(index);
-    }
-
-    /// Warning: this method will cause aabb to be recalculated.
-    pub fn remove(&mut self, index: IVec2) {
-        self.tiles.remove(&index);
-        self.recalculate_aabb();
-    }
-
-    pub fn get(&self, index: IVec2) -> Option<&TileBuilder> {
-        self.tiles.get(&index)
-    }
-
-    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut TileBuilder> {
-        self.tiles.get_mut(&index)
-    }
-
-    pub fn recalculate_aabb(&mut self) {
-        self.aabb = IAabb2d::default();
-        for (index, _) in self.tiles.iter() {
-            self.aabb.expand_to_contain(*index);
-        }
-    }
-
-    #[inline]
-    pub fn aabb(&self) -> IAabb2d {
-        self.aabb
     }
 }
 

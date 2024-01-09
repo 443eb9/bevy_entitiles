@@ -1,12 +1,18 @@
 use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 
-use crate::{math::TileArea, tilemap::storage::ChunkedStorage, DEFAULT_CHUNK_SIZE};
+use crate::{
+    math::TileArea,
+    tilemap::{buffers::Tiles, storage::ChunkedStorage},
+    DEFAULT_CHUNK_SIZE,
+};
 
 #[derive(Component, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTile {
     pub cost: u32,
 }
+
+impl Tiles for PathTile {}
 
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]

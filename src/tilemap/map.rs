@@ -18,8 +18,9 @@ use crate::{
 };
 
 use super::{
+    buffers::TileBuilderBuffer,
     storage::ChunkedStorage,
-    tile::{TileBuffer, TileBuilder, TileUpdater},
+    tile::{TileBuilder, TileUpdater},
 };
 
 /// Defines the shape of tiles in a tilemap.
@@ -396,7 +397,12 @@ impl TilemapStorage {
     }
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than setting them one by one.
-    pub fn fill_with_buffer(&mut self, commands: &mut Commands, origin: IVec2, buffer: TileBuffer) {
+    pub fn fill_with_buffer(
+        &mut self,
+        commands: &mut Commands,
+        origin: IVec2,
+        buffer: TileBuilderBuffer,
+    ) {
         let mut entities = Vec::with_capacity(buffer.tiles.len());
 
         let batch = buffer
