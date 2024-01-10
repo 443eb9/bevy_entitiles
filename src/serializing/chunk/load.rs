@@ -14,7 +14,11 @@ use bevy::{
 use crate::{
     math::{aabb::IAabb2d, extension::ChunkIndex},
     serializing::{load_object, map::TilemapLayer},
-    tilemap::{buffers::TileBuilderBuffer, map::TilemapStorage, tile::Tile},
+    tilemap::{
+        buffers::TileBuilderBuffer,
+        map::{TilemapName, TilemapStorage},
+        tile::Tile,
+    },
 };
 
 #[cfg(feature = "algorithm")]
@@ -27,7 +31,6 @@ use super::TILE_CHUNKS_FOLDER;
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct TilemapChunkLoader {
     pub(crate) path: String,
-    pub(crate) map_name: String,
     pub(crate) chunks: Vec<IVec2>,
     pub(crate) progress: usize,
     pub(crate) cpf: usize,
@@ -44,11 +47,10 @@ impl TilemapChunkLoader {
     ///         ├── tilemap.ron
     ///         └── (and other data)
     /// ```
-    /// Then path = `C:\\maps` and map_name = `beautiful map`
-    pub fn new(path: String, map_name: String) -> Self {
+    /// Then path = `C:\\maps`
+    pub fn new(path: String) -> Self {
         Self {
             path,
-            map_name,
             chunks: Vec::new(),
             progress: 0,
             cpf: 1,
@@ -78,9 +80,13 @@ impl TilemapChunkLoader {
         self
     }
 
-    pub fn with_multiple_ranges(mut self, ranges: Vec<IAabb2d>) -> Self {
-        self.chunks
-            .extend(ranges.iter().flat_map(|aabb| (*aabb).into_iter()));
+    pub fn with_multiple_ranges(mut self, ranges: impl Iterator<Item = IAabb2d>) -> Self {
+        self.chunks.extend(ranges.flat_map(|aabb| aabb.into_iter()));
+        self
+    }
+
+    pub fn with_multiple(mut self, indices: impl Iterator<Item = IVec2>) -> Self {
+        self.chunks.extend(indices);
         self
     }
 
@@ -98,7 +104,6 @@ impl TilemapChunkLoader {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct TilemapColorChunkLoader {
     pub(crate) path: String,
-    pub(crate) map_name: String,
     pub(crate) chunks: Vec<IVec2>,
     pub(crate) progress: usize,
     pub(crate) cpf: usize,
@@ -107,7 +112,6 @@ pub struct TilemapColorChunkLoader {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct TilemapPathChunkLoader {
     pub(crate) path: String,
-    pub(crate) map_name: String,
     pub(crate) chunks: Vec<IVec2>,
     pub(crate) progress: usize,
     pub(crate) cpf: usize,
@@ -122,7 +126,6 @@ pub fn loader_expander(
             if (saver.layers & TilemapLayer::Color as u32) != 0 {
                 c.entity(entity).insert(TilemapColorChunkLoader {
                     path: saver.path.clone(),
-                    map_name: saver.map_name.clone(),
                     chunks: saver.chunks.clone(),
                     progress: 0,
                     cpf: saver.cpf,
@@ -132,7 +135,6 @@ pub fn loader_expander(
             if (saver.layers & TilemapLayer::Path as u32) != 0 {
                 c.entity(entity).insert(TilemapColorChunkLoader {
                     path: saver.path.clone(),
-                    map_name: saver.map_name.clone(),
                     chunks: saver.chunks.clone(),
                     progress: 0,
                     cpf: saver.cpf,
@@ -146,11 +148,16 @@ pub fn loader_expander(
 
 pub fn load_color_layer(
     commands: ParallelCommands,
-    mut tilemaps_query: Query<(Entity, &mut TilemapStorage, &mut TilemapColorChunkLoader)>,
+    mut tilemaps_query: Query<(
+        Entity,
+        &TilemapName,
+        &mut TilemapStorage,
+        &mut TilemapColorChunkLoader,
+    )>,
 ) {
     tilemaps_query
         .par_iter_mut()
-        .for_each(|(entity, mut storage, mut loader)| {
+        .for_each(|(entity, name, mut storage, mut loader)| {
             let chunk_size = storage.storage.chunk_size as i32;
             (loader.progress..loader.progress + loader.cpf)
                 .into_iter()
@@ -158,7 +165,7 @@ pub fn load_color_layer(
                     let chunk_index = loader.chunks[i];
                     let Ok(chunk) = load_object::<TileBuilderBuffer>(
                         &Path::new(&loader.path)
-                            .join(loader.map_name.clone())
+                            .join(&name.0)
                             .join(TILE_CHUNKS_FOLDER),
                         format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                     ) else {
@@ -171,12 +178,15 @@ pub fn load_color_layer(
                         let chunk_origin = chunk_index * chunk_size;
                         chunk.tiles.into_iter().for_each(|(in_chunk_index, tile)| {
                             let e = c.spawn_empty().id();
+
                             tiles.push((
                                 e,
                                 Tile {
                                     tilemap_id: entity,
                                     chunk_index,
-                                    in_chunk_index: in_chunk_index.as_uvec2(),
+                                    in_chunk_index: (in_chunk_index.x
+                                        + in_chunk_index.y * chunk_size)
+                                        as usize,
                                     index: chunk_origin + in_chunk_index,
                                     texture: tile.texture,
                                     color: tile.color,
@@ -205,11 +215,16 @@ pub fn load_color_layer(
 #[cfg(feature = "algorithm")]
 pub fn load_path_layer(
     commands: ParallelCommands,
-    mut tilemaps_query: Query<(Entity, &mut PathTilemap, &mut TilemapPathChunkLoader)>,
+    mut tilemaps_query: Query<(
+        Entity,
+        &TilemapName,
+        &mut PathTilemap,
+        &mut TilemapPathChunkLoader,
+    )>,
 ) {
     tilemaps_query
         .par_iter_mut()
-        .for_each(|(entity, path_tilemap, mut loader)| {
+        .for_each(|(entity, name, path_tilemap, mut loader)| {
             let chunk_size = path_tilemap.storage.chunk_size as i32;
             (loader.progress..loader.progress + loader.cpf)
                 .into_iter()
@@ -217,7 +232,7 @@ pub fn load_path_layer(
                     let chunk_index = loader.chunks[i];
                     let Ok(chunk) = load_object::<PathTilesBuffer>(
                         &Path::new(&loader.path)
-                            .join(loader.map_name.clone())
+                            .join(&name.0)
                             .join(PATH_TILE_CHUNKS_FOLDER),
                         format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                     ) else {

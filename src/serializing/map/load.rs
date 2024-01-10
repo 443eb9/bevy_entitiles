@@ -138,6 +138,7 @@ pub fn load(
         let mut storage = TilemapStorage {
             tilemap: entity,
             storage: ChunkedStorage::new(ser_tilemap.chunk_size),
+            ..Default::default()
         };
 
         if let Some(ser_tiles) = ser_tiles {

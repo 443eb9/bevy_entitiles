@@ -224,7 +224,7 @@ fn manual(
         text.sections[0].value = "".to_string();
         if load {
             commands.entity(tilemaps_query.single()).insert(
-                TilemapChunkLoader::new("C:\\maps".to_string(), "test_map".to_string())
+                TilemapChunkLoader::new("C:\\maps".to_string())
                     .with_layer(TilemapLayer::Color)
                     .with_layer(TilemapLayer::Path)
                     .with_range(range[0], range[1]),

@@ -83,9 +83,13 @@ impl TilemapChunkSaver {
         self
     }
 
-    pub fn with_multiple_ranges(mut self, ranges: Vec<IAabb2d>) -> Self {
-        self.chunks
-            .extend(ranges.iter().flat_map(|aabb| (*aabb).into_iter()));
+    pub fn with_multiple_ranges(mut self, ranges: impl Iterator<Item = IAabb2d>) -> Self {
+        self.chunks.extend(ranges.flat_map(|aabb| aabb.into_iter()));
+        self
+    }
+
+    pub fn with_multiple(mut self, indices: impl Iterator<Item = IVec2>) -> Self {
+        self.chunks.extend(indices);
         self
     }
 
@@ -131,24 +135,26 @@ pub fn saver_expander(
 ) {
     tilemaps_query.par_iter().for_each(|(entity, saver)| {
         commands.command_scope(|mut c| {
-            if (saver.layers & TilemapLayer::Color as u32) != 0 {
-                c.entity(entity).insert(TilemapColorChunkSaver {
-                    path: saver.path.clone(),
-                    chunks: saver.chunks.clone(),
-                    progress: 0,
-                    cpf: saver.cpf,
-                    remove_after_save: saver.remove_after_save,
-                });
-            }
+            if !saver.chunks.is_empty() {
+                if (saver.layers & TilemapLayer::Color as u32) != 0 {
+                    c.entity(entity).insert(TilemapColorChunkSaver {
+                        path: saver.path.clone(),
+                        chunks: saver.chunks.clone(),
+                        progress: 0,
+                        cpf: saver.cpf,
+                        remove_after_save: saver.remove_after_save,
+                    });
+                }
 
-            if (saver.layers & TilemapLayer::Path as u32) != 0 {
-                c.entity(entity).insert(TilemapPathChunkSaver {
-                    path: saver.path.clone(),
-                    chunks: saver.chunks.clone(),
-                    progress: 0,
-                    cpf: saver.cpf,
-                    remove_after_save: saver.remove_after_save,
-                });
+                if (saver.layers & TilemapLayer::Path as u32) != 0 {
+                    c.entity(entity).insert(TilemapPathChunkSaver {
+                        path: saver.path.clone(),
+                        chunks: saver.chunks.clone(),
+                        progress: 0,
+                        cpf: saver.cpf,
+                        remove_after_save: saver.remove_after_save,
+                    });
+                }
             }
 
             c.entity(entity).remove::<TilemapChunkSaver>();

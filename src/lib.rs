@@ -1,15 +1,7 @@
 use bevy::{app::Update, prelude::Plugin};
 use math::EntiTilesMathPlugin;
 use render::{texture, EntiTilesRendererPlugin};
-use tilemap::{
-    map::{
-        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
-        TilemapTransform, TilemapType,
-    },
-    tile::{LayerUpdater, Tile, TileLayer, TileTexture, TileUpdater},
-    EntiTilesTilemapPlugin,
-};
+use tilemap::EntiTilesTilemapPlugin;
 
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
@@ -78,23 +70,5 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins(ldtk::EntiTilesLdtkPlugin);
         #[cfg(feature = "ui")]
         app.add_plugins(ui::EntiTilesUiPlugin);
-
-        app.register_type::<TileLayer>()
-            .register_type::<LayerUpdater>()
-            .register_type::<TileUpdater>()
-            .register_type::<Tile>()
-            .register_type::<TileTexture>();
-
-        app.register_type::<TilemapName>()
-            .register_type::<TileRenderSize>()
-            .register_type::<TilemapSlotSize>()
-            .register_type::<TilemapType>()
-            .register_type::<TilePivot>()
-            .register_type::<TilemapLayerOpacities>()
-            .register_type::<TilemapStorage>()
-            .register_type::<TilemapTransform>()
-            .register_type::<TilemapTexture>()
-            .register_type::<TilemapTextureDescriptor>()
-            .register_type::<TilemapAnimations>();
     }
 }

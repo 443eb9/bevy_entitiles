@@ -5,7 +5,10 @@ use ron::error::SpannedError;
 use serde::{Deserialize, Serialize};
 
 use self::{
-    chunk::save::TilemapColorChunkSaver,
+    chunk::{
+        camera::{CameraChunkUpdater, CameraChunkUpdation},
+        save::TilemapColorChunkSaver,
+    },
     map::{
         load::{TilemapLoadFailure, TilemapLoader},
         save::TilemapSaver,
@@ -36,6 +39,7 @@ impl Plugin for EntiTilesSerializingPlugin {
                 chunk::load::load_color_layer,
                 #[cfg(feature = "algorithm")]
                 chunk::load::load_path_layer,
+                chunk::camera::camera_chunk_update,
             ),
         );
 
@@ -47,7 +51,10 @@ impl Plugin for EntiTilesSerializingPlugin {
             .register_type::<SerializedTilemapTextureDescriptor>()
             .register_type::<SerializedTilemapTexture>();
 
-        app.register_type::<TilemapColorChunkSaver>();
+        app.register_type::<TilemapColorChunkSaver>()
+            .register_type::<CameraChunkUpdater>();
+
+        app.add_event::<CameraChunkUpdation>();
 
         #[cfg(feature = "algorithm")]
         {

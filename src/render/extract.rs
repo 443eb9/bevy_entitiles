@@ -1,21 +1,20 @@
 use bevy::{
     ecs::{event::EventReader, system::Res},
-    math::{IVec2, Vec3Swizzles},
-    prelude::{
-        Camera, Changed, Commands, Component, Entity, Or, OrthographicProjection, Query, Transform,
-        UVec2, Vec2, Vec4,
-    },
+    prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
     render::Extract,
     time::Time,
     utils::EntityHashMap,
 };
 
-use crate::tilemap::{
-    map::{
-        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+use crate::{
+    math::CameraAabb2d,
+    tilemap::{
+        map::{
+            TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+            TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+        },
+        tile::Tile,
     },
-    tile::{Tile, TileTexture},
 };
 
 use super::chunk::{ChunkUnload, UnloadRenderChunk};
@@ -36,22 +35,9 @@ pub struct ExtractedTilemap {
     pub time: f32,
 }
 
-#[derive(Component, Debug)]
-pub struct ExtractedTile {
-    pub tilemap: Entity,
-    pub chunk_index: IVec2,
-    pub in_chunk_index: UVec2,
-    pub index: IVec2,
-    pub texture: TileTexture,
-    pub color: Vec4,
-}
+pub type ExtractedTile = Tile;
 
-#[derive(Component, Debug)]
-pub struct ExtractedView {
-    pub min: Vec2,
-    pub max: Vec2,
-    pub transform: Vec2,
-}
+pub type ExtractedView = CameraAabb2d;
 
 pub fn extract_tilemaps(
     mut commands: Commands,
@@ -72,88 +58,86 @@ pub fn extract_tilemaps(
     >,
     time: Extract<Res<Time>>,
 ) {
-    let mut extracted_tilemaps = vec![];
-    for (
-        entity,
-        name,
-        tile_render_size,
-        slot_size,
-        ty,
-        tile_pivot,
-        layer_opacities,
-        transform,
-        storage,
-        texture,
-        animations,
-    ) in tilemaps_query.iter()
-    {
-        extracted_tilemaps.push((
-            entity,
-            ExtractedTilemap {
-                id: entity,
-                name: name.0.clone(),
-                tile_render_size: tile_render_size.0,
-                slot_size: slot_size.0,
-                ty: *ty,
-                tile_pivot: tile_pivot.0,
-                layer_opacities: layer_opacities.0,
-                transform: *transform,
-                texture: texture.cloned(),
-                animations: animations.cloned(),
-                chunk_size: storage.storage.chunk_size,
-                time: time.elapsed_seconds(),
-            },
-        ));
-    }
-
-    commands.insert_or_spawn_batch(extracted_tilemaps);
+    commands.insert_or_spawn_batch(
+        tilemaps_query
+            .iter()
+            .map(
+                |(
+                    entity,
+                    name,
+                    tile_render_size,
+                    slot_size,
+                    ty,
+                    tile_pivot,
+                    layer_opacities,
+                    transform,
+                    storage,
+                    texture,
+                    animations,
+                )| {
+                    (
+                        entity,
+                        ExtractedTilemap {
+                            id: entity,
+                            name: name.0.clone(),
+                            tile_render_size: tile_render_size.0,
+                            slot_size: slot_size.0,
+                            ty: *ty,
+                            tile_pivot: tile_pivot.0,
+                            layer_opacities: layer_opacities.0,
+                            transform: *transform,
+                            texture: texture.cloned(),
+                            animations: animations.cloned(),
+                            chunk_size: storage.storage.chunk_size,
+                            time: time.elapsed_seconds(),
+                        },
+                    )
+                },
+            )
+            .collect::<Vec<_>>(),
+    );
 }
 
 pub fn extract_tiles(
     mut commands: Commands,
-    changed_tiles_query: Extract<Query<(Entity, &Tile), Changed<Tile>>>,
+    tiles_query: Extract<Query<(Entity, &Tile), Changed<Tile>>>,
 ) {
-    let mut extracted_tiles: Vec<(Entity, ExtractedTile)> = vec![];
-    for (entity, tile) in changed_tiles_query.iter() {
-        extracted_tiles.push((
-            entity,
-            ExtractedTile {
-                tilemap: tile.tilemap_id,
-                chunk_index: tile.chunk_index,
-                in_chunk_index: tile.in_chunk_index,
-                index: tile.index,
-                texture: tile.texture.clone(),
-                color: tile.color,
-            },
-        ));
-    }
-    commands.insert_or_spawn_batch(extracted_tiles);
+    commands.insert_or_spawn_batch(
+        tiles_query
+            .iter()
+            .map(|(entity, tile)| {
+                (
+                    entity,
+                    ExtractedTile {
+                        tilemap_id: tile.tilemap_id,
+                        chunk_index: tile.chunk_index,
+                        in_chunk_index: tile.in_chunk_index,
+                        index: tile.index,
+                        texture: tile.texture.clone(),
+                        color: tile.color,
+                    },
+                )
+            })
+            .collect::<Vec<_>>(),
+    );
 }
 
 pub fn extract_view(
     mut commands: Commands,
-    cameras: Extract<
-        Query<
-            (Entity, &OrthographicProjection, &Camera, &Transform),
-            Or<(Changed<Transform>, Changed<OrthographicProjection>)>,
-        >,
-    >,
+    cameras: Extract<Query<(Entity, &CameraAabb2d), Changed<CameraAabb2d>>>,
 ) {
-    let mut extracted_cameras = vec![];
-    for (entity, projection, _, transform) in cameras.iter() {
-        extracted_cameras.push((
-            entity,
-            ExtractedView {
-                min: projection.area.min,
-                max: projection.area.max,
-                transform: transform.translation.xy(),
-            },
-        ));
-    }
-    commands.insert_or_spawn_batch(extracted_cameras);
+    commands.insert_or_spawn_batch(
+        cameras
+            .iter()
+            .map(|(e, aabb)| (e, *aabb))
+            .collect::<Vec<_>>(),
+    );
 }
 
-pub fn extract_unloaded_chunks(mut commands: Commands, mut chunk_unload: Extract<EventReader<ChunkUnload>>) {
+pub fn extract_unloaded_chunks(
+    mut commands: Commands,
+    mut chunk_unload: Extract<EventReader<ChunkUnload>>,
+) {
     commands.insert_or_spawn_batch(chunk_unload.read().fold(
         EntityHashMap::<Entity, UnloadRenderChunk>::default(),
         |mut acc, elem| {

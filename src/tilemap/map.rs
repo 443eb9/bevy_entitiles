@@ -1,9 +1,9 @@
-use std::fmt::Debug;
+use std::{f32::consts::SQRT_2, fmt::Debug};
 
 use bevy::{
     asset::Handle,
     ecs::{component::Component, query::Changed, system::Query},
-    hierarchy::{BuildChildren, DespawnRecursiveExt},
+    hierarchy::BuildChildren,
     math::{Mat2, Quat, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     reflect::Reflect,
@@ -13,7 +13,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::Aabb2d, extension::DivToFloor, TileArea},
+    math::{aabb::Aabb2d, TileArea},
     render::buffer::TileAnimation,
 };
 
@@ -102,6 +102,16 @@ impl TilemapTransform {
             TilemapRotation::Cw90 => Mat2::from_cols_array(&[0., 1., -1., 0.]),
             TilemapRotation::Cw180 => Mat2::from_cols_array(&[-1., 0., 0., -1.]),
             TilemapRotation::Cw270 => Mat2::from_cols_array(&[0., -1., 1., 0.]),
+        }
+    }
+
+    #[inline]
+    pub fn get_rotation_quat(&self) -> Quat {
+        match self.rotation {
+            TilemapRotation::None => Quat::IDENTITY,
+            TilemapRotation::Cw90 => Quat::from_xyzw(0., 0., SQRT_2 / 2., SQRT_2 / 2.),
+            TilemapRotation::Cw180 => Quat::from_xyzw(0., 0., 1., 0.),
+            TilemapRotation::Cw270 => Quat::from_xyzw(0., 0., SQRT_2 / 2., -SQRT_2 / 2.),
         }
     }
 
@@ -295,7 +305,6 @@ impl TilemapStorage {
         self.storage.set_elem(index, Some(new_tile));
     }
 
-    #[inline]
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
         self.storage.set_elem(index, entity);
     }
@@ -309,7 +318,7 @@ impl TilemapStorage {
     /// Remove a tile.
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.get(index) {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
             self.set_entity(index, None);
         }
     }
@@ -321,6 +330,13 @@ impl TilemapStorage {
                 commands.entity(e).despawn();
             });
         }
+    }
+
+    /// Get the underlying storage and directly modify it.
+    ///
+    /// **Notice**: This may cause some problems if you do something inappropriately.
+    pub fn get_storage_raw(&mut self) -> &mut ChunkedStorage<Entity> {
+        &mut self.storage
     }
 
     /// Fill a rectangle area with tiles.
@@ -468,16 +484,6 @@ impl TilemapStorage {
 
         commands.insert_or_spawn_batch(batch);
     }
-
-    /// Transform a tile index to (chunk_index, in_chunk_index)
-    #[inline]
-    pub fn transform_index(&self, index: IVec2) -> (IVec2, UVec2) {
-        let c = index.div_to_floor(IVec2::splat(self.storage.chunk_size as i32));
-        (
-            c,
-            (index - c * IVec2::splat(self.storage.chunk_size as i32)).as_uvec2(),
-        )
-    }
 }
 
 #[derive(Component, Default, Debug, Clone, Reflect)]
@@ -508,6 +514,41 @@ pub fn transform_syncer(
         transform.translation = tilemap_transform
             .translation
             .extend(tilemap_transform.z_index as f32);
-        transform.rotation = Quat::from_rotation_z(tilemap_transform.rotation as u32 as f32);
+        transform.rotation = tilemap_transform.get_rotation_quat();
     });
+}
+
+pub fn tilemap_aabb_calculator(
+    mut tilemaps_query: Query<(
+        &mut TilemapStorage,
+        &TilemapType,
+        &TilePivot,
+        &TilemapSlotSize,
+        &TilemapTransform,
+    )>,
+) {
+    tilemaps_query.par_iter_mut().for_each(
+        |(mut storage, ty, tile_pivot, slot_size, transform)| {
+            let chunk_size = storage.storage.chunk_size;
+            let ext = storage
+                .storage
+                .calc_queue
+                .drain()
+                .map(|i| {
+                    (
+                        i,
+                        Aabb2d::from_tilemap(
+                            i,
+                            chunk_size,
+                            *ty,
+                            tile_pivot.0,
+                            slot_size.0,
+                            *transform,
+                        ),
+                    )
+                })
+                .collect::<Vec<_>>();
+            storage.storage.reserved.extend(ext);
+        },
+    );
 }

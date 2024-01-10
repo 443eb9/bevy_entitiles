@@ -1,9 +1,8 @@
 use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect};
 
-use crate::{
-    render::extract::ExtractedView,
-    tilemap::map::{TilemapTransform, TilemapType},
-};
+use crate::tilemap::map::{TilemapTransform, TilemapType};
+
+use super::extension::Vec2Integerize;
 
 #[derive(Clone, Copy, Default, Debug, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -55,7 +54,7 @@ macro_rules! impl_aabb {
             }
 
             #[inline]
-            pub fn expand(&mut self, other: &$aabb_ty) {
+            pub fn expand(&mut self, other: $aabb_ty) {
                 self.min = self.min.min(other.min);
                 self.max = self.max.max(other.max);
             }
@@ -67,7 +66,7 @@ macro_rules! impl_aabb {
             }
 
             #[inline]
-            pub fn is_intersected(&self, other: &$aabb_ty) -> bool {
+            pub fn is_intersected(&self, other: $aabb_ty) -> bool {
                 self.min.x < other.max.x
                     && self.max.x > other.min.x
                     && self.min.y < other.max.y
@@ -80,6 +79,22 @@ macro_rules! impl_aabb {
                     && self.max.x >= point.x
                     && self.min.y <= point.y
                     && self.max.y >= point.y
+            }
+
+            #[inline]
+            pub fn with_translation(&self, translation: $data_ty) -> Self {
+                Self {
+                    min: self.min + translation,
+                    max: self.max + translation,
+                }
+            }
+
+            #[inline]
+            pub fn intersection(&self, other: $aabb_ty) -> $aabb_ty {
+                Self {
+                    min: self.min.max(other.min),
+                    max: self.max.min(other.max),
+                }
             }
         }
     };
@@ -145,13 +160,6 @@ impl Aabb2d {
         })
     }
 
-    pub fn from_camera(camera: &ExtractedView) -> Self {
-        Aabb2d {
-            min: camera.min + camera.transform,
-            max: camera.max + camera.transform,
-        }
-    }
-
     #[inline]
     pub fn size(&self) -> Vec2 {
         self.max - self.min
@@ -160,6 +168,34 @@ impl Aabb2d {
     #[inline]
     pub fn center(&self) -> Vec2 {
         (self.min + self.max) / 2.
+    }
+
+    #[inline]
+    pub fn with_scale(&self, scale: Vec2, pivot: Vec2) -> Self {
+        let size = self.size();
+        let scaled_size = size * scale;
+        let offset = (size - scaled_size) * pivot;
+
+        Self {
+            min: self.min + offset,
+            max: self.max - offset,
+        }
+    }
+
+    #[inline]
+    pub fn expand_to_iaabb(&self) -> IAabb2d {
+        IAabb2d {
+            min: self.min.floor_to_ivec(),
+            max: self.max.ceil_to_ivec(),
+        }
+    }
+
+    #[inline]
+    pub fn shrink_to_iaabb(&self) -> IAabb2d {
+        IAabb2d {
+            min: self.min.ceil_to_ivec(),
+            max: self.max.floor_to_ivec(),
+        }
     }
 }
 
@@ -188,5 +224,23 @@ impl Into<Aabb2d> for IAabb2d {
             min: self.min.as_vec2(),
             max: self.max.as_vec2(),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_aabb_scale() {
+        let aabb = Aabb2d {
+            min: Vec2::new(0., 0.),
+            max: Vec2::new(10., 10.),
+        };
+
+        let scaled_aabb = aabb.with_scale(Vec2::new(2., 2.), Vec2::new(0.5, 0.5));
+
+        assert_eq!(scaled_aabb.min, Vec2::new(-5., -5.));
+        assert_eq!(scaled_aabb.max, Vec2::new(15., 15.));
     }
 }

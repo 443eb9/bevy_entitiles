@@ -90,6 +90,7 @@ impl SerializedTilemap {
             storage: TilemapStorage {
                 tilemap,
                 storage: ChunkedStorage::new(self.chunk_size),
+                ..Default::default()
             },
             tilemap_transform: self.tilemap_transform,
             texture,
@@ -109,6 +110,7 @@ impl SerializedTilemap {
             storage: TilemapStorage {
                 tilemap,
                 storage: ChunkedStorage::new(self.chunk_size),
+                ..Default::default()
             },
             tilemap_transform: self.tilemap_transform,
             ..Default::default()

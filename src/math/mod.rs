@@ -3,10 +3,10 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::Added,
+        query::{Added, Changed, Or},
         system::{Commands, Query},
     },
-    math::IVec2,
+    math::{IVec2, Vec2, Vec3Swizzles},
     prelude::UVec2,
     reflect::Reflect,
     render::camera::{Camera, OrthographicProjection},
@@ -30,18 +30,44 @@ impl Plugin for EntiTilesMathPlugin {
     }
 }
 
-#[derive(Component, Debug, Clone, Copy, Reflect)]
+#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 pub struct CameraAabb2d(pub Aabb2d);
 
 pub fn camera_aabb_adder(mut commands: Commands, cameras_query: Query<Entity, Added<Camera>>) {
     cameras_query.for_each(|e| {
-        commands.entity(e).insert(CameraAabb2d(Aabb2d::default()));
+        commands.entity(e).insert(CameraAabb2d::default());
     });
 }
 
 pub fn camera_aabb_updater(
-    mut cameras_query: Query<(&OrthographicProjection, &Transform, &mut CameraAabb2d)>,
+    mut commands: Commands,
+    mut cameras_query: Query<
+        (Entity, &OrthographicProjection, &Transform),
+        Or<(Changed<OrthographicProjection>, Changed<Transform>)>,
+    >,
+    #[cfg(feature = "debug")] camera_aabb_scale: bevy::ecs::system::Res<
+        crate::debug::CameraAabbScale,
+    >,
 ) {
+    cameras_query.for_each_mut(|(entity, proj, trans)| {
+        #[cfg(feature = "debug")]
+        commands.entity(entity).insert(CameraAabb2d(
+            Aabb2d {
+                min: proj.area.min,
+                max: proj.area.max,
+            }
+            .with_translation(trans.translation.xy())
+            .with_scale(camera_aabb_scale.0, Vec2::splat(0.5)),
+        ));
+        #[cfg(not(feature = "debug"))]
+        commands.entity(entity).insert(CameraAabb2d(
+            Aabb2d {
+                min: proj.area.min,
+                max: proj.area.max,
+            }
+            .with_translation(trans.translation.xy()),
+        ));
+    });
 }
 
 #[derive(Debug, Clone, Copy, Reflect)]

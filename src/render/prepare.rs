@@ -53,11 +53,11 @@ pub fn prepare_tiles(
     mut render_chunks: ResMut<RenderChunkStorage>,
 ) {
     extracted_tiles.for_each(|tile| {
-        let Ok(tilemap) = extracted_tilemaps.get(tile.tilemap) else {
+        let Ok(tilemap) = extracted_tilemaps.get(tile.tilemap_id) else {
             return;
         };
 
-        let chunks = render_chunks.value.entry(tile.tilemap).or_default();
+        let chunks = render_chunks.value.entry(tile.tilemap_id).or_default();
 
         let chunk = chunks
             .entry(tile.chunk_index)

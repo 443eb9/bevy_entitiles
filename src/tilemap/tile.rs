@@ -2,7 +2,7 @@ use bevy::{
     ecs::system::{ParallelCommands, Query},
     hierarchy::BuildChildren,
     math::IVec2,
-    prelude::{Commands, Component, Entity, UVec2, Vec4},
+    prelude::{Commands, Component, Entity, Vec4},
     reflect::Reflect,
 };
 
@@ -140,7 +140,7 @@ impl TileBuilder {
         storage: &TilemapStorage,
         tilemap: Entity,
     ) -> Tile {
-        let indices = storage.transform_index(index);
+        let indices = storage.storage.transform_index(index);
         Tile {
             tilemap_id: tilemap,
             chunk_index: indices.0,
@@ -163,7 +163,7 @@ pub enum TileTexture {
 pub struct Tile {
     pub tilemap_id: Entity,
     pub chunk_index: IVec2,
-    pub in_chunk_index: UVec2,
+    pub in_chunk_index: usize,
     pub index: IVec2,
     pub texture: TileTexture,
     pub color: Vec4,

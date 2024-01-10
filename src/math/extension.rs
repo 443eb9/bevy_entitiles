@@ -5,13 +5,31 @@ use bevy::{
 
 use crate::tilemap::map::TilemapType;
 
-pub trait F32ToU32 {
+pub trait F32Integerize {
+    fn round_to_i32(self) -> i32;
+    fn ceil_to_i32(self) -> i32;
+    fn floor_to_i32(self) -> i32;
     fn round_to_u32(self) -> u32;
     fn ceil_to_u32(self) -> u32;
     fn floor_to_u32(self) -> u32;
 }
 
-impl F32ToU32 for f32 {
+impl F32Integerize for f32 {
+    #[inline]
+    fn round_to_i32(self) -> i32 {
+        self.round() as i32
+    }
+
+    #[inline]
+    fn ceil_to_i32(self) -> i32 {
+        self.ceil() as i32
+    }
+
+    #[inline]
+    fn floor_to_i32(self) -> i32 {
+        self.floor() as i32
+    }
+
     #[inline]
     fn round_to_u32(self) -> u32 {
         (self + 0.5) as u32
@@ -28,15 +46,31 @@ impl F32ToU32 for f32 {
     }
 }
 
-pub trait Vec2ToUVec2 {
+pub trait Vec2Integerize {
+    fn round_to_ivec(self) -> IVec2;
+    fn ceil_to_ivec(self) -> IVec2;
+    fn floor_to_ivec(self) -> IVec2;
     fn round_to_uvec(self) -> UVec2;
     fn ceil_to_uvec(self) -> UVec2;
     fn floor_to_uvec(self) -> UVec2;
-    fn ceil_x_floor_y_to_uvec(self) -> UVec2;
-    fn floor_x_ceil_y_to_uvec(self) -> UVec2;
 }
 
-impl Vec2ToUVec2 for Vec2 {
+impl Vec2Integerize for Vec2 {
+    #[inline]
+    fn round_to_ivec(self) -> IVec2 {
+        self.round().as_ivec2()
+    }
+
+    #[inline]
+    fn ceil_to_ivec(self) -> IVec2 {
+        self.ceil().as_ivec2()
+    }
+
+    #[inline]
+    fn floor_to_ivec(self) -> IVec2 {
+        self.floor().as_ivec2()
+    }
+
     #[inline]
     fn round_to_uvec(self) -> UVec2 {
         UVec2 {
@@ -58,22 +92,6 @@ impl Vec2ToUVec2 for Vec2 {
         UVec2 {
             x: self.x as u32,
             y: self.y as u32,
-        }
-    }
-
-    #[inline]
-    fn ceil_x_floor_y_to_uvec(self) -> UVec2 {
-        UVec2 {
-            x: self.x.ceil_to_u32(),
-            y: self.y.floor_to_u32(),
-        }
-    }
-
-    #[inline]
-    fn floor_x_ceil_y_to_uvec(self) -> UVec2 {
-        UVec2 {
-            x: self.x.floor_to_u32(),
-            y: self.y.ceil_to_u32(),
         }
     }
 }

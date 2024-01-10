@@ -1,7 +1,7 @@
 use bevy::{ecs::system::Query, gizmos::gizmos::Gizmos, math::Vec2, render::color::Color};
 
 use crate::{
-    math::aabb::Aabb2d,
+    math::{aabb::Aabb2d, CameraAabb2d},
     tilemap::map::{TilePivot, TilemapSlotSize, TilemapStorage, TilemapTransform, TilemapType},
 };
 
@@ -66,4 +66,46 @@ pub fn draw_path(
 pub fn draw_axis(mut gizmos: Gizmos) {
     gizmos.line_2d(Vec2::NEG_X * 1e10, Vec2::X * 1e10, Color::RED);
     gizmos.line_2d(Vec2::NEG_Y * 1e10, Vec2::Y * 1e10, Color::GREEN);
+}
+
+pub fn draw_camera_aabb(mut gizmos: Gizmos, camera_aabb: Query<&CameraAabb2d>) {
+    camera_aabb.for_each(|aabb| {
+        gizmos.rect_2d(
+            aabb.0.center(),
+            0.,
+            Vec2::new(aabb.0.width(), aabb.0.height()),
+            Color::BLUE,
+        );
+    });
+}
+
+#[cfg(feature = "serializing")]
+pub fn draw_updater_aabbs(
+    mut gizmos: Gizmos,
+    cameras_query: Query<(
+        &CameraAabb2d,
+        &crate::serializing::chunk::camera::CameraChunkUpdater,
+    )>,
+) {
+    cameras_query.for_each(|(cam_aabb, cam_updater)| {
+        let detect_aabb = cam_aabb
+            .0
+            .with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));
+        let update_aabb = cam_aabb
+            .0
+            .with_scale(Vec2::splat(cam_updater.update_scale), Vec2::splat(0.5));
+
+        gizmos.rect_2d(
+            detect_aabb.center(),
+            0.,
+            Vec2::new(detect_aabb.width(), detect_aabb.height()),
+            Color::FUCHSIA,
+        );
+        gizmos.rect_2d(
+            update_aabb.center(),
+            0.,
+            Vec2::new(update_aabb.width(), update_aabb.height()),
+            Color::SILVER,
+        );
+    });
 }

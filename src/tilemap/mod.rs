@@ -1,5 +1,14 @@
 use bevy::app::{Plugin, Update};
 
+use self::{
+    map::{
+        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
+        TilemapTransform, TilemapType,
+    },
+    tile::{LayerUpdater, Tile, TileLayer, TileTexture, TileUpdater},
+};
+
 #[cfg(feature = "algorithm")]
 pub mod algorithm;
 pub mod buffers;
@@ -15,7 +24,32 @@ pub struct EntiTilesTilemapPlugin;
 
 impl Plugin for EntiTilesTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, (map::transform_syncer, tile::tile_updater));
+        app.add_systems(
+            Update,
+            (
+                map::transform_syncer,
+                map::tilemap_aabb_calculator,
+                tile::tile_updater,
+            ),
+        );
+
+        app.register_type::<TileLayer>()
+            .register_type::<LayerUpdater>()
+            .register_type::<TileUpdater>()
+            .register_type::<Tile>()
+            .register_type::<TileTexture>();
+
+        app.register_type::<TilemapName>()
+            .register_type::<TileRenderSize>()
+            .register_type::<TilemapSlotSize>()
+            .register_type::<TilemapType>()
+            .register_type::<TilePivot>()
+            .register_type::<TilemapLayerOpacities>()
+            .register_type::<TilemapStorage>()
+            .register_type::<TilemapTransform>()
+            .register_type::<TilemapTexture>()
+            .register_type::<TilemapTextureDescriptor>()
+            .register_type::<TilemapAnimations>();
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmTilemapPlugin);

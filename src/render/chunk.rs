@@ -1,7 +1,7 @@
 use bevy::{
     ecs::{component::Component, event::Event},
     math::{IVec2, IVec3, IVec4, UVec4},
-    prelude::{Entity, Mesh, Resource, UVec2, Vec3, Vec4},
+    prelude::{Entity, Mesh, Resource, Vec3, Vec4},
     reflect::Reflect,
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
@@ -178,9 +178,7 @@ impl TilemapRenderChunk {
     }
 
     /// Set a tile in the chunk. Overwrites the previous tile.
-    pub fn set_tile(&mut self, index: UVec2, tile: &ExtractedTile) {
-        let index = (index.y * self.size + index.x) as usize;
-
+    pub fn set_tile(&mut self, index: usize, tile: &ExtractedTile) {
         // TODO fix this. This allows the tile sort by y axis. But this approach looks weird.
         let index = self.tiles.len() - index - 1;
 
