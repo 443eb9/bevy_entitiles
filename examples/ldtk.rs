@@ -1,6 +1,9 @@
 /*
  * The icon set finalbossblues-icons_full_16 is not allowed to be redistributed.
  * So all those icons in the map will be white.
+ *
+ * If you are using the LDtk maps from the tutorials, you need to delete the internal
+ * icons tileset. Otherwise the program will panic due to the missing asset.
  */
 
 use bevy::{
@@ -23,7 +26,6 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::EntiTilesDebugPlugin,
     ldtk::{
         app_ext::AppExt,
         entities::LdtkEntity,
@@ -51,7 +53,6 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
-            EntiTilesDebugPlugin,
             EntiTilesHelpersPlugin,
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
@@ -75,15 +76,20 @@ fn main() {
 
 fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     commands.spawn(Camera2dBundle::default());
-    // you can also insert this resource directly
+    // If you are not interested with the toc currently, use `.initialize` instead.
+    // Tocs will be inserted as resources.
+    let tocs = manager.initialize_get_tocs(
+        &mut commands,
+        // replace the filename with grid_vania.ldtk before running
+        // this file uses finalbossblues-icons_full_16 and it only exists
+        // in my local disk.
+        "assets/ldtk/ignore grid_vania.ldtk".to_string(),
+        "ldtk/".to_string(),
+    );
+
+    println!("tocs: {:?}", tocs);
+
     manager
-        .initialize(
-            // replace the filename with grid_vania.ldtk before running
-            // this file uses finalbossblues-icons_full_16 and it only exists
-            // in my local disk.
-            "assets/ldtk/ignoregrid_vania.ldtk".to_string(),
-            "ldtk/".to_string(),
-        )
         .set_physics_layer(LdtkPhysicsLayer {
             identifier: "PhysicsColliders".to_string(),
             air_value: 0,

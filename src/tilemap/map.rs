@@ -318,9 +318,9 @@ impl TilemapStorage {
     /// Remove a tile.
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.get(index) {
+            commands.entity(self.tilemap).remove_children(&[entity]);
             commands.entity(entity).despawn();
             self.set_entity(index, None);
-            commands.entity(self.tilemap).remove_children(&[entity]);
         }
     }
 

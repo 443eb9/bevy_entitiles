@@ -23,6 +23,7 @@ impl Plugin for EntiTilesDebugPlugin {
             ),
         );
 
+        #[cfg(feature = "debug")]
         app.init_resource::<CameraAabbScale>();
     }
 }

@@ -7,7 +7,6 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::EntiTilesDebugPlugin,
     math::TileArea,
     tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
@@ -35,7 +34,6 @@ fn main() {
             }),
             EntiTilesPlugin,
             EntiTilesHelpersPlugin,
-            EntiTilesDebugPlugin,
         ))
         .add_systems(Startup, setup)
         .run();

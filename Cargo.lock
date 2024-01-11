@@ -563,7 +563,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_entitiles"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",

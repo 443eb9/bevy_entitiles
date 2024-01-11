@@ -17,7 +17,10 @@ use crate::{
     },
 };
 
-use super::chunk::{ChunkUnload, UnloadRenderChunk};
+use super::{
+    chunk::{ChunkUnload, UnloadRenderChunk},
+    culling::FrustumCulling,
+};
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {
@@ -145,4 +148,8 @@ pub fn extract_unloaded_chunks(
             acc
         },
     ));
+}
+
+pub fn extract_resources(mut commands: Commands, frustum_culling: Extract<Res<FrustumCulling>>) {
+    commands.insert_resource(FrustumCulling(frustum_culling.0));
 }

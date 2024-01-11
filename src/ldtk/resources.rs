@@ -1,4 +1,4 @@
-use std::fs::read_to_string;
+use std::{fs::read_to_string, path::Path};
 
 use bevy::{
     asset::{AssetServer, Assets, Handle},
@@ -23,7 +23,7 @@ use crate::{
 };
 
 use super::{
-    json::{definitions::EntityDef, LdtkJson},
+    json::{definitions::EntityDef, EntityRef, LdtkJson, TocInstance},
     sprite::{AtlasRect, LdtkEntityMaterial},
     LdtkLoader, LdtkLoaderMode, LdtkUnloader,
 };
@@ -165,7 +165,7 @@ impl LdtkAssets {
                 return;
             };
 
-            let texture = asset_server.load(format!("{}{}", manager.asset_path_prefix, path));
+            let texture = asset_server.load(Path::new(&manager.asset_path_prefix).join(path));
             let desc = TilemapTextureDescriptor {
                 size: UVec2 {
                     x: tileset.px_wid as u32,
@@ -285,12 +285,24 @@ impl LdtkWfcManager {
     }
 }
 
+#[derive(Resource, Debug, Clone, Default)]
+pub struct LdtkTocs(pub(crate) HashMap<String, HashMap<EntityRef, TocInstance>>);
+
+impl LdtkTocs {
+    pub fn get(&self, identifier: String, entity: EntityRef) -> Option<&TocInstance> {
+        self.0.get(&identifier)?.get(&entity)
+    }
+
+    pub fn get_all(&self, identifier: String) -> Option<&HashMap<EntityRef, TocInstance>> {
+        self.0.get(&identifier)
+    }
+}
+
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkLevelManager {
     pub(crate) file_path: String,
     pub(crate) asset_path_prefix: String,
     pub(crate) ldtk_json: Option<LdtkJson>,
-    pub(crate) level_spacing: Option<i32>,
     #[reflect(ignore)]
     pub(crate) filter_mode: FilterMode,
     pub(crate) ignore_unregistered_entities: bool,
@@ -304,27 +316,48 @@ pub struct LdtkLevelManager {
 }
 
 impl LdtkLevelManager {
-    pub fn new(file_path: String, asset_path_prefix: String) -> Self {
-        let mut s = Self {
-            file_path: file_path.to_string(),
-            asset_path_prefix: asset_path_prefix.to_string(),
-            ..Default::default()
-        };
-        s.initialize(file_path.to_string(), asset_path_prefix.to_string());
-        s
-    }
-
     /// `file_path`: The path to the ldtk file relative to the working directory.
     ///
     /// `asset_path_prefix`: The path to the ldtk file relative to the assets folder.
     ///
     /// For example, your ldtk file is located at `assets/ldtk/fantastic_map.ldtk`,
     /// so `asset_path_prefix` will be `ldtk/`.
-    pub fn initialize(&mut self, file_path: String, asset_path_prefix: String) -> &mut Self {
+    pub fn initialize(
+        &mut self,
+        commands: &mut Commands,
+        file_path: String,
+        asset_path_prefix: String,
+    ) -> &mut Self {
+        self.initialize_get_tocs(commands, file_path, asset_path_prefix);
+        self
+    }
+
+    pub fn initialize_get_tocs(
+        &mut self,
+        commands: &mut Commands,
+        file_path: String,
+        asset_path_prefix: String,
+    ) -> LdtkTocs {
         self.file_path = file_path;
         self.asset_path_prefix = asset_path_prefix;
         self.reload_json();
-        self
+        let tocs = LdtkTocs(
+            self.get_cached_data()
+                .toc
+                .iter()
+                .map(|toc| {
+                    (
+                        toc.identifier.clone(),
+                        toc.instances_data
+                            .iter()
+                            .map(|inst| (inst.iids.clone(), inst.clone()))
+                            .collect(),
+                    )
+                })
+                .collect(),
+        );
+        commands.insert_resource(tocs.clone());
+        tocs
     }
 
     /// Reloads the ldtk file and refresh the level cache.
@@ -339,14 +372,6 @@ impl LdtkLevelManager {
             Ok(data) => Some(data),
             Err(e) => panic!("Could not parse file at path: {}!\n{}", self.file_path, e),
         };
-    }
-
-    /// If you are using a map with `WorldLayout::LinearHorizontal` or `WorldLayout::LinearVertical` layout,
-    /// and you are going to load all the levels,
-    /// this value will be used to determine the spacing between the levels.
-    pub fn set_level_spacing(&mut self, level_spacing: i32) -> &mut Self {
-        self.level_spacing = Some(level_spacing);
-        self
     }
 
     /// Set this to allow the algorithm to figure out the colliders.

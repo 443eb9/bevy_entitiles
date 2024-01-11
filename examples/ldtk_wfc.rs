@@ -40,10 +40,6 @@ fn main() {
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
         ))
-        .insert_resource(LdtkLevelManager::new(
-            "assets/ldtk/wfc_source.ldtk".to_string(),
-            "ldtk/".to_string(),
-        ))
         .insert_resource(LdtkPatterns::new(
             (0..=5)
                 .into_iter()
@@ -69,6 +65,11 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     commands.spawn(Camera2dBundle::default());
 
     manager
+        .initialize(
+            &mut commands,
+            "assets/ldtk/wfc_source.ldtk".to_string(),
+            "ldtk/".to_string(),
+        )
         .set_physics_layer(LdtkPhysicsLayer {
             identifier: "PhysicsCollider".to_string(),
             air_value: 0,

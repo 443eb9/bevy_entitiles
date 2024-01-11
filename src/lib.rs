@@ -60,15 +60,16 @@ impl Plugin for EntiTilesPlugin {
             EntiTilesTilemapPlugin,
             EntiTilesRendererPlugin,
             EntiTilesMathPlugin,
+            #[cfg(feature = "debug")]
+            debug::EntiTilesDebugPlugin,
+            #[cfg(feature = "algorithm")]
+            algorithm::EntiTilesAlgorithmPlugin,
+            #[cfg(feature = "serializing")]
+            serializing::EntiTilesSerializingPlugin,
+            #[cfg(feature = "ldtk")]
+            ldtk::EntiTilesLdtkPlugin,
+            #[cfg(feature = "ui")]
+            ui::EntiTilesUiPlugin,
         ));
-
-        #[cfg(feature = "algorithm")]
-        app.add_plugins(algorithm::EntiTilesAlgorithmPlugin);
-        #[cfg(feature = "serializing")]
-        app.add_plugins(serializing::EntiTilesSerializingPlugin);
-        #[cfg(feature = "ldtk")]
-        app.add_plugins(ldtk::EntiTilesLdtkPlugin);
-        #[cfg(feature = "ui")]
-        app.add_plugins(ui::EntiTilesUiPlugin);
     }
 }

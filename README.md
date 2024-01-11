@@ -10,9 +10,9 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- LDtk 1.5 Support
 - Chunk Unloading
 - Optimization
+- Tilemap Serializing (Physics)
 - [Tiled](https://www.mapeditor.org/) Support
 - Custom Material
 - Volumetric Clouds / Fog
@@ -72,7 +72,7 @@ The gif on the right is the map generated with wave function collapse. And the o
 
 ### Chunk Unloading
 
-In the following picture, the tilemap has a `chunk_size` of `32`.
+I know you are confused about these weird boxes, so please check the [`chunk_unloading`](examples/chunk_unloading.rs) example if you want to get further info.
 
 <div>
 	<img src="./docs/imgs/chunk_unloading.gif" width="500px">
@@ -145,6 +145,7 @@ In the following case, each tile has at least one corresponding color gap with i
 
 | Bevy ver | EntiTiles ver | LDtk ver      |
 | -------- | ------------- | ------------- |
+| 0.12.x   | 0.2.7         | 1.5.1         |
 | 0.12.x   | 0.2.3-0.2.6   | 1.4.1         |
 | 0.12.x   | 0.2.0-0.2.2   | Not supported |
 | 0.11.x   | 0.1.x         | Not supported |

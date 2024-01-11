@@ -16,7 +16,7 @@ use super::{
  * Level
  */
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Level {
     /// Background color of the level (same as `bgColor`, except
@@ -95,7 +95,7 @@ pub struct Level {
     pub world_y: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct ImagePosition {
     /// An array of 4 float values describing the cropped sub-rectangle
@@ -114,7 +114,7 @@ pub struct ImagePosition {
     pub top_left_px: [i32; 2],
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Neighbour {
     /// A single lowercase character tipping on the level location
@@ -134,7 +134,7 @@ pub struct Neighbour {
  * Layer Instance
  */
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LayerInstance {
     /// Grid-based height
@@ -184,7 +184,9 @@ pub struct LayerInstance {
     /// Note: if multiple tiles are stacked in the same cell as the result of different rules,
     /// all tiles behind opaque ones will be discarded.
     pub auto_layer_tiles: Vec<TileInstance>,
+
     pub entity_instances: Vec<EntityInstance>,
+
     pub grid_tiles: Vec<TileInstance>,
 
     /// Unique layer instance identifier
@@ -210,15 +212,23 @@ pub struct LayerInstance {
 
     /// X offset in pixels to render this layer, usually 0
     /// ## IMPORTANT:
-    /// this should be added to the LayerDef optional offset,
+    /// this should be added to the `LayerDef` optional offset,
     /// so you should probably prefer using `__pxTotalOffsetX`
-    /// which contains the total offset value)
+    /// which contains the total offset value
     pub px_offset_x: i32,
+
+    /// Y offset in pixels to render this layer, usually 0 
+    /// ## IMPORTANT:
+    /// this should be added to the `LayerDef` optional offset,
+    /// so you should probably prefer using `__pxTotalOffsetX`
+    /// which contains the total offset value
     pub px_offset_y: i32,
+
+    /// Layer instance visibility
     pub visible: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct TileInstance {
     ///	Alpha/opacity of the tile (0-1, defaults to 1)
@@ -283,11 +293,11 @@ pub struct EntityInstance {
 
     /// X world coordinate in pixels
     #[serde(rename = "__worldX")]
-    pub world_x: i32,
+    pub world_x: Option<i32>,
 
     /// Y world coordinate in pixels
     #[serde(rename = "__worldY")]
-    pub world_y: i32,
+    pub world_y: Option<i32>,
 
     /// Reference of the Entity definition UID
     pub def_uid: i32,
@@ -321,7 +331,7 @@ impl EntityInstance {
         commands.insert(MaterialMesh2dBundle {
             mesh: assets.clone_mesh_handle(&self.iid),
             material: assets.clone_material_handle(&self.iid),
-            transform: Transform::from_xyz(self.world_x as f32, -self.world_y as f32, 1.),
+            transform: Transform::from_xyz(self.local_pos[0] as f32, -self.local_pos[1] as f32, 0.),
             ..Default::default()
         });
     }

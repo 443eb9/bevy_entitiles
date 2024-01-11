@@ -29,10 +29,12 @@ pub struct CameraChunkUpdater {
 }
 
 impl CameraChunkUpdater {
-    /// `detect_scale` = The scale at which the camera will detect chunks to unload
-    /// `update_scale` = The scale at which the camera will detect chunks to load
-    ///
-    /// See the comment in [`camera_chunk_update`](crate::serializing::chunk::camera::camera_chunk_update) for more details.
+    /// These scales are used to scale the camera aabb for:
+    /// - If a chunk is intersected with the detect aabb, then it must be visible.
+    /// - If a chunk is intersected with the update aabb, then it must be loaded/generated
+    ///   when there's some chunk invisible.
+    /// 
+    /// See the example `chunk_unloading` for further details.
     pub fn new(detect_scale: f32, update_scale: f32) -> Self {
         assert!(
             update_scale >= detect_scale,

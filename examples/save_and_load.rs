@@ -8,7 +8,6 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::EntiTilesDebugPlugin,
     math::TileArea,
     serializing::map::{
         load::{TilemapLoadFailure, TilemapLoaderBuilder},
@@ -32,12 +31,7 @@ mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins,
-            EntiTilesPlugin,
-            EntiTilesDebugPlugin,
-            EntiTilesHelpersPlugin,
-        ))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesHelpersPlugin))
         .add_systems(Startup, setup)
         .add_systems(Update, (save_and_load, failure_handle))
         .run();

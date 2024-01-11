@@ -3,7 +3,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::ldtk::sprite::{NineSliceBorders, TileRenderMode};
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Definitions {
     /// All entities definitions, including their custom fields
@@ -27,7 +27,7 @@ pub struct Definitions {
  * Layer Definition
  */
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LayerDef {
     /// Type of the layer (IntGrid, Entities, Tiles or AutoLayer)
@@ -53,12 +53,38 @@ pub struct LayerDef {
 
     /// Group informations for IntGrid values
     pub int_grid_values_groups: Vec<IntGroupValueGroup>,
+
+    /// Parallax horizontal factor (from -1 to 1, defaults to 0) which affects
+    /// the scrolling speed of this layer, creating a fake 3D (parallax) effect.
     pub parallax_factor_x: f32,
+
+    /// Parallax vertical factor (from -1 to 1, defaults to 0) which affects
+    /// the scrolling speed of this layer, creating a fake 3D (parallax) effect.
     pub parallax_factor_y: f32,
+
+    /// If true (default), a layer with a parallax factor will also be scaled
+    /// up/down accordingly.
     pub parallax_scaling: bool,
+
+    /// X offset of the layer, in pixels (IMPORTANT: this should be added to
+    /// the `LayerInstance` optional offset)
     pub px_offset_x: i32,
+
+    /// Y offset of the layer, in pixels (IMPORTANT: this should be added to
+    /// the `LayerInstance` optional offset)
     pub px_offset_y: i32,
+
+    /// Reference to the default Tileset UID being used by this layer definition.
+    /// ## WARNING:
+    /// some layer instances might use a different tileset. So most of
+    /// the time, you should probably use the `__tilesetDefUid` value found in layer
+    /// instances.
+    ///
+    /// Note: since version 1.0.0, the old `autoTilesetDefUid` was removed and merged
+    /// into this value.
     pub tileset_def_uid: Option<i32>,
+
+    /// Unique Int identifier
     pub uid: i32,
 }
 
@@ -70,7 +96,7 @@ pub enum LayerType {
     AutoLayer,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct IntGridValue {
     pub color: String,
@@ -80,7 +106,7 @@ pub struct IntGridValue {
     pub value: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct IntGroupValueGroup {
     /// User defined color
@@ -189,7 +215,7 @@ impl<'de> Visitor<'de> for NineSliceBordersVisitor {
  * Tileset Definition
  */
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct TilesetDef {
     /// Grid-based height
@@ -243,14 +269,14 @@ pub struct TilesetDef {
     pub uid: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomData {
     pub data: String,
     pub tile_id: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumTag {
     pub enum_value_id: String,
@@ -280,7 +306,7 @@ pub struct TilesetRect {
     pub height: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumTagValue {
     pub tile_ids: Vec<i32>,
@@ -291,7 +317,7 @@ pub struct EnumTagValue {
  * Enum Definition
  */
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumDef {
     /// Relative path to the external file providing this Enum
@@ -313,7 +339,7 @@ pub struct EnumDef {
     pub values: Vec<EnumValue>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct EnumValue {
     /// Optional color

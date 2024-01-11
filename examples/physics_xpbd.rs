@@ -20,7 +20,6 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::EntiTilesDebugPlugin,
     math::TileArea,
     tilemap::{
         bundles::TilemapBundle,
@@ -46,7 +45,6 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             EntiTilesPlugin,
-            EntiTilesDebugPlugin,
             EntiTilesHelpersPlugin,
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),

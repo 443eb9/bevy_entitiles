@@ -1,4 +1,4 @@
-use bevy::{math::Vec4, reflect::Reflect, render::color::Color};
+use bevy::{math::Vec4, reflect::Reflect, render::color::Color, utils::HashMap};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use self::{definitions::Definitions, level::Level};
@@ -62,7 +62,7 @@ impl<'de> Visitor<'de> for LdtkColorVisitor {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LdtkJson {
     /// Project background color
@@ -129,11 +129,54 @@ pub struct LdtkJson {
     pub worlds: Vec<World>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct Toc {
     pub identifier: String,
-    pub instances: Vec<EntityRef>,
+
+    /// All instances of entities that have their `exportToToc` flag
+    /// enabled are listed in this array.
+    pub instances_data: Vec<TocInstance>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[serde(rename_all = "camelCase")]
+pub struct TocInstance {
+    /// IID information of this instance
+    pub iids: EntityRef,
+
+    pub world_x: i32,
+
+    pub world_y: i32,
+
+    pub wid_px: i32,
+
+    pub hei_px: i32,
+
+    /// An object containing the values of all entity fields with the `exportToToc`
+    /// option enabled. This object typing depends on actual field value types.
+    #[serde(rename = "fields")]
+    pub untyped_fields: HashMap<String, TocField>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[serde(untagged)]
+pub enum TocField {
+    Integer(i32),
+    Float(f32),
+    Bool(bool),
+    String(String),
+    Color(LdtkColor),
+    Point(GridPoint),
+    EntityRef(EntityRef),
+
+    IntegerArray(Vec<i32>),
+    FloatArray(Vec<f32>),
+    BoolArray(Vec<bool>),
+    StringArray(Vec<String>),
+    ColorArray(Vec<LdtkColor>),
+    PointArray(Vec<GridPoint>),
+    EntityRefArray(Vec<EntityRef>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Reflect)]
@@ -144,7 +187,7 @@ pub enum WorldLayout {
     LinearVertical,
 }
 
-#[derive(Serialize, Deserialize, Debug, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct World {
     /// Width of the world grid in pixels.
@@ -171,7 +214,7 @@ pub struct World {
     pub identifier: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect, PartialEq, Eq, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct EntityRef {
     /// IID of the refered EntityInstance

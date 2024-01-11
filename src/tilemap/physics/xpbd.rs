@@ -76,9 +76,7 @@ pub fn set_physics_tile(
     };
     let mut tile_entity = commands.entity(tile_entity);
 
-    // Seems like rapier will only take the entity's transform into consideration.
-    // So we need to use the world position.
-    let collider = Collider::convex_hull(coordinates::get_tile_convex_hull_world(
+    let collider = Collider::convex_hull(coordinates::get_tile_convex_hull_rel(
         index,
         ty,
         transform,

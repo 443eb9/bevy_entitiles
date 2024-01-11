@@ -1,3 +1,8 @@
+/*
+ * The visualization seems incorrect.
+ * But the data of the result is correct.
+ */
+
 use bevy::{
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
@@ -8,7 +13,6 @@ use bevy::{
 use bevy_entitiles::algorithm::pathfinding::AsyncPathfinder;
 use bevy_entitiles::{
     algorithm::pathfinding::Pathfinder,
-    debug::EntiTilesDebugPlugin,
     math::TileArea,
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
@@ -27,12 +31,7 @@ mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins,
-            EntiTilesPlugin,
-            EntiTilesHelpersPlugin,
-            EntiTilesDebugPlugin,
-        ))
+        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesHelpersPlugin))
         .add_systems(Startup, setup)
         .run();
 }

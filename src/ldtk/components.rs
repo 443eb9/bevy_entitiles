@@ -1,9 +1,15 @@
-use bevy::{ecs::component::Component, reflect::Reflect};
+use bevy::{ecs::component::Component, math::Vec2, reflect::Reflect};
 
 #[derive(Component, Reflect)]
 pub struct LdtkLoadedLevel {
     pub identifier: String,
     pub iid: String,
+}
+
+#[derive(Component)]
+pub struct LdtkEntityTempTransform {
+    pub level_translation: Vec2,
+    pub z_index: f32,
 }
 
 #[derive(Component, Reflect)]

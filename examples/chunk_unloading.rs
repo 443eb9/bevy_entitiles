@@ -16,7 +16,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::{CameraAabbScale, EntiTilesDebugPlugin},
+    debug::CameraAabbScale,
     serializing::{
         chunk::{
             load::{ChunkLoadCache, ChunkLoadConfig},
@@ -34,7 +34,7 @@ use bevy_entitiles::{
         },
         tile::{TileBuilder, TileLayer},
     },
-    EntiTilesPlugin,
+    EntiTilesPlugin, render::culling::FrustumCulling,
 };
 use helpers::EntiTilesHelpersPlugin;
 
@@ -52,7 +52,6 @@ fn main() {
             }),
             EntiTilesPlugin,
             EntiTilesHelpersPlugin,
-            EntiTilesDebugPlugin,
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, on_update)
@@ -65,6 +64,12 @@ fn main() {
             path: "C:\\maps".to_string(),
             chunks_per_frame: 1,
         })
+        // We need to disable frustum culling to see the load/save process.
+        // Otherwise the chunks will be invisible when they are not intersected with the camera aabb
+        // and only leaves the green aabb outline.
+        // You don't need to do this in your actual project.
+        .insert_resource(FrustumCulling(false))
+        // Scale the camera aabb or it will be hard to see the chunk while disappearing/appearing.
         .insert_resource(CameraAabbScale(Vec2::splat(0.3)))
         .run();
 }
@@ -73,6 +78,11 @@ fn main() {
 struct GenerateChunk(IVec2);
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // When the detect aabb is intersected with a invisible chunk,
+    // all the chunks that are intercected with the update aabb must be visible.
+
+    // Which means we need to first detect the chunks that are intersected with the detect aabb,
+    // and if every one is visible, then do nothing else load/generate chunks that are intersected with the update aabb.
     commands.spawn((Camera2dBundle::default(), CameraChunkUpdater::new(1.3, 2.2)));
 
     let entity = commands.spawn_empty().id();
@@ -94,17 +104,25 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     };
 
-    // tilemap.storage.fill_rect(
-    //     &mut commands,
-    //     TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
-    //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
-    // );
-
+    // Reserve means to tell the crate that this chunk is actually exists
+    // but it's not on the tilemap yet.
+    // So when the camera enters/leaves this chunk, you will receive the event
+    // for this chunk.
     tilemap.storage.get_storage_raw().reserve_many(
         (-7..=6)
             .into_iter()
             .flat_map(move |x| (-7..=6).into_iter().map(move |y| IVec2 { x, y })),
     );
+
+    // In this example, we will load from/save to the disk when the camera enters/leaves the chunk,
+    // So if you are running this example for the first time, you need to uncomment the following lines
+    // to save the chunks on your disk.
+
+    // tilemap.storage.fill_rect(
+    //     &mut commands,
+    //     TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+    //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+    // );
 
     commands.entity(entity).insert(tilemap);
 }
@@ -125,8 +143,10 @@ fn on_update(
         CameraChunkUpdation::Left(_, chunk) => to_unload.push((*chunk, true)),
     });
 
+    // You can actually do everything you want
+    // This case we load/save the chunk
+    
     if !to_load.is_empty() {
-        // println!("Loading chunks: {:?}", to_load);
         load_cache.schedule_many(
             &mut commands,
             tilemap,
@@ -136,7 +156,6 @@ fn on_update(
     }
 
     if !to_unload.is_empty() {
-        // println!("Unloading chunks: {:?}", to_unload);
         save_cache.schedule_many(
             &mut commands,
             tilemap,

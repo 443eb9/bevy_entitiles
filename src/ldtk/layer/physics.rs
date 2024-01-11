@@ -87,7 +87,10 @@ impl LdtkPhysicsAabbs {
                 #[cfg(feature = "physics_xpbd")]
                 {
                     collider.insert((
-                        bevy_xpbd_2d::components::Collider::cuboid(aabb.width(), aabb.height()),
+                        bevy_xpbd_2d::components::Collider::cuboid(
+                            aabb.width() - 0.02,
+                            aabb.height() - 0.02,
+                        ),
                         bevy_xpbd_2d::components::RigidBody::Static,
                     ));
                     if let Some(coe) = frictions.and_then(|f| f.get(i)) {
@@ -102,8 +105,8 @@ impl LdtkPhysicsAabbs {
                 #[cfg(feature = "physics_rapier")]
                 {
                     collider.insert(bevy_rapier2d::geometry::Collider::cuboid(
-                        aabb.width() / 2.,
-                        aabb.height() / 2.,
+                        aabb.width() / 2. - 0.01,
+                        aabb.height() / 2. - 0.01,
                     ));
                     if let Some(coe) = frictions.and_then(|f| f.get(i)) {
                         collider.insert(bevy_rapier2d::geometry::Friction {

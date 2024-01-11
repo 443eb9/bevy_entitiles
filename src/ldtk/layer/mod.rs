@@ -2,13 +2,17 @@ use bevy::{
     ecs::{entity::Entity, system::Commands},
     hierarchy::{BuildChildren, DespawnRecursiveExt},
     math::{IVec2, Vec2, Vec4},
+    prelude::SpatialBundle,
     sprite::SpriteBundle,
+    transform::components::Transform,
     utils::HashMap,
 };
 
 use crate::{
+    math::aabb::IAabb2d,
     serializing::pattern::TilemapPattern,
     tilemap::{
+        buffers::TileBuffer,
         bundles::TilemapBundle,
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
@@ -16,6 +20,7 @@ use crate::{
         },
         tile::{TileBuilder, TileLayer, TileTexture},
     },
+    DEFAULT_CHUNK_SIZE,
 };
 
 use super::{
@@ -30,11 +35,13 @@ pub mod path;
 #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
 pub mod physics;
 
+pub type LayerOpacity = f32;
+
 pub struct LdtkLayers<'a> {
     pub identifier: String,
     pub ty: LdtkLoaderMode,
     pub level_entity: Entity,
-    pub layers: Vec<Option<(TilemapPattern, TilemapTexture, LayerIid, f32)>>,
+    pub layers: Vec<Option<(TilemapPattern, TilemapTexture, LayerIid, LayerOpacity)>>,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
     pub translation: Vec2,
     pub base_z_index: i32,
@@ -99,7 +106,7 @@ impl<'a> LdtkLayers<'a> {
                         .with_flip_raw(tile.flip as u32),
                 )
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
-            pattern.tiles.set(tile_index, builder);
+            pattern.tiles.tiles.insert(tile_index, builder);
         }
     }
 
@@ -114,8 +121,24 @@ impl<'a> LdtkLayers<'a> {
             return;
         }
 
+        let aabb = IAabb2d {
+            min: IVec2::new(0, -layer.c_hei + 1),
+            max: IVec2::new(layer.c_wid - 1, 0),
+        };
+
         self.layers[layer_index] = Some((
-            TilemapPattern::new(Some(layer.identifier.clone())),
+            TilemapPattern {
+                label: Some(layer.identifier.clone()),
+                tiles: TileBuffer {
+                    aabb,
+                    tiles: HashMap::new(),
+                },
+                #[cfg(feature = "algorithm")]
+                path_tiles: TileBuffer {
+                    aabb,
+                    tiles: HashMap::new(),
+                },
+            },
             tileset,
             LayerIid(layer.iid.clone()),
             layer.opacity,
@@ -125,6 +148,11 @@ impl<'a> LdtkLayers<'a> {
     pub fn apply_all(&mut self, commands: &mut Commands, ldtk_patterns: &mut LdtkPatterns) {
         match self.ty {
             LdtkLoaderMode::Tilemap => {
+                commands.entity(self.level_entity).insert(SpatialBundle {
+                    transform: Transform::from_translation(self.translation.extend(0.)),
+                    ..Default::default()
+                });
+
                 self.layers
                     .drain(..)
                     .filter_map(|e| if let Some(e) = e { Some(e) } else { None })
@@ -137,7 +165,7 @@ impl<'a> LdtkLayers<'a> {
                             tile_render_size: TileRenderSize(texture.desc.tile_size.as_vec2()),
                             slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
                             texture: texture.clone(),
-                            storage: TilemapStorage::new(32, tilemap_entity),
+                            storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, tilemap_entity),
                             tilemap_transform: TilemapTransform {
                                 translation: self.translation,
                                 z_index: self.base_z_index - index as i32 - 1,
@@ -200,7 +228,6 @@ impl<'a> LdtkLayers<'a> {
                             if let Some((path_layer, path_tiles)) = &self.path_layer {
                                 if path_layer.parent == p.0.label.clone().unwrap() {
                                     p.0.path_tiles.tiles = path_tiles.clone();
-                                    p.0.path_tiles.recalculate_aabb();
                                 }
                             }
 

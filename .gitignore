@@ -1,4 +1,4 @@
 /target
-/examples/test.rs
+/examples/test*
 /assets/ldtk/ignore*
 /macros/target

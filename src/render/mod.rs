@@ -14,6 +14,7 @@ use crate::render::{
     binding::{TilemapBindGroupLayouts, TilemapBindGroups},
     buffer::{TilemapStorageBuffers, TilemapUniformBuffers},
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
+    culling::FrustumCulling,
     draw::{DrawTilemap, DrawTilemapPureColor},
     pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
@@ -64,6 +65,8 @@ impl Plugin for EntiTilesRendererPlugin {
             Shader::from_wgsl
         );
 
+        app.init_resource::<FrustumCulling>();
+
         app.register_type::<UnloadRenderChunk>();
         app.add_event::<ChunkUnload>();
 
@@ -77,6 +80,7 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_tiles,
                     extract::extract_view,
                     extract::extract_unloaded_chunks,
+                    extract::extract_resources,
                 ),
             )
             .add_systems(
@@ -85,7 +89,7 @@ impl Plugin for EntiTilesRendererPlugin {
                     prepare::prepare_tilemaps,
                     prepare::prepare_tiles,
                     prepare::prepare_unloaded_chunks,
-                    // culling::cull_chunks,
+                    culling::cull_chunks,
                 )
                     .in_set(RenderSet::Prepare),
             )

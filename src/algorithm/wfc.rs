@@ -1,5 +1,5 @@
 /// Direction order: up, right, left, down
-use std::{collections::VecDeque, vec};
+use std::{collections::VecDeque, path::Path, vec};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
@@ -174,9 +174,11 @@ impl WfcSource {
 
         for idx in 0..n {
             let serialized_pattern: TilemapPattern = ron::from_str(
-                std::fs::read_to_string(format!("{}/{}{}.ron", directory, prefix, idx))
-                    .unwrap()
-                    .as_str(),
+                std::fs::read_to_string(
+                    Path::new(&directory).join(format!("{}{}.ron", prefix, idx)),
+                )
+                .unwrap()
+                .as_str(),
             )
             .unwrap();
             patterns.push(serialized_pattern);
@@ -647,7 +649,8 @@ pub fn wfc_applier(
                             let p = &patterns[*e as usize];
                             tilemap.fill_with_buffer(
                                 &mut c,
-                                (runner.elem_idx_to_grid(i) + runner.area.origin) * p.aabb.size(),
+                                (runner.elem_idx_to_grid(i) + runner.area.origin)
+                                    * p.tiles.aabb.size(),
                                 p.tiles.clone(),
                             );
                         });
@@ -711,6 +714,7 @@ pub fn wfc_applier(
                         use bevy::{
                             hierarchy::{BuildChildren, DespawnRecursiveExt},
                             log::warn,
+                            prelude::SpatialBundle,
                         };
 
                         let Some(patterns) = &ldtk_patterns else {
@@ -725,6 +729,8 @@ pub fn wfc_applier(
 
                         match mode {
                             LdtkWfcMode::SingleMap => {
+                                c.entity(entity).insert(SpatialBundle::default());
+
                                 let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
 
                                 let mut layers = (0..layer_sample.len())
@@ -769,7 +775,8 @@ pub fn wfc_applier(
                                             &mut c,
                                             // as the y axis in LDtk is reversed
                                             // all the patterns will extend downwards
-                                            (ptn_idx + IVec2::Y) * layer.0.aabb.size() - IVec2::Y,
+                                            (ptn_idx + IVec2::Y) * layer.0.tiles.aabb.size()
+                                                - IVec2::Y,
                                             layer.0.tiles.clone(),
                                         );
 
@@ -788,8 +795,8 @@ pub fn wfc_applier(
                                                 &target.tile_pivot,
                                                 &target.slot_size,
                                                 patterns.frictions.as_ref(),
-                                                ptn_idx.as_vec2()
-                                                    * layer.0.aabb.size().as_vec2()
+                                                (ptn_idx + IVec2::Y).as_vec2()
+                                                    * layer.0.tiles.aabb.size().as_vec2()
                                                     * layer.1.desc.tile_size.as_vec2(),
                                             );
                                         }
@@ -806,7 +813,7 @@ pub fn wfc_applier(
                                 c.insert_resource(LdtkWfcManager {
                                     wfc_data: Some(wfc_data.clone()),
                                     idents: ldtk_patterns.as_ref().unwrap().idents.clone(),
-                                    pattern_size: layer_sample[0].0.aabb.size().as_vec2()
+                                    pattern_size: layer_sample[0].0.tiles.aabb.size().as_vec2()
                                         * layer_sample[0].1.desc.tile_size.as_vec2(),
                                 });
                                 c.entity(entity).despawn_recursive();
