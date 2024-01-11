@@ -2,7 +2,7 @@ use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 
 use crate::{
     math::TileArea,
-    tilemap::{buffers::Tiles, storage::ChunkedStorage},
+    tilemap::{buffers::Tiles, chunking::storage::ChunkedStorage},
     DEFAULT_CHUNK_SIZE,
 };
 

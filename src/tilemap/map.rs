@@ -19,7 +19,7 @@ use crate::{
 
 use super::{
     buffers::TileBuilderBuffer,
-    storage::ChunkedStorage,
+    chunking::storage::ChunkedStorage,
     tile::{TileBuilder, TileUpdater},
 };
 
@@ -320,13 +320,16 @@ impl TilemapStorage {
         if let Some(entity) = self.get(index) {
             commands.entity(entity).despawn();
             self.set_entity(index, None);
+            commands.entity(self.tilemap).remove_children(&[entity]);
         }
     }
 
     /// Remove the whole chunk and despawn all the tiles in it.
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
-            chunk.into_iter().filter_map(|e| e).for_each(|e| {
+            let entities = chunk.into_iter().filter_map(|e| e).collect::<Vec<_>>();
+            commands.entity(self.tilemap).remove_children(&entities);
+            entities.into_iter().for_each(|e| {
                 commands.entity(e).despawn();
             });
         }

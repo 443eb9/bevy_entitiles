@@ -10,6 +10,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
+- LDtk 1.5 Support
 - Chunk Unloading
 - Optimization
 - [Tiled](https://www.mapeditor.org/) Support

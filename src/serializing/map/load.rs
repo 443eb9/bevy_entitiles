@@ -17,8 +17,8 @@ use bevy::{
 use crate::{
     serializing::load_object,
     tilemap::{
+        chunking::storage::ChunkedStorage,
         map::{TilemapStorage, TilemapTexture},
-        storage::ChunkedStorage,
         tile::TileBuilder,
     },
 };

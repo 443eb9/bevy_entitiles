@@ -1,20 +1,27 @@
 use bevy::{
-    ecs::entity::Entity, math::UVec2, reflect::Reflect, render::render_resource::FilterMode,
+    app::{App, Plugin, Update},
+    ecs::entity::Entity,
+    math::UVec2,
+    reflect::Reflect,
+    render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::tilemap::{
     bundles::{PureColorTilemapBundle, TilemapBundle},
+    chunking::storage::ChunkedStorage,
     map::{
         TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
         TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
         TilemapTransform, TilemapType,
     },
-    storage::ChunkedStorage,
     tile::TileBuilder,
 };
 
-use self::save::TilemapSaver;
+use self::{
+    load::{TilemapLoadFailure, TilemapLoader},
+    save::TilemapSaver,
+};
 
 pub const TILEMAP_META: &str = "tilemap.ron";
 pub const TILES: &str = "tiles.ron";
@@ -22,6 +29,22 @@ pub const PATH_TILES: &str = "path_tiles.ron";
 
 pub mod load;
 pub mod save;
+
+pub struct EntiTilesTilemapSerializingPlugin;
+
+impl Plugin for EntiTilesTilemapSerializingPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, (save::save, load::load));
+
+        app.register_type::<TilemapLoader>()
+            .register_type::<TilemapSaver>()
+            .register_type::<TilemapLoadFailure>()
+            .register_type::<SerializedTilemapData>()
+            .register_type::<SerializedTilemap>()
+            .register_type::<SerializedTilemapTextureDescriptor>()
+            .register_type::<SerializedTilemapTexture>();
+    }
+}
 
 #[derive(Serialize, Deserialize, Reflect)]
 pub struct SerializedTilemapData {

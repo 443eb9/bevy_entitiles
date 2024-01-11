@@ -1,32 +1,33 @@
+#![allow(unused_imports)]
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
     asset::AssetServer,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
-        component::Component,
         entity::Entity,
-        event::EventReader,
-        query::{With, Without},
-        system::{Commands, Query, Res},
+        event::{Event, EventReader},
+        query::With,
+        system::{Commands, Query, Res, ResMut},
     },
-    input::{keyboard::KeyCode, Input},
     math::{IVec2, UVec2, Vec2},
     render::render_resource::FilterMode,
-    text::{Text, TextSection, TextStyle},
-    ui::{node_bundles::TextBundle, JustifySelf, PositionType, Style, Val},
-    window::{PresentMode, ReceivedCharacter, Window, WindowPlugin},
+    utils::HashSet,
+    window::{Window, WindowPlugin},
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    debug::EntiTilesDebugPlugin,
-    math::TileArea,
+    debug::{CameraAabbScale, EntiTilesDebugPlugin},
     serializing::{
-        chunk::{load::TilemapChunkLoader, save::TilemapChunkSaver},
+        chunk::{
+            load::{ChunkLoadCache, ChunkLoadConfig},
+            save::{self, ChunkSaveCache, ChunkSaveConfig},
+        },
         map::TilemapLayer,
     },
     tilemap::{
-        algorithm::path::{PathTile, PathTilemap},
+        buffers::TileBuilderBuffer,
         bundles::TilemapBundle,
+        chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapType,
@@ -39,43 +40,48 @@ use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
 
-const CHUNK_SIZE: u32 = 16;
-
 fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    present_mode: PresentMode::Immediate,
+                    present_mode: bevy::window::PresentMode::Immediate,
                     ..Default::default()
                 }),
                 ..Default::default()
             }),
             EntiTilesPlugin,
-            EntiTilesDebugPlugin,
             EntiTilesHelpersPlugin,
+            EntiTilesDebugPlugin,
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (manual, keyboard_input))
-        .run()
+        .add_systems(Update, on_update)
+        .register_type::<HashSet<IVec2>>()
+        .insert_resource(ChunkSaveConfig {
+            path: "C:\\maps".to_string(),
+            chunks_per_frame: 1,
+        })
+        .insert_resource(ChunkLoadConfig {
+            path: "C:\\maps".to_string(),
+            chunks_per_frame: 1,
+        })
+        .insert_resource(CameraAabbScale(Vec2::splat(0.3)))
+        .run();
 }
 
-#[derive(Component)]
-struct ChunkIndexInput;
-
-#[derive(Component)]
-struct InfoDisplay;
+#[derive(Event, Debug, Clone, Copy)]
+struct GenerateChunk(IVec2);
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), CameraChunkUpdater::new(1.3, 2.2)));
 
     let entity = commands.spawn_empty().id();
     let mut tilemap = TilemapBundle {
-        name: TilemapName("test_map".to_string()),
+        name: TilemapName("infinite_map".to_string()),
         tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,
-        storage: TilemapStorage::new(CHUNK_SIZE, entity),
+        storage: TilemapStorage::new(16, entity),
         texture: TilemapTexture::new(
             asset_server.load("test_square.png"),
             TilemapTextureDescriptor::new(
@@ -90,177 +96,52 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     // tilemap.storage.fill_rect(
     //     &mut commands,
-    //     TileArea::new(IVec2 { x: -250, y: -250 }, UVec2 { x: 500, y: 500 }),
+    //     TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
     //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     // );
 
-    let mut path_tilemap = PathTilemap::new_with_chunk_size(CHUNK_SIZE);
-    path_tilemap.fill_path_rect_custom(
-        TileArea::new(IVec2 { x: -250, y: -250 }, UVec2 { x: 500, y: 500 }),
-        |_| {
-            Some(PathTile {
-                cost: rand::random::<u32>() % 10,
-            })
-        },
+    tilemap.storage.get_storage_raw().reserve_many(
+        (-7..=6)
+            .into_iter()
+            .flat_map(move |x| (-7..=6).into_iter().map(move |y| IVec2 { x, y })),
     );
 
-    commands.entity(entity).insert((tilemap, path_tilemap));
-
-    commands.spawn((
-        TextBundle::from_sections([
-            TextSection {
-                value:
-                    "Enter the index of the chunk (eg: 0_0, 0_0~1_2)\nAnd press enter to unload\n"
-                        .to_string(),
-                style: TextStyle {
-                    font_size: 30.,
-                    ..Default::default()
-                },
-            },
-            TextSection {
-                value: "".to_string(),
-                style: TextStyle {
-                    font_size: 30.,
-                    ..Default::default()
-                },
-            },
-        ])
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            top: Val::Px(30.),
-            justify_self: JustifySelf::Center,
-            ..Default::default()
-        }),
-        InfoDisplay,
-    ));
-
-    commands.spawn((
-        TextBundle::from_section(
-            "",
-            TextStyle {
-                font_size: 30.,
-                ..Default::default()
-            },
-        )
-        .with_style(Style {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(30.),
-            justify_self: JustifySelf::Center,
-            ..Default::default()
-        }),
-        ChunkIndexInput,
-    ));
+    commands.entity(entity).insert(tilemap);
 }
 
-fn keyboard_input(
-    mut text: Query<&mut Text, With<ChunkIndexInput>>,
-    mut ev: EventReader<ReceivedCharacter>,
-) {
-    ev.read().for_each(|input| {
-        if input.char == '\r' {
-            return;
-        }
-        text.single_mut().sections[0].value.push(input.char);
-    });
-}
-
-fn manual(
+fn on_update(
     mut commands: Commands,
-    tilemaps_query: Query<Entity, With<TilemapStorage>>,
-    mut text: Query<&mut Text, (With<ChunkIndexInput>, Without<InfoDisplay>)>,
-    mut info: Query<&mut Text, (With<InfoDisplay>, Without<ChunkIndexInput>)>,
-    keyboard: Res<Input<KeyCode>>,
+    mut ev: EventReader<CameraChunkUpdation>,
+    tilemap: Query<Entity, With<TilemapStorage>>,
+    mut load_cache: ResMut<ChunkLoadCache>,
+    mut save_cache: ResMut<ChunkSaveCache>,
 ) {
-    if keyboard.just_pressed(KeyCode::Return) {
-        let mut info = info.single_mut();
-        let mut text = text.single_mut();
-        let mut value = text.sections[0].value.clone();
+    let tilemap = tilemap.single();
+    let mut to_load = Vec::new();
+    let mut to_unload = Vec::new();
 
-        let mut range = [IVec2::ZERO; 2];
-        let mut load = false;
+    ev.read().for_each(|e| match e {
+        CameraChunkUpdation::Entered(_, chunk) => to_load.push(*chunk),
+        CameraChunkUpdation::Left(_, chunk) => to_unload.push((*chunk, true)),
+    });
 
-        // some low quality trash
-        // =============================================================
-        {
-            if value.starts_with("!") {
-                load = true;
-                value.remove(0);
-            }
-            let mut iter_mul = value.split('~');
-            let count = iter_mul.clone().count();
-
-            if count == 2 {
-                for i in 0..=1 {
-                    let cur = if let Some(input) = iter_mul.next() {
-                        input
-                    } else {
-                        fail(&mut info, &value, &mut text);
-                        return;
-                    };
-
-                    if let Some(idx) = parse_index(cur) {
-                        range[i] = idx;
-                    } else {
-                        fail(&mut info, &value, &mut text);
-                        return;
-                    }
-                }
-            } else if count == 1 {
-                let Some(idx) = parse_index(&value) else {
-                    fail(&mut info, &value, &mut text);
-                    return;
-                };
-                range[0] = idx;
-                range[1] = idx;
-            } else {
-                fail(&mut info, &value, &mut text);
-                return;
-            };
-        }
-        // just to parse your input don't mind this trash
-        // I put them into a code block so you can fold and ignore them :)
-        // =============================================================
-
-        text.sections[0].value = "".to_string();
-        if load {
-            commands.entity(tilemaps_query.single()).insert(
-                TilemapChunkLoader::new("C:\\maps".to_string())
-                    .with_layer(TilemapLayer::Color)
-                    .with_layer(TilemapLayer::Path)
-                    .with_range(range[0], range[1]),
-            );
-        } else {
-            commands.entity(tilemaps_query.single()).insert(
-                TilemapChunkSaver::new("C:\\maps".to_string())
-                    .remove_after_save()
-                    .with_layer(TilemapLayer::Color)
-                    .with_layer(TilemapLayer::Path)
-                    .with_range(range[0], range[1]),
-            );
-        }
-    }
-}
-
-fn parse_index(value: &str) -> Option<IVec2> {
-    let mut iter_sig = value.split('_');
-    let mut xy = IVec2::ZERO;
-
-    for i in 0..=1 {
-        if let Some(e) = iter_sig.next() {
-            if let Ok(e) = e.parse() {
-                xy[i] = e;
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
+    if !to_load.is_empty() {
+        // println!("Loading chunks: {:?}", to_load);
+        load_cache.schedule_many(
+            &mut commands,
+            tilemap,
+            TilemapLayer::Color,
+            to_load.into_iter(),
+        );
     }
 
-    Some(xy)
-}
-
-fn fail(info: &mut Text, value: &str, text: &mut Text) {
-    info.sections[1].value = format!("Invalid input:\n{}", value);
-    text.sections[0].value = "".to_string();
+    if !to_unload.is_empty() {
+        // println!("Unloading chunks: {:?}", to_unload);
+        save_cache.schedule_many(
+            &mut commands,
+            tilemap,
+            TilemapLayer::Color,
+            to_unload.into_iter(),
+        );
+    }
 }

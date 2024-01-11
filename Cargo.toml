@@ -122,9 +122,4 @@ required-features = ["algorithm", "ldtk", "physics_xpbd"]
 [[example]]
 name = "chunk_unloading"
 path = "examples/chunk_unloading.rs"
-required-features = ["debug", "algorithm"]
-
-[[example]]
-name = "infinite_with_unloading"
-path = "examples/infinite_with_unloading.rs"
-required-features = ["debug", "algorithm"]
+required-features = ["debug", "serializing"]

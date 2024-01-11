@@ -84,7 +84,7 @@ pub fn draw_updater_aabbs(
     mut gizmos: Gizmos,
     cameras_query: Query<(
         &CameraAabb2d,
-        &crate::serializing::chunk::camera::CameraChunkUpdater,
+        &crate::tilemap::chunking::camera::CameraChunkUpdater,
     )>,
 ) {
     cameras_query.for_each(|(cam_aabb, cam_updater)| {

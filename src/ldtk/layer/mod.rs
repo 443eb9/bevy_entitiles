@@ -157,7 +157,7 @@ impl<'a> LdtkLayers<'a> {
                                 commands.entity(tilemap_entity).insert(
                                     crate::tilemap::algorithm::path::PathTilemap {
                                         storage:
-                                            crate::tilemap::storage::ChunkedStorage::from_mapper(
+                                            crate::tilemap::chunking::storage::ChunkedStorage::from_mapper(
                                                 path_tilemap.clone(),
                                                 None,
                                             ),

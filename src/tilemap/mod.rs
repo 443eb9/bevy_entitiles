@@ -1,6 +1,7 @@
 use bevy::app::{Plugin, Update};
 
 use self::{
+    chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
     map::{
         TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
         TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
@@ -13,11 +14,11 @@ use self::{
 pub mod algorithm;
 pub mod buffers;
 pub mod bundles;
+pub mod chunking;
 pub mod coordinates;
 pub mod map;
 #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
 pub mod physics;
-pub mod storage;
 pub mod tile;
 
 pub struct EntiTilesTilemapPlugin;
@@ -30,6 +31,7 @@ impl Plugin for EntiTilesTilemapPlugin {
                 map::transform_syncer,
                 map::tilemap_aabb_calculator,
                 tile::tile_updater,
+                chunking::camera::camera_chunk_update,
             ),
         );
 
@@ -50,6 +52,11 @@ impl Plugin for EntiTilesTilemapPlugin {
             .register_type::<TilemapTexture>()
             .register_type::<TilemapTextureDescriptor>()
             .register_type::<TilemapAnimations>();
+
+        app.register_type::<CameraChunkUpdation>()
+            .register_type::<CameraChunkUpdater>();
+
+        app.add_event::<CameraChunkUpdation>();
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmTilemapPlugin);
