@@ -6,7 +6,7 @@ use bevy::{
         query::{Added, Changed, Or},
         system::{Commands, Query},
     },
-    math::{IVec2, Vec2, Vec3Swizzles},
+    math::{IVec2, Vec3Swizzles},
     prelude::UVec2,
     reflect::Reflect,
     render::camera::{Camera, OrthographicProjection},
@@ -57,7 +57,7 @@ pub fn camera_aabb_updater(
                 max: proj.area.max,
             }
             .with_translation(trans.translation.xy())
-            .with_scale(camera_aabb_scale.0, Vec2::splat(0.5)),
+            .with_scale(camera_aabb_scale.0, bevy::math::Vec2::splat(0.5)),
         ));
         #[cfg(not(feature = "debug"))]
         commands.entity(entity).insert(CameraAabb2d(
