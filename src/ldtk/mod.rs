@@ -227,17 +227,6 @@ pub fn load_ldtk_json(
             &mut patterns,
         );
 
-        // if loader.mode == LdtkLoaderMode::MapPattern {
-        //     continue;
-        // }
-
-        // let mut e_cmd = commands.entity(entity);
-        // if let Some(loaded) = loaded {
-        //     e_cmd.insert((LevelIid(loaded.iid.clone()), loaded));
-        // } else {
-        //     manager.loaded_levels.remove(&loader.level);
-        //     error!("Failed to load level: {}!", loader.level);
-        // }
         commands.entity(entity).remove::<LdtkLoader>();
     }
 }

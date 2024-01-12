@@ -6,3 +6,4 @@
 # What's Fixed:
 
 - Tiles and tilemaps won't update after you removed them.
+- Spawning another tilemap while the program is running will cause panic. (FINALLY SOLEVED!!!)

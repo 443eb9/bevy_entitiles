@@ -7,9 +7,11 @@ use bevy::{
 use crate::tilemap::despawn::{DespawnedTile, DespawnedTilemap};
 
 use super::{
-    buffer::{TilemapUniformBuffers, UniformBuffer},
+    binding::TilemapBindGroups,
+    buffer::{TilemapUniformBuffer, UniformBuffer},
     chunk::{TilemapRenderChunk, UnloadRenderChunk},
     extract::{ExtractedTile, ExtractedTilemap},
+    pipeline::EntiTilesPipeline,
     texture::TilemapTexturesStorage,
     RenderChunkStorage,
 };
@@ -18,18 +20,20 @@ pub fn prepare_tilemaps(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    extracted_tilemaps: Query<&ExtractedTilemap>,
+    extracted_tilemaps: Query<(Entity, &ExtractedTilemap)>,
     mut render_chunks: ResMut<RenderChunkStorage>,
-    mut uniform_buffers: ResMut<TilemapUniformBuffers>,
+    mut uniform_buffers: ResMut<TilemapUniformBuffer>,
     // mut storage_buffers: ResMut<TilemapStorageBuffers>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
+    entitiles_pipeline: Res<EntiTilesPipeline>,
+    mut bind_groups: ResMut<TilemapBindGroups>,
 ) {
     uniform_buffers.clear();
     // storage_buffers.clear();
 
-    extracted_tilemaps.for_each(|tilemap| {
+    extracted_tilemaps.for_each(|(entity, tilemap)| {
         commands
-            .entity(tilemap.id)
+            .entity(entity)
             .insert(uniform_buffers.insert(tilemap));
 
         render_chunks.prepare_chunks(tilemap, &render_device);
@@ -47,6 +51,8 @@ pub fn prepare_tilemaps(
     textures_storage.prepare_textures(&render_device);
     uniform_buffers.write(&render_device, &render_queue);
     // storage_buffers.write(&render_device, &render_queue);
+
+    bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
 }
 
 pub fn prepare_tiles(

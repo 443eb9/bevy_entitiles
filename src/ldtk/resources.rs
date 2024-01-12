@@ -490,31 +490,6 @@ impl LdtkLevelManager {
         }
     }
 
-    /// # Warning!
-    ///
-    /// This method will cause panic if you have already loaded levels before.
-    /// **Even if you have unloaded them!!**
-    pub fn load_many(&mut self, commands: &mut Commands, levels: &[String]) {
-        self.check_initialized();
-        levels.iter().for_each(|level| {
-            self.load(commands, level.clone(), None);
-        });
-    }
-
-    /// # Warning!
-    ///
-    /// This method will cause panic if you have already loaded levels before.
-    /// **Even if you have unloaded them!!**
-    pub fn try_load_many(&mut self, commands: &mut Commands, levels: &[String]) -> bool {
-        self.check_initialized();
-        if self.loaded_levels.is_empty() {
-            self.load_many(commands, levels);
-            true
-        } else {
-            false
-        }
-    }
-
     pub fn unload(&mut self, commands: &mut Commands, level: String) {
         let level = level.to_string();
         if let Some(l) = self.loaded_levels.get(&level) {

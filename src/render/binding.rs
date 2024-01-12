@@ -16,7 +16,7 @@ use bevy::{
 
 use super::{
     buffer::{
-        TileAnimation, TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffers, UniformBuffer,
+        TileAnimation, TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffer, UniformBuffer,
     },
     extract::ExtractedTilemap,
     pipeline::EntiTilesPipeline,
@@ -36,16 +36,12 @@ pub struct TilemapBindGroups {
 }
 
 impl TilemapBindGroups {
-    pub fn queue_uniform_buffers(
+    pub fn bind_uniform_buffers(
         &mut self,
         render_device: &RenderDevice,
-        uniform_buffers: &mut TilemapUniformBuffers,
+        uniform_buffers: &mut TilemapUniformBuffer,
         entitile_pipeline: &EntiTilesPipeline,
     ) {
-        if self.tilemap_uniform_buffer.is_some() {
-            return;
-        }
-
         let Some(uniform_buffer) = uniform_buffers.binding() else {
             return;
         };
@@ -60,7 +56,7 @@ impl TilemapBindGroups {
         ));
     }
 
-    pub fn queue_storage_buffers(
+    pub fn bind_storage_buffers(
         &mut self,
         tilemap: &ExtractedTilemap,
         render_device: &RenderDevice,

@@ -120,11 +120,9 @@ pub struct TilemapUniform {
 }
 
 #[derive(Resource, Default)]
-pub struct TilemapUniformBuffers {
-    buffer: DynamicUniformBuffer<TilemapUniform>,
-}
+pub struct TilemapUniformBuffer(DynamicUniformBuffer<TilemapUniform>);
 
-impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
+impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
     #[inline]
@@ -143,7 +141,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
             });
         }
 
-        DynamicOffsetComponent::new(self.buffer.push(TilemapUniform {
+        DynamicOffsetComponent::new(self.buffer().push(TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
             uv_rotation,
@@ -162,7 +160,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffers {
 
     #[inline]
     fn buffer(&mut self) -> &mut DynamicUniformBuffer<TilemapUniform> {
-        &mut self.buffer
+        &mut self.0
     }
 }
 

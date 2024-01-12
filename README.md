@@ -27,10 +27,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - ~~[LDtk](https://ldtk.io/) Full Support~~
 - ~~Infinite Tilemap~~
 
-## Known Issues
-
-- Spawning another tilemap while the program is running will cause panic.
-
 ## Feature Flags
 
 | Flag             | Funtionality                                                                                         |

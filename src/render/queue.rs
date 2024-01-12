@@ -14,7 +14,6 @@ use bevy::{
 
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
-    buffer::TilemapUniformBuffers,
     draw::{DrawTilemap, DrawTilemapPureColor},
     extract::ExtractedTilemap,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
@@ -24,7 +23,7 @@ use super::{
 pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
-    tilemaps_query: Query<(Entity, &ExtractedTilemap)>,
+    tilemaps_query: Query<&ExtractedTilemap>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
@@ -34,8 +33,6 @@ pub fn queue(
     mut bind_groups: ResMut<TilemapBindGroups>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    mut uniform_buffers: ResMut<TilemapUniformBuffers>,
-    // mut storage_buffers: ResMut<TilemapStorageBuffers>,
     render_queue: Res<RenderQueue>,
     render_images: Res<RenderAssets<Image>>,
 ) {
@@ -58,14 +55,14 @@ pub fn queue(
         });
 
         let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
-        radsort::sort_by_key(&mut tilemaps, |m| m.1.transform.z_index);
+        radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
-        for (entity, tilemap) in tilemaps.iter() {
-            bind_groups.queue_uniform_buffers(
-                &render_device,
-                &mut uniform_buffers,
-                &entitile_pipeline,
-            );
+        for tilemap in tilemaps.iter() {
+            // bind_groups.bind_uniform_buffers(
+            //     &render_device,
+            //     &mut uniform_buffers,
+            //     &entitile_pipeline,
+            // );
 
             // bind_groups.queue_storage_buffers(
             //     tilemap,
@@ -104,7 +101,7 @@ pub fn queue(
 
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.transform.z_index as f32),
-                entity: *entity,
+                entity: tilemap.id,
                 pipeline,
                 draw_function,
                 batch_range: 0..1,

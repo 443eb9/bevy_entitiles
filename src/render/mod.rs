@@ -12,7 +12,7 @@ use bevy::{
 
 use crate::render::{
     binding::{TilemapBindGroupLayouts, TilemapBindGroups},
-    buffer::{TilemapStorageBuffers, TilemapUniformBuffers},
+    buffer::{TilemapStorageBuffers, TilemapUniformBuffer},
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
     culling::FrustumCulling,
     draw::{DrawTilemap, DrawTilemapPureColor},
@@ -102,7 +102,7 @@ impl Plugin for EntiTilesRendererPlugin {
         render_app
             .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapUniformBuffers>()
+            .init_resource::<TilemapUniformBuffer>()
             .init_resource::<TilemapStorageBuffers>()
             .init_resource::<TilemapBindGroups>();
 

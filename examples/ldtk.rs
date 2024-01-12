@@ -123,16 +123,6 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
         manager.unload_all(&mut commands);
     }
 
-    if input.just_pressed(KeyCode::Key0) {
-        manager.try_load_many(
-            &mut commands,
-            &["Entrance", "Cross_roads", "Water_supply", "Ossuary"]
-                .into_iter()
-                .map(|s| s.to_string())
-                .collect::<Vec<_>>(),
-        );
-    }
-
     if input.just_pressed(KeyCode::Key8) {
         manager.try_load(&mut commands, "Entrance".to_string(), None);
     }
