@@ -48,7 +48,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 The x and y axes in the tilemaps are the index axes. And those x and y on a single tile means the actual mesh size. Which you can control using `tile_render_size`.
 
 <div>
-	<img src="https://github.com/443eb9/bevy_entitiles/blob/master/docs/imgs/coordinate_systems.jpg" width="500px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/coordinate_systems.jpg" width="500px">
 </div>
 
 *`legs` here are mathematically incorrect, please consider it as a new concept.*
@@ -64,8 +64,8 @@ Platform: 10600KF
 The gif on the right is the map generated with wave function collapse. And the orange boxes in the left image is procedural generated colliders.
 
 <div>
-	<img src="https://github.com/443eb9/bevy_entitiles/blob/master/docs/imgs/ldtk.png" width="250px">
-	<img src="https://github.com/443eb9/bevy_entitiles/blob/master/docs/imgs/ldtk_wfc.gif" width="250px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/ldtk.png" width="250px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/ldtk_wfc.gif" width="250px">
 </div>
 
 > *Bevy 0.12.1, crate 0.2.6, LDtk 1.4.1*
@@ -75,7 +75,7 @@ The gif on the right is the map generated with wave function collapse. And the o
 I know you are confused about these weird boxes, so please check the [`chunk_unloading`]([examples/chunk_unloading.rs](https://github.com/443eb9/bevy_entitiles/blob/master/examples/chunk_unloading.rs)) example if you want to get further info.
 
 <div>
-	<img src="https://github.com/443eb9/bevy_entitiles/blob/master/docs/imgs/chunk_unloading.gif" width="500px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/chunk_unloading.gif" width="500px">
 </div>
 
 > *Bevy 0.12.1, crate 0.2.7*
@@ -87,7 +87,7 @@ The pathfinding algorithm is very fast.
 Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, the asynchronized one in implemented. So the algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
 
 <div>
-	<img src="https://github.com/443eb9/bevy_entitiles/blob/master/docs/imgs/pathfinding.png" width="500px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/pathfinding.png" width="500px">
 </div>
 
 | Size      | Time(avg of 3 tests) ms |
@@ -107,7 +107,7 @@ In the following case, each tile has at least one corresponding color gap with i
 **Notice: The funtionality of visualizing the process of wfc was removed in 0.2.6**
 
 <div>
-	<img src="https://github.com/443eb9/bevy_entitiles/blob/master/docs/imgs/pathfinding.png" width="500px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/pathfinding.png" width="500px">
 </div>
 
 | Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |
