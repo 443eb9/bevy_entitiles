@@ -2,15 +2,12 @@ use std::marker::PhantomData;
 
 use bevy::{
     asset::AssetServer,
-    ecs::{
-        bundle::Bundle,
-        system::{Commands, EntityCommands},
-    },
+    ecs::{bundle::Bundle, system::EntityCommands},
     utils::HashMap,
 };
 
 use super::{
-    components::{EntityIid, LdtkEntityTempTransform},
+    components::{EntityIid, LdtkTempTransform},
     json::{field::FieldInstance, level::EntityInstance},
     resources::{LdtkAssets, LdtkLevelManager},
 };
@@ -20,13 +17,13 @@ pub struct PackedLdtkEntity {
     pub instance: EntityInstance,
     pub fields: HashMap<String, FieldInstance>,
     pub iid: EntityIid,
-    pub transform: LdtkEntityTempTransform,
+    pub transform: LdtkTempTransform,
 }
 
 impl PackedLdtkEntity {
     pub fn instantiate(
         self,
-        commands: &mut Commands,
+        commands: &mut EntityCommands,
         entity_registry: &LdtkEntityRegistry,
         manager: &LdtkLevelManager,
         ldtk_assets: &LdtkAssets,
@@ -45,9 +42,8 @@ impl PackedLdtkEntity {
                 return;
             }
         };
-        let mut entity = commands.spawn_empty();
         phantom_entity.spawn(
-            &mut entity,
+            commands,
             &self.instance,
             &self.fields,
             asset_server,

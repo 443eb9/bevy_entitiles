@@ -31,8 +31,7 @@ use crate::{
 
 use self::{
     components::{
-        EntityIid, GlobalEntity, LdtkEntityTempTransform, LdtkLoadedLevel, LdtkUnloadLayer,
-        LevelIid,
+        EntityIid, GlobalEntity, LdtkLoadedLevel, LdtkTempTransform, LdtkUnloadLayer, LevelIid,
     },
     entities::{LdtkEntityRegistry, PackedLdtkEntity},
     events::{LdtkEvent, LevelEvent},
@@ -150,21 +149,14 @@ fn global_entity_registerer(
 
 fn ldtk_temp_tranform_applier(
     commands: ParallelCommands,
-    mut entities_query: Query<(
-        Entity,
-        &mut Transform,
-        &LdtkEntityTempTransform,
-        Option<&GlobalEntity>,
-    )>,
+    mut entities_query: Query<(Entity, &mut Transform, &LdtkTempTransform)>,
 ) {
     entities_query
         .par_iter_mut()
-        .for_each(|(entity, mut transform, ldtk_temp, global_entity)| {
-            if global_entity.is_some() {
-                transform.translation += ldtk_temp.level_translation.extend(ldtk_temp.z_index);
-            }
+        .for_each(|(entity, mut transform, ldtk_temp)| {
+            transform.translation += ldtk_temp.level_translation.extend(ldtk_temp.z_index);
             commands.command_scope(|mut c| {
-                c.entity(entity).remove::<LdtkEntityTempTransform>();
+                c.entity(entity).remove::<LdtkTempTransform>();
             });
         });
 }
@@ -259,7 +251,7 @@ fn load_levels(
             y: level.px_hei as u32,
         };
 
-        let background = load_background(level, level_px, asset_server, &manager);
+        let background = load_background(level, translation, level_px, asset_server, &manager);
 
         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
         let mut collider_aabbs = None;
@@ -323,6 +315,7 @@ fn load_levels(
 
 fn load_background(
     level: &Level,
+    translation: Vec2,
     level_px: UVec2,
     asset_server: &AssetServer,
     manager: &LdtkLevelManager,
@@ -340,8 +333,8 @@ fn load_background(
         },
         texture: texture.unwrap_or_default(),
         transform: Transform::from_xyz(
-            level_px.x as f32 / 2.,
-            -(level_px.y as f32) / 2.,
+            level_px.x as f32 / 2. + translation.x,
+            -(level_px.y as f32) / 2. + translation.y,
             manager.z_index as f32 - level.layer_instances.len() as f32 - 1.,
         ),
         ..Default::default()
@@ -376,7 +369,7 @@ fn load_layer(
                     instance: entity_instance.clone(),
                     fields,
                     iid: EntityIid(entity_instance.iid.clone()),
-                    transform: LdtkEntityTempTransform {
+                    transform: LdtkTempTransform {
                         level_translation: translation,
                         z_index: manager.z_index as f32 - layer_index as f32,
                     },

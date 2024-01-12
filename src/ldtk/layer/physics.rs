@@ -39,7 +39,7 @@ impl LdtkPhysicsAabbs {
         slot_size: &TilemapSlotSize,
         frictions: Option<&HashMap<i32, f32>>,
         offset: Vec2,
-    ) {
+    ) -> Vec<Entity> {
         self.aabbs
             .iter()
             .map(|(i, (min, max))| {
@@ -77,7 +77,7 @@ impl LdtkPhysicsAabbs {
                     },
                 )
             })
-            .for_each(|(i, aabb)| {
+            .map(|(i, aabb)| {
                 let mut collider = commands.spawn(TransformBundle {
                     local: Transform::from_translation((aabb.center() + offset).extend(0.)),
                     ..Default::default()
@@ -115,7 +115,10 @@ impl LdtkPhysicsAabbs {
                         });
                     }
                 }
-            });
+
+                collider.id()
+            })
+            .collect()
     }
 }
 

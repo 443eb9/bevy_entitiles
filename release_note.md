@@ -1,6 +1,7 @@
 # What's New:
 
 - Removed unnecessary hierarchy to get *much* **much** ***much*** more (5 times faster) better performance.
+- Updated dependencies.
 
 
 # What's Fixed:

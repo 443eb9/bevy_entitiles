@@ -16,8 +16,8 @@ use crate::{
         buffers::TileBuffer,
         bundles::TilemapBundle,
         map::{
-            TilePivot, TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize,
-            TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+            TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
+            TilemapTexture, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer, TileTexture},
     },
@@ -25,7 +25,7 @@ use crate::{
 };
 
 use super::{
-    components::{LayerIid, LdtkLoadedLevel},
+    components::{LayerIid, LdtkLoadedLevel, LevelIid},
     entities::{LdtkEntityRegistry, PackedLdtkEntity},
     json::level::{LayerInstance, Level, TileInstance},
     resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns},
@@ -164,12 +164,13 @@ impl<'a> LdtkLayers<'a> {
             LdtkLoaderMode::Tilemap => {
                 let mut layers = HashMap::with_capacity(self.layers.len());
                 let mut entities = HashMap::with_capacity(self.entities.len());
+                let mut colliders = Vec::new();
 
                 self.entities.drain(..).for_each(|entity| {
-                    let ldtk_entity = commands.spawn(entity.transform.clone());
+                    let mut ldtk_entity = commands.spawn(entity.transform.clone());
                     entities.insert(entity.iid.clone(), ldtk_entity.id());
                     entity.instantiate(
-                        commands,
+                        &mut ldtk_entity,
                         entity_registry,
                         manager,
                         ldtk_assets,
@@ -202,13 +203,12 @@ impl<'a> LdtkLayers<'a> {
                                 ..Default::default()
                             },
                             layer_opacities: TilemapLayerOpacities([opacity; 4].into()),
-                            tile_pivot: TilePivot(Vec2::new(0., 1.)),
                             ..Default::default()
                         };
 
                         tilemap
                             .storage
-                            .fill_with_buffer(commands, IVec2::ZERO, pattern.tiles);
+                            .fill_with_buffer(commands, IVec2::NEG_Y, pattern.tiles);
 
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
@@ -228,7 +228,7 @@ impl<'a> LdtkLayers<'a> {
                         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
                         if let Some((physics_layer, aabbs)) = &self.physics_layer {
                             if physics_layer.parent == tilemap.name.0 {
-                                aabbs.generate_colliders(
+                                colliders = aabbs.generate_colliders(
                                     commands,
                                     tilemap_entity,
                                     &tilemap.ty,
@@ -236,7 +236,7 @@ impl<'a> LdtkLayers<'a> {
                                     &tilemap.tile_pivot,
                                     &tilemap.slot_size,
                                     physics_layer.frictions.as_ref(),
-                                    Vec2::new(0., texture.desc.tile_size.y as f32),
+                                    Vec2::ZERO,
                                 );
                             }
                         }
@@ -253,11 +253,13 @@ impl<'a> LdtkLayers<'a> {
                         layers,
                         entities,
                         background: bg,
+                        colliders,
                     },
                     SpatialBundle {
                         transform: Transform::from_translation(self.translation.extend(0.)),
                         ..Default::default()
                     },
+                    LevelIid(level.iid.clone()),
                 ));
             }
             LdtkLoaderMode::MapPattern => {

@@ -124,7 +124,7 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
     }
 
     if input.just_pressed(KeyCode::Key8) {
-        manager.try_load(&mut commands, "Entrance".to_string(), None);
+        manager.load(&mut commands, "Entrance".to_string(), None);
     }
 }
 

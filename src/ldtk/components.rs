@@ -30,6 +30,7 @@ pub struct LdtkLoadedLevel {
     pub identifier: String,
     pub layers: HashMap<LayerIid, Entity>,
     pub entities: HashMap<EntityIid, Entity>,
+    pub colliders: Vec<Entity>,
     pub background: Entity,
 }
 
@@ -41,12 +42,15 @@ impl LdtkLoadedLevel {
         self.entities.values().for_each(|e| {
             commands.entity(*e).despawn();
         });
+        self.colliders.iter().for_each(|e| {
+            commands.entity(*e).despawn();
+        });
         commands.entity(self.background).despawn();
     }
 }
 
 #[derive(Component, Debug, Clone)]
-pub struct LdtkEntityTempTransform {
+pub struct LdtkTempTransform {
     pub level_translation: Vec2,
     pub z_index: f32,
 }

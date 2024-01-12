@@ -421,11 +421,6 @@ impl LdtkLevelManager {
     pub fn load(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
         self.check_initialized();
         let level = level.to_string();
-        assert!(
-            self.loaded_levels.is_empty(),
-            "It's not allowed to load a level when there are already loaded levels! \
-            See Known Issues in README.md to know why."
-        );
 
         if self.loaded_levels.contains_key(&level.to_string()) {
             error!("Trying to load {:?} that is already loaded!", level);
@@ -441,11 +436,6 @@ impl LdtkLevelManager {
 
     pub fn load_all_patterns(&mut self, commands: &mut Commands) {
         self.check_initialized();
-        assert!(
-            self.loaded_levels.is_empty(),
-            "It's not allowed to load a level when there are already loaded levels! \
-            See Known Issues in README.md to know why."
-        );
 
         self.ldtk_json
             .as_ref()
@@ -463,21 +453,6 @@ impl LdtkLevelManager {
                     });
                 }
             });
-    }
-
-    pub fn try_load(
-        &mut self,
-        commands: &mut Commands,
-        level: String,
-        trans_ovrd: Option<Vec2>,
-    ) -> bool {
-        self.check_initialized();
-        if self.loaded_levels.is_empty() {
-            self.load(commands, level, trans_ovrd);
-            true
-        } else {
-            false
-        }
     }
 
     pub fn switch_to(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
