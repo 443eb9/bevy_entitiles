@@ -178,9 +178,15 @@ impl TilemapRenderChunk {
     }
 
     /// Set a tile in the chunk. Overwrites the previous tile.
-    pub fn set_tile(&mut self, index: usize, tile: &ExtractedTile) {
+    pub fn set_tile(&mut self, index: usize, tile: Option<&ExtractedTile>) {
         // TODO fix this. This allows the tile sort by y axis. But this approach looks weird.
         let index = self.tiles.len() - index - 1;
+
+        let Some(tile) = tile else {
+            self.tiles[index] = None;
+            self.dirty_mesh = true;
+            return;
+        };
 
         let mut texture_indices = IVec4::NEG_ONE;
         let mut flip = UVec4::ZERO;
@@ -240,6 +246,14 @@ impl RenderChunkStorage {
         tilemap: Entity,
     ) -> Option<&mut HashMap<IVec2, TilemapRenderChunk>> {
         self.value.get_mut(&tilemap)
+    }
+
+    #[inline]
+    pub fn remove_tilemap(
+        &mut self,
+        tilemap: Entity,
+    ) -> Option<HashMap<IVec2, TilemapRenderChunk>> {
+        self.value.remove(&tilemap)
     }
 
     #[inline]

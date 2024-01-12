@@ -4,6 +4,8 @@ use bevy::{
     render::renderer::{RenderDevice, RenderQueue},
 };
 
+use crate::tilemap::despawn::{DespawnedTile, DespawnedTilemap};
+
 use super::{
     buffer::{TilemapUniformBuffers, UniformBuffer},
     chunk::{TilemapRenderChunk, UnloadRenderChunk},
@@ -63,7 +65,7 @@ pub fn prepare_tiles(
             .entry(tile.chunk_index)
             .or_insert_with(|| TilemapRenderChunk::from_index(tile.chunk_index, tilemap));
 
-        chunk.set_tile(tile.in_chunk_index, tile);
+        chunk.set_tile(tile.in_chunk_index, Some(tile));
     });
 }
 
@@ -75,5 +77,28 @@ pub fn prepare_unloaded_chunks(
         unloaded.0.iter().for_each(|c| {
             render_chunks.remove_chunk(entity, *c);
         });
+    });
+}
+
+pub fn prepare_despawned_tilemaps(
+    mut render_chunks: ResMut<RenderChunkStorage>,
+    tilemaps_query: Query<&DespawnedTilemap>,
+) {
+    tilemaps_query.for_each(|map| {
+        render_chunks.remove_tilemap(map.0);
+    });
+}
+
+pub fn prepare_despawned_tiles(
+    mut render_chunks: ResMut<RenderChunkStorage>,
+    tiles_query: Query<&DespawnedTile>,
+) {
+    tiles_query.for_each(|tile| {
+        if let Some(chunk) = render_chunks
+            .get_chunks_mut(tile.tilemap)
+            .and_then(|chunks| chunks.get_mut(&tile.chunk_index))
+        {
+            chunk.set_tile(tile.in_chunk_index, None);
+        }
     });
 }

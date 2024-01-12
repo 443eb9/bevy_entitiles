@@ -43,7 +43,7 @@ impl LdtkPhysicsAabbs {
         self.aabbs
             .iter()
             .map(|(i, (min, max))| {
-                let left_top = coordinates::index_to_rel(
+                let left_top = coordinates::index_to_world(
                     IVec2 {
                         x: min.x as i32,
                         y: -(min.y as i32),
@@ -53,7 +53,7 @@ impl LdtkPhysicsAabbs {
                     pivot,
                     slot_size,
                 );
-                let right_btm = coordinates::index_to_rel(
+                let right_btm = coordinates::index_to_world(
                     IVec2 {
                         x: (max.x + 1) as i32,
                         y: -(max.y as i32) - 1,

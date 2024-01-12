@@ -1,36 +1,40 @@
+use std::path::Path;
+
 use bevy::{
     app::{Plugin, Update},
     asset::{load_internal_asset, AssetServer, Assets, Handle},
     ecs::{
-        component::Component,
         entity::Entity,
         event::EventWriter,
         query::{Added, With},
         system::{Commands, NonSend, ParallelCommands, Query, Res, ResMut},
     },
-    hierarchy::DespawnRecursiveExt,
-    log::error,
     math::{UVec2, Vec2},
-    reflect::Reflect,
     render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlas},
     transform::components::Transform,
 };
 
-use crate::ldtk::{
-    components::{LayerIid, WorldIid},
-    json::{
-        field::FieldInstance,
-        level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
-        EntityRef, GridPoint, LdtkColor, Toc, World,
+use crate::{
+    ldtk::{
+        components::{LayerIid, LdtkLoader, LdtkLoaderMode, LdtkUnloader, WorldIid},
+        json::{
+            field::FieldInstance,
+            level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
+            EntityRef, GridPoint, LdtkColor, Toc, World,
+        },
+        resources::{LdtkAssets, LdtkPatterns, LdtkTocs},
+        sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
     },
-    resources::{LdtkAssets, LdtkPatterns, LdtkTocs},
-    sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
+    tilemap::map::TilemapStorage,
 };
 
 use self::{
-    components::{EntityIid, GlobalEntity, LdtkEntityTempTransform, LdtkLoadedLevel, LevelIid},
-    entities::LdtkEntityRegistry,
+    components::{
+        EntityIid, GlobalEntity, LdtkEntityTempTransform, LdtkLoadedLevel, LdtkUnloadLayer,
+        LevelIid,
+    },
+    entities::{LdtkEntityRegistry, PackedLdtkEntity},
     events::{LdtkEvent, LevelEvent},
     json::{
         definitions::LayerType,
@@ -72,6 +76,7 @@ impl Plugin for EntiTilesLdtkPlugin {
             (
                 load_ldtk_json,
                 unload_ldtk_level,
+                unload_ldtk_layer,
                 global_entity_registerer,
                 ldtk_temp_tranform_applier,
             ),
@@ -164,34 +169,27 @@ fn ldtk_temp_tranform_applier(
         });
 }
 
-#[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
-pub enum LdtkLoaderMode {
-    #[default]
-    Tilemap,
-    MapPattern,
-}
-
-#[derive(Component, Reflect, Default)]
-pub struct LdtkLoader {
-    pub(crate) level: String,
-    pub(crate) mode: LdtkLoaderMode,
-    pub(crate) trans_ovrd: Option<Vec2>,
-}
-
-#[derive(Component, Reflect, Default)]
-pub struct LdtkUnloader;
-
 pub fn unload_ldtk_level(
     mut commands: Commands,
-    mut query: Query<(Entity, &LdtkLoadedLevel), With<LdtkUnloader>>,
+    mut query: Query<(Entity, &LdtkLoadedLevel, &LevelIid), With<LdtkUnloader>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
 ) {
-    query.iter_mut().for_each(|(entity, level)| {
+    query.iter_mut().for_each(|(entity, level, iid)| {
         ldtk_events.send(LdtkEvent::LevelUnloaded(LevelEvent {
             identifier: level.identifier.clone(),
-            iid: level.iid.clone(),
+            iid: iid.0.clone(),
         }));
-        commands.entity(entity).despawn_recursive();
+        level.unload(&mut commands);
+        commands.entity(entity).despawn();
+    });
+}
+
+pub fn unload_ldtk_layer(
+    mut commands: Commands,
+    mut query: Query<&mut TilemapStorage, With<LdtkUnloadLayer>>,
+) {
+    query.iter_mut().for_each(|mut storage| {
+        storage.despawn(&mut commands);
     });
 }
 
@@ -199,17 +197,17 @@ pub fn load_ldtk_json(
     mut commands: Commands,
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
-    ident_mapper: NonSend<LdtkEntityRegistry>,
+    entity_registry: NonSend<LdtkEntityRegistry>,
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
     mut manager: ResMut<LdtkLevelManager>,
-    mut assets: ResMut<LdtkAssets>,
+    mut ldtk_assets: ResMut<LdtkAssets>,
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut patterns: ResMut<LdtkPatterns>,
 ) {
     for (entity, loader) in loader_query.iter() {
-        assets.initialize(
+        ldtk_assets.initialize(
             &manager,
             &asset_server,
             &mut atlas_assets,
@@ -217,30 +215,30 @@ pub fn load_ldtk_json(
             &mut mesh_assets,
         );
 
-        let loaded = load_levels(
+        load_levels(
             &mut commands,
             &mut manager,
             loader,
             &asset_server,
-            &ident_mapper,
+            &entity_registry,
             entity,
             &mut ldtk_events,
-            &mut assets,
+            &mut ldtk_assets,
             &mut patterns,
         );
 
-        if loader.mode == LdtkLoaderMode::MapPattern {
-            continue;
-        }
+        // if loader.mode == LdtkLoaderMode::MapPattern {
+        //     continue;
+        // }
 
-        let mut e_cmd = commands.entity(entity);
-        if let Some(loaded) = loaded {
-            e_cmd.insert((LevelIid(loaded.iid.clone()), loaded));
-        } else {
-            manager.loaded_levels.remove(&loader.level);
-            error!("Failed to load level: {}!", loader.level);
-        }
-        e_cmd.remove::<LdtkLoader>();
+        // let mut e_cmd = commands.entity(entity);
+        // if let Some(loaded) = loaded {
+        //     e_cmd.insert((LevelIid(loaded.iid.clone()), loaded));
+        // } else {
+        //     manager.loaded_levels.remove(&loader.level);
+        //     error!("Failed to load level: {}!", loader.level);
+        // }
+        commands.entity(entity).remove::<LdtkLoader>();
     }
 }
 
@@ -249,12 +247,12 @@ fn load_levels(
     manager: &mut LdtkLevelManager,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
-    ident_mapper: &LdtkEntityRegistry,
+    entity_registry: &LdtkEntityRegistry,
     level_entity: Entity,
     ldtk_events: &mut EventWriter<LdtkEvent>,
-    assets: &mut LdtkAssets,
+    ldtk_assets: &mut LdtkAssets,
     patterns: &mut LdtkPatterns,
-) -> Option<LdtkLoadedLevel> {
+) {
     let ldtk_data = manager.get_cached_data();
 
     for (level_index, level) in ldtk_data.levels.iter().enumerate() {
@@ -279,11 +277,10 @@ fn load_levels(
         #[cfg(feature = "algorithm")]
         let mut path_tilemap = None;
 
-        let mut layer_layers = LdtkLayers::new(
-            level.identifier.clone(),
+        let mut ldtk_layers = LdtkLayers::new(
             level_entity,
             level.layer_instances.len(),
-            &assets,
+            &ldtk_assets,
             translation,
             manager.z_index,
             loader.mode,
@@ -307,42 +304,32 @@ fn load_levels(
                 }
             }
 
-            load_layer(
-                commands,
-                level_entity,
-                layer_index,
-                layer,
-                &mut layer_layers,
-                translation,
-                &ident_mapper,
-                asset_server,
-                &manager,
-                &assets,
-            );
+            load_layer(layer_index, layer, &mut ldtk_layers, translation, &manager);
         }
 
         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
         if let Some(aabbs) = collider_aabbs {
-            layer_layers.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
+            ldtk_layers.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
         }
         #[cfg(feature = "algorithm")]
         if let Some(path_tilemap) = path_tilemap {
-            layer_layers.assign_path_layer(manager.path_layer.clone().unwrap(), path_tilemap);
+            ldtk_layers.assign_path_layer(manager.path_layer.clone().unwrap(), path_tilemap);
         }
-        layer_layers.apply_all(commands, patterns);
+        ldtk_layers.apply_all(
+            commands,
+            patterns,
+            level,
+            entity_registry,
+            &manager,
+            &ldtk_assets,
+            asset_server,
+        );
 
         ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
             identifier: level.identifier.clone(),
             iid: level.iid.clone(),
         }));
-
-        return Some(LdtkLoadedLevel {
-            identifier: level.identifier.clone(),
-            iid: level.iid.clone(),
-        });
     }
-
-    None
 }
 
 fn load_background(
@@ -354,7 +341,7 @@ fn load_background(
     let texture = level
         .bg_rel_path
         .as_ref()
-        .map(|path| asset_server.load(format!("{}{}", manager.asset_path_prefix, path)));
+        .map(|path| asset_server.load(Path::new(&manager.asset_path_prefix).join(path)));
 
     SpriteBundle {
         sprite: Sprite {
@@ -373,21 +360,16 @@ fn load_background(
 }
 
 fn load_layer(
-    commands: &mut Commands,
-    level_entity: Entity,
     layer_index: usize,
     layer: &LayerInstance,
-    layer_grid: &mut LdtkLayers,
+    ldtk_layers: &mut LdtkLayers,
     translation: Vec2,
-    ident_mapper: &LdtkEntityRegistry,
-    asset_server: &AssetServer,
     manager: &LdtkLevelManager,
-    assets: &LdtkAssets,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             for tile in layer.auto_layer_tiles.iter() {
-                layer_grid.set(layer_index, layer, tile);
+                ldtk_layers.set_tile(layer_index, layer, tile);
             }
         }
         LayerType::Entities => {
@@ -396,46 +378,26 @@ fn load_layer(
                     continue;
                 }
 
-                let phantom_entity = {
-                    if let Some(e) = ident_mapper.get(&entity_instance.identifier) {
-                        e
-                    } else if !manager.ignore_unregistered_entities {
-                        panic!(
-                            "Could not find entity type with entity identifier: {}! \
-                            You need to register it using App::register_ldtk_entity::<T>() first!",
-                            entity_instance.identifier
-                        );
-                    } else {
-                        continue;
-                    }
-                };
-
-                let mut new_entity = commands.spawn((
-                    LdtkEntityTempTransform {
-                        level_translation: translation,
-                        z_index: manager.z_index as f32 - layer_index as f32,
-                    },
-                    EntityIid(entity_instance.iid.clone()),
-                ));
-                let mut fields = entity_instance
+                let fields = entity_instance
                     .field_instances
                     .iter()
                     .map(|field| (field.identifier.clone(), field.clone()))
                     .collect();
-                phantom_entity.spawn(
-                    level_entity,
-                    &mut new_entity,
-                    entity_instance,
-                    &mut fields,
-                    asset_server,
-                    manager,
-                    assets,
-                );
+                let packed_entity = PackedLdtkEntity {
+                    instance: entity_instance.clone(),
+                    fields,
+                    iid: EntityIid(entity_instance.iid.clone()),
+                    transform: LdtkEntityTempTransform {
+                        level_translation: translation,
+                        z_index: manager.z_index as f32 - layer_index as f32,
+                    },
+                };
+                ldtk_layers.set_entity(packed_entity);
             }
         }
         LayerType::Tiles => {
             for tile in layer.grid_tiles.iter() {
-                layer_grid.set(layer_index, layer, tile);
+                ldtk_layers.set_tile(layer_index, layer, tile);
             }
         }
     }

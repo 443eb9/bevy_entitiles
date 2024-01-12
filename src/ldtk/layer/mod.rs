@@ -1,6 +1,7 @@
 use bevy::{
+    asset::AssetServer,
     ecs::{entity::Entity, system::Commands},
-    hierarchy::{BuildChildren, DespawnRecursiveExt},
+    hierarchy::DespawnRecursiveExt,
     math::{IVec2, Vec2, Vec4},
     prelude::SpatialBundle,
     sprite::SpriteBundle,
@@ -15,8 +16,8 @@ use crate::{
         buffers::TileBuffer,
         bundles::TilemapBundle,
         map::{
-            TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTransform, TilemapType,
+            TilePivot, TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize,
+            TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer, TileTexture},
     },
@@ -24,9 +25,10 @@ use crate::{
 };
 
 use super::{
-    components::LayerIid,
-    json::level::{LayerInstance, TileInstance},
-    resources::{LdtkAssets, LdtkPatterns},
+    components::{LayerIid, LdtkLoadedLevel},
+    entities::{LdtkEntityRegistry, PackedLdtkEntity},
+    json::level::{LayerInstance, Level, TileInstance},
+    resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns},
     LdtkLoaderMode,
 };
 
@@ -38,10 +40,10 @@ pub mod physics;
 pub type LayerOpacity = f32;
 
 pub struct LdtkLayers<'a> {
-    pub identifier: String,
     pub ty: LdtkLoaderMode,
     pub level_entity: Entity,
     pub layers: Vec<Option<(TilemapPattern, TilemapTexture, LayerIid, LayerOpacity)>>,
+    pub entities: Vec<PackedLdtkEntity>,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
     pub translation: Vec2,
     pub base_z_index: i32,
@@ -57,7 +59,6 @@ pub struct LdtkLayers<'a> {
 
 impl<'a> LdtkLayers<'a> {
     pub fn new(
-        identifier: String,
         level_entity: Entity,
         total_layers: usize,
         ldtk_assets: &'a LdtkAssets,
@@ -67,9 +68,9 @@ impl<'a> LdtkLayers<'a> {
         background: SpriteBundle,
     ) -> Self {
         Self {
-            identifier,
             level_entity,
             layers: vec![None; total_layers],
+            entities: vec![],
             tilesets: &ldtk_assets.tilesets,
             translation,
             base_z_index,
@@ -82,7 +83,7 @@ impl<'a> LdtkLayers<'a> {
         }
     }
 
-    pub fn set(&mut self, layer_index: usize, layer: &LayerInstance, tile: &TileInstance) {
+    pub fn set_tile(&mut self, layer_index: usize, layer: &LayerInstance, tile: &TileInstance) {
         self.try_create_new_layer(layer_index, layer);
 
         let (pattern, texture, _, _) = self.layers[layer_index].as_mut().unwrap();
@@ -108,6 +109,10 @@ impl<'a> LdtkLayers<'a> {
                 .with_color(Vec4::new(1., 1., 1., tile.alpha));
             pattern.tiles.tiles.insert(tile_index, builder);
         }
+    }
+
+    pub fn set_entity(&mut self, entity: PackedLdtkEntity) {
+        self.entities.push(entity);
     }
 
     fn try_create_new_layer(&mut self, layer_index: usize, layer: &LayerInstance) {
@@ -145,18 +150,43 @@ impl<'a> LdtkLayers<'a> {
         ));
     }
 
-    pub fn apply_all(&mut self, commands: &mut Commands, ldtk_patterns: &mut LdtkPatterns) {
+    pub fn apply_all(
+        &mut self,
+        commands: &mut Commands,
+        ldtk_patterns: &mut LdtkPatterns,
+        level: &Level,
+        entity_registry: &LdtkEntityRegistry,
+        manager: &LdtkLevelManager,
+        ldtk_assets: &LdtkAssets,
+        asset_server: &AssetServer,
+    ) {
         match self.ty {
             LdtkLoaderMode::Tilemap => {
-                commands.entity(self.level_entity).insert(SpatialBundle {
-                    transform: Transform::from_translation(self.translation.extend(0.)),
-                    ..Default::default()
+                let mut layers = HashMap::with_capacity(self.layers.len());
+                let mut entities = HashMap::with_capacity(self.entities.len());
+
+                self.entities.drain(..).for_each(|entity| {
+                    let ldtk_entity = commands.spawn(entity.transform.clone());
+                    entities.insert(entity.iid.clone(), ldtk_entity.id());
+                    entity.instantiate(
+                        commands,
+                        entity_registry,
+                        manager,
+                        ldtk_assets,
+                        asset_server,
+                    );
                 });
 
                 self.layers
-                    .drain(..)
-                    .filter_map(|e| if let Some(e) = e { Some(e) } else { None })
-                    .enumerate()
+                .drain(..)
+                .enumerate()
+                .filter_map(|(i,e)| {
+                    if let Some(e) = e {
+                        Some((i,e))
+                    }else {
+                        None
+                    }
+                })
                     .for_each(|(index, (pattern, texture, iid, opacity))| {
                         let tilemap_entity = commands.spawn_empty().id();
                         let mut tilemap = TilemapBundle {
@@ -172,12 +202,13 @@ impl<'a> LdtkLayers<'a> {
                                 ..Default::default()
                             },
                             layer_opacities: TilemapLayerOpacities([opacity; 4].into()),
+                            tile_pivot: TilePivot(Vec2::new(0., 1.)),
                             ..Default::default()
                         };
 
                         tilemap
                             .storage
-                            .fill_with_buffer(commands, IVec2::NEG_Y, pattern.tiles);
+                            .fill_with_buffer(commands, IVec2::ZERO, pattern.tiles);
 
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
@@ -205,20 +236,32 @@ impl<'a> LdtkLayers<'a> {
                                     &tilemap.tile_pivot,
                                     &tilemap.slot_size,
                                     physics_layer.frictions.as_ref(),
-                                    Vec2::ZERO,
+                                    Vec2::new(0., texture.desc.tile_size.y as f32),
                                 );
                             }
                         }
 
-                        commands.entity(self.level_entity).add_child(tilemap_entity);
-                        commands.entity(tilemap_entity).insert((tilemap, iid));
+                        commands.entity(tilemap_entity).insert((tilemap, iid.clone()));
+                        layers.insert(iid, tilemap_entity);
                     });
 
                 let bg = commands.spawn(self.background.clone()).id();
-                commands.entity(self.level_entity).add_child(bg);
+
+                commands.entity(self.level_entity).insert((
+                    LdtkLoadedLevel {
+                        identifier: level.identifier.clone(),
+                        layers,
+                        entities,
+                        background: bg,
+                    },
+                    SpatialBundle {
+                        transform: Transform::from_translation(self.translation.extend(0.)),
+                        ..Default::default()
+                    },
+                ));
             }
             LdtkLoaderMode::MapPattern => {
-                let level = self
+                let level_pack = self
                     .layers
                     .drain(..)
                     .filter_map(|p| {
@@ -241,11 +284,15 @@ impl<'a> LdtkLayers<'a> {
                 #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
                 {
                     let (physics_layer, aabbs) = self.physics_layer.as_ref().unwrap();
-                    ldtk_patterns.insert_physics_aabbs(self.identifier.clone(), aabbs.clone());
+                    ldtk_patterns.insert_physics_aabbs(level.identifier.clone(), aabbs.clone());
                     ldtk_patterns.frictions = physics_layer.frictions.clone();
                 }
 
-                ldtk_patterns.insert(self.identifier.clone(), level, self.background.clone());
+                ldtk_patterns.insert(
+                    level.identifier.clone(),
+                    level_pack,
+                    self.background.clone(),
+                );
                 commands.entity(self.level_entity).despawn_recursive();
             }
         }

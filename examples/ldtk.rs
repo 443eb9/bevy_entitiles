@@ -12,7 +12,6 @@ use bevy::{
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
-        entity::Entity,
         event::EventReader,
         query::With,
         system::{Commands, EntityCommands, Query, Res, ResMut},
@@ -199,9 +198,6 @@ fn player_control(mut query: Query<&mut LinearVelocity, With<Player>>, input: Re
 // you don't need to impl the entire LdtkEntity trait but still able to do something
 // that are not supported by generated code
 fn player_spawn(
-    // the level entity which will become the parent of this entity
-    // if you don't use the #[global_entity] attribute
-    _level_entity: Entity,
     // the entity commands for the entity
     commands: &mut EntityCommands,
     // all the data from ldtk

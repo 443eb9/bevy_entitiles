@@ -124,3 +124,8 @@ required-features = ["algorithm", "ldtk", "physics_xpbd"]
 name = "chunk_unloading"
 path = "examples/chunk_unloading.rs"
 required-features = ["debug", "serializing"]
+
+[[example]]
+name = "stress_test"
+path = "examples/stress_test.rs"
+required-features = []

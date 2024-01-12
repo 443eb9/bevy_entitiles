@@ -31,11 +31,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 commands.insert(bevy_entitiles::ldtk::components::GlobalEntity);
             )
         } else {
-            quote::quote!(
-                use bevy::prelude::BuildChildren;
-                let new_entity = commands.id();
-                commands.commands().entity(level_entity).add_child(new_entity);
-            )
+            quote::quote!()
         }
     };
 
@@ -48,7 +44,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 syn::Meta::List(meta) => {
                     let func = &meta.tokens;
                     quote::quote!(
-                        #func(level_entity, commands, entity_instance, fields, asset_server, ldtk_manager, ldtk_assets);
+                        #func(commands, entity_instance, fields, asset_server, ldtk_manager, ldtk_assets);
                     )
                 }
                 _ => {
@@ -70,7 +66,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 syn::Fields::Named(fields) => &fields.named,
                 _ => panic!(
                     "LdtkEntity can only be derived for structs with named fields! \
-                Or add #[ldtk_tag] for struct without named fields!"
+                    Or add #[ldtk_tag] for struct without named fields!"
                 ),
             },
             _ => panic!("LdtkEntity can only be derived for structs"),
@@ -116,15 +112,12 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
             }
         )
     } else {
-        quote::quote!(
-            Self
-        )
+        quote::quote!(Self)
     };
 
     quote::quote! {
         impl LdtkEntity for #ty {
             fn initialize(
-                level_entity: bevy::ecs::entity::Entity,
                 commands: &mut bevy::ecs::system::EntityCommands,
                 entity_instance: &bevy_entitiles::ldtk::json::level::EntityInstance,
                 fields: &bevy::utils::HashMap<String, bevy_entitiles::ldtk::json::field::FieldInstance>,

@@ -1,4 +1,4 @@
-use bevy::app::{Plugin, Update};
+use bevy::app::{Plugin, PostUpdate, PreUpdate, Update};
 
 use self::{
     chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
@@ -16,6 +16,7 @@ pub mod buffers;
 pub mod bundles;
 pub mod chunking;
 pub mod coordinates;
+pub mod despawn;
 pub mod map;
 #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
 pub mod physics;
@@ -25,6 +26,8 @@ pub struct EntiTilesTilemapPlugin;
 
 impl Plugin for EntiTilesTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
+        app.add_systems(PreUpdate, despawn::despawn_applier);
+
         app.add_systems(
             Update,
             (
@@ -33,6 +36,11 @@ impl Plugin for EntiTilesTilemapPlugin {
                 tile::tile_updater,
                 chunking::camera::camera_chunk_update,
             ),
+        );
+
+        app.add_systems(
+            PostUpdate,
+            (despawn::despawn_tilemap, despawn::despawn_tiles),
         );
 
         app.register_type::<TileLayer>()

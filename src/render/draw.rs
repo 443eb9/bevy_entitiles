@@ -195,7 +195,6 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let Some(chunks) = render_chunks.into_inner().get_chunks(tilemap.id) {
-            // iterate reversed to draw the chunks in y order
             for chunk in chunks.values() {
                 if !chunk.visible {
                     continue;

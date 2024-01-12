@@ -9,6 +9,7 @@ use bevy::{
 use crate::{
     math::CameraAabb2d,
     tilemap::{
+        despawn::{DespawnedTile, DespawnedTilemap},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
@@ -152,4 +153,30 @@ pub fn extract_unloaded_chunks(
 
 pub fn extract_resources(mut commands: Commands, frustum_culling: Extract<Res<FrustumCulling>>) {
     commands.insert_resource(FrustumCulling(frustum_culling.0));
+}
+
+pub fn extract_despawned_tilemaps(
+    mut commands: Commands,
+    tilemaps_query: Extract<Query<(Entity, &DespawnedTilemap)>>,
+) {
+    let mut despawned_tilemaps = Vec::new();
+
+    tilemaps_query.for_each(|(entity, map)| {
+        despawned_tilemaps.push((entity, map.clone()));
+    });
+
+    commands.insert_or_spawn_batch(despawned_tilemaps);
+}
+
+pub fn extract_despawned_tiles(
+    mut commands: Commands,
+    tiles_query: Extract<Query<(Entity, &DespawnedTile)>>,
+) {
+    let mut despawned_tiles = Vec::new();
+
+    tiles_query.for_each(|(entity, tile)| {
+        despawned_tiles.push((entity, tile.clone()));
+    });
+
+    commands.insert_or_spawn_batch(despawned_tiles);
 }

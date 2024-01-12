@@ -3,7 +3,6 @@ use std::{f32::consts::SQRT_2, fmt::Debug};
 use bevy::{
     asset::Handle,
     ecs::{component::Component, query::Changed, system::Query},
-    hierarchy::BuildChildren,
     math::{Mat2, Quat, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     reflect::Reflect,
@@ -20,6 +19,7 @@ use crate::{
 use super::{
     buffers::TileBuilderBuffer,
     chunking::storage::ChunkedStorage,
+    despawn::DespawnMe,
     tile::{TileBuilder, TileUpdater},
 };
 
@@ -299,7 +299,7 @@ impl TilemapStorage {
     /// Overwrites the tile if it already exists.
     pub fn set(&mut self, commands: &mut Commands, index: IVec2, tile_builder: TileBuilder) {
         if let Some(previous) = self.storage.get_elem(index) {
-            commands.entity(previous.clone()).despawn();
+            commands.entity(*previous).despawn();
         }
         let new_tile = tile_builder.build(commands, index, &self, self.tilemap);
         self.storage.set_elem(index, Some(new_tile));
@@ -318,8 +318,7 @@ impl TilemapStorage {
     /// Remove a tile.
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.get(index) {
-            commands.entity(self.tilemap).remove_children(&[entity]);
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(DespawnMe);
             self.set_entity(index, None);
         }
     }
@@ -327,12 +326,30 @@ impl TilemapStorage {
     /// Remove the whole chunk and despawn all the tiles in it.
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
-            let entities = chunk.into_iter().filter_map(|e| e).collect::<Vec<_>>();
-            commands.entity(self.tilemap).remove_children(&entities);
-            entities.into_iter().for_each(|e| {
-                commands.entity(e).despawn();
+            chunk.into_iter().filter_map(|e| e).for_each(|e| {
+                // commands.entity(e).despawn();
+                commands.entity(e).insert(DespawnMe);
             });
         }
+    }
+
+    /// Remove all the tiles in the tilemap.
+    pub fn remove_all(&mut self, commands: &mut Commands) {
+        self.storage
+            .chunks
+            .drain()
+            .flat_map(|(_, chunk)| chunk.into_iter().filter_map(|e| e))
+            .for_each(|entity| {
+                // commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnMe);
+            });
+    }
+
+    /// Despawn the entire tilemap.
+    pub fn despawn(&mut self, commands: &mut Commands) {
+        self.remove_all(commands);
+        // commands.entity(self.tilemap).despawn();
+        commands.entity(self.tilemap).insert(DespawnMe);
     }
 
     /// Get the underlying storage and directly modify it.
@@ -350,7 +367,6 @@ impl TilemapStorage {
         tile_builder: TileBuilder,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
-        let mut entities = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -362,7 +378,6 @@ impl TilemapStorage {
                 } else {
                     let e = commands.spawn_empty().id();
                     self.set_entity(index, Some(e));
-                    entities.push(e);
                     e
                 };
                 tile_batch.push((entity, tile));
@@ -370,7 +385,6 @@ impl TilemapStorage {
         }
 
         commands.insert_or_spawn_batch(tile_batch);
-        commands.entity(self.tilemap).push_children(&entities);
     }
 
     /// Fill a rectangle area with tiles returned by `tile_builder`.
@@ -384,7 +398,6 @@ impl TilemapStorage {
         relative_index: bool,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
-        let mut entities = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -404,7 +417,6 @@ impl TilemapStorage {
                 } else {
                     let e = commands.spawn_empty().id();
                     self.set_entity(index, Some(e));
-                    entities.push(e);
                     e
                 };
                 tile_batch.push((entity, tile));
@@ -412,7 +424,6 @@ impl TilemapStorage {
         }
 
         commands.insert_or_spawn_batch(tile_batch);
-        commands.entity(self.tilemap).push_children(&entities);
     }
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than setting them one by one.
@@ -422,8 +433,6 @@ impl TilemapStorage {
         origin: IVec2,
         buffer: TileBuilderBuffer,
     ) {
-        let mut entities = Vec::with_capacity(buffer.tiles.len());
-
         let batch = buffer
             .tiles
             .into_iter()
@@ -435,14 +444,12 @@ impl TilemapStorage {
                 } else {
                     let e = commands.spawn_empty().id();
                     self.set_entity(tile.index, Some(e));
-                    entities.push(e);
                     (e, tile)
                 }
             })
             .collect::<Vec<_>>();
 
         commands.insert_or_spawn_batch(batch);
-        commands.entity(self.tilemap).push_children(&entities);
     }
 
     /// Simlar to `TilemapStorage::fill_rect()`.

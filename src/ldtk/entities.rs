@@ -2,20 +2,65 @@ use std::marker::PhantomData;
 
 use bevy::{
     asset::AssetServer,
-    ecs::{bundle::Bundle, entity::Entity, system::EntityCommands},
+    ecs::{
+        bundle::Bundle,
+        system::{Commands, EntityCommands},
+    },
     utils::HashMap,
 };
 
 use super::{
+    components::{EntityIid, LdtkEntityTempTransform},
     json::{field::FieldInstance, level::EntityInstance},
     resources::{LdtkAssets, LdtkLevelManager},
 };
+
+#[derive(Debug, Clone)]
+pub struct PackedLdtkEntity {
+    pub instance: EntityInstance,
+    pub fields: HashMap<String, FieldInstance>,
+    pub iid: EntityIid,
+    pub transform: LdtkEntityTempTransform,
+}
+
+impl PackedLdtkEntity {
+    pub fn instantiate(
+        self,
+        commands: &mut Commands,
+        entity_registry: &LdtkEntityRegistry,
+        manager: &LdtkLevelManager,
+        ldtk_assets: &LdtkAssets,
+        asset_server: &AssetServer,
+    ) {
+        let phantom_entity = {
+            if let Some(e) = entity_registry.get(&self.instance.identifier) {
+                e
+            } else if !manager.ignore_unregistered_entities {
+                panic!(
+                    "Could not find entity type with entity identifier: {}! \
+                    You need to register it using App::register_ldtk_entity::<T>() first!",
+                    self.instance.identifier
+                );
+            } else {
+                return;
+            }
+        };
+        let mut entity = commands.spawn_empty();
+        phantom_entity.spawn(
+            &mut entity,
+            &self.instance,
+            &self.fields,
+            asset_server,
+            &manager,
+            ldtk_assets,
+        )
+    }
+}
 
 pub type LdtkEntityRegistry = HashMap<String, Box<dyn PhantomLdtkEntityTrait>>;
 
 pub trait LdtkEntity {
     fn initialize(
-        level_entity: Entity,
         commands: &mut EntityCommands,
         entity_instance: &EntityInstance,
         fields: &HashMap<String, FieldInstance>,
@@ -40,7 +85,6 @@ impl<T: LdtkEntity + Bundle> PhantomLdtkEntity<T> {
 pub trait PhantomLdtkEntityTrait {
     fn spawn(
         &self,
-        level_entity: Entity,
         commands: &mut EntityCommands,
         entity_instance: &EntityInstance,
         fields: &HashMap<String, FieldInstance>,
@@ -53,7 +97,6 @@ pub trait PhantomLdtkEntityTrait {
 impl<T: LdtkEntity + Bundle> PhantomLdtkEntityTrait for PhantomLdtkEntity<T> {
     fn spawn(
         &self,
-        level_entity: Entity,
         commands: &mut EntityCommands,
         entity_instance: &EntityInstance,
         fields: &HashMap<String, FieldInstance>,
@@ -62,7 +105,6 @@ impl<T: LdtkEntity + Bundle> PhantomLdtkEntityTrait for PhantomLdtkEntity<T> {
         ldtk_assets: &LdtkAssets,
     ) {
         T::initialize(
-            level_entity,
             commands,
             entity_instance,
             fields,

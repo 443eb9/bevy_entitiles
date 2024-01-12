@@ -1,6 +1,5 @@
 use bevy::{
     ecs::system::{ParallelCommands, Query},
-    hierarchy::BuildChildren,
     math::IVec2,
     prelude::{Commands, Component, Entity, Vec4},
     reflect::Reflect,
@@ -129,9 +128,7 @@ impl TileBuilder {
 
         let mut tile_entity = commands.spawn_empty();
         tile_entity.insert(tile);
-        let tile_entity = tile_entity.id();
-        commands.entity(tilemap).add_child(tile_entity);
-        tile_entity
+        tile_entity.id()
     }
 
     pub(crate) fn build_component(

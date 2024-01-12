@@ -81,6 +81,8 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_view,
                     extract::extract_unloaded_chunks,
                     extract::extract_resources,
+                    extract::extract_despawned_tilemaps,
+                    extract::extract_despawned_tiles,
                 ),
             )
             .add_systems(
@@ -89,6 +91,8 @@ impl Plugin for EntiTilesRendererPlugin {
                     prepare::prepare_tilemaps,
                     prepare::prepare_tiles,
                     prepare::prepare_unloaded_chunks,
+                    prepare::prepare_despawned_tilemaps,
+                    prepare::prepare_despawned_tiles,
                     culling::cull_chunks,
                 )
                     .in_set(RenderSet::Prepare),
