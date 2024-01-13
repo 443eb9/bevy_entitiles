@@ -27,8 +27,8 @@ pub type DrawTilemap = (
     SetPipeline,
     SetTilemapViewBindGroup<0>,
     SetTilemapUniformBufferBindGroup<1>,
-    // SetTilemapStorageBufferBindGroup<2>,
     SetTilemapColorTextureBindGroup<2>,
+    SetTilemapStorageBufferBindGroup<3>,
     DrawTileMesh,
 );
 

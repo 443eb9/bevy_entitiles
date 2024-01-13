@@ -43,7 +43,11 @@ pub fn camera_aabb_updater(
     mut commands: Commands,
     mut cameras_query: Query<
         (Entity, &OrthographicProjection, &Transform),
-        Or<(Changed<OrthographicProjection>, Changed<Transform>)>,
+        Or<(
+            Changed<OrthographicProjection>,
+            Changed<Transform>,
+            Added<Camera>,
+        )>,
     >,
     #[cfg(feature = "debug")] camera_aabb_scale: bevy::ecs::system::Res<
         crate::debug::CameraAabbScale,

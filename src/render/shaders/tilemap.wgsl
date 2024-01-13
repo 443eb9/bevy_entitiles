@@ -35,7 +35,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.color = vec4<f32>(pow(input.color.rgb, vec3<f32>(2.2)), input.color.a);
 
 #ifndef PURE_COLOR
-    output.is_animated = input.index.z;
+    output.anim_flag = input.index.z;
     var uvs = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
         vec2<f32>(0., 0.),
@@ -45,13 +45,14 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.uv = uvs[(input.v_index + tilemap.uv_rot) % 4u];
     output.flip = input.flip;
 
-    if input.index.z == 1 {
+    if input.index.z != -1 {
         // means that this tile is a animated tile
-        var animation = tilemap.anim_seqs[input.texture_indices.x];
-        var frame = u32(tilemap.time * animation.fps) % animation.length;
-        var texture_index = animation.seq[frame / 4u][frame % 4u];
-
-        output.texture_indices[0] = i32(texture_index);
+        let start = input.index.z;
+        let length = input.index.w;
+        let fps = f32(anim_seqs[start - 1]);
+        // let fps = f32(2.);
+        var frame = i32(tilemap.time * fps) % length;
+        output.texture_indices[0] = anim_seqs[start + frame];
     } else {
         output.texture_indices = input.texture_indices;
     }
@@ -84,7 +85,7 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
                                       uv, input.texture_indices[i]);
         color = mix(color, tex_color, tex_color.a * tilemap.layer_opacities[i]);
 
-        if input.is_animated == 1 {
+        if input.anim_flag != -1 {
             break;
         }
     }

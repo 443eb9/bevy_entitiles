@@ -16,7 +16,8 @@ use bevy::{
 
 use super::{
     buffer::{
-        TileAnimation, TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffer, UniformBuffer,
+        PerTilemapBuffersStorage, TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffer,
+        UniformBuffer,
     },
     extract::ExtractedTilemap,
     pipeline::EntiTilesPipeline,
@@ -40,7 +41,7 @@ impl TilemapBindGroups {
         &mut self,
         render_device: &RenderDevice,
         uniform_buffers: &mut TilemapUniformBuffer,
-        entitile_pipeline: &EntiTilesPipeline,
+        entitiles_pipeline: &EntiTilesPipeline,
     ) {
         let Some(uniform_buffer) = uniform_buffers.binding() else {
             return;
@@ -48,7 +49,7 @@ impl TilemapBindGroups {
 
         self.tilemap_uniform_buffer = Some(render_device.create_bind_group(
             Some("tilemap_uniform_buffers_bind_group"),
-            &entitile_pipeline.uniform_buffers_layout,
+            &entitiles_pipeline.uniform_buffers_layout,
             &[BindGroupEntry {
                 binding: 0,
                 resource: uniform_buffer,
@@ -58,30 +59,26 @@ impl TilemapBindGroups {
 
     pub fn bind_storage_buffers(
         &mut self,
-        tilemap: &ExtractedTilemap,
         render_device: &RenderDevice,
         storage_buffers: &mut TilemapStorageBuffers,
-        entitile_pipeline: &EntiTilesPipeline,
+        entitiles_pipeline: &EntiTilesPipeline,
     ) {
-        if tilemap.texture.is_none() {
-            return;
-        }
-
-        let Some(anim_seqs) = storage_buffers.anim_seqs_binding(tilemap.id) else {
-            return;
-        };
-
-        self.tilemap_storage_buffers.insert(
-            tilemap.id,
-            render_device.create_bind_group(
-                Some("tilemap_storage_bind_group"),
-                &entitile_pipeline.storage_buffers_layout,
-                &[BindGroupEntry {
-                    binding: 0,
-                    resource: anim_seqs,
-                }],
-            ),
-        );
+        storage_buffers
+            .bindings()
+            .into_iter()
+            .for_each(|(tilemap, resource)| {
+                self.tilemap_storage_buffers.insert(
+                    tilemap,
+                    render_device.create_bind_group(
+                        Some("tilemap_storage_bind_group"),
+                        &entitiles_pipeline.storage_buffers_layout,
+                        &[BindGroupEntry {
+                            binding: 0,
+                            resource,
+                        }],
+                    ),
+                );
+            });
     }
 
     /// Returns is_pure_color
@@ -139,7 +136,7 @@ impl FromWorld for TilemapBindGroupLayouts {
             label: Some("tilemap_view_layout"),
             entries: &[BindGroupLayoutEntry {
                 binding: 0,
-                visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
                 ty: BindingType::Buffer {
                     ty: BufferBindingType::Uniform,
                     has_dynamic_offset: true,
@@ -154,7 +151,7 @@ impl FromWorld for TilemapBindGroupLayouts {
                 label: Some("tilemap_uniforms_layout"),
                 entries: &[BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: ShaderStages::VERTEX | ShaderStages::FRAGMENT,
+                    visibility: ShaderStages::VERTEX_FRAGMENT,
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: true,
@@ -173,7 +170,7 @@ impl FromWorld for TilemapBindGroupLayouts {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Storage { read_only: true },
                         has_dynamic_offset: false,
-                        min_binding_size: Some(TileAnimation::min_size()),
+                        min_binding_size: Some(i32::min_size()),
                     },
                     count: None,
                 }],

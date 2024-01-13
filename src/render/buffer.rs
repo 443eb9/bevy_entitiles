@@ -2,20 +2,19 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::entity::Entity,
-    math::{Mat2, UVec4, Vec4},
+    math::{Mat2, Vec4},
     prelude::{Component, Resource, Vec2},
-    reflect::Reflect,
     render::{
         render_resource::{
-            encase::{internal::WriteInto, rts_array::Length},
-            BindingResource, DynamicStorageBuffer, DynamicUniformBuffer, ShaderType,
+            encase::internal::WriteInto, BindingResource, DynamicUniformBuffer, ShaderSize,
+            ShaderType, StorageBuffer,
         },
         renderer::{RenderDevice, RenderQueue},
     },
     utils::EntityHashMap,
 };
 
-use crate::{tilemap::map::TilemapType, MAX_ANIM_COUNT, MAX_ANIM_SEQ_LENGTH};
+use crate::tilemap::map::TilemapType;
 
 use super::extract::ExtractedTilemap;
 
@@ -60,49 +59,36 @@ impl<T: ShaderType> DynamicOffsetComponent<T> {
     }
 }
 
-#[derive(ShaderType, Debug, Clone, Copy, Default, Reflect)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TileAnimation {
-    // because array stride must be a multiple of 16 bytes
-    pub(crate) seq: [UVec4; MAX_ANIM_SEQ_LENGTH / 4],
-    pub(crate) length: u32,
-    pub(crate) fps: f32,
-}
+pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'static> {
+    fn get_or_insert_buffer(&mut self, tilemap: Entity) -> &mut Vec<U> {
+        &mut self.get_mapper().entry(tilemap).or_default().1
+    }
 
-impl TileAnimation {
-    pub fn new(sequence: Vec<u32>, fps: f32) -> Self {
-        assert!(
-            sequence.len() < MAX_ANIM_SEQ_LENGTH,
-            "animation sequence is too long!, max is {}",
-            MAX_ANIM_SEQ_LENGTH
-        );
+    fn bindings(&mut self) -> EntityHashMap<Entity, BindingResource> {
+        self.get_mapper()
+            .iter()
+            .filter_map(|(tilemap, (buffer, _))| buffer.binding().map(|res| (*tilemap, res)))
+            .collect()
+    }
 
-        let mut seq = [UVec4::ZERO; MAX_ANIM_SEQ_LENGTH / 4];
-        let mut index = 0;
-        let mut length = 0;
-        while length + 4 < sequence.len() {
-            seq[index] = UVec4::new(
-                sequence[length],
-                sequence[length + 1],
-                sequence[length + 2],
-                sequence[length + 3],
-            );
-            index += 1;
-            length += 4;
-        }
+    fn remove(&mut self, tilemap: Entity) {
+        self.get_mapper().remove(&tilemap);
+    }
 
-        for i in 0..4 {
-            if length + i < sequence.len() {
-                seq[index][i] = sequence[length + i];
-            }
-        }
+    fn clear(&mut self) {
+        self.get_mapper()
+            .values_mut()
+            .for_each(|(_, buffer)| buffer.clear());
+    }
 
-        Self {
-            seq,
-            length: sequence.length() as u32,
-            fps,
+    fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
+        for (buffer, data) in self.get_mapper().values_mut() {
+            buffer.set(std::mem::take(data));
+            buffer.write_buffer(render_device, render_queue);
         }
     }
+
+    fn get_mapper(&mut self) -> &mut EntityHashMap<Entity, (StorageBuffer<Vec<U>>, Vec<U>)>;
 }
 
 #[derive(ShaderType, Clone, Copy)]
@@ -113,7 +99,6 @@ pub struct TilemapUniform {
     pub tile_render_size: Vec2,
     pub slot_size: Vec2,
     pub pivot: Vec2,
-    pub anim_seqs: [TileAnimation; MAX_ANIM_COUNT],
     pub layer_opacities: Vec4,
     pub hex_legs: f32,
     pub time: f32,
@@ -134,12 +119,6 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
                 0
             }
         };
-        let mut anim_seqs = [TileAnimation::default(); MAX_ANIM_COUNT];
-        if let Some(anims) = extracted.animations.as_ref() {
-            anims.0.iter().enumerate().for_each(|(i, a)| {
-                anim_seqs[i] = *a;
-            });
-        }
 
         DynamicOffsetComponent::new(self.buffer().push(TilemapUniform {
             translation: extracted.transform.translation,
@@ -148,7 +127,6 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
             tile_render_size: extracted.tile_render_size,
             slot_size: extracted.slot_size,
             pivot: extracted.tile_pivot,
-            anim_seqs,
             layer_opacities: extracted.layer_opacities,
             hex_legs: match extracted.ty {
                 TilemapType::Hexagonal(legs) => legs as f32,
@@ -165,81 +143,10 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
 }
 
 #[derive(Resource, Default)]
-pub struct TilemapStorageBuffers {
-    anim_seqs: EntityHashMap<Entity, DynamicStorageBuffer<Vec<TileAnimation>>>,
-}
+pub struct TilemapStorageBuffers(EntityHashMap<Entity, (StorageBuffer<Vec<i32>>, Vec<i32>)>);
 
-impl TilemapStorageBuffers {
-    pub fn insert_anim_seqs(&mut self, tilemap: Entity, anim_seqs: &Vec<TileAnimation>) {
-        let mut buffer = DynamicStorageBuffer::default();
-        buffer.push(anim_seqs.clone());
-        self.anim_seqs.insert(tilemap, buffer);
-    }
-
-    pub fn clear(&mut self) {
-        // self.atlas_uvs.clear();
-        // self.anim_seqs.clear();
-    }
-
-    pub fn anim_seqs_binding(&self, tilemap: Entity) -> Option<BindingResource> {
-        self.anim_seqs
-            .get(&tilemap)
-            .map(|buffer| buffer.binding())
-            .flatten()
-    }
-
-    pub fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        for buffer in self.anim_seqs.values_mut() {
-            buffer.write_buffer(render_device, render_queue);
-        }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_anim_import() {
-        let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2], 10.);
-        assert_eq!(
-            anim.seq,
-            [
-                UVec4::new(1, 2, 3, 4),
-                UVec4::new(5, 6, 4, 2),
-                UVec4::ZERO,
-                UVec4::ZERO,
-            ]
-        );
-        let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1], 10.);
-        assert_eq!(
-            anim.seq,
-            [
-                UVec4::new(1, 2, 3, 4),
-                UVec4::new(5, 6, 4, 2),
-                UVec4::new(1, 0, 0, 0),
-                UVec4::ZERO,
-            ]
-        );
-        let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1, 3], 10.);
-        assert_eq!(
-            anim.seq,
-            [
-                UVec4::new(1, 2, 3, 4),
-                UVec4::new(5, 6, 4, 2),
-                UVec4::new(1, 3, 0, 0),
-                UVec4::ZERO,
-            ]
-        );
-        let anim = TileAnimation::new(vec![1, 2, 3, 4, 5, 6, 4, 2, 1, 3, 6], 10.);
-        assert_eq!(
-            anim.seq,
-            [
-                UVec4::new(1, 2, 3, 4),
-                UVec4::new(5, 6, 4, 2),
-                UVec4::new(1, 3, 6, 0),
-                UVec4::ZERO,
-            ]
-        );
+impl PerTilemapBuffersStorage<i32> for TilemapStorageBuffers {
+    fn get_mapper(&mut self) -> &mut EntityHashMap<Entity, (StorageBuffer<Vec<i32>>, Vec<i32>)> {
+        &mut self.0
     }
 }

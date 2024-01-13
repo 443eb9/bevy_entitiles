@@ -9,7 +9,6 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::buffer::TileAnimation,
     tilemap::{
         bundles::TilemapBundle,
         map::{
@@ -52,12 +51,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     };
 
-    let anim_a = tilemap
-        .animations
-        .register_animation(TileAnimation::new(vec![0, 1, 2, 3], 2.));
-    let anim_b = tilemap
-        .animations
-        .register_animation(TileAnimation::new(vec![0, 1, 2], 3.));
+    let anim_a = tilemap.animations.register_animation(2, vec![0, 1, 2, 3]);
+    println!("{:?}", anim_a);
+    let anim_b = tilemap.animations.register_animation(3, vec![0, 1, 2]);
 
     tilemap.storage.fill_rect(
         &mut commands,

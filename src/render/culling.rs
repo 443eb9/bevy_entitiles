@@ -30,7 +30,12 @@ pub fn cull_tilemaps(
     commands: ParallelCommands,
     tilemaps: Query<(Entity, &TilemapAabbs)>,
     cameras: Query<&CameraAabb2d>,
+    culling: Res<FrustumCulling>,
 ) {
+    if !culling.0 {
+        return;
+    }
+
     cameras.par_iter().for_each(|camera| {
         tilemaps.par_iter().for_each(|(entity, aabbs)| {
             commands.command_scope(|mut c| {

@@ -37,7 +37,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                         |
 | `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc. |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                       |
-| `ui`             | Support renderring tiles as ui image.                                                                |
 
 ## Coordinate Systems
 
@@ -121,8 +120,6 @@ In the following case, each tile has at least one corresponding color gap with i
 ## Limitations
 
 - Supports up to 4 rendered layers* in one tilemap.
-- Supports up to 64 animations in one tilemap. (this will no longer exists in the future)
-- Supports up to 16 length of animation sequences.
 
 *\* Rendered layer means the layer that will be **rendered**. You can insert as much layers as you want, but only the 4 top layers will be rendered.*
 

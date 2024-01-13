@@ -106,11 +106,6 @@ path = "examples/ldtk.rs"
 required-features = ["debug", "ldtk", "physics_xpbd"]
 
 [[example]]
-name = "ui"
-path = "examples/ui.rs"
-required-features = ["ui"]
-
-[[example]]
 name = "wfc_pattern"
 path = "examples/wfc_pattern.rs"
 required-features = ["algorithm"]

@@ -8,7 +8,9 @@ use crate::tilemap::despawn::{DespawnedTile, DespawnedTilemap};
 
 use super::{
     binding::TilemapBindGroups,
-    buffer::{TilemapUniformBuffer, UniformBuffer},
+    buffer::{
+        PerTilemapBuffersStorage, TilemapStorageBuffers, TilemapUniformBuffer, UniformBuffer,
+    },
     chunk::{TilemapRenderChunk, UnloadRenderChunk},
     extract::{ExtractedTile, ExtractedTilemap},
     pipeline::EntiTilesPipeline,
@@ -20,20 +22,20 @@ pub fn prepare_tilemaps(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    extracted_tilemaps: Query<(Entity, &ExtractedTilemap)>,
+    extracted_tilemaps: Query<&ExtractedTilemap>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     mut uniform_buffers: ResMut<TilemapUniformBuffer>,
-    // mut storage_buffers: ResMut<TilemapStorageBuffers>,
+    mut storage_buffers: ResMut<TilemapStorageBuffers>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     entitiles_pipeline: Res<EntiTilesPipeline>,
     mut bind_groups: ResMut<TilemapBindGroups>,
 ) {
     uniform_buffers.clear();
-    // storage_buffers.clear();
+    storage_buffers.clear();
 
-    extracted_tilemaps.for_each(|(entity, tilemap)| {
+    extracted_tilemaps.for_each(|tilemap| {
         commands
-            .entity(entity)
+            .entity(tilemap.id)
             .insert(uniform_buffers.insert(tilemap));
 
         render_chunks.prepare_chunks(tilemap, &render_device);
@@ -44,15 +46,19 @@ pub fn prepare_tilemaps(
             }
 
             textures_storage.insert(texture.clone_weak(), texture.desc());
-            // storage_buffers.insert_anim_seqs(tilemap.id, &tilemap.anim_seqs.to_vec());
+
+            storage_buffers
+                .get_or_insert_buffer(tilemap.id)
+                .extend(&tilemap.animations.as_ref().unwrap().0);
         }
     });
 
+    bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
+    bind_groups.bind_storage_buffers(&render_device, &mut storage_buffers, &entitiles_pipeline);
+
     textures_storage.prepare_textures(&render_device);
     uniform_buffers.write(&render_device, &render_queue);
-    // storage_buffers.write(&render_device, &render_queue);
-
-    bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
+    storage_buffers.write(&render_device, &render_queue);
 }
 
 pub fn prepare_tiles(
@@ -88,10 +94,12 @@ pub fn prepare_unloaded_chunks(
 
 pub fn prepare_despawned_tilemaps(
     mut render_chunks: ResMut<RenderChunkStorage>,
+    mut storage_buffers: ResMut<TilemapStorageBuffers>,
     tilemaps_query: Query<&DespawnedTilemap>,
 ) {
     tilemaps_query.for_each(|map| {
         render_chunks.remove_tilemap(map.0);
+        storage_buffers.remove(map.0);
     });
 }
 

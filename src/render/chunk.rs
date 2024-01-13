@@ -1,6 +1,6 @@
 use bevy::{
     ecs::{component::Component, event::Event},
-    math::{IVec2, IVec3, IVec4, UVec4},
+    math::{IVec2, IVec4, UVec4},
     prelude::{Entity, Mesh, Resource, Vec3, Vec4},
     reflect::Reflect,
     render::{
@@ -37,9 +37,10 @@ pub struct ChunkUnload {
 
 #[derive(Clone)]
 pub struct MeshTileData {
-    // when the third component of index is 1,
+    // When the third and forth component of index are not -1,
     // it means this tile is a animated tile
-    pub index: IVec3,
+    // So the zw components are the start index and the length of the animation sequence
+    pub index: IVec4,
     // 4 layers
     pub texture_indices: IVec4,
     pub color: Vec4,
@@ -201,12 +202,14 @@ impl TilemapRenderChunk {
                             texture_indices[i] = t.texture_index;
                             flip[i] = t.flip;
                         });
-                    tile.index.extend(0)
+                    IVec4::new(tile.index.x, tile.index.y, -1, -1)
                 }
-                TileTexture::Animated(anim) => {
-                    texture_indices[0] = *anim as i32;
-                    tile.index.extend(1)
-                }
+                TileTexture::Animated(anim) => IVec4::new(
+                    tile.index.x,
+                    tile.index.y,
+                    anim.start as i32,
+                    anim.length as i32,
+                ),
             }
         };
 

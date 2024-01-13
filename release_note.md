@@ -4,6 +4,8 @@
 - Updated dependencies.
 - Added `TilemapAabbs`.
 - Frustum culling for tilemaps.
+- Removed `ui` stuff. They do not deserve my extra attention.
+- Broke the limitation of tile animations.
 
 # What's Fixed:
 

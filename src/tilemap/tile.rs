@@ -3,6 +3,7 @@ use bevy::{
     math::IVec2,
     prelude::{Component, Entity, Vec4},
     reflect::Reflect,
+    render::render_resource::ShaderType,
 };
 
 use super::{buffers::Tiles, map::TilemapStorage};
@@ -112,7 +113,7 @@ impl TileBuilder {
         self
     }
 
-    pub fn with_animation(mut self, animation: u32) -> Self {
+    pub fn with_animation(mut self, animation: TileAnimation) -> Self {
         self.texture = TileTexture::Animated(animation);
         self
     }
@@ -135,11 +136,19 @@ impl TileBuilder {
     }
 }
 
+#[derive(ShaderType, Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub struct TileAnimation {
+    pub start: u32,
+    pub length: u32,
+    pub fps: u32,
+}
+
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TileTexture {
     Static(Vec<TileLayer>),
-    Animated(u32),
+    Animated(TileAnimation),
 }
 
 #[derive(Component, Clone, Debug, Reflect)]

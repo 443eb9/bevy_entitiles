@@ -14,7 +14,6 @@ pub mod render;
 #[cfg(feature = "serializing")]
 pub mod serializing;
 pub mod tilemap;
-pub mod ui;
 
 pub const MAX_TILESET_COUNT: usize = 4;
 pub const MAX_LAYER_COUNT: usize = 4;
@@ -32,7 +31,6 @@ pub mod prelude {
     #[cfg(feature = "ldtk")]
     pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager};
     pub use crate::math::{aabb::Aabb2d, TileArea};
-    pub use crate::render::buffer::TileAnimation;
     #[cfg(feature = "serializing")]
     pub use crate::serializing::{map::load::TilemapLoaderBuilder, map::save::TilemapSaver};
     #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
@@ -44,10 +42,8 @@ pub mod prelude {
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
             TilemapTransform, TilemapType,
         },
-        tile::{TileBuilder, TileLayer, TileUpdater},
+        tile::{TileAnimation, TileBuilder, TileLayer, TileUpdater},
     };
-    #[cfg(feature = "ui")]
-    pub use crate::ui::UiTileMaterialRegistry;
 }
 
 pub struct EntiTilesPlugin;
@@ -68,8 +64,6 @@ impl Plugin for EntiTilesPlugin {
             serializing::EntiTilesSerializingPlugin,
             #[cfg(feature = "ldtk")]
             ldtk::EntiTilesLdtkPlugin,
-            #[cfg(feature = "ui")]
-            ui::EntiTilesUiPlugin,
         ));
     }
 }

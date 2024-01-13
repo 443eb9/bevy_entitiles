@@ -11,19 +11,16 @@ use bevy::{
     transform::components::Transform,
 };
 
-use crate::{
-    math::{
-        aabb::{Aabb2d, IAabb2d},
-        TileArea,
-    },
-    render::buffer::TileAnimation,
+use crate::math::{
+    aabb::{Aabb2d, IAabb2d},
+    TileArea,
 };
 
 use super::{
     buffers::TileBuilderBuffer,
     chunking::storage::ChunkedStorage,
     despawn::DespawnMe,
-    tile::{TileBuilder, TileUpdater},
+    tile::{TileAnimation, TileBuilder, TileUpdater},
 };
 
 /// Defines the shape of tiles in a tilemap.
@@ -510,22 +507,18 @@ impl TilemapStorage {
 
 #[derive(Component, Default, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TilemapAnimations(pub(crate) Vec<TileAnimation>);
+pub struct TilemapAnimations(pub(crate) Vec<i32>);
 
 impl TilemapAnimations {
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.
     ///
     /// Returns the sequence index of the animation.
-    pub fn register_animation(&mut self, anim: TileAnimation) -> u32 {
-        self.0.push(anim);
-        (self.0.len() - 1) as u32
-    }
-
-    /// Update a tile animation by overwriting the element at `index`.
-    ///
-    /// This does nothing if `index` is out of range.
-    pub fn update_animation(&mut self, anim: TileAnimation, index: usize) {
-        self.0.get(index).replace(&anim);
+    pub fn register_animation(&mut self, fps: u32, seq: Vec<u32>) -> TileAnimation {
+        self.0.push(fps as i32);
+        let start = self.0.len() as u32;
+        let length = seq.len() as u32;
+        self.0.extend(seq.into_iter().map(|i| i as i32));
+        TileAnimation { start, length, fps }
     }
 }
 
