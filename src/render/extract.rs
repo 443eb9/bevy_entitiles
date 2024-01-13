@@ -1,5 +1,5 @@
 use bevy::{
-    ecs::{event::EventReader, system::Res},
+    ecs::{event::EventReader, query::Without, system::Res},
     prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
     render::Extract,
     time::Time,
@@ -20,7 +20,7 @@ use crate::{
 
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
-    culling::FrustumCulling,
+    culling::{FrustumCulling, InvisibleTilemap},
 };
 
 #[derive(Component, Debug)]
@@ -46,19 +46,22 @@ pub type ExtractedView = CameraAabb2d;
 pub fn extract_tilemaps(
     mut commands: Commands,
     tilemaps_query: Extract<
-        Query<(
-            Entity,
-            &TilemapName,
-            &TileRenderSize,
-            &TilemapSlotSize,
-            &TilemapType,
-            &TilePivot,
-            &TilemapLayerOpacities,
-            &TilemapTransform,
-            &TilemapStorage,
-            Option<&TilemapTexture>,
-            Option<&TilemapAnimations>,
-        )>,
+        Query<
+            (
+                Entity,
+                &TilemapName,
+                &TileRenderSize,
+                &TilemapSlotSize,
+                &TilemapType,
+                &TilePivot,
+                &TilemapLayerOpacities,
+                &TilemapTransform,
+                &TilemapStorage,
+                Option<&TilemapTexture>,
+                Option<&TilemapAnimations>,
+            ),
+            Without<InvisibleTilemap>,
+        >,
     >,
     time: Extract<Res<Time>>,
 ) {

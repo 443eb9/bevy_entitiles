@@ -14,6 +14,7 @@ impl Plugin for EntiTilesDebugPlugin {
             Update,
             (
                 drawing::draw_chunk_aabb,
+                drawing::draw_tilemap_aabb,
                 drawing::draw_axis,
                 drawing::draw_camera_aabb,
                 #[cfg(feature = "algorithm")]

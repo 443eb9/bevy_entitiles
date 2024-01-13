@@ -150,7 +150,7 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     /// Or `reserve_many` to reserve multiple chunks.
     #[inline]
     pub fn reserve(&mut self, index: IVec2) {
-        self.calc_queue.insert(index);
+        self.queue_aabb(index);
     }
 
     #[inline]
@@ -160,7 +160,9 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
 
     #[inline]
     pub fn reserve_many(&mut self, indices: impl Iterator<Item = IVec2>) {
-        self.calc_queue.extend(indices);
+        indices.for_each(|i| {
+            self.queue_aabb(i);
+        });
     }
 
     #[inline]

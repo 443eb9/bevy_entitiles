@@ -27,7 +27,7 @@ pub fn queue(
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
-    entitile_pipeline: Res<EntiTilesPipeline>,
+    entitiles_pipeline: Res<EntiTilesPipeline>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
     mut bind_groups: ResMut<TilemapBindGroups>,
@@ -46,7 +46,7 @@ pub fn queue(
         commands.entity(view_entity).insert(TilemapViewBindGroup {
             value: render_device.create_bind_group(
                 "tilemap_view_bind_group",
-                &entitile_pipeline.view_layout,
+                &entitiles_pipeline.view_layout,
                 &[BindGroupEntry {
                     binding: 0,
                     resource: view_binding.clone(),
@@ -58,29 +58,16 @@ pub fn queue(
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
         for tilemap in tilemaps.iter() {
-            // bind_groups.bind_uniform_buffers(
-            //     &render_device,
-            //     &mut uniform_buffers,
-            //     &entitile_pipeline,
-            // );
-
-            // bind_groups.queue_storage_buffers(
-            //     tilemap,
-            //     &render_device,
-            //     &mut storage_buffers,
-            //     &entitile_pipeline,
-            // );
-
             let is_pure_color = bind_groups.queue_textures(
                 &tilemap,
                 &render_device,
                 &textures_storage,
-                &entitile_pipeline,
+                &entitiles_pipeline,
             );
 
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
-                &entitile_pipeline,
+                &entitiles_pipeline,
                 EntiTilesPipelineKey {
                     msaa: msaa.samples(),
                     map_type: tilemap.ty,

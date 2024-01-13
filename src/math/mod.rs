@@ -13,7 +13,7 @@ use bevy::{
     transform::components::Transform,
 };
 
-use self::aabb::Aabb2d;
+use self::aabb::{Aabb2d, IAabb2d};
 
 pub mod aabb;
 pub mod extension;
@@ -91,5 +91,13 @@ impl TileArea {
     #[inline]
     pub fn size(&self) -> usize {
         (self.extent.x * self.extent.y) as usize
+    }
+
+    #[inline]
+    pub fn aabb(&self) -> IAabb2d {
+        IAabb2d {
+            min: self.origin,
+            max: self.dest,
+        }
     }
 }

@@ -96,6 +96,14 @@ macro_rules! impl_aabb {
                     max: self.max.min(other.max),
                 }
             }
+
+            #[inline]
+            pub fn is_subset_of(&self, other: $aabb_ty) -> bool {
+                self.min.x >= other.min.x
+                    && self.max.x <= other.max.x
+                    && self.min.y >= other.min.y
+                    && self.max.y <= other.max.y
+            }
         }
     };
 }

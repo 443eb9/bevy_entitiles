@@ -1,7 +1,7 @@
 use bevy::{
     ecs::system::{ParallelCommands, Query},
     math::IVec2,
-    prelude::{Commands, Component, Entity, Vec4},
+    prelude::{Component, Entity, Vec4},
     reflect::Reflect,
 };
 
@@ -115,20 +115,6 @@ impl TileBuilder {
     pub fn with_animation(mut self, animation: u32) -> Self {
         self.texture = TileTexture::Animated(animation);
         self
-    }
-
-    pub(crate) fn build(
-        &self,
-        commands: &mut Commands,
-        index: IVec2,
-        storage: &TilemapStorage,
-        tilemap: Entity,
-    ) -> Entity {
-        let tile = self.build_component(index, storage, tilemap);
-
-        let mut tile_entity = commands.spawn_empty();
-        tile_entity.insert(tile);
-        tile_entity.id()
     }
 
     pub(crate) fn build_component(

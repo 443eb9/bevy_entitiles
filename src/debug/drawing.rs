@@ -2,13 +2,14 @@ use bevy::{ecs::system::Query, gizmos::gizmos::Gizmos, math::Vec2, render::color
 
 use crate::{
     math::{aabb::Aabb2d, CameraAabb2d},
-    tilemap::map::{TilePivot, TilemapSlotSize, TilemapStorage, TilemapTransform, TilemapType},
+    tilemap::map::{
+        TilePivot, TilemapAabbs, TilemapSlotSize, TilemapStorage, TilemapTransform, TilemapType,
+    },
 };
 
 #[cfg(feature = "algorithm")]
 use crate::algorithm::pathfinding::Path;
 
-#[cfg(feature = "debug")]
 pub fn draw_chunk_aabb(
     mut gizmos: Gizmos,
     tilemaps: Query<(
@@ -37,6 +38,17 @@ pub fn draw_chunk_aabb(
             );
         });
     }
+}
+
+pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&TilemapAabbs>) {
+    tilemaps.for_each(|aabb| {
+        gizmos.rect_2d(
+            aabb.world_aabb.center(),
+            0.,
+            Vec2::new(aabb.world_aabb.width(), aabb.world_aabb.height()),
+            Color::RED,
+        );
+    });
 }
 
 #[cfg(feature = "algorithm")]

@@ -1,4 +1,5 @@
 use bevy::{
+    app::Update,
     asset::load_internal_asset,
     core_pipeline::core_2d::Transparent2d,
     prelude::{Handle, IntoSystemConfigs, Plugin, Shader},
@@ -55,8 +56,7 @@ impl Plugin for EntiTilesRendererPlugin {
         load_internal_asset!(app, HEXAGONAL, "shaders/hexagonal.wgsl", Shader::from_wgsl);
         load_internal_asset!(app, COMMON, "shaders/common.wgsl", Shader::from_wgsl);
 
-        // TODO enable this after the panic issue is solved
-        // app.add_systems(Update, culling::cull_tilemaps);
+        app.add_systems(Update, culling::cull_tilemaps);
 
         load_internal_asset!(
             app,

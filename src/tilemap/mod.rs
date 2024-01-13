@@ -3,8 +3,8 @@ use bevy::app::{Plugin, PostUpdate, PreUpdate, Update};
 use self::{
     chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
     map::{
-        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
+        TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapLayerOpacities,
+        TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
         TilemapTransform, TilemapType,
     },
     tile::{LayerUpdater, Tile, TileLayer, TileTexture, TileUpdater},
@@ -32,6 +32,7 @@ impl Plugin for EntiTilesTilemapPlugin {
             Update,
             (
                 map::transform_syncer,
+                map::queued_chunk_aabb_calculator,
                 map::tilemap_aabb_calculator,
                 tile::tile_updater,
                 chunking::camera::camera_chunk_update,
@@ -56,6 +57,7 @@ impl Plugin for EntiTilesTilemapPlugin {
             .register_type::<TilePivot>()
             .register_type::<TilemapLayerOpacities>()
             .register_type::<TilemapStorage>()
+            .register_type::<TilemapAabbs>()
             .register_type::<TilemapTransform>()
             .register_type::<TilemapTexture>()
             .register_type::<TilemapTextureDescriptor>()

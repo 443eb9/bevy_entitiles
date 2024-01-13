@@ -12,7 +12,10 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::Aabb2d, TileArea},
+    math::{
+        aabb::{Aabb2d, IAabb2d},
+        TileArea,
+    },
     render::buffer::TileAnimation,
 };
 
@@ -257,6 +260,12 @@ impl Default for TilemapLayerOpacities {
     }
 }
 
+#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
+pub struct TilemapAabbs {
+    pub(crate) chunk_aabb: IAabb2d,
+    pub(crate) world_aabb: Aabb2d,
+}
+
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapStorage {
@@ -269,6 +278,7 @@ impl TilemapStorage {
         Self {
             tilemap: binded_tilemap,
             storage: ChunkedStorage::new(chunk_size),
+            ..Default::default()
         }
     }
 }
@@ -301,8 +311,11 @@ impl TilemapStorage {
         if let Some(previous) = self.storage.get_elem(index) {
             commands.entity(*previous).despawn();
         }
-        let new_tile = tile_builder.build(commands, index, &self, self.tilemap);
-        self.storage.set_elem(index, Some(new_tile));
+        let new_tile = tile_builder.build_component(index, &self, self.tilemap);
+
+        let mut tile_entity = commands.spawn_empty();
+        self.storage.set_elem(index, Some(tile_entity.id()));
+        tile_entity.insert(new_tile);
     }
 
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
@@ -327,7 +340,6 @@ impl TilemapStorage {
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
             chunk.into_iter().filter_map(|e| e).for_each(|e| {
-                // commands.entity(e).despawn();
                 commands.entity(e).insert(DespawnMe);
             });
         }
@@ -340,7 +352,6 @@ impl TilemapStorage {
             .drain()
             .flat_map(|(_, chunk)| chunk.into_iter().filter_map(|e| e))
             .for_each(|entity| {
-                // commands.entity(entity).despawn();
                 commands.entity(entity).insert(DespawnMe);
             });
     }
@@ -348,7 +359,6 @@ impl TilemapStorage {
     /// Despawn the entire tilemap.
     pub fn despawn(&mut self, commands: &mut Commands) {
         self.remove_all(commands);
-        // commands.entity(self.tilemap).despawn();
         commands.entity(self.tilemap).insert(DespawnMe);
     }
 
@@ -394,7 +404,7 @@ impl TilemapStorage {
         &mut self,
         commands: &mut Commands,
         area: TileArea,
-        mut tile_builder: impl FnMut(IVec2) -> TileBuilder,
+        mut tile_builder: impl FnMut(IVec2) -> Option<TileBuilder>,
         relative_index: bool,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
@@ -402,15 +412,17 @@ impl TilemapStorage {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 let index = IVec2 { x, y };
-                self.remove(commands, index);
-                let builder = tile_builder({
+                let Some(builder) = tile_builder({
                     if relative_index {
                         index - area.origin
                     } else {
                         index
                     }
-                });
+                }) else {
+                    continue;
+                };
 
+                self.remove(commands, index);
                 let tile = builder.build_component(index, &self, self.tilemap);
                 let entity = if let Some(e) = self.get(index) {
                     e
@@ -528,7 +540,7 @@ pub fn transform_syncer(
     });
 }
 
-pub fn tilemap_aabb_calculator(
+pub fn queued_chunk_aabb_calculator(
     mut tilemaps_query: Query<(
         &mut TilemapStorage,
         &TilemapType,
@@ -559,6 +571,51 @@ pub fn tilemap_aabb_calculator(
                 })
                 .collect::<Vec<_>>();
             storage.storage.reserved.extend(ext);
+        },
+    );
+}
+
+pub fn tilemap_aabb_calculator(
+    mut tilemaps_query: Query<
+        (
+            &TilemapStorage,
+            &mut TilemapAabbs,
+            &TilemapType,
+            &TilePivot,
+            &TilemapSlotSize,
+            &TilemapTransform,
+        ),
+        Changed<TilemapStorage>,
+    >,
+) {
+    tilemaps_query.par_iter_mut().for_each(
+        |(storage, mut aabbs, ty, tile_pivot, slot_size, transform)| {
+            let mut chunk_aabb = IAabb2d::default();
+            storage.storage.chunks.keys().for_each(|chunk_index| {
+                chunk_aabb.expand_to_contain(*chunk_index);
+            });
+            aabbs.chunk_aabb = chunk_aabb;
+
+            let world_max = Aabb2d::from_tilemap(
+                chunk_aabb.max,
+                storage.storage.chunk_size,
+                *ty,
+                tile_pivot.0,
+                slot_size.0,
+                *transform,
+            );
+            let world_min = Aabb2d::from_tilemap(
+                chunk_aabb.min,
+                storage.storage.chunk_size,
+                *ty,
+                tile_pivot.0,
+                slot_size.0,
+                *transform,
+            );
+            aabbs.world_aabb = Aabb2d {
+                min: world_min.min,
+                max: world_max.max,
+            };
         },
     );
 }

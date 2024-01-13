@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use super::map::{
-    TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+    TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapLayerOpacities, TilemapName,
     TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
 };
 
@@ -21,6 +21,7 @@ pub struct TilemapBundle {
     pub tilemap_transform: TilemapTransform,
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
+    pub aabbs: TilemapAabbs,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
@@ -38,6 +39,7 @@ pub struct PureColorTilemapBundle {
     pub layer_opacities: TilemapLayerOpacities,
     pub storage: TilemapStorage,
     pub tilemap_transform: TilemapTransform,
+    pub aabbs: TilemapAabbs,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
