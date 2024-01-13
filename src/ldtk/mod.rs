@@ -236,81 +236,85 @@ fn load_levels(
 ) {
     let ldtk_data = manager.get_cached_data();
 
-    for (level_index, level) in ldtk_data.levels.iter().enumerate() {
-        // this cannot cannot be replaced by filter(), because the level_index matters.
-        if level.identifier != loader.level {
-            continue;
-        }
+    let Some((level_index, level)) = ldtk_data
+        .levels
+        .iter()
+        .enumerate()
+        .find(|(_, level)| level.identifier == loader.level)
+    else {
+        return;
+    };
 
-        let translation = loader
-            .trans_ovrd
-            .unwrap_or_else(|| get_level_translation(&ldtk_data, level_index));
+    let translation = loader
+        .trans_ovrd
+        .unwrap_or_else(|| get_level_translation(&ldtk_data, level_index));
 
-        let level_px = UVec2 {
-            x: level.px_wid as u32,
-            y: level.px_hei as u32,
-        };
+    let level_px = UVec2 {
+        x: level.px_wid as u32,
+        y: level.px_hei as u32,
+    };
 
-        let background = load_background(level, translation, level_px, asset_server, &manager);
+    let background = load_background(level, translation, level_px, asset_server, &manager);
 
-        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
-        let mut collider_aabbs = None;
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    let mut collider_aabbs = None;
+    #[cfg(feature = "algorithm")]
+    let mut path_tilemap = None;
+
+    let mut ldtk_layers = LdtkLayers::new(
+        level_entity,
+        level.layer_instances.len(),
+        &ldtk_assets,
+        translation,
+        manager.z_index,
+        loader.mode,
+        background,
+    );
+
+    for (layer_index, layer) in level.layer_instances.iter().enumerate() {
         #[cfg(feature = "algorithm")]
-        let mut path_tilemap = None;
-
-        let mut ldtk_layers = LdtkLayers::new(
-            level_entity,
-            level.layer_instances.len(),
-            &ldtk_assets,
-            translation,
-            manager.z_index,
-            loader.mode,
-            background,
-        );
-
-        for (layer_index, layer) in level.layer_instances.iter().enumerate() {
-            #[cfg(feature = "algorithm")]
-            if let Some(path) = manager.path_layer.as_ref() {
-                if layer.identifier == path.identifier {
-                    path_tilemap = Some(layer::path::analyze_path_layer(layer, path));
-                    continue;
-                }
+        if let Some(path) = manager.path_layer.as_ref() {
+            if layer.identifier == path.identifier {
+                path_tilemap = Some(layer::path::analyze_path_layer(layer, path));
+                continue;
             }
-
-            #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
-            if let Some(phy) = manager.physics_layer.as_ref() {
-                if layer.identifier == phy.identifier {
-                    collider_aabbs = Some(layer::physics::analyze_physics_layer(layer, phy));
-                    continue;
-                }
-            }
-
-            load_layer(layer_index, layer, &mut ldtk_layers, translation, &manager);
         }
 
         #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
-        if let Some(aabbs) = collider_aabbs {
-            ldtk_layers.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
+        if let Some(phy) = manager.physics_layer.as_ref() {
+            if layer.identifier == phy.identifier {
+                collider_aabbs = Some(layer::physics::analyze_physics_layer(layer, phy));
+                continue;
+            }
         }
-        #[cfg(feature = "algorithm")]
-        if let Some(path_tilemap) = path_tilemap {
-            ldtk_layers.assign_path_layer(manager.path_layer.clone().unwrap(), path_tilemap);
-        }
-        ldtk_layers.apply_all(
-            commands,
-            patterns,
-            level,
-            entity_registry,
-            &manager,
-            &ldtk_assets,
-            asset_server,
-        );
 
-        ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
-            identifier: level.identifier.clone(),
-            iid: level.iid.clone(),
-        }));
+        load_layer(layer_index, layer, &mut ldtk_layers, translation, &manager);
     }
+
+    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    if let Some(aabbs) = collider_aabbs {
+        ldtk_layers.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
+    }
+
+    #[cfg(feature = "algorithm")]
+    if let Some(path_tilemap) = path_tilemap {
+        ldtk_layers.assign_path_layer(manager.path_layer.clone().unwrap(), path_tilemap);
+    }
+
+    ldtk_layers.apply_all(
+        commands,
+        patterns,
+        level,
+        entity_registry,
+        &manager,
+        &ldtk_assets,
+        asset_server,
+    );
+
+    ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
+        identifier: level.identifier.clone(),
+        iid: level.iid.clone(),
+    }));
 }
 
 fn load_background(
@@ -350,12 +354,12 @@ fn load_layer(
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
-            for tile in layer.auto_layer_tiles.iter() {
+            layer.auto_layer_tiles.iter().for_each(|tile| {
                 ldtk_layers.set_tile(layer_index, layer, tile);
-            }
+            });
         }
         LayerType::Entities => {
-            for entity_instance in layer.entity_instances.iter() {
+            for (order, entity_instance) in layer.entity_instances.iter().enumerate() {
                 if manager.global_entities.contains_key(&entity_instance.iid) {
                     continue;
                 }
@@ -371,16 +375,18 @@ fn load_layer(
                     iid: EntityIid(entity_instance.iid.clone()),
                     transform: LdtkTempTransform {
                         level_translation: translation,
-                        z_index: manager.z_index as f32 - layer_index as f32,
+                        z_index: manager.z_index as f32
+                            - layer_index as f32
+                            - (1. - (order as f32 / layer.entity_instances.len() as f32)),
                     },
                 };
                 ldtk_layers.set_entity(packed_entity);
             }
         }
         LayerType::Tiles => {
-            for tile in layer.grid_tiles.iter() {
+            layer.grid_tiles.iter().for_each(|tile| {
                 ldtk_layers.set_tile(layer_index, layer, tile);
-            }
+            });
         }
     }
 }
