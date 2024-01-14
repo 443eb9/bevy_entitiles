@@ -31,7 +31,6 @@ ron = { version = "0.8.1", optional = true }
 rand = { version = "0.8.5", optional = true }
 serde = { version = "1.0.195", optional = true }
 bevy_xpbd_2d = { version = "0.3.3", optional = true }
-bevy_rapier2d = { version = "0.23.0", optional = true }
 serde_json = { version = "1.0.111", optional = true }
 bevy_entitiles_derive = { version = "0.1.1", optional = true, path = "macros" }
 radsort = "0.1.0"
@@ -59,8 +58,7 @@ image = "0.24.7"
 default = []
 algorithm = ["dep:rand", "dep:ron", "dep:serde", "serializing"]
 debug = []
-physics_rapier = ["dep:bevy_rapier2d"]
-physics_xpbd = ["dep:bevy_xpbd_2d"]
+physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 ui = []
@@ -86,14 +84,9 @@ path = "examples/wfc.rs"
 required-features = ["algorithm"]
 
 [[example]]
-name = "physics_xpbd"
-path = "examples/physics_xpbd.rs"
-required-features = ["physics_xpbd"]
-
-[[example]]
-name = "physics_rapier"
-path = "examples/physics_rapier.rs"
-required-features = ["physics_rapier"]
+name = "physics"
+path = "examples/physics.rs"
+required-features = ["physics"]
 
 [[example]]
 name = "save_and_load"
@@ -103,7 +96,7 @@ required-features = ["algorithm"]
 [[example]]
 name = "ldtk"
 path = "examples/ldtk.rs"
-required-features = ["debug", "ldtk", "physics_xpbd"]
+required-features = ["debug", "ldtk", "physics"]
 
 [[example]]
 name = "wfc_pattern"
@@ -113,7 +106,7 @@ required-features = ["algorithm"]
 [[example]]
 name = "ldtk_wfc"
 path = "examples/ldtk_wfc.rs"
-required-features = ["algorithm", "ldtk", "physics_xpbd"]
+required-features = ["algorithm", "ldtk", "physics"]
 
 [[example]]
 name = "chunk_unloading"

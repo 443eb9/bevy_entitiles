@@ -1,4 +1,5 @@
 use bevy::{
+    app::FixedUpdate,
     asset::Assets,
     ecs::{
         component::Component,
@@ -26,16 +27,14 @@ use bevy_entitiles::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
         },
-        physics::{rapier, TileCollision},
+        physics::{PhysicsTile, PhysicsTilemap, TileCollision},
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
-use bevy_rapier2d::{
-    dynamics::{GravityScale, RigidBody, Velocity},
-    geometry::{ActiveEvents, Collider},
-    plugin::{NoUserData, RapierPhysicsPlugin},
-    render::RapierDebugRenderPlugin,
+use bevy_xpbd_2d::{
+    components::{Collider, LinearVelocity, RigidBody},
+    plugins::{PhysicsDebugPlugin, PhysicsPlugins},
 };
 use helpers::EntiTilesHelpersPlugin;
 
@@ -47,11 +46,12 @@ fn main() {
             DefaultPlugins,
             EntiTilesPlugin,
             EntiTilesHelpersPlugin,
-            RapierPhysicsPlugin::<NoUserData>::default(),
-            RapierDebugRenderPlugin::default(),
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (collision_events, character_move))
+        .add_systems(Update, collision_events)
+        .add_systems(FixedUpdate, character_move)
         .run();
 }
 
@@ -62,6 +62,24 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
+
+    let mut physics_tilemap = PhysicsTilemap::new();
+
+    physics_tilemap.set(
+        IVec2 { x: 19, y: 9 },
+        PhysicsTile {
+            rigid_body: false,
+            friction: None,
+        },
+    );
+
+    physics_tilemap.fill_rect(
+        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
+        PhysicsTile {
+            rigid_body: true,
+            friction: Some(0.8),
+        },
+    );
 
     let entity = commands.spawn_empty().id();
     let mut tilemap = TilemapBundle {
@@ -89,31 +107,9 @@ fn setup(
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    rapier::set_physics_tile(
-        &mut commands,
-        IVec2 { x: 19, y: 9 },
-        None,
-        true,
-        &tilemap.storage,
-        &tilemap.ty,
-        &tilemap.tilemap_transform,
-        &tilemap.tile_pivot,
-        &tilemap.slot_size,
-    );
-
-    rapier::fill_physics_tile(
-        &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
-        Some(0.8),
-        false,
-        &tilemap.storage,
-        &tilemap.ty,
-        &tilemap.tilemap_transform,
-        &tilemap.tile_pivot,
-        &tilemap.slot_size,
-    );
-
-    commands.entity(entity).insert(tilemap);
+    commands
+        .entity(entity)
+        .insert((tilemap, physics_tilemap.clone()));
 
     let entity = commands.spawn_empty().id();
     let mut tilemap = TilemapBundle {
@@ -141,31 +137,7 @@ fn setup(
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    rapier::set_physics_tile(
-        &mut commands,
-        IVec2 { x: 19, y: 9 },
-        None,
-        true,
-        &tilemap.storage,
-        &tilemap.ty,
-        &tilemap.tilemap_transform,
-        &tilemap.tile_pivot,
-        &tilemap.slot_size,
-    );
-
-    rapier::fill_physics_tile(
-        &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
-        Some(0.8),
-        false,
-        &tilemap.storage,
-        &tilemap.ty,
-        &tilemap.tilemap_transform,
-        &tilemap.tile_pivot,
-        &tilemap.slot_size,
-    );
-
-    commands.entity(entity).insert(tilemap);
+    commands.entity(entity).insert((tilemap, physics_tilemap));
 
     // spawn a character
     commands.spawn((
@@ -177,9 +149,7 @@ fn setup(
         },
         Collider::ball(15.),
         RigidBody::Dynamic,
-        Velocity::zero(),
-        ActiveEvents::CONTACT_FORCE_EVENTS,
-        GravityScale(0.),
+        LinearVelocity::ZERO,
         Character,
     ));
 }
@@ -195,7 +165,7 @@ pub struct Character;
 
 pub fn character_move(
     input: Res<Input<KeyCode>>,
-    mut query: Query<&mut Velocity, With<Character>>,
+    mut query: Query<&mut LinearVelocity, With<Character>>,
 ) {
     let mut dir = Vec2::ZERO;
     if input.pressed(KeyCode::Up) {
@@ -212,9 +182,9 @@ pub fn character_move(
     }
     for mut vel in query.iter_mut() {
         if dir == Vec2::ZERO {
-            vel.linvel = Vec2::ZERO;
+            vel.0 = Vec2::ZERO;
         } else {
-            vel.linvel = dir.normalize() * 30.;
+            vel.0 = dir.normalize() * 30.;
         }
     }
 }

@@ -569,7 +569,6 @@ dependencies = [
  "bevy-inspector-egui",
  "bevy_entitiles_derive",
  "bevy_mod_debugdump",
- "bevy_rapier2d",
  "bevy_xpbd_2d",
  "image",
  "radsort",
@@ -766,19 +765,6 @@ name = "bevy_ptr"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c77ec20c8fafcdc196508ef5ccb4f0400a8d193cb61f7b14a36ed9a25ad423cf"
-
-[[package]]
-name = "bevy_rapier2d"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58085b0900f932a9fbd2cdb9db0869effa9a0ebb0ad9ddf9a2474cf60ce6789d"
-dependencies = [
- "bevy",
- "bitflags 2.4.1",
- "log",
- "nalgebra",
- "rapier2d",
-]
 
 [[package]]
 name = "bevy_reflect"
@@ -1409,20 +1395,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2801af0d36612ae591caa9568261fddce32ce6e08a7275ea334a06a4ad021a2c"
-dependencies = [
- "cfg-if",
- "crossbeam-channel",
- "crossbeam-deque",
- "crossbeam-epoch",
- "crossbeam-queue",
- "crossbeam-utils",
-]
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1453,16 +1425,6 @@ dependencies = [
  "cfg-if",
  "crossbeam-utils",
  "memoffset 0.9.0",
-]
-
-[[package]]
-name = "crossbeam-queue"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9bcf5bdbfdd6030fb4a1c497b5d5fc5921aa2f60d359a17e249c0e6df3de153"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -2935,26 +2897,6 @@ name = "range-alloc"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c8a99fddc9f0ba0a85884b8d14e3592853e787d581ca1816c91349b10e4eeab"
-
-[[package]]
-name = "rapier2d"
-version = "0.17.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f94d294a9b96694c14888dd0e8ce77620dcc4f2f49264109ef835fa5e2285b84"
-dependencies = [
- "approx",
- "arrayvec",
- "bit-vec",
- "bitflags 1.3.2",
- "crossbeam",
- "downcast-rs",
- "nalgebra",
- "num-derive",
- "num-traits",
- "parry2d",
- "rustc-hash",
- "simba",
-]
 
 [[package]]
 name = "raw-window-handle"

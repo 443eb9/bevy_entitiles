@@ -296,9 +296,18 @@ impl TilemapStorage {
         self.storage.get_elem(index).cloned()
     }
 
+    /// Get a chunk.
     #[inline]
     pub fn get_chunk(&self, index: IVec2) -> Option<&Vec<Option<Entity>>> {
         self.storage.chunks.get(&index)
+    }
+
+    /// Get a mutable chunk.
+    /// 
+    /// **Notice**: This is not recommended as we may do something extra when you remove/set tiles.
+    #[inline]
+    pub fn get_chunk_mut(&mut self, index: IVec2) -> Option<&mut Vec<Option<Entity>>> {
+        self.storage.chunks.get_mut(&index)
     }
 
     /// Set a tile.
@@ -315,10 +324,13 @@ impl TilemapStorage {
         tile_entity.insert(new_tile);
     }
 
+    #[inline]
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
         self.storage.set_elem(index, entity);
     }
 
+    /// Update some properties of a tile.
+    #[inline]
     pub fn update(&mut self, commands: &mut Commands, index: IVec2, updater: TileUpdater) {
         if let Some(entity) = self.get(index) {
             commands.entity(entity).insert(updater);
@@ -326,6 +338,7 @@ impl TilemapStorage {
     }
 
     /// Remove a tile.
+    #[inline]
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.get(index) {
             commands.entity(entity).insert(DespawnMe);
@@ -334,6 +347,7 @@ impl TilemapStorage {
     }
 
     /// Remove the whole chunk and despawn all the tiles in it.
+    #[inline]
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
             chunk.into_iter().filter_map(|e| e).for_each(|e| {
@@ -354,6 +368,7 @@ impl TilemapStorage {
     }
 
     /// Despawn the entire tilemap.
+    #[inline]
     pub fn despawn(&mut self, commands: &mut Commands) {
         self.remove_all(commands);
         commands.entity(self.tilemap).insert(DespawnMe);
@@ -362,11 +377,12 @@ impl TilemapStorage {
     /// Get the underlying storage and directly modify it.
     ///
     /// **Notice**: This may cause some problems if you do something inappropriately.
+    #[inline]
     pub fn get_storage_raw(&mut self) -> &mut ChunkedStorage<Entity> {
         &mut self.storage
     }
 
-    /// Fill a rectangle area with tiles.
+    /// Fill a rectangle area with the same tile.
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
@@ -511,8 +527,6 @@ pub struct TilemapAnimations(pub(crate) Vec<i32>);
 
 impl TilemapAnimations {
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.
-    ///
-    /// Returns the sequence index of the animation.
     pub fn register_animation(&mut self, fps: u32, seq: Vec<u32>) -> TileAnimation {
         self.0.push(fps as i32);
         let start = self.0.len() as u32;

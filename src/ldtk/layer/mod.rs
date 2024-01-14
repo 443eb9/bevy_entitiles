@@ -34,7 +34,7 @@ use super::{
 
 #[cfg(feature = "algorithm")]
 pub mod path;
-#[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+#[cfg(feature = "physics")]
 pub mod physics;
 
 pub type LayerOpacity = f32;
@@ -53,7 +53,7 @@ pub struct LdtkLayers<'a> {
         path::LdtkPathLayer,
         HashMap<IVec2, crate::tilemap::algorithm::path::PathTile>,
     )>,
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     pub physics_layer: Option<(physics::LdtkPhysicsLayer, physics::LdtkPhysicsAabbs)>,
 }
 
@@ -78,7 +78,7 @@ impl<'a> LdtkLayers<'a> {
             ty,
             #[cfg(feature = "algorithm")]
             path_layer: None,
-            #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+            #[cfg(feature = "physics")]
             physics_layer: None,
         }
     }
@@ -225,7 +225,7 @@ impl<'a> LdtkLayers<'a> {
                             }
                         }
 
-                        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+                        #[cfg(feature = "physics")]
                         if let Some((physics_layer, aabbs)) = &self.physics_layer {
                             if physics_layer.parent == tilemap.name.0 {
                                 colliders = aabbs.generate_colliders(
@@ -283,7 +283,7 @@ impl<'a> LdtkLayers<'a> {
                     })
                     .collect::<Vec<_>>();
 
-                #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+                #[cfg(feature = "physics")]
                 {
                     let (physics_layer, aabbs) = self.physics_layer.as_ref().unwrap();
                     ldtk_patterns.insert_physics_aabbs(level.identifier.clone(), aabbs.clone());
@@ -309,7 +309,7 @@ impl<'a> LdtkLayers<'a> {
         self.path_layer = Some((path, tilemap));
     }
 
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     pub fn assign_physics_layer(
         &mut self,
         physics: physics::LdtkPhysicsLayer,

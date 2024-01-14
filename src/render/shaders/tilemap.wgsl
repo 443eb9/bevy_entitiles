@@ -46,11 +46,12 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.flip = input.flip;
 
     if input.index.z != -1 {
-        // means that this tile is a animated tile
+        // Means that this tile is a animated tile
         let start = input.index.z;
         let length = input.index.w;
+        // The number before the start index is the fps.
+        // See register_animation function in TilemapAnimations.
         let fps = f32(anim_seqs[start - 1]);
-        // let fps = f32(2.);
         var frame = i32(tilemap.time * fps) % length;
         output.texture_indices[0] = anim_seqs[start + frame];
     } else {

@@ -780,10 +780,7 @@ pub fn wfc_applier(
                                             layer.0.tiles.clone(),
                                         );
 
-                                        #[cfg(any(
-                                            feature = "physics_xpbd",
-                                            feature = "physics_rapier"
-                                        ))]
+                                        #[cfg(feature = "physics")]
                                         if let Some(aabbs) =
                                             patterns.get_physics_aabbs_with_index(*e)
                                         {

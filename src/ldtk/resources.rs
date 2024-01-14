@@ -32,9 +32,9 @@ use super::{
 pub struct LdtkPatterns {
     #[reflect(ignore)]
     pub patterns: HashMap<String, (Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle)>,
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     pub aabbs: HashMap<String, super::layer::physics::LdtkPhysicsAabbs>,
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     pub frictions: Option<HashMap<i32, f32>>,
     pub idents: HashMap<u8, String>,
 }
@@ -75,7 +75,7 @@ impl LdtkPatterns {
             .insert(identifier.to_string(), (patterns, background));
     }
 
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     #[inline]
     pub fn insert_physics_aabbs(
         &mut self,
@@ -85,7 +85,7 @@ impl LdtkPatterns {
         self.aabbs.insert(identifier, aabbs);
     }
 
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     #[inline]
     pub fn get_physics_aabbs_with_index(
         &self,
@@ -311,7 +311,7 @@ pub struct LdtkLevelManager {
     pub(crate) global_entities: HashMap<String, Entity>,
     #[cfg(feature = "algorithm")]
     pub(crate) path_layer: Option<super::layer::path::LdtkPathLayer>,
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     pub(crate) physics_layer: Option<super::layer::physics::LdtkPhysicsLayer>,
 }
 
@@ -378,7 +378,7 @@ impl LdtkLevelManager {
     /// The layer you specify must be an int grid, or the program will panic.
     ///
     /// The `air_value` is the value of the tiles in the int grid which will be considered as air.
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     pub fn set_physics_layer(
         &mut self,
         physics: super::layer::physics::LdtkPhysicsLayer,

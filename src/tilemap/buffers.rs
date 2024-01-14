@@ -13,6 +13,8 @@ pub type ColorTilesBuffer = TileBuffer<Tile>;
 pub type TileBuilderBuffer = TileBuffer<TileBuilder>;
 #[cfg(feature = "algorithm")]
 pub type PathTilesBuffer = TileBuffer<super::algorithm::path::PathTile>;
+#[cfg(feature = "physics")]
+pub type PhysicsTilesBuffer = TileBuffer<super::physics::PhysicsTile>;
 
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]

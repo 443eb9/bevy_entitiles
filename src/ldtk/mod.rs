@@ -130,7 +130,7 @@ impl Plugin for EntiTilesLdtkPlugin {
             app.register_type::<resources::LdtkWfcManager>();
         }
 
-        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+        #[cfg(feature = "physics")]
         {
             app.register_type::<layer::physics::LdtkPhysicsLayer>();
             app.register_type::<layer::physics::LdtkPhysicsAabbs>();
@@ -256,7 +256,7 @@ fn load_levels(
 
     let background = load_background(level, translation, level_px, asset_server, &manager);
 
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     let mut collider_aabbs = None;
     #[cfg(feature = "algorithm")]
     let mut path_tilemap = None;
@@ -280,7 +280,7 @@ fn load_levels(
             }
         }
 
-        #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+        #[cfg(feature = "physics")]
         if let Some(phy) = manager.physics_layer.as_ref() {
             if layer.identifier == phy.identifier {
                 collider_aabbs = Some(layer::physics::analyze_physics_layer(layer, phy));
@@ -291,7 +291,7 @@ fn load_levels(
         load_layer(layer_index, layer, &mut ldtk_layers, translation, &manager);
     }
 
-    #[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+    #[cfg(feature = "physics")]
     if let Some(aabbs) = collider_aabbs {
         ldtk_layers.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
     }

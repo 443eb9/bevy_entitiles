@@ -52,7 +52,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     };
 
     let anim_a = tilemap.animations.register_animation(2, vec![0, 1, 2, 3]);
-    println!("{:?}", anim_a);
     let anim_b = tilemap.animations.register_animation(3, vec![0, 1, 2]);
 
     tilemap.storage.fill_rect(

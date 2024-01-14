@@ -29,14 +29,13 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 ## Feature Flags
 
-| Flag             | Funtionality                                                                                         |
-| ---------------- | ---------------------------------------------------------------------------------------------------- |
-| `algorithm`      | Implementation of algorithms                                                                         |
-| `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc.              |
-| `ldtk`           | [LDtk](https://ldtk.io/) support.                                                                    |
-| `physics_rapier` | Physics support for [`bevy_rapier`](https://github.com/dimforge/bevy_rapier)                         |
-| `physics_xpbd`   | Physics support for [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd), like setting colliders etc. |
-| `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.                       |
+| Flag          | Funtionality                                                                            |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `algorithm`   | Implementation of algorithms                                                            |
+| `debug`       | Show some debug info including aabbs for chunks and tilemaps, path finding results etc. |
+| `ldtk`        | [LDtk](https://ldtk.io/) support.                                                       |
+| `physics`     | Physics support using [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd).              |
+| `serializing` | Save and load the tilemap from files. Also contains tools for upgrading files.          |
 
 ## Coordinate Systems
 
@@ -135,6 +134,8 @@ In the following case, each tile has at least one corresponding color gap with i
 - [Cavernas_by_Adam_Saltsman.png](https://adamatomic.itch.io/cavernas)
 
 ## Versions
+
+*LDtk version is the version that json api has changed. So you can also use 1.5.2 in 0.2.7.</br>See [this](https://ldtk.io/json/next/#changes) for more information.*
 
 | Bevy ver | EntiTiles ver | LDtk ver      |
 | -------- | ------------- | ------------- |

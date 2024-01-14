@@ -84,7 +84,7 @@ impl LdtkPhysicsAabbs {
                 });
                 collider.set_parent(tilemap);
 
-                #[cfg(feature = "physics_xpbd")]
+                #[cfg(feature = "physics")]
                 {
                     collider.insert((
                         bevy_xpbd_2d::components::Collider::cuboid(
@@ -97,20 +97,6 @@ impl LdtkPhysicsAabbs {
                         collider.insert(bevy_xpbd_2d::components::Friction {
                             dynamic_coefficient: *coe,
                             static_coefficient: *coe,
-                            ..Default::default()
-                        });
-                    }
-                }
-
-                #[cfg(feature = "physics_rapier")]
-                {
-                    collider.insert(bevy_rapier2d::geometry::Collider::cuboid(
-                        aabb.width() / 2. - 0.01,
-                        aabb.height() / 2. - 0.01,
-                    ));
-                    if let Some(coe) = frictions.and_then(|f| f.get(i)) {
-                        collider.insert(bevy_rapier2d::geometry::Friction {
-                            coefficient: *coe,
                             ..Default::default()
                         });
                     }

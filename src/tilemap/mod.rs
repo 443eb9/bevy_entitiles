@@ -18,7 +18,7 @@ pub mod chunking;
 pub mod coordinates;
 pub mod despawn;
 pub mod map;
-#[cfg(any(feature = "physics_xpbd", feature = "physics_rapier"))]
+#[cfg(feature = "physics")]
 pub mod physics;
 pub mod tile;
 
@@ -70,7 +70,7 @@ impl Plugin for EntiTilesTilemapPlugin {
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmTilemapPlugin);
-        #[cfg(any(feature = "physics_rapier", feature = "physics_xpbd"))]
+        #[cfg(feature = "physics")]
         app.add_plugins(physics::EntiTilesPhysicsTilemapPlugin);
     }
 }
