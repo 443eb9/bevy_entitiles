@@ -35,6 +35,7 @@ use bevy_entitiles::{
         resources::{LdtkAssets, LdtkLevelManager},
         sprite::LdtkEntityMaterial,
     },
+    tilemap::physics::PhysicsTile,
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
@@ -87,13 +88,27 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
     );
 
     println!("tocs: {:?}", tocs);
-
     manager
         .set_physics_layer(LdtkPhysicsLayer {
             identifier: "PhysicsColliders".to_string(),
-            air_value: 0,
+            air: 0,
             parent: "Collisions".to_string(),
-            frictions: Some(HashMap::from([(1, 0.9), (2, 0.1)])),
+            tiles: Some(HashMap::from([
+                (
+                    1,
+                    PhysicsTile {
+                        rigid_body: true,
+                        friction: Some(0.9),
+                    },
+                ),
+                (
+                    2,
+                    PhysicsTile {
+                        rigid_body: true,
+                        friction: Some(0.1),
+                    },
+                ),
+            ])),
         })
         .set_if_ignore_unregistered_entities(true);
 }

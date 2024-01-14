@@ -72,7 +72,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
         )
         .set_physics_layer(LdtkPhysicsLayer {
             identifier: "PhysicsCollider".to_string(),
-            air_value: 0,
+            air: 0,
             parent: "Patterns".to_string(),
             frictions: Some(HashMap::from([(1, 0.5), (2, 0.8)])),
         })

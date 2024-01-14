@@ -208,6 +208,14 @@ impl PhysicsTilemap {
         }
     }
 
+    #[inline]
+    pub fn remove_all(&mut self, commands: &mut Commands) {
+        for entity in self.storage.values() {
+            commands.entity(*entity).despawn();
+        }
+        self.storage.clear();
+    }
+
     /// Fill a rectangle area with the same tile.
     /// This won't concat the adjacent tiles.
     pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {

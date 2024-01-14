@@ -12,15 +12,16 @@ use crate::{
     tilemap::{
         coordinates,
         map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
+        physics::PhysicsTile,
     },
 };
 
 #[derive(Debug, Clone, Reflect)]
 pub struct LdtkPhysicsLayer {
     pub identifier: String,
-    pub air_value: i32,
     pub parent: String,
-    pub frictions: Option<HashMap<i32, f32>>,
+    pub air: i32,
+    pub tiles: Option<HashMap<i32, PhysicsTile>>,
 }
 
 #[derive(Debug, Clone, Reflect)]
@@ -123,7 +124,7 @@ pub fn analyze_physics_layer(
         aabbs: parse_grid(
             layer.int_grid_csv.clone(),
             UVec2::new(layer.c_wid as u32, layer.c_hei as u32),
-            physics.air_value,
+            physics.air,
         ),
     }
 }

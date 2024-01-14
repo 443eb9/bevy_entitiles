@@ -6,8 +6,8 @@
 - Frustum culling for tilemaps.
 - Removed `ui` stuff. They do not deserve my extra attention.
 - Broke the limitation of tile animations.
-- Removed support of `bevy_rapier` as to support both physics libraries are annoying.
-- Much more support for physics tilemaps. (Like collider concating)
+- Removed support of `bevy_rapier` as to support both physics libraries is tiring.
+- Much further support for physics tilemaps.
 
 # What's Fixed:
 

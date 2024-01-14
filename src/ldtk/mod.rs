@@ -176,11 +176,31 @@ pub fn unload_ldtk_level(
     });
 }
 
+#[cfg(not(feature = "physics"))]
 pub fn unload_ldtk_layer(
     mut commands: Commands,
     mut query: Query<&mut TilemapStorage, With<LdtkUnloadLayer>>,
 ) {
     query.iter_mut().for_each(|mut storage| {
+        storage.despawn(&mut commands);
+    });
+}
+
+#[cfg(feature = "physics")]
+pub fn unload_ldtk_layer(
+    mut commands: Commands,
+    mut query: Query<
+        (
+            &mut TilemapStorage,
+            Option<&mut crate::tilemap::physics::PhysicsTilemap>,
+        ),
+        With<LdtkUnloadLayer>,
+    >,
+) {
+    query.iter_mut().for_each(|(mut storage, physics)| {
+        if let Some(mut physics) = physics {
+            physics.remove_all(&mut commands);
+        }
         storage.despawn(&mut commands);
     });
 }
@@ -256,11 +276,6 @@ fn load_levels(
 
     let background = load_background(level, translation, level_px, asset_server, &manager);
 
-    #[cfg(feature = "physics")]
-    let mut collider_aabbs = None;
-    #[cfg(feature = "algorithm")]
-    let mut path_tilemap = None;
-
     let mut ldtk_layers = LdtkLayers::new(
         level_entity,
         level.layer_instances.len(),
@@ -275,7 +290,10 @@ fn load_levels(
         #[cfg(feature = "algorithm")]
         if let Some(path) = manager.path_layer.as_ref() {
             if layer.identifier == path.identifier {
-                path_tilemap = Some(layer::path::analyze_path_layer(layer, path));
+                ldtk_layers.assign_path_layer(
+                    manager.path_layer.clone().unwrap(),
+                    layer::path::analyze_path_layer(layer, path),
+                );
                 continue;
             }
         }
@@ -283,22 +301,19 @@ fn load_levels(
         #[cfg(feature = "physics")]
         if let Some(phy) = manager.physics_layer.as_ref() {
             if layer.identifier == phy.identifier {
-                collider_aabbs = Some(layer::physics::analyze_physics_layer(layer, phy));
+                ldtk_layers.assign_physics_layer(
+                    manager.physics_layer.clone().unwrap(),
+                    layer.int_grid_csv.clone(),
+                    UVec2 {
+                        x: layer.c_wid as u32,
+                        y: layer.c_hei as u32,
+                    },
+                );
                 continue;
             }
         }
 
         load_layer(layer_index, layer, &mut ldtk_layers, translation, &manager);
-    }
-
-    #[cfg(feature = "physics")]
-    if let Some(aabbs) = collider_aabbs {
-        ldtk_layers.assign_physics_layer(manager.physics_layer.clone().unwrap(), aabbs);
-    }
-
-    #[cfg(feature = "algorithm")]
-    if let Some(path_tilemap) = path_tilemap {
-        ldtk_layers.assign_path_layer(manager.path_layer.clone().unwrap(), path_tilemap);
     }
 
     ldtk_layers.apply_all(

@@ -2,7 +2,7 @@ use bevy::{
     asset::AssetServer,
     ecs::{entity::Entity, system::Commands},
     hierarchy::DespawnRecursiveExt,
-    math::{IVec2, Vec2, Vec4},
+    math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
     sprite::SpriteBundle,
     transform::components::Transform,
@@ -54,7 +54,7 @@ pub struct LdtkLayers<'a> {
         HashMap<IVec2, crate::tilemap::algorithm::path::PathTile>,
     )>,
     #[cfg(feature = "physics")]
-    pub physics_layer: Option<(physics::LdtkPhysicsLayer, physics::LdtkPhysicsAabbs)>,
+    pub physics_layer: Option<(physics::LdtkPhysicsLayer, Vec<i32>, UVec2)>,
 }
 
 impl<'a> LdtkLayers<'a> {
@@ -143,6 +143,11 @@ impl<'a> LdtkLayers<'a> {
                     aabb,
                     tiles: HashMap::new(),
                 },
+                #[cfg(feature = "physics")]
+                physics_tiles: TileBuffer {
+                    aabb,
+                    tiles: HashMap::new(),
+                },
             },
             tileset,
             LayerIid(layer.iid.clone()),
@@ -164,7 +169,6 @@ impl<'a> LdtkLayers<'a> {
             LdtkLoaderMode::Tilemap => {
                 let mut layers = HashMap::with_capacity(self.layers.len());
                 let mut entities = HashMap::with_capacity(self.entities.len());
-                let mut colliders = Vec::new();
 
                 self.entities.drain(..).for_each(|entity| {
                     let mut ldtk_entity = commands.spawn(entity.transform.clone());
@@ -226,17 +230,16 @@ impl<'a> LdtkLayers<'a> {
                         }
 
                         #[cfg(feature = "physics")]
-                        if let Some((physics_layer, aabbs)) = &self.physics_layer {
+                        if let Some((physics_layer,physics_data,size)) = &self.physics_layer {
                             if physics_layer.parent == tilemap.name.0 {
-                                colliders = aabbs.generate_colliders(
-                                    commands,
-                                    tilemap_entity,
-                                    &tilemap.ty,
-                                    &tilemap.tilemap_transform,
-                                    &tilemap.tile_pivot,
-                                    &tilemap.slot_size,
-                                    physics_layer.frictions.as_ref(),
-                                    Vec2::ZERO,
+                                commands.entity(tilemap_entity).insert(
+                                    crate::tilemap::physics::DataPhysicsTilemap::new(
+                                        IVec2::new(0, -(size.y as i32)),
+                                        physics_data.clone(),
+                                        *size,
+                                        physics_layer.air,
+                                        physics_layer.tiles.clone().unwrap_or_default()
+                                    )
                                 );
                             }
                         }
@@ -253,7 +256,6 @@ impl<'a> LdtkLayers<'a> {
                         layers,
                         entities,
                         background: bg,
-                        colliders,
                     },
                     SpatialBundle {
                         transform: Transform::from_translation(self.translation.extend(0.)),
@@ -285,9 +287,9 @@ impl<'a> LdtkLayers<'a> {
 
                 #[cfg(feature = "physics")]
                 {
-                    let (physics_layer, aabbs) = self.physics_layer.as_ref().unwrap();
-                    ldtk_patterns.insert_physics_aabbs(level.identifier.clone(), aabbs.clone());
-                    ldtk_patterns.frictions = physics_layer.frictions.clone();
+                    // let (physics_layer, physics_data, size) = self.physics_layer.as_ref().unwrap();
+                    // ldtk_patterns.insert_physics_aabbs(level.identifier.clone(), aabbs.clone());
+                    // ldtk_patterns.frictions = physics_layer.frictions.clone();
                 }
 
                 ldtk_patterns.insert(
@@ -312,9 +314,10 @@ impl<'a> LdtkLayers<'a> {
     #[cfg(feature = "physics")]
     pub fn assign_physics_layer(
         &mut self,
-        physics: physics::LdtkPhysicsLayer,
-        aabbs: physics::LdtkPhysicsAabbs,
+        physics_layer: physics::LdtkPhysicsLayer,
+        physics_data: Vec<i32>,
+        size: UVec2,
     ) {
-        self.physics_layer = Some((physics, aabbs));
+        self.physics_layer = Some((physics_layer, physics_data, size));
     }
 }

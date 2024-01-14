@@ -41,24 +41,22 @@ pub fn prepare_tilemaps(
         render_chunks.prepare_chunks(tilemap, &render_device);
 
         if let Some(texture) = tilemap.texture.as_ref() {
-            if textures_storage.contains(&texture.texture) {
-                return;
-            }
-
-            textures_storage.insert(texture.clone_weak(), texture.desc());
-
             storage_buffers
                 .get_or_insert_buffer(tilemap.id)
                 .extend(&tilemap.animations.as_ref().unwrap().0);
+
+            if !textures_storage.contains(&texture.texture) {
+                textures_storage.insert(texture.clone_weak(), texture.desc());
+            }
         }
     });
-
-    bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
-    bind_groups.bind_storage_buffers(&render_device, &mut storage_buffers, &entitiles_pipeline);
 
     textures_storage.prepare_textures(&render_device);
     uniform_buffers.write(&render_device, &render_queue);
     storage_buffers.write(&render_device, &render_queue);
+
+    bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
+    bind_groups.bind_storage_buffers(&render_device, &mut storage_buffers, &entitiles_pipeline);
 }
 
 pub fn prepare_tiles(
