@@ -121,7 +121,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     // tilemap.storage.fill_rect(
     //     &mut commands,
-    //     TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+    //     bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
     //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     // );
 

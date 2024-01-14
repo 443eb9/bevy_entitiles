@@ -14,3 +14,4 @@
 - Tiles and tilemaps won't update after you removed them.
 - Spawning another tilemap while the program is running will cause panic. (FINALLY SOLVED!!!)
 - The result of `index_to_world` is incorrect.
+- Deriving `LdtkEntity` and `LdtkEnum` requires to `use` them first.

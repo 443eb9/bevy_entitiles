@@ -27,8 +27,6 @@ use bevy::{
 use bevy_entitiles::{
     ldtk::{
         app_ext::AppExt,
-        entities::LdtkEntity,
-        enums::LdtkEnum,
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
         layer::physics::LdtkPhysicsLayer,
