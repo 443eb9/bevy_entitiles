@@ -23,7 +23,7 @@ use bevy_entitiles::{
         resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
     },
     math::TileArea,
-    tilemap::map::TilemapType,
+    tilemap::{map::TilemapType, physics::PhysicsTile},
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
@@ -74,7 +74,22 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
             identifier: "PhysicsCollider".to_string(),
             air: 0,
             parent: "Patterns".to_string(),
-            frictions: Some(HashMap::from([(1, 0.5), (2, 0.8)])),
+            tiles: Some(HashMap::from([
+                (
+                    1,
+                    PhysicsTile {
+                        rigid_body: true,
+                        friction: Some(0.5),
+                    },
+                ),
+                (
+                    2,
+                    PhysicsTile {
+                        rigid_body: true,
+                        friction: Some(0.8),
+                    },
+                ),
+            ])),
         })
         .load_all_patterns(&mut commands);
 
