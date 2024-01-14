@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use super::map::{
-    TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+    TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
     TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
 };
 
@@ -21,14 +21,14 @@ pub struct TilemapBundle {
     pub slot_size: TilemapSlotSize,
     /// The type of the tilemap.
     pub ty: TilemapType,
-    /// The pivot of the tiles. 
+    /// The pivot of the tiles.
     pub tile_pivot: TilePivot,
     /// The opacities of each **rendered** layer.
-    /// 
+    ///
     /// Only the top 4 layers will be rendered.
     pub layer_opacities: TilemapLayerOpacities,
     /// The storage of the tilemap. The entities of each tiles are divided into chunks and stored in it.
-    /// 
+    ///
     /// You need to spawn an empty tilemap and assign it to the storage.
     pub storage: TilemapStorage,
     /// The transform of the tilemap. It's not the same one as `Transform`.
@@ -39,8 +39,6 @@ pub struct TilemapBundle {
     pub texture: TilemapTexture,
     /// All the animation sequences of the tilemap.
     pub animations: TilemapAnimations,
-    /// The aabbs of the tilemap. Including the chunk aabbs and the tilemap aabb.
-    pub aabbs: TilemapAabbs,
     /// Just to make sure the child sprites are correctly rendered.
     pub visibility: Visibility,
     /// Just to make sure the child sprites are correctly rendered.
@@ -65,22 +63,20 @@ pub struct PureColorTilemapBundle {
     pub slot_size: TilemapSlotSize,
     /// The type of the tilemap.
     pub ty: TilemapType,
-    /// The pivot of the tiles. 
+    /// The pivot of the tiles.
     pub tile_pivot: TilePivot,
     /// The opacities of each **rendered** layer.
-    /// 
+    ///
     /// Only the top 4 layers will be rendered.
     pub layer_opacities: TilemapLayerOpacities,
     /// The storage of the tilemap. The entities of each tiles are divided into chunks and stored in it.
-    /// 
+    ///
     /// You need to spawn an empty tilemap and assign it to the storage.
     pub storage: TilemapStorage,
     /// The transform of the tilemap. It's not the same one as `Transform`.
     /// If you want to move or rotate the tilemap, you need to change this.
     /// Modify the `Transform` component will not work.
     pub tilemap_transform: TilemapTransform,
-    /// The aabbs of the tilemap. Including the chunk aabbs and the tilemap aabb.
-    pub aabbs: TilemapAabbs,
     /// Just to make sure the child sprites are correctly rendered.
     pub visibility: Visibility,
     /// Just to make sure the child sprites are correctly rendered.

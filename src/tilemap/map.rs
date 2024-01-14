@@ -2,7 +2,11 @@ use std::{f32::consts::SQRT_2, fmt::Debug};
 
 use bevy::{
     asset::Handle,
-    ecs::{component::Component, query::Changed, system::Query},
+    ecs::{
+        component::Component,
+        query::Changed,
+        system::{ParallelCommands, Query},
+    },
     math::{Mat2, Quat, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     reflect::Reflect,
@@ -589,10 +593,10 @@ pub fn queued_chunk_aabb_calculator(
 }
 
 pub fn tilemap_aabb_calculator(
+    commands: ParallelCommands,
     mut tilemaps_query: Query<
         (
             &TilemapStorage,
-            &mut TilemapAabbs,
             &TilemapType,
             &TilePivot,
             &TilemapSlotSize,
@@ -601,13 +605,21 @@ pub fn tilemap_aabb_calculator(
         Changed<TilemapStorage>,
     >,
 ) {
-    tilemaps_query.par_iter_mut().for_each(
-        |(storage, mut aabbs, ty, tile_pivot, slot_size, transform)| {
-            let mut chunk_aabb = IAabb2d::default();
+    tilemaps_query
+        .par_iter_mut()
+        .for_each(|(storage, ty, tile_pivot, slot_size, transform)| {
+            let mut chunk_aabb: Option<IAabb2d> = None;
             storage.storage.chunks.keys().for_each(|chunk_index| {
-                chunk_aabb.expand_to_contain(*chunk_index);
+                if let Some(aabb) = &mut chunk_aabb {
+                    aabb.expand_to_contain(*chunk_index);
+                } else {
+                    chunk_aabb = Some(IAabb2d::splat(*chunk_index));
+                }
             });
-            aabbs.chunk_aabb = chunk_aabb;
+
+            let Some(chunk_aabb) = chunk_aabb else {
+                return;
+            };
 
             let world_max = Aabb2d::from_tilemap(
                 chunk_aabb.max,
@@ -625,10 +637,16 @@ pub fn tilemap_aabb_calculator(
                 slot_size.0,
                 *transform,
             );
-            aabbs.world_aabb = Aabb2d {
+            let world_aabb = Aabb2d {
                 min: world_min.min,
                 max: world_max.max,
             };
-        },
-    );
+
+            commands.command_scope(|mut c| {
+                c.entity(storage.tilemap).insert(TilemapAabbs {
+                    chunk_aabb,
+                    world_aabb,
+                });
+            });
+        });
 }
