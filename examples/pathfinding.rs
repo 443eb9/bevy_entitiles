@@ -1,8 +1,3 @@
-/*
- * The visualization seems incorrect.
- * But the data of the result is correct.
- */
-
 use bevy::{
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},

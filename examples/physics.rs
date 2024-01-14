@@ -17,6 +17,7 @@ use bevy::{
     },
     sprite::{ColorMaterial, ColorMesh2dBundle},
     transform::components::Transform,
+    utils::HashMap,
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -27,7 +28,7 @@ use bevy_entitiles::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
         },
-        physics::{PhysicsTile, PhysicsTilemap, TileCollision},
+        physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap, TileCollision},
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
@@ -79,6 +80,7 @@ fn setup(
             rigid_body: true,
             friction: Some(0.8),
         },
+        false,
     );
 
     let entity = commands.spawn_empty().id();
@@ -133,11 +135,43 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
         TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
     );
 
-    commands.entity(entity).insert((tilemap, physics_tilemap));
+    let physics_data = DataPhysicsTilemap::new(
+        IVec2::ZERO,
+        // In fact the data here is flipped vertically
+        // But `new` method will flip it back
+        // If your data has already been flipped, you can use `new_flipped`
+        vec![
+            0, 1, 1, 1, 1, //
+            0, 1, 0, 3, 1, //
+            1, 1, 0, 3, 0, //
+            0, 2, 0, 0, 0, //
+            0, 2, 2, 0, 2, //
+        ],
+        UVec2 { x: 5, y: 5 },
+        0,
+        HashMap::from([
+            (
+                1,
+                PhysicsTile {
+                    rigid_body: true,
+                    friction: Some(0.1),
+                },
+            ),
+            (
+                2,
+                PhysicsTile {
+                    rigid_body: true,
+                    friction: Some(0.4),
+                },
+            ),
+        ]),
+    );
+
+    commands.entity(entity).insert((tilemap, physics_data));
 
     // spawn a character
     commands.spawn((

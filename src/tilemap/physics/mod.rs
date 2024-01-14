@@ -6,19 +6,22 @@ use bevy::{
         event::{Event, EventReader, EventWriter},
         system::{Commands, Query},
     },
-    math::{IVec2, Vec2},
+    math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
+    utils::HashMap,
 };
 use bevy_xpbd_2d::{
     components::{Collider, Friction, RigidBody},
     plugins::collision::contact_reporting::{CollisionEnded, CollisionStarted},
 };
 
-use crate::{math::TileArea, tilemap::tile::Tile, DEFAULT_CHUNK_SIZE};
+use crate::{
+    math::{aabb::IAabb2d, TileArea},
+    tilemap::tile::Tile,
+};
 
 use super::{
     buffers::{PhysicsTilesBuffer, Tiles},
-    chunking::storage::ChunkedStorage,
     map::TilemapStorage,
 };
 
@@ -28,13 +31,21 @@ pub struct EntiTilesPhysicsTilemapPlugin;
 
 impl Plugin for EntiTilesPhysicsTilemapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (collision_handler, systems::spawn_colliders));
+        app.add_systems(
+            Update,
+            (
+                collision_handler,
+                systems::spawn_colliders,
+                systems::data_physics_tilemap_analyzer,
+            ),
+        );
 
         app.add_event::<TileCollision>();
 
         app.register_type::<TileCollision>()
             .register_type::<CollisionData>()
             .register_type::<PhysicsTilemap>()
+            .register_type::<DataPhysicsTilemap>()
             .register_type::<PhysicsTile>();
     }
 }
@@ -70,32 +81,108 @@ pub struct PhysicsTile {
     pub friction: Option<f32>,
 }
 
+impl Default for PhysicsTile {
+    fn default() -> Self {
+        Self {
+            rigid_body: true,
+            friction: Default::default(),
+        }
+    }
+}
+
 impl Tiles for PhysicsTile {}
 
 #[derive(Component, Debug, Clone, Reflect)]
+pub struct DataPhysicsTilemap {
+    pub(crate) origin: IVec2,
+    pub(crate) data: Vec<i32>,
+    pub(crate) size: UVec2,
+    pub(crate) air: i32,
+    pub(crate) tiles: HashMap<i32, PhysicsTile>,
+}
+
+impl DataPhysicsTilemap {
+    pub fn new(
+        origin: IVec2,
+        data: Vec<i32>,
+        size: UVec2,
+        air: i32,
+        tiles: HashMap<i32, PhysicsTile>,
+    ) -> Self {
+        assert_eq!(
+            data.len(),
+            size.x as usize * size.y as usize,
+            "Data size mismatch!"
+        );
+
+        let mut flipped = Vec::with_capacity(data.len());
+        for y in 0..size.y {
+            for x in 0..size.x {
+                flipped.push(data[(x + (size.y - y - 1) * size.x) as usize]);
+            }
+        }
+
+        DataPhysicsTilemap {
+            origin,
+            data: flipped,
+            size,
+            air,
+            tiles,
+        }
+    }
+
+    pub fn new_flipped(
+        origin: IVec2,
+        flipped_data: Vec<i32>,
+        size: UVec2,
+        air: i32,
+        tiles: HashMap<i32, PhysicsTile>,
+    ) -> Self {
+        assert_eq!(
+            flipped_data.len(),
+            size.x as usize * size.y as usize,
+            "Data size mismatch!"
+        );
+
+        DataPhysicsTilemap {
+            origin,
+            data: flipped_data,
+            size,
+            air,
+            tiles,
+        }
+    }
+
+    #[inline]
+    pub fn get_or_air(&self, index: UVec2) -> i32 {
+        self.data
+            .get((index.x + index.y * self.size.x) as usize)
+            .cloned()
+            .unwrap_or(self.air)
+    }
+
+    #[inline]
+    pub fn get_tile(&self, value: i32) -> Option<PhysicsTile> {
+        self.tiles.get(&value).cloned()
+    }
+
+    #[inline]
+    pub fn set(&mut self, index: UVec2, value: i32) {
+        self.data[(index.x + index.y * self.size.x) as usize] = value;
+    }
+}
+
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
-    pub(crate) storage: ChunkedStorage<Entity>,
-    pub(crate) spawn_queue: Vec<(IVec2, PhysicsTile)>,
-    pub(crate) concat_queue: Vec<(IVec2, PhysicsTile)>,
-    pub(crate) split_queue: Vec<IVec2>,
+    pub(crate) storage: HashMap<IVec2, Entity>,
+    pub(crate) spawn_queue: Vec<(IAabb2d, PhysicsTile)>,
 }
 
 impl PhysicsTilemap {
     pub fn new() -> Self {
         PhysicsTilemap {
-            storage: ChunkedStorage::new(DEFAULT_CHUNK_SIZE),
+            storage: HashMap::default(),
             spawn_queue: Vec::new(),
-            concat_queue: Vec::new(),
-            split_queue: Vec::new(),
-        }
-    }
-
-    pub fn new_with_chunk_size(chunk_size: u32) -> Self {
-        PhysicsTilemap {
-            storage: ChunkedStorage::new(chunk_size),
-            spawn_queue: Vec::new(),
-            concat_queue: Vec::new(),
-            split_queue: Vec::new(),
         }
     }
 
@@ -105,23 +192,34 @@ impl PhysicsTilemap {
     /// And it's shared with the `Tile` entity.
     #[inline]
     pub fn get(&self, index: IVec2) -> Option<Entity> {
-        self.storage.get_elem(index).cloned()
+        self.storage.get(&index).cloned()
     }
 
     /// Set a tile. This actually queues the tile and it will be spawned later.
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: PhysicsTile) {
-        self.spawn_queue.push((index, tile));
+        self.spawn_queue.push((IAabb2d::splat(index), tile));
+    }
+
+    #[inline]
+    pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
+        if let Some(entity) = self.storage.remove(&index) {
+            commands.entity(entity).despawn();
+        }
     }
 
     /// Fill a rectangle area with the same tile.
     /// This won't concat the adjacent tiles.
-    pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile) {
-        self.spawn_queue.extend(
-            (area.origin.y..=area.dest.y)
-                .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
-                .map(|index| (index, tile.clone())),
-        );
+    pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
+        if concat {
+            self.spawn_queue.push((area.into(), tile));
+        } else {
+            self.spawn_queue.extend(
+                (area.origin.y..=area.dest.y)
+                    .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
+                    .map(|index| (IAabb2d::splat(index), tile.clone())),
+            );
+        }
     }
 
     /// Fill a rectangle area with tiles returned by `physics_tile`.
@@ -137,12 +235,13 @@ impl PhysicsTilemap {
         self.spawn_queue.reserve(area.size());
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
+                let index = IVec2 { x, y };
                 if let Some(tile) = physics_tile(if relative_index {
-                    IVec2 { x, y } - area.origin
+                    index - area.origin
                 } else {
-                    IVec2 { x, y }
+                    index
                 }) {
-                    self.spawn_queue.push((IVec2 { x, y }, tile));
+                    self.spawn_queue.push((IAabb2d::splat(index), tile));
                 }
             }
         }
@@ -154,23 +253,8 @@ impl PhysicsTilemap {
             buffer
                 .tiles
                 .into_iter()
-                .map(|(index, tile)| (index + origin, tile)),
+                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile)),
         );
-    }
-
-    /// Try to concat all the tiles that are adjacent to the given origin.
-    /// And replace them with the lowest number of colliders.
-    #[inline]
-    pub fn concat(&mut self, origin: IVec2, tile: PhysicsTile) {
-        self.concat_queue.push((origin, tile));
-    }
-
-    /// Try to split the concat tile at the given parent index.
-    ///
-    /// The index should be the `origin` you entered in `concat()`.
-    #[inline]
-    pub fn split(&mut self, index: IVec2) {
-        self.split_queue.push(index);
     }
 }
 

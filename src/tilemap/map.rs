@@ -53,6 +53,12 @@ pub struct TilemapTransform {
 }
 
 impl TilemapTransform {
+    pub const IDENTITY: Self = Self {
+        translation: Vec2::ZERO,
+        z_index: 0,
+        rotation: TilemapRotation::None,
+    };
+
     #[inline]
     pub fn from_translation(translation: Vec2) -> Self {
         Self {
@@ -303,7 +309,7 @@ impl TilemapStorage {
     }
 
     /// Get a mutable chunk.
-    /// 
+    ///
     /// **Notice**: This is not recommended as we may do something extra when you remove/set tiles.
     #[inline]
     pub fn get_chunk_mut(&mut self, index: IVec2) -> Option<&mut Vec<Option<Entity>>> {

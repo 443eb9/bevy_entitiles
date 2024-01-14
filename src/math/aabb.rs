@@ -2,7 +2,7 @@ use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect};
 
 use crate::tilemap::map::{TilemapTransform, TilemapType};
 
-use super::extension::Vec2Integerize;
+use super::{extension::Vec2Integerize, TileArea};
 
 #[derive(Clone, Copy, Default, Debug, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -25,6 +25,14 @@ macro_rules! impl_aabb {
                 Self {
                     min: <$data_ty>::new(min_x, min_y),
                     max: <$data_ty>::new(max_x, max_y),
+                }
+            }
+
+            #[inline]
+            pub fn splat(value: $data_ty) -> Self {
+                Self {
+                    min: value,
+                    max: value,
                 }
             }
 
@@ -231,6 +239,15 @@ impl Into<Aabb2d> for IAabb2d {
         Aabb2d {
             min: self.min.as_vec2(),
             max: self.max.as_vec2(),
+        }
+    }
+}
+
+impl From<TileArea> for IAabb2d {
+    fn from(value: TileArea) -> Self {
+        Self {
+            min: value.origin,
+            max: value.dest,
         }
     }
 }
