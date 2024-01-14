@@ -14,7 +14,7 @@ use crate::{
     math::{extension::TileIndex, TileArea},
     serializing::pattern::TilemapPattern,
     tilemap::{
-        bundles::{PureColorTilemapBundle, TilemapBundle},
+        bundles::{DataTilemapBundle, PureColorTilemapBundle, TilemapBundle},
         map::{
             TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTransform, TilemapType,
@@ -712,9 +712,7 @@ pub fn wfc_applier(
                     WfcSource::LdtkMapPattern(mode) => {
                         use crate::ldtk::resources::LdtkWfcManager;
                         use bevy::{
-                            hierarchy::{BuildChildren, DespawnRecursiveExt},
-                            log::warn,
-                            prelude::SpatialBundle,
+                            hierarchy::DespawnRecursiveExt, log::warn, prelude::SpatialBundle,
                         };
 
                         let Some(patterns) = &ldtk_patterns else {
@@ -740,6 +738,13 @@ pub fn wfc_applier(
                                         (
                                             entity,
                                             TilemapBundle {
+                                                name: TilemapName(
+                                                    layer_sample[layer_idx]
+                                                        .0
+                                                        .label
+                                                        .clone()
+                                                        .unwrap(),
+                                                ),
                                                 ty: TilemapType::Square,
                                                 tile_render_size: TileRenderSize(
                                                     tile_size.as_vec2(),
@@ -766,11 +771,10 @@ pub fn wfc_applier(
                                     bg.transform.translation = ((ptn_render_size / 2.)
                                         + ptn_idx.as_vec2() * ptn_render_size)
                                         .extend(z);
-                                    let bg_entity = c.spawn(bg).id();
-                                    c.entity(entity).add_child(bg_entity);
+                                    c.spawn(bg);
 
                                     p.iter().enumerate().for_each(|(layer_index, layer)| {
-                                        let (entity, target) = &mut layers[layer_index];
+                                        let (_, target) = &mut layers[layer_index];
                                         target.storage.fill_with_buffer(
                                             &mut c,
                                             // as the y axis in LDtk is reversed
@@ -781,27 +785,33 @@ pub fn wfc_applier(
                                         );
 
                                         #[cfg(feature = "physics")]
-                                        if let Some(aabbs) =
-                                            patterns.get_physics_aabbs_with_index(*e)
+                                        if layer.0.label.clone().unwrap() == patterns.physics_parent
                                         {
-                                            aabbs.generate_colliders(
-                                                &mut c,
-                                                *entity,
-                                                &target.ty,
-                                                &target.tilemap_transform,
-                                                &target.tile_pivot,
-                                                &target.slot_size,
-                                                patterns.frictions.as_ref(),
-                                                (ptn_idx + IVec2::Y).as_vec2()
-                                                    * layer.0.tiles.aabb.size().as_vec2()
-                                                    * layer.1.desc.tile_size.as_vec2(),
-                                            );
+                                            if let Some(physics_tilemap) =
+                                                patterns.get_physics_with_index(*e)
+                                            {
+                                                let mut physics_tilemap = physics_tilemap.clone();
+                                                physics_tilemap.origin =
+                                                    ptn_idx * layer.0.tiles.aabb.size();
+                                                c.spawn((
+                                                    DataTilemapBundle {
+                                                        ty: TilemapType::Square,
+                                                        tile_render_size: TileRenderSize(
+                                                            layer.1.desc.tile_size.as_vec2(),
+                                                        ),
+                                                        slot_size: TilemapSlotSize(
+                                                            layer.1.desc.tile_size.as_vec2(),
+                                                        ),
+                                                        ..Default::default()
+                                                    },
+                                                    physics_tilemap,
+                                                ));
+                                            }
                                         }
                                     });
                                 });
 
                                 layers.into_iter().for_each(|(tilemap, bundle)| {
-                                    c.entity(entity).add_child(tilemap);
                                     c.entity(tilemap).insert(bundle);
                                 });
                             }

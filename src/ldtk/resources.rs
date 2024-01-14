@@ -33,9 +33,9 @@ pub struct LdtkPatterns {
     #[reflect(ignore)]
     pub patterns: HashMap<String, (Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle)>,
     #[cfg(feature = "physics")]
-    pub aabbs: HashMap<String, super::layer::physics::LdtkPhysicsAabbs>,
+    pub physics_patterns: HashMap<String, crate::tilemap::physics::DataPhysicsTilemap>,
     #[cfg(feature = "physics")]
-    pub frictions: Option<HashMap<i32, f32>>,
+    pub physics_parent: String,
     pub idents: HashMap<u8, String>,
 }
 
@@ -75,23 +75,12 @@ impl LdtkPatterns {
             .insert(identifier.to_string(), (patterns, background));
     }
 
-    #[cfg(feature = "physics")]
     #[inline]
-    pub fn insert_physics_aabbs(
-        &mut self,
-        identifier: String,
-        aabbs: super::layer::physics::LdtkPhysicsAabbs,
-    ) {
-        self.aabbs.insert(identifier, aabbs);
-    }
-
-    #[cfg(feature = "physics")]
-    #[inline]
-    pub fn get_physics_aabbs_with_index(
+    pub fn get_physics_with_index(
         &self,
         index: u8,
-    ) -> Option<&super::layer::physics::LdtkPhysicsAabbs> {
-        self.aabbs.get(&self.idents[&index])
+    ) -> Option<&crate::tilemap::physics::DataPhysicsTilemap> {
+        self.physics_patterns.get(&self.idents[&index])
     }
 
     #[inline]

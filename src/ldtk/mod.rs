@@ -133,7 +133,6 @@ impl Plugin for EntiTilesLdtkPlugin {
         #[cfg(feature = "physics")]
         {
             app.register_type::<layer::physics::LdtkPhysicsLayer>();
-            app.register_type::<layer::physics::LdtkPhysicsAabbs>();
         }
     }
 }

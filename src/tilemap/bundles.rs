@@ -9,6 +9,36 @@ use super::map::{
     TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
 };
 
+/// The bundle of the tilemap with no actual tiles.
+#[derive(Bundle, Default, Debug, Clone)]
+pub struct DataTilemapBundle {
+    /// The name of the tilemap. This can be used in saving the tilemap.
+    pub name: TilemapName,
+    /// The render size of tiles in pixels.
+    pub tile_render_size: TileRenderSize,
+    /// The size of each slot in pixels. This can be different from the render size.
+    /// And you can create margins and paddings.
+    pub slot_size: TilemapSlotSize,
+    /// The type of the tilemap.
+    pub ty: TilemapType,
+    /// The pivot of the tiles.
+    pub tile_pivot: TilePivot,
+    /// The transform of the tilemap. It's not the same one as `Transform`.
+    /// If you want to move or rotate the tilemap, you need to change this.
+    /// Modify the `Transform` component will not work.
+    pub tilemap_transform: TilemapTransform,
+    /// Just to make sure the child sprites are correctly rendered.
+    pub visibility: Visibility,
+    /// Just to make sure the child sprites are correctly rendered.
+    pub inherited_visibility: InheritedVisibility,
+    /// Just to make sure the child sprites are correctly rendered.
+    pub view_visibility: ViewVisibility,
+    /// Modify `TilemapTransform` instead of this one.
+    pub transform: Transform,
+    /// Just to make sure the child sprites are correctly rendered.
+    pub global_transform: GlobalTransform,
+}
+
 /// The bundle of the tilemap with a texture.
 #[derive(Bundle, Default, Debug, Clone)]
 pub struct TilemapBundle {

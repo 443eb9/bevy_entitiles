@@ -134,15 +134,17 @@ pub fn data_physics_tilemap_analyzer(
                 }
             }
 
-            if let Some(physics_tilemap) = &mut physics_tilemap {
-                physics_tilemap.spawn_queue.extend(aabbs);
-            } else {
-                commands.command_scope(|mut c| {
+            commands.command_scope(|mut c| {
+                if let Some(physics_tilemap) = &mut physics_tilemap {
+                    physics_tilemap.spawn_queue.extend(aabbs);
+                } else {
                     c.entity(entity).insert(PhysicsTilemap {
                         storage: Default::default(),
                         spawn_queue: aabbs,
                     });
-                });
-            }
+                }
+
+                c.entity(entity).remove::<DataPhysicsTilemap>();
+            });
         });
 }

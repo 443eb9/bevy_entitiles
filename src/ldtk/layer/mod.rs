@@ -231,16 +231,14 @@ impl<'a> LdtkLayers<'a> {
 
                         #[cfg(feature = "physics")]
                         if let Some((physics_layer,physics_data,size)) = &self.physics_layer {
-                            if physics_layer.parent == tilemap.name.0 {
-                                commands.entity(tilemap_entity).insert(
-                                    crate::tilemap::physics::DataPhysicsTilemap::new(
-                                        IVec2::new(0, -(size.y as i32)),
-                                        physics_data.clone(),
-                                        *size,
-                                        physics_layer.air,
-                                        physics_layer.tiles.clone().unwrap_or_default()
-                                    )
-                                );
+                            if pattern.label.clone().unwrap() == physics_layer.parent { 
+                                commands.entity(tilemap_entity).insert(crate::tilemap::physics::DataPhysicsTilemap::new(
+                                    IVec2::new(0, -(size.y as i32)),
+                                    physics_data.clone(),
+                                    *size,
+                                    physics_layer.air,
+                                    physics_layer.tiles.clone().unwrap_or_default()
+                                ));
                             }
                         }
 
@@ -286,10 +284,18 @@ impl<'a> LdtkLayers<'a> {
                     .collect::<Vec<_>>();
 
                 #[cfg(feature = "physics")]
-                {
-                    // let (physics_layer, physics_data, size) = self.physics_layer.as_ref().unwrap();
-                    // ldtk_patterns.insert_physics_aabbs(level.identifier.clone(), aabbs.clone());
-                    // ldtk_patterns.frictions = physics_layer.frictions.clone();
+                if let Some((physics_layer, physics_data, size)) = self.physics_layer.as_ref() {
+                    ldtk_patterns.physics_parent = physics_layer.parent.clone();
+                    ldtk_patterns.physics_patterns.insert(
+                        level.identifier.clone(),
+                        crate::tilemap::physics::DataPhysicsTilemap::new(
+                            IVec2::ZERO,
+                            physics_data.clone(),
+                            *size,
+                            physics_layer.air,
+                            physics_layer.tiles.clone().unwrap_or_default(),
+                        ),
+                    );
                 }
 
                 ldtk_patterns.insert(

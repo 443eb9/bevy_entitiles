@@ -7,7 +7,6 @@ use bevy::{
         query::With,
         system::{Commands, ParallelCommands, Query, Res, ResMut, Resource},
     },
-    hierarchy::BuildChildren,
     math::IVec2,
     reflect::Reflect,
     utils::{EntityHashMap, HashMap},
@@ -140,8 +139,6 @@ pub fn load_color_layer(
                     entities[in_chunk_index_vec] = Some(e);
                 });
 
-                c.entity(entity)
-                    .push_children(&entities.iter().filter_map(|e| *e).collect::<Vec<_>>());
                 storage.storage.set_chunk(chunk_index, entities);
                 c.insert_or_spawn_batch(tiles);
             });

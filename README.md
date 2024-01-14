@@ -2,6 +2,8 @@
 
 A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
+Try to be the most **comphrehensive**, **performant**, and **up-to-date** bevy tilemap crate.
+
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
 It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
@@ -10,8 +12,8 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Chunk Unloading
 - Optimization
+- Chunk Unloading
 - Tilemap Serializing (Physics)
 - [Tiled](https://www.mapeditor.org/) Support
 - Custom Material
