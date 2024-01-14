@@ -18,7 +18,15 @@ use self::{
 pub mod camera_movement;
 pub mod common;
 
-pub struct EntiTilesHelpersPlugin;
+pub struct EntiTilesHelpersPlugin {
+    pub inspector: bool,
+}
+
+impl Default for EntiTilesHelpersPlugin {
+    fn default() -> Self {
+        Self { inspector: true }
+    }
+}
 
 impl Plugin for EntiTilesHelpersPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
@@ -30,10 +38,11 @@ impl Plugin for EntiTilesHelpersPlugin {
             ),
         );
 
-        app.add_plugins((
-            bevy::diagnostic::FrameTimeDiagnosticsPlugin,
-            WorldInspectorPlugin::default(),
-        ));
+        app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
+
+        if self.inspector {
+            app.add_plugins(WorldInspectorPlugin::default());
+        }
 
         app.init_resource::<CameraControl>();
     }

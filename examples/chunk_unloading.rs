@@ -17,6 +17,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     debug::CameraAabbScale,
+    render::culling::FrustumCulling,
     serializing::{
         chunk::{
             load::{ChunkLoadCache, ChunkLoadConfig},
@@ -34,7 +35,7 @@ use bevy_entitiles::{
         },
         tile::{TileBuilder, TileLayer},
     },
-    EntiTilesPlugin, render::culling::FrustumCulling,
+    EntiTilesPlugin,
 };
 use helpers::EntiTilesHelpersPlugin;
 
@@ -51,7 +52,7 @@ fn main() {
                 ..Default::default()
             }),
             EntiTilesPlugin,
-            EntiTilesHelpersPlugin,
+            EntiTilesHelpersPlugin { inspector: false },
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, on_update)
@@ -145,7 +146,7 @@ fn on_update(
 
     // You can actually do everything you want
     // This case we load/save the chunk
-    
+
     if !to_load.is_empty() {
         load_cache.schedule_many(
             &mut commands,

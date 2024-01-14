@@ -53,7 +53,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
-            EntiTilesHelpersPlugin,
+            EntiTilesHelpersPlugin::default(),
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
         ))

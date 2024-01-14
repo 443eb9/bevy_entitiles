@@ -46,7 +46,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             EntiTilesPlugin,
-            EntiTilesHelpersPlugin,
+            EntiTilesHelpersPlugin::default(),
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
         ))

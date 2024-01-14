@@ -33,7 +33,7 @@ fn main() {
                 ..Default::default()
             }),
             EntiTilesPlugin,
-            EntiTilesHelpersPlugin,
+            EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .run();

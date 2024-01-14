@@ -41,7 +41,7 @@ fn main() {
                 ..Default::default()
             }),
             EntiTilesPlugin,
-            EntiTilesHelpersPlugin,
+            EntiTilesHelpersPlugin { inspector: false },
         ))
         .add_systems(Startup, setup)
         .insert_resource(FrustumCulling(false))

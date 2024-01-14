@@ -31,7 +31,11 @@ mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesHelpersPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            EntiTilesPlugin,
+            EntiTilesHelpersPlugin::default(),
+        ))
         .add_systems(Startup, setup)
         .add_systems(Update, (save_and_load, failure_handle))
         .run();

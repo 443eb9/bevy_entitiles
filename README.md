@@ -2,7 +2,7 @@
 
 A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
-Try to be the most **comphrehensive**, **performant**, and **up-to-date** bevy tilemap crate.
+Try to be the most **comprehensive**, **performant**, and **up-to-date** bevy tilemap crate.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
