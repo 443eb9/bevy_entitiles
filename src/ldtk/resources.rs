@@ -23,6 +23,7 @@ use crate::{
 };
 
 use super::{
+    components::EntityIid,
     json::{definitions::EntityDef, EntityRef, LdtkJson, TocInstance},
     sprite::{AtlasRect, LdtkEntityMaterial},
     LdtkLoader, LdtkLoaderMode, LdtkUnloader,
@@ -297,7 +298,6 @@ pub struct LdtkLevelManager {
     pub(crate) ignore_unregistered_entities: bool,
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
-    pub(crate) global_entities: HashMap<String, Entity>,
     #[cfg(feature = "algorithm")]
     pub(crate) path_layer: Option<super::layer::path::LdtkPathLayer>,
     #[cfg(feature = "physics")]
@@ -484,5 +484,50 @@ impl LdtkLevelManager {
             self.is_initialized(),
             "LdtkLevelManager is not initialized!"
         );
+    }
+}
+
+#[derive(Resource, Default, Reflect)]
+pub struct LdtkGlobalEntityRegistry(pub(crate) HashMap<EntityIid, Entity>);
+
+impl LdtkGlobalEntityRegistry {
+    #[inline]
+    pub fn register(&mut self, iid: EntityIid, entity: Entity) {
+        self.0.insert(iid, entity);
+    }
+
+    #[inline]
+    pub fn contains(&self, iid: &EntityIid) -> bool {
+        self.0.contains_key(iid)
+    }
+
+    #[inline]
+    pub fn get(&self, iid: &EntityIid) -> Option<Entity> {
+        self.0.get(iid).cloned()
+    }
+
+    #[inline]
+    pub fn remove(&mut self, iid: &EntityIid) -> Option<Entity> {
+        self.0.remove(iid)
+    }
+
+    #[inline]
+    pub fn remove_all(&mut self) {
+        self.0.clear();
+    }
+
+    #[inline]
+    pub fn despawn(&mut self, commands: &mut Commands, iid: &EntityIid) {
+        if let Some(entity) = self.remove(iid) {
+            commands.entity(entity).despawn();
+        }
+    }
+
+    #[inline]
+    pub fn despawn_all(&mut self, commands: &mut Commands) {
+        self.0.iter().for_each(|(_, entity)| {
+            commands.entity(*entity).despawn();
+        });
+        self.remove_all();
     }
 }

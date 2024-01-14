@@ -171,7 +171,10 @@ impl<'a> LdtkLayers<'a> {
                 let mut entities = HashMap::with_capacity(self.entities.len());
 
                 self.entities.drain(..).for_each(|entity| {
-                    let mut ldtk_entity = commands.spawn(entity.transform.clone());
+                    let mut ldtk_entity = commands.spawn((
+                        entity.transform.clone(),
+                        entity.iid.clone()
+                    ));
                     entities.insert(entity.iid.clone(), ldtk_entity.id());
                     entity.instantiate(
                         &mut ldtk_entity,

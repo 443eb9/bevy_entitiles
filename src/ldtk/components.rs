@@ -5,6 +5,8 @@ use bevy::{
     utils::HashMap,
 };
 
+use super::resources::LdtkGlobalEntityRegistry;
+
 #[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
 pub enum LdtkLoaderMode {
     #[default]
@@ -34,13 +36,16 @@ pub struct LdtkLoadedLevel {
 }
 
 impl LdtkLoadedLevel {
-    pub fn unload(&self, commands: &mut Commands) {
+    pub fn unload(&self, commands: &mut Commands, global_entities: &LdtkGlobalEntityRegistry) {
         self.layers.values().for_each(|e| {
             commands.entity(*e).insert(LdtkUnloadLayer);
         });
-        self.entities.values().for_each(|e| {
-            commands.entity(*e).despawn();
-        });
+        self.entities
+            .iter()
+            .filter(|(iid, _)| !global_entities.contains(iid))
+            .for_each(|(_, e)| {
+                commands.entity(*e).despawn();
+            });
         commands.entity(self.background).despawn();
     }
 }

@@ -23,7 +23,7 @@ use crate::{
             level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
             EntityRef, GridPoint, LdtkColor, Toc, World,
         },
-        resources::{LdtkAssets, LdtkPatterns, LdtkTocs},
+        resources::{LdtkAssets, LdtkGlobalEntityRegistry, LdtkPatterns, LdtkTocs},
         sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
     },
     tilemap::map::TilemapStorage,
@@ -86,7 +86,8 @@ impl Plugin for EntiTilesLdtkPlugin {
         app.init_resource::<LdtkLevelManager>()
             .init_resource::<LdtkAssets>()
             .init_resource::<LdtkPatterns>()
-            .init_resource::<LdtkTocs>();
+            .init_resource::<LdtkTocs>()
+            .init_resource::<LdtkGlobalEntityRegistry>();
 
         app.add_event::<LdtkEvent>();
 
@@ -121,7 +122,8 @@ impl Plugin for EntiTilesLdtkPlugin {
 
         app.register_type::<LdtkLevelManager>()
             .register_type::<LdtkAssets>()
-            .register_type::<LdtkPatterns>();
+            .register_type::<LdtkPatterns>()
+            .register_type::<LdtkGlobalEntityRegistry>();
 
         #[cfg(feature = "algorithm")]
         {
@@ -138,12 +140,13 @@ impl Plugin for EntiTilesLdtkPlugin {
 }
 
 fn global_entity_registerer(
-    mut manager: ResMut<LdtkLevelManager>,
+    mut registry: ResMut<LdtkGlobalEntityRegistry>,
     query: Query<(Entity, &EntityIid), Added<GlobalEntity>>,
 ) {
-    for (entity, iid) in query.iter() {
-        manager.global_entities.insert(iid.0.clone(), entity);
-    }
+    query.for_each(|(entity, iid)| {
+        println!("Registering global entity: {:?}", iid.0);
+        registry.register(iid.clone(), entity);
+    });
 }
 
 fn ldtk_temp_tranform_applier(
@@ -164,13 +167,14 @@ pub fn unload_ldtk_level(
     mut commands: Commands,
     mut query: Query<(Entity, &LdtkLoadedLevel, &LevelIid), With<LdtkUnloader>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
+    global_entities: Res<LdtkGlobalEntityRegistry>,
 ) {
     query.iter_mut().for_each(|(entity, level, iid)| {
         ldtk_events.send(LdtkEvent::LevelUnloaded(LevelEvent {
             identifier: level.identifier.clone(),
             iid: iid.0.clone(),
         }));
-        level.unload(&mut commands);
+        level.unload(&mut commands, &global_entities);
         commands.entity(entity).despawn();
     });
 }
@@ -216,6 +220,7 @@ pub fn load_ldtk_json(
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut patterns: ResMut<LdtkPatterns>,
+    global_entities: Res<LdtkGlobalEntityRegistry>,
 ) {
     for (entity, loader) in loader_query.iter() {
         ldtk_assets.initialize(
@@ -236,6 +241,7 @@ pub fn load_ldtk_json(
             &mut ldtk_events,
             &mut ldtk_assets,
             &mut patterns,
+            &global_entities,
         );
 
         commands.entity(entity).remove::<LdtkLoader>();
@@ -252,6 +258,7 @@ fn load_levels(
     ldtk_events: &mut EventWriter<LdtkEvent>,
     ldtk_assets: &mut LdtkAssets,
     patterns: &mut LdtkPatterns,
+    global_entities: &LdtkGlobalEntityRegistry,
 ) {
     let ldtk_data = manager.get_cached_data();
 
@@ -312,7 +319,14 @@ fn load_levels(
             }
         }
 
-        load_layer(layer_index, layer, &mut ldtk_layers, translation, &manager);
+        load_layer(
+            layer_index,
+            layer,
+            &mut ldtk_layers,
+            translation,
+            &manager,
+            &global_entities,
+        );
     }
 
     ldtk_layers.apply_all(
@@ -365,6 +379,7 @@ fn load_layer(
     ldtk_layers: &mut LdtkLayers,
     translation: Vec2,
     manager: &LdtkLevelManager,
+    global_entities: &LdtkGlobalEntityRegistry,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
@@ -374,7 +389,8 @@ fn load_layer(
         }
         LayerType::Entities => {
             for (order, entity_instance) in layer.entity_instances.iter().enumerate() {
-                if manager.global_entities.contains_key(&entity_instance.iid) {
+                let iid = EntityIid(entity_instance.iid.clone());
+                if global_entities.contains(&iid) {
                     continue;
                 }
 
@@ -386,7 +402,7 @@ fn load_layer(
                 let packed_entity = PackedLdtkEntity {
                     instance: entity_instance.clone(),
                     fields,
-                    iid: EntityIid(entity_instance.iid.clone()),
+                    iid,
                     transform: LdtkTempTransform {
                         level_translation: translation,
                         z_index: manager.z_index as f32
