@@ -3,7 +3,6 @@ use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 use crate::{
     math::TileArea,
     tilemap::{buffers::Tiles, chunking::storage::ChunkedStorage},
-    DEFAULT_CHUNK_SIZE,
 };
 
 #[derive(Component, Debug, Clone, Copy, Reflect)]
@@ -23,7 +22,7 @@ pub struct PathTilemap {
 impl PathTilemap {
     pub fn new() -> Self {
         Self {
-            storage: ChunkedStorage::new(DEFAULT_CHUNK_SIZE),
+            storage: ChunkedStorage::default(),
         }
     }
 
@@ -41,8 +40,12 @@ impl PathTilemap {
         self.storage.get_elem_mut(index)
     }
 
-    pub fn set(&mut self, index: IVec2, new_tile: Option<PathTile>) {
-        self.storage.set_elem(index, new_tile)
+    pub fn set(&mut self, index: IVec2, tile: PathTile) {
+        self.storage.set_elem(index, tile)
+    }
+
+    pub fn remove(&mut self, index: IVec2) -> Option<PathTile> {
+        self.storage.remove_elem(index)
     }
 
     /// Set path-finding data using a custom function.
@@ -54,16 +57,18 @@ impl PathTilemap {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 let idx = IVec2::new(x, y);
-                self.set(idx, path_tile(idx));
+                if let Some(tile) = path_tile(idx) {
+                    self.set(idx, tile);
+                }
             }
         }
     }
 
     /// Fill path-finding data using `PathTile`.
-    pub fn fill_path_rect(&mut self, area: TileArea, path_tile: &PathTile) {
+    pub fn fill_path_rect(&mut self, area: TileArea, path_tile: PathTile) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
-                self.set(IVec2 { x, y }, Some(*path_tile));
+                self.set(IVec2 { x, y }, path_tile);
             }
         }
     }

@@ -42,7 +42,7 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     pub fn from_mapper(mapper: HashMap<IVec2, T>, chunk_size: Option<u32>) -> Self {
         let mut storage = Self::new(chunk_size.unwrap_or(32));
         mapper.into_iter().for_each(|(index, elem)| {
-            storage.set_elem(index, Some(elem));
+            storage.set_elem(index, elem);
         });
         storage
     }
@@ -64,21 +64,33 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         }
     }
 
-    pub fn set_elem(&mut self, index: IVec2, elem: Option<T>) {
+    pub fn set_elem(&mut self, index: IVec2, elem: T) {
         let idx = self.transform_index(index);
         self.queue_aabb(index);
         self.chunks
             .entry(idx.0)
             .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])[idx.1] =
-            elem;
+            Some(elem);
     }
 
-    pub fn set_elem_precise(&mut self, chunk_index: IVec2, in_chunk_index: usize, elem: Option<T>) {
+    pub fn set_elem_precise(&mut self, chunk_index: IVec2, in_chunk_index: usize, elem: T) {
         self.calc_queue.insert(chunk_index);
         self.chunks
             .entry(chunk_index)
             .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])
-            [in_chunk_index] = elem;
+            [in_chunk_index] = Some(elem);
+    }
+
+    pub fn remove_elem(&mut self, index: IVec2) -> Option<T> {
+        let idx = self.transform_index(index);
+        self.queue_aabb(index);
+        self.chunks.get_mut(&idx.0).and_then(|c| c[idx.1].take())
+    }
+
+    pub fn clear(&mut self) {
+        self.chunks.clear();
+        self.reserved.clear();
+        self.calc_queue.clear();
     }
 
     #[inline]
@@ -138,6 +150,16 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     #[inline]
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Option<T>> {
         self.chunks.values_mut().map(|c| c.iter_mut()).flatten()
+    }
+
+    #[inline]
+    pub fn iter_some(&self) -> impl Iterator<Item = &T> {
+        self.iter().map(|o| o.as_ref()).flatten()
+    }
+
+    #[inline]
+    pub fn iter_some_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.iter_mut().map(|o| o.as_mut()).flatten()
     }
 
     #[inline]

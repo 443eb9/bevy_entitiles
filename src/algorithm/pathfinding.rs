@@ -266,10 +266,8 @@ pub fn pathfinding_scheduler(
             let ty = *ty;
             let path_tilemap = path_tilemap.clone();
             let task = thread_pool.spawn(async move {
-                let now = std::time::Instant::now();
                 let mut grid = PathGrid::new(finder, requester, tilemap, path_tilemap.clone());
                 grid.find_path(ty);
-                println!("Pathfinding took {:?}", now.elapsed());
                 grid.collect_path()
             });
             tasks.push((requester, task));
@@ -305,9 +303,9 @@ mod test {
             for x in 0..=3 {
                 path_tilemap.set(
                     IVec2 { x, y },
-                    Some(PathTile {
+                    PathTile {
                         cost: rand::random::<u32>() % 10,
-                    }),
+                    },
                 );
             }
         }

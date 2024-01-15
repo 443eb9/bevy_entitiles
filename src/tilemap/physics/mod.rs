@@ -22,6 +22,7 @@ use crate::{
 
 use super::{
     buffers::{PhysicsTilesBuffer, Tiles},
+    chunking::storage::ChunkedStorage,
     map::TilemapStorage,
 };
 
@@ -174,14 +175,21 @@ impl DataPhysicsTilemap {
 
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
-    pub(crate) storage: HashMap<IVec2, Entity>,
+    pub(crate) storage: ChunkedStorage<Entity>,
     pub(crate) spawn_queue: Vec<(IAabb2d, PhysicsTile)>,
 }
 
 impl PhysicsTilemap {
     pub fn new() -> Self {
         PhysicsTilemap {
-            storage: HashMap::default(),
+            storage: ChunkedStorage::default(),
+            spawn_queue: Vec::new(),
+        }
+    }
+
+    pub fn new_with_chunk_size(chunk_size: u32) -> Self {
+        PhysicsTilemap {
+            storage: ChunkedStorage::new(chunk_size),
             spawn_queue: Vec::new(),
         }
     }
@@ -192,7 +200,7 @@ impl PhysicsTilemap {
     /// And it's shared with the `Tile` entity.
     #[inline]
     pub fn get(&self, index: IVec2) -> Option<Entity> {
-        self.storage.get(&index).cloned()
+        self.storage.get_elem(index).cloned()
     }
 
     /// Set a tile. This actually queues the tile and it will be spawned later.
@@ -203,14 +211,14 @@ impl PhysicsTilemap {
 
     #[inline]
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
-        if let Some(entity) = self.storage.remove(&index) {
+        if let Some(entity) = self.storage.remove_elem(index) {
             commands.entity(entity).despawn();
         }
     }
 
     #[inline]
     pub fn remove_all(&mut self, commands: &mut Commands) {
-        for entity in self.storage.values() {
+        for entity in self.storage.iter_some() {
             commands.entity(*entity).despawn();
         }
         self.storage.clear();

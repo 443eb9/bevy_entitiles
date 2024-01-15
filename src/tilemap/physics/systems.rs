@@ -59,7 +59,7 @@ pub fn spawn_colliders(
                         tile_entity.insert(Friction::new(coe));
                     }
 
-                    physics_tilemap.storage.insert(aabb.min, tile_entity.id());
+                    physics_tilemap.storage.set_elem(aabb.min, tile_entity.id());
                 });
             });
         },

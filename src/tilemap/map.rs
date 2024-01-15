@@ -330,13 +330,17 @@ impl TilemapStorage {
         let new_tile = tile_builder.build_component(index, &self, self.tilemap);
 
         let mut tile_entity = commands.spawn_empty();
-        self.storage.set_elem(index, Some(tile_entity.id()));
+        self.storage.set_elem(index, tile_entity.id());
         tile_entity.insert(new_tile);
     }
 
     #[inline]
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
-        self.storage.set_elem(index, entity);
+        if let Some(e) = entity {
+            self.storage.set_elem(index, e);
+        } else {
+            self.storage.remove_elem(index);
+        }
     }
 
     /// Update some properties of a tile.
