@@ -63,7 +63,7 @@ pub fn draw_path(
     )>,
 ) {
     for path in path_query.iter() {
-        let (ty, transform, pivot, slot_size) = tilemaps.get(path.get_target_tilemap()).unwrap();
+        let (ty, transform, pivot, slot_size) = tilemaps.get(path.tilemap()).unwrap();
 
         for node in path.iter() {
             gizmos.circle_2d(

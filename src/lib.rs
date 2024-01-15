@@ -15,28 +15,31 @@ pub mod render;
 pub mod serializing;
 pub mod tilemap;
 
-pub const MAX_TILESET_COUNT: usize = 4;
 pub const MAX_LAYER_COUNT: usize = 4;
-pub const MAX_ATLAS_COUNT: usize = 512;
-pub const MAX_ANIM_COUNT: usize = 64;
-pub const MAX_ANIM_SEQ_LENGTH: usize = 16;
 pub const DEFAULT_CHUNK_SIZE: u32 = 32;
 
 pub mod prelude {
     #[cfg(feature = "algorithm")]
     pub use crate::algorithm::{
-        pathfinding::{AsyncPathfinder, Path, Pathfinder},
+        pathfinding::{Path, PathFinder},
         wfc::WfcRunner,
     };
     #[cfg(feature = "ldtk")]
     pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager};
     pub use crate::math::{aabb::Aabb2d, TileArea};
     #[cfg(feature = "serializing")]
-    pub use crate::serializing::{map::load::TilemapLoaderBuilder, map::save::TilemapSaver};
+    pub use crate::serializing::{
+        chunk::{
+            load::{ChunkLoadCache, ChunkLoadConfig},
+            save::{ChunkSaveCache, ChunkSaveConfig},
+        },
+        map::{load::TilemapLoaderBuilder, save::TilemapSaver},
+    };
     #[cfg(feature = "physics")]
     pub use crate::tilemap::physics::TileCollision;
     pub use crate::tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
+        chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,

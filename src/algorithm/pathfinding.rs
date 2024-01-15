@@ -1,41 +1,75 @@
+use std::{cmp::Ordering, collections::BinaryHeap, sync::Arc};
+
 use bevy::{
-    ecs::query::Without,
+    ecs::system::{Commands, Query},
     math::IVec2,
-    prelude::{Component, Entity, ParallelCommands, Query},
+    prelude::{Component, Entity},
     reflect::Reflect,
-    utils::HashSet,
+    tasks::{AsyncComputeTaskPool, Task},
+    utils::{EntityHashMap, Entry, HashMap, HashSet},
 };
 
 use crate::{
     math::extension::{ManhattanDistance, TileIndex},
-    tilemap::{
-        algorithm::path::PathTilemap,
-        map::{TilemapStorage, TilemapType},
-    },
+    tilemap::{algorithm::path::PathTilemap, map::TilemapType},
 };
 
-use super::{HeapElement, LookupHeap};
-
 #[derive(Component, Reflect)]
-pub struct Pathfinder {
+pub struct PathFinder {
     pub origin: IVec2,
     pub dest: IVec2,
     pub allow_diagonal: bool,
-    pub tilemap: Entity,
-    pub custom_weight: Option<(u32, u32)>,
-    pub max_step: Option<u32>,
+    pub max_steps: Option<u32>,
 }
 
-#[derive(Component, Reflect)]
-pub struct AsyncPathfinder {
-    pub max_step_per_frame: u32,
+#[derive(Component)]
+pub struct PathFindingQueue {
+    pub(crate) finders: EntityHashMap<Entity, PathFinder>,
+    pub(crate) tasks: EntityHashMap<Entity, Task<Path>>,
+    pub(crate) cache: Arc<PathTilemap>,
+}
+
+impl PathFindingQueue {
+    pub fn new(cache: PathTilemap) -> Self {
+        PathFindingQueue {
+            finders: EntityHashMap::default(),
+            tasks: EntityHashMap::default(),
+            cache: Arc::new(cache),
+        }
+    }
+
+    pub fn new_with_schedules(
+        cache: PathTilemap,
+        schedules: impl Iterator<Item = (Entity, PathFinder)>,
+    ) -> Self {
+        PathFindingQueue {
+            finders: schedules.collect(),
+            tasks: EntityHashMap::default(),
+            cache: Arc::new(cache),
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.tasks.is_empty()
+    }
+
+    #[inline]
+    pub fn schedule(&mut self, requester: Entity, pathfinder: PathFinder) {
+        self.finders.insert(requester, pathfinder);
+    }
+
+    #[inline]
+    pub fn get_cache(&self) -> Arc<PathTilemap> {
+        self.cache.clone()
+    }
 }
 
 #[derive(Component, Clone, Reflect)]
 pub struct Path {
     path: Vec<IVec2>,
     current_step: usize,
-    target_map: Entity,
+    tilemap: Entity,
 }
 
 impl Path {
@@ -57,8 +91,8 @@ impl Path {
         self.current_step >= self.path.len()
     }
 
-    pub fn get_target_tilemap(&self) -> Entity {
-        self.target_map
+    pub fn tilemap(&self) -> Entity {
+        self.tilemap
     }
 
     pub fn iter(&self) -> std::slice::Iter<IVec2> {
@@ -66,27 +100,34 @@ impl Path {
     }
 }
 
-#[derive(Debug, Clone, Copy, Reflect)]
+#[derive(Debug, Clone, Copy, Reflect, PartialEq, Eq)]
 pub struct PathNode {
     pub index: IVec2,
-    pub heap_index: usize,
     pub parent: Option<IVec2>,
     pub g_cost: u32,
     pub h_cost: u32,
     pub cost_to_pass: u32,
 }
 
+impl PartialOrd for PathNode {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for PathNode {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other
+            .g_cost
+            .cmp(&self.g_cost)
+            .then(other.h_cost.cmp(&self.h_cost))
+    }
+}
+
 impl PathNode {
-    pub fn new(
-        index: IVec2,
-        g_cost: u32,
-        dest: IVec2,
-        heap_index: usize,
-        cost_to_pass: u32,
-    ) -> Self {
+    pub fn new(index: IVec2, g_cost: u32, dest: IVec2, cost_to_pass: u32) -> Self {
         PathNode {
             index,
-            heap_index,
             parent: None,
             g_cost,
             h_cost: dest.manhattan_distance(index),
@@ -95,286 +136,198 @@ impl PathNode {
     }
 
     #[inline]
-    pub fn weight(&self, weights: (u32, u32)) -> u32 {
-        self.g_cost * weights.0 + self.h_cost * weights.1
+    pub fn weight(&self) -> u32 {
+        self.g_cost + self.h_cost
     }
 }
 
-impl HeapElement for PathNode {
-    #[inline]
-    fn set_index(&mut self, index: usize) {
-        self.heap_index = index
-    }
-
-    #[inline]
-    fn get_index(&self) -> usize {
-        self.heap_index
-    }
-}
-
-#[derive(Component, Reflect)]
 pub struct PathGrid {
+    pub requester: Entity,
+    pub tilemap: Entity,
     pub allow_diagonal: bool,
+    pub origin: IVec2,
     pub dest: IVec2,
-    pub weights: (u32, u32),
-    pub lookup_heap: LookupHeap<u32, IVec2, PathNode>,
+    pub to_explore: BinaryHeap<PathNode>,
     pub explored: HashSet<IVec2>,
+    pub all_nodes: HashMap<IVec2, PathNode>,
     pub steps: u32,
+    pub max_steps: Option<u32>,
+    pub path_tilemap: Arc<PathTilemap>,
 }
 
 impl PathGrid {
-    pub fn new(finder: &Pathfinder, root: &PathNode) -> Self {
-        let weights = finder.custom_weight.unwrap_or((1, 1));
-        let mut lookup_heap = LookupHeap::new();
-        lookup_heap.update_lookup(root.index, *root);
-        lookup_heap.insert_heap(root.weight(weights), root.index);
+    pub fn new(
+        finder: PathFinder,
+        requester: Entity,
+        tilemap: Entity,
+        path_tilemap: Arc<PathTilemap>,
+    ) -> Self {
         PathGrid {
+            requester,
+            tilemap,
             allow_diagonal: finder.allow_diagonal,
+            origin: finder.origin,
             dest: finder.dest,
-            weights,
-            lookup_heap,
+            to_explore: BinaryHeap::new(),
             explored: HashSet::new(),
+            all_nodes: HashMap::new(),
             steps: 0,
+            max_steps: finder.max_steps,
+            path_tilemap,
         }
     }
 
-    pub fn neighbours(
-        &mut self,
-        node: &PathNode,
-        ty: &TilemapType,
-        tilemap_storage: &TilemapStorage,
-        path_tilemap: &PathTilemap,
-    ) -> Vec<IVec2> {
-        node.index
-            .neighbours(*ty, self.allow_diagonal)
-            .into_iter()
-            .filter_map(|n| {
-                self.get_or_register_new(n.unwrap(), self.dest, tilemap_storage, path_tilemap)
+    pub fn get_or_register(&mut self, index: IVec2) -> Option<PathNode> {
+        if let Some(node) = self.all_nodes.get(&index) {
+            Some(node.clone())
+        } else {
+            self.path_tilemap.get(index).map(|tile| {
+                let new = PathNode::new(index, u32::MAX, self.dest, tile.cost);
+                self.all_nodes.insert(index, new);
+                new
             })
+        }
+    }
+
+    pub fn neighbours(&mut self, index: IVec2, ty: TilemapType) -> Vec<PathNode> {
+        index
+            .neighbours(ty, self.allow_diagonal)
+            .into_iter()
+            .filter_map(|p| p.and_then(|p| self.get_or_register(p)))
             .collect()
     }
 
-    #[inline]
-    pub fn is_explored(&self, index: IVec2) -> bool {
-        self.explored.contains(&index)
-    }
+    pub fn find_path(&mut self, ty: TilemapType) {
+        let origin = PathNode::new(self.origin, 0, self.dest, 0);
+        self.to_explore.push(origin.clone());
+        self.all_nodes.insert(self.origin, origin);
 
-    #[inline]
-    pub fn is_scheduled(&self, index: IVec2) -> bool {
-        if let Some(node) = self.lookup_heap.heap_get(index) {
-            node.1 == index
-        } else {
-            false
-        }
-    }
-
-    pub fn get(&self, index: IVec2) -> Option<&PathNode> {
-        self.lookup_heap.map_get(&index)
-    }
-
-    pub fn get_mut(&mut self, index: IVec2) -> Option<&mut PathNode> {
-        self.lookup_heap.map_get_mut(&index)
-    }
-
-    fn get_or_register_new(
-        &mut self,
-        index: IVec2,
-        dest: IVec2,
-        tilemap: &TilemapStorage,
-        path_tilemap: &PathTilemap,
-    ) -> Option<IVec2> {
-        if tilemap.get(index).is_none() {
-            return None;
-        }
-
-        if self.is_explored(index) {
-            return None;
-        }
-
-        let Some(tile) = path_tilemap.get(index) else {
-            return None;
-        };
-
-        if !self.lookup_heap.lookup_contains(&index) {
-            self.lookup_heap
-                .update_lookup(index, PathNode::new(index, 0, dest, 0, tile.cost));
-        }
-
-        Some(index)
-    }
-
-    pub fn schedule(&mut self, index: &IVec2) {
-        let node = self.lookup_heap.map_get(index).unwrap();
-        let key_heap = node.weight(self.weights);
-        let key_map = node.index;
-        self.lookup_heap.insert_heap(key_heap, key_map);
-    }
-
-    pub fn pop_closest(&mut self) -> Option<PathNode> {
-        if let Some(min) = self.lookup_heap.pop() {
-            self.explored.insert(min.index);
-            Some(min)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    pub fn is_empty(&self) -> bool {
-        self.lookup_heap.is_empty()
-    }
-}
-
-pub fn pathfinding(
-    commands: ParallelCommands,
-    mut finders: Query<(Entity, &Pathfinder), Without<AsyncPathfinder>>,
-    tilemaps_query: Query<(&TilemapType, &TilemapStorage, &PathTilemap)>,
-) {
-    finders.par_iter_mut().for_each(|(finder_entity, finder)| {
-        let Ok((ty, tilemap_storage, path_tilemap)) = tilemaps_query.get(finder.tilemap) else {
-            panic!("Failed to find the tilemap! Did you add the tilemap and path tilemap to the same entity?");
-        };
-
-        // check if origin or dest doesn't exists
-        if tilemap_storage.get(finder.origin).is_none()
-            || tilemap_storage.get(finder.dest).is_none()
-        {
-            complete_pathfinding(&commands, finder_entity, None);
-            return;
-        };
-
-        let origin_node = PathNode::new(finder.origin, 0, finder.dest, 1, 0);
-        let mut path_grid = PathGrid::new(finder, &origin_node);
-        find_path(
-            &commands,
-            &mut path_grid,
-            finder_entity,
-            finder,
-            ty,
-            tilemap_storage,
-            path_tilemap,
-            None,
-        );
-    });
-}
-
-pub fn pathfinding_async(
-    commands: ParallelCommands,
-    mut finders: Query<(Entity, &Pathfinder, &AsyncPathfinder, Option<&mut PathGrid>)>,
-    tilemaps_query: Query<(&TilemapType, &TilemapStorage, &PathTilemap)>,
-) {
-    finders
-        .par_iter_mut()
-        .for_each(|(finder_entity, finder, async_finder, path_grid)| {
-            let (ty, tilemap_storage, path_tilemap) = tilemaps_query.get(finder.tilemap).unwrap();
-
-            if let Some(mut grid) = path_grid {
-                find_path(
-                    &commands,
-                    &mut grid,
-                    finder_entity,
-                    finder,
-                    ty,
-                    tilemap_storage,
-                    path_tilemap,
-                    Some(async_finder),
-                );
-            } else {
-                // check if origin or dest doesn't exists
-                if tilemap_storage.get(finder.origin).is_none()
-                    || tilemap_storage.get(finder.dest).is_none()
-                {
-                    complete_pathfinding(&commands, finder_entity, None);
-                    return;
-                };
-
-                commands.command_scope(|mut c| {
-                    c.entity(finder_entity).insert(PathGrid::new(
-                        finder,
-                        &PathNode::new(finder.origin, 0, finder.dest, 1, 0),
-                    ));
-                });
-            };
-        });
-}
-
-pub fn complete_pathfinding(commands: &ParallelCommands, finder: Entity, path: Option<Path>) {
-    commands.command_scope(|mut c| {
-        let mut e = c.entity(finder);
-        e.remove::<Pathfinder>();
-        e.remove::<AsyncPathfinder>();
-
-        if let Some(path) = path {
-            e.insert(path);
-        }
-    });
-}
-
-fn find_path(
-    commands: &ParallelCommands,
-    path_grid: &mut PathGrid,
-    finder_entity: Entity,
-    finder: &Pathfinder,
-    ty: &TilemapType,
-    tilemap_storage: &TilemapStorage,
-    path_tilemap: &PathTilemap,
-    async_finder: Option<&AsyncPathfinder>,
-) {
-    let mut frame_step = 0;
-    let max_frame_step = {
-        if let Some(async_finder) = async_finder {
-            async_finder.max_step_per_frame
-        } else {
-            u32::MAX
-        }
-    };
-
-    while !path_grid.is_empty() {
-        path_grid.steps += 1;
-        frame_step += 1;
-        if path_grid.steps > finder.max_step.unwrap_or(u32::MAX) {
-            break;
-        }
-        if frame_step >= max_frame_step {
-            return;
-        }
-
-        let mut current = path_grid.pop_closest().unwrap();
-
-        if current.index == finder.dest {
-            let mut path = Path {
-                path: vec![],
-                current_step: 0,
-                target_map: finder.tilemap,
-            };
-            while current.index != finder.origin {
-                path.path.push(current.index);
-                current = *path_grid.get(current.parent.unwrap()).unwrap();
-            }
-
-            complete_pathfinding(&commands, finder_entity, Some(path));
-            return;
-        }
-
-        let neighbours = path_grid.neighbours(&current, ty, tilemap_storage, &path_tilemap);
-
-        // explore neighbours
-        for neighbour in neighbours {
-            let already_scheduled = path_grid.is_scheduled(neighbour);
-            let neighbour_node = path_grid.get_mut(neighbour).unwrap();
-
-            // if isn't on schedule or find a better path
-            if !already_scheduled || current.g_cost < neighbour_node.g_cost {
-                // update the new node
-                neighbour_node.g_cost = current.g_cost + neighbour_node.cost_to_pass;
-                neighbour_node.parent = Some(current.index);
-
-                if !already_scheduled {
-                    path_grid.schedule(&neighbour);
+        while !self.to_explore.is_empty() {
+            if let Some(max_steps) = self.max_steps {
+                if self.steps > max_steps {
+                    break;
                 }
             }
+            self.steps += 1;
+
+            let current = self.to_explore.pop().unwrap();
+            if current.index == self.dest {
+                return;
+            }
+            if current.g_cost > self.all_nodes[&current.index].g_cost {
+                continue;
+            }
+
+            let neighbours = self.neighbours(current.index, ty);
+
+            for mut neighbour in neighbours {
+                neighbour.g_cost = current.g_cost + neighbour.cost_to_pass;
+                neighbour.parent = Some(current.index);
+
+                match self.all_nodes.entry(neighbour.index) {
+                    Entry::Occupied(mut e) => {
+                        if e.get().g_cost > neighbour.g_cost {
+                            e.insert(neighbour.clone());
+                            self.to_explore.push(neighbour);
+                        }
+                    }
+                    Entry::Vacant(e) => {
+                        e.insert(neighbour.clone());
+                        self.to_explore.push(neighbour);
+                    }
+                };
+            }
         }
     }
 
-    complete_pathfinding(&commands, finder_entity, None);
+    pub fn collect_path(&self) -> Path {
+        let mut path = Path {
+            path: vec![],
+            current_step: 0,
+            tilemap: self.tilemap,
+        };
+        let mut current = self.all_nodes.get(&self.dest).unwrap();
+        while current.index != self.origin {
+            path.path.push(current.index);
+            current = self.all_nodes.get(&current.parent.unwrap()).unwrap();
+        }
+        path
+    }
+}
+
+pub fn pathfinding_scheduler(
+    mut queues_query: Query<(Entity, &TilemapType, &mut PathFindingQueue)>,
+) {
+    let thread_pool = AsyncComputeTaskPool::get();
+    queues_query.for_each_mut(|(tilemap, ty, mut queue)| {
+        let mut tasks = Vec::new();
+        let path_tilemap = queue.cache.clone();
+        queue.finders.drain().for_each(|(requester, finder)| {
+            let ty = *ty;
+            let path_tilemap = path_tilemap.clone();
+            let task = thread_pool.spawn(async move {
+                let now = std::time::Instant::now();
+                let mut grid = PathGrid::new(finder, requester, tilemap, path_tilemap.clone());
+                grid.find_path(ty);
+                println!("Pathfinding took {:?}", now.elapsed());
+                grid.collect_path()
+            });
+            tasks.push((requester, task));
+        });
+        queue.tasks.extend(tasks);
+    });
+}
+
+pub fn path_assigner(mut commands: Commands, mut queues_query: Query<&mut PathFindingQueue>) {
+    queues_query.for_each_mut(|mut queue| {
+        let mut completed = Vec::new();
+        queue.tasks.iter_mut().for_each(|(requester, task)| {
+            if let Some(path) = bevy::tasks::block_on(futures_lite::future::poll_once(task)) {
+                commands.entity(*requester).insert(path);
+                completed.push(*requester);
+            }
+        });
+        completed.iter().for_each(|requester| {
+            queue.tasks.remove(requester);
+        });
+    });
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::tilemap::algorithm::path::PathTile;
+
+    #[test]
+    fn test_pathfinding() {
+        let mut path_tilemap = PathTilemap::new();
+        for y in 0..=3 {
+            for x in 0..=3 {
+                path_tilemap.set(
+                    IVec2 { x, y },
+                    Some(PathTile {
+                        cost: rand::random::<u32>() % 10,
+                    }),
+                );
+            }
+        }
+
+        let mut grid = PathGrid {
+            tilemap: Entity::PLACEHOLDER,
+            requester: Entity::PLACEHOLDER,
+            allow_diagonal: false,
+            origin: IVec2::ZERO,
+            dest: IVec2::new(3, 3),
+            to_explore: BinaryHeap::new(),
+            explored: HashSet::new(),
+            all_nodes: HashMap::new(),
+            steps: 0,
+            max_steps: None,
+            path_tilemap: Arc::new(path_tilemap),
+        };
+
+        grid.find_path(TilemapType::Square);
+        let path = grid.collect_path();
+        dbg!(path.path);
+    }
 }

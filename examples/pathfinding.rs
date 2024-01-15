@@ -1,13 +1,21 @@
+/*
+ * Notice that the green circle is drew on the origin of the tile,
+ * but not the center of the tile.
+ */
+
+use std::time::Duration;
+
 use bevy::{
+    app::Update,
+    ecs::{schedule::IntoSystemConfigs, system::Query},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
+    time::common_conditions::on_real_timer,
     DefaultPlugins,
 };
-#[allow(unused_imports)]
-use bevy_entitiles::algorithm::pathfinding::AsyncPathfinder;
 use bevy_entitiles::{
-    algorithm::pathfinding::Pathfinder,
+    algorithm::pathfinding::{PathFinder, PathFindingQueue},
     math::TileArea,
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
@@ -26,8 +34,16 @@ mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin, EntiTilesHelpersPlugin::default()))
+        .add_plugins((
+            DefaultPlugins,
+            EntiTilesPlugin,
+            EntiTilesHelpersPlugin { inspector: false },
+        ))
         .add_systems(Startup, setup)
+        .add_systems(
+            Update,
+            detect.run_if(on_real_timer(Duration::from_millis(100))),
+        )
         .run();
 }
 
@@ -60,7 +76,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     let mut path_tilemap = PathTilemap::new();
     path_tilemap.fill_path_rect_custom(
-        TileArea::new(IVec2::ZERO, UVec2 { x: 500, y: 500 }),
+        TileArea::new(IVec2::ZERO, UVec2 { x: 1000, y: 1000 }),
         |_| {
             Some(PathTile {
                 cost: rand::random::<u32>() % 10,
@@ -68,20 +84,29 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         },
     );
 
-    commands.spawn_empty().insert((
-        Pathfinder {
-            origin: IVec2 { x: 0, y: 0 },
-            dest: IVec2 { x: 499, y: 499 },
-            allow_diagonal: false,
-            tilemap: entity,
-            custom_weight: None,
-            max_step: None,
-        },
-        // Uncomment this to use async pathfinder
-        // AsyncPathfinder {
-        //     max_step_per_frame: 400,
-        // },
-    ));
+    let queue = (0..100).into_iter().map(|_| {
+        (
+            commands.spawn_empty().id(),
+            PathFinder {
+                origin: IVec2::ZERO,
+                dest: IVec2::splat(499),
+                allow_diagonal: false,
+                max_steps: None,
+            },
+        )
+    });
 
-    commands.entity(entity).insert((tilemap, path_tilemap));
+    let pathfinding_queue = PathFindingQueue::new_with_schedules(path_tilemap.clone(), queue);
+
+    commands
+        .entity(entity)
+        .insert((tilemap, path_tilemap, pathfinding_queue));
+}
+
+fn detect(queues_query: Query<&PathFindingQueue>) {
+    queues_query.for_each(|q| {
+        if q.is_empty() {
+            println!("Pathfinding tasks done!");
+        }
+    });
 }

@@ -17,8 +17,8 @@ impl Plugin for EntiTilesDebugPlugin {
                 drawing::draw_tilemap_aabb,
                 drawing::draw_axis,
                 drawing::draw_camera_aabb,
-                #[cfg(feature = "algorithm")]
-                drawing::draw_path,
+                // #[cfg(feature = "algorithm")]
+                // drawing::draw_path,
                 #[cfg(feature = "serializing")]
                 drawing::draw_updater_aabbs,
             ),

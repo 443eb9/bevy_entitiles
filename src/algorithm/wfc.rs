@@ -14,7 +14,7 @@ use crate::{
     math::{extension::TileIndex, TileArea},
     serializing::pattern::TilemapPattern,
     tilemap::{
-        bundles::{DataTilemapBundle, PureColorTilemapBundle, TilemapBundle},
+        bundles::{PureColorTilemapBundle, TilemapBundle},
         map::{
             TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTransform, TilemapType,
@@ -794,7 +794,7 @@ pub fn wfc_applier(
                                                 physics_tilemap.origin =
                                                     ptn_idx * layer.0.tiles.aabb.size();
                                                 c.spawn((
-                                                    DataTilemapBundle {
+                                                    crate::tilemap::bundles::DataTilemapBundle {
                                                         ty: TilemapType::Square,
                                                         tile_render_size: TileRenderSize(
                                                             layer.1.desc.tile_size.as_vec2(),

@@ -78,25 +78,24 @@ I know you are confused about these weird boxes, so please check the [`chunk_unl
 
 ### Pathfinding
 
-The pathfinding algorithm is very fast.
-
 Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, the asynchronized one in implemented. So the algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
+
+**Notice: The synchronized pathfinding was removed in 0.2.8.**
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/pathfinding.png" width="500px">
 </div>
 
-| Size      | Time(avg of 3 tests) ms |
-| --------- | ----------------------- |
-| 100x100   | 12.00                   |
-| 500x500   | 295.67                  |
-| 1000x1000 | 1384.33                 |
+| Size      | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |
+| --------- | ----------------------- | ----------------------- |
+| 100x100   | 12.00                   | 10.85                   |
+| 500x500   | 295.67                  | 191.24                  |
+| 1000x1000 | 1384.33                 | 993.75                  |
 
-> *Bevy 0.12.0, crate 0.2.1, using `pathfinding` example*
+> *Column 1: Bevy 0.12.0, crate 0.2.1, using `pathfinding` example</br>
+> Column 2: Bevy 0.12.0, crate 0.2.8*
 
 ### Wave Function Collapse
-
-The wave function collapse algorithm is also fast. XD
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
 

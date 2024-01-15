@@ -8,6 +8,9 @@
 - Broke the limitation of tile animations.
 - Removed support of `bevy_rapier` as to support both physics libraries is tiring.
 - Much further support for physics tilemaps.
+- Pathfinding rework. Using bevy async compute to asynchronize the process.
+- Removed meaningless `Reflect`s and `register_type`s.
+- Supported atlas mode for those extremely large ( more than 2048 atlases ) textures.
 
 # What's Fixed:
 

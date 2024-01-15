@@ -27,16 +27,6 @@ pub struct DataTilemapBundle {
     /// If you want to move or rotate the tilemap, you need to change this.
     /// Modify the `Transform` component will not work.
     pub tilemap_transform: TilemapTransform,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub visibility: Visibility,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub inherited_visibility: InheritedVisibility,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub view_visibility: ViewVisibility,
-    /// Modify `TilemapTransform` instead of this one.
-    pub transform: Transform,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub global_transform: GlobalTransform,
 }
 
 /// The bundle of the tilemap with a texture.
