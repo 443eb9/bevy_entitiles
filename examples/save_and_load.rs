@@ -10,8 +10,8 @@ use bevy::{
 use bevy_entitiles::{
     math::TileArea,
     serializing::map::{
-        load::{TilemapLoadFailure, TilemapLoaderBuilder},
-        save::TilemapSaver,
+        load::TilemapLoader,
+        save::{TilemapSaver, TilemapSaverMode},
         TilemapLayer,
     },
     tilemap::{
@@ -37,7 +37,7 @@ fn main() {
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (save_and_load, failure_handle))
+        .add_systems(Update, save_and_load)
         .run();
 }
 
@@ -94,35 +94,24 @@ fn save_and_load(
     // save
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
-            commands.entity(t).insert(
-                TilemapSaver::new("C:\\saves".to_string())
-                    .with_layer(TilemapLayer::Color)
-                    .with_layer(TilemapLayer::Path)
-                    .with_texture("test_isometric.png".to_string())
-                    .remove_after_save(),
-            );
+            commands.entity(t).insert(TilemapSaver {
+                path: "C:\\saves".to_string(),
+                mode: TilemapSaverMode::Tilemap,
+                layers: TilemapLayer::COLOR | TilemapLayer::PATH,
+                texture_path: Some("test_isometric.png".to_string()),
+                remove_after_save: true,
+            });
             println!("Saved tilemap!");
         }
     }
 
     // load
     if input.just_pressed(KeyCode::AltRight) {
-        let entity = commands.spawn_empty().id();
-        TilemapLoaderBuilder::new("C:\\saves".to_string(), "test_map".to_string())
-            .with_layer(TilemapLayer::Color)
-            .with_layer(TilemapLayer::Path)
-            .build(&mut commands, entity);
+        commands.spawn(TilemapLoader {
+            path: "C:\\saves".to_string(),
+            map_name: "test_map".to_string(),
+            layers: TilemapLayer::COLOR | TilemapLayer::PATH,
+        });
         println!("Loading tilemap...");
-    }
-}
-
-fn failure_handle(mut commands: Commands, errs: Query<(Entity, &TilemapLoadFailure)>) {
-    for (entity, err) in errs.iter() {
-        println!(
-            "Failed to load tilemap: {}\\{}",
-            err.path.clone(),
-            &err.map_name
-        );
-        commands.entity(entity).remove::<TilemapLoadFailure>();
     }
 }

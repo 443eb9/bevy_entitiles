@@ -98,12 +98,12 @@ pub fn load_color_layer(
     tilemaps_query.for_each_mut(|(entity, name, mut storage)| {
         let chunk_size = storage.storage.chunk_size as i32;
         (0..config.chunks_per_frame).into_iter().for_each(|_| {
-            let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::Color) else {
+            let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::COLOR) else {
                 cache
                     .0
                     .get_mut(&entity)
                     .unwrap()
-                    .remove(&TilemapLayer::Color);
+                    .remove(&TilemapLayer::COLOR);
                 return;
             };
 
@@ -155,12 +155,12 @@ pub fn load_path_layer(
     tilemaps_query.for_each(|(entity, name, path_tilemap)| {
         let chunk_size = path_tilemap.storage.chunk_size as i32;
         (0..config.chunks_per_frame).into_iter().for_each(|_| {
-            let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::Path) else {
+            let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PATH) else {
                 cache
                     .0
                     .get_mut(&entity)
                     .unwrap()
-                    .remove(&TilemapLayer::Path);
+                    .remove(&TilemapLayer::PATH);
                 return;
             };
 

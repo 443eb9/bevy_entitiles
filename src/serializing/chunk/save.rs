@@ -116,13 +116,13 @@ pub fn save_color_layer(
 
         (0..config.chunks_per_frame).into_iter().for_each(|_| {
             let Some((chunk_index, remove_after_save)) =
-                cache.pop_chunk(entity, TilemapLayer::Color)
+                cache.pop_chunk(entity, TilemapLayer::COLOR)
             else {
                 cache
                     .0
                     .get_mut(&entity)
                     .unwrap()
-                    .remove(&TilemapLayer::Color);
+                    .remove(&TilemapLayer::COLOR);
                 return;
             };
 
@@ -187,13 +187,13 @@ pub fn save_path_layer(
 
         (0..config.chunks_per_frame).into_iter().for_each(|_| {
             let Some((chunk_index, remove_after_save)) =
-                cache.pop_chunk(entity, TilemapLayer::Path)
+                cache.pop_chunk(entity, TilemapLayer::PATH)
             else {
                 cache
                     .0
                     .get_mut(&entity)
                     .unwrap()
-                    .remove(&TilemapLayer::Path);
+                    .remove(&TilemapLayer::PATH);
                 return;
             };
 

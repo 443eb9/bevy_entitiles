@@ -2,7 +2,6 @@ use bevy::{
     app::{App, Plugin, Update},
     ecs::entity::Entity,
     math::UVec2,
-    reflect::Reflect,
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
@@ -18,10 +17,7 @@ use crate::tilemap::{
     tile::TileBuilder,
 };
 
-use self::{
-    load::{TilemapLoadFailure, TilemapLoader},
-    save::TilemapSaver,
-};
+use self::save::TilemapSaver;
 
 pub const TILEMAP_META: &str = "tilemap.ron";
 pub const TILES: &str = "tiles.ron";
@@ -35,24 +31,16 @@ pub struct EntiTilesTilemapSerializingPlugin;
 impl Plugin for EntiTilesTilemapSerializingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, (save::save, load::load));
-
-        app.register_type::<TilemapLoader>()
-            .register_type::<TilemapSaver>()
-            .register_type::<TilemapLoadFailure>()
-            .register_type::<SerializedTilemapData>()
-            .register_type::<SerializedTilemap>()
-            .register_type::<SerializedTilemapTextureDescriptor>()
-            .register_type::<SerializedTilemapTexture>();
     }
 }
 
-#[derive(Serialize, Deserialize, Reflect)]
+#[derive(Serialize, Deserialize)]
 pub struct SerializedTilemapData {
     pub tilemap: SerializedTilemap,
     pub tiles: Vec<TileBuilder>,
 }
 
-#[derive(Serialize, Deserialize, Reflect)]
+#[derive(Serialize, Deserialize)]
 pub struct SerializedTilemap {
     pub name: TilemapName,
     pub tile_render_size: TileRenderSize,
@@ -63,7 +51,7 @@ pub struct SerializedTilemap {
     pub tilemap_transform: TilemapTransform,
     pub texture: Option<SerializedTilemapTexture>,
     pub animations: Option<TilemapAnimations>,
-    pub layers: u32,
+    pub layers: TilemapLayer,
     pub chunk_size: u32,
 }
 
@@ -141,14 +129,14 @@ impl SerializedTilemap {
     }
 }
 
-#[derive(Serialize, Deserialize, Reflect)]
+#[derive(Serialize, Deserialize)]
 pub struct SerializedTilemapTexture {
     pub path: String,
     pub desc: SerializedTilemapTextureDescriptor,
     pub rotation: TilemapRotation,
 }
 
-#[derive(Serialize, Deserialize, Clone, Reflect)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SerializedTilemapTextureDescriptor {
     pub size: UVec2,
     pub tile_size: UVec2,
@@ -175,7 +163,7 @@ impl Into<TilemapTextureDescriptor> for SerializedTilemapTextureDescriptor {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Reflect)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum SerializedFilterMode {
     Nearest = 0,
     Linear = 1,
@@ -199,11 +187,19 @@ impl Into<FilterMode> for SerializedFilterMode {
     }
 }
 
-#[repr(u32)]
-#[derive(Serialize, Deserialize, Reflect, Hash, Eq, PartialEq, Clone, Copy, Debug)]
-pub enum TilemapLayer {
-    Color = 1,
-    Path = 1 << 1,
-    // TODO
-    // Physics = 1 << 2,
+// #[repr(u32)]
+// #[derive(Serialize, Deserialize, Reflect, Hash, Eq, PartialEq, Clone, Copy, Debug)]
+// pub enum TilemapLayer {
+//     Color = 1,
+//     Path = 1 << 1,
+//     Physics = 1 << 2,
+// }
+
+bitflags::bitflags! {
+    #[derive(Serialize, Deserialize, Hash, Eq, PartialEq, Clone, Copy, Debug)]
+    pub struct TilemapLayer: u32 {
+        const COLOR = 1;
+        const PATH = 1 << 1;
+        const PHYSICS = 1 << 2;
+    }
 }

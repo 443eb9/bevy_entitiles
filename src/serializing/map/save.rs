@@ -11,7 +11,7 @@ use bevy::{
 };
 
 use crate::{
-    serializing::{save_object, pattern::TilemapPattern},
+    serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -32,16 +32,8 @@ pub enum TilemapSaverMode {
     MapPattern,
 }
 
-#[derive(Component, Reflect)]
+#[derive(Component)]
 pub struct TilemapSaver {
-    pub(crate) path: String,
-    pub(crate) texture_path: Option<String>,
-    pub(crate) layers: u32,
-    pub(crate) remove_after_save: bool,
-    pub(crate) mode: TilemapSaverMode,
-}
-
-impl TilemapSaver {
     /// For example if path = C:\\maps, then the crate will create:
     /// ```
     /// C
@@ -57,40 +49,11 @@ impl TilemapSaver {
     /// └── maps
     ///     └── (your tilemap's name).pattern
     /// ```
-    pub fn new(path: String) -> Self {
-        TilemapSaver {
-            path,
-            texture_path: None,
-            layers: 0,
-            remove_after_save: false,
-            mode: TilemapSaverMode::Tilemap,
-        }
-    }
-
-    /// Set which layers to save. By default, only the texture layer is saved.
-    /// If there's async algorithms performing when saving, you should save them.
-    pub fn with_layer(mut self, layer: TilemapLayer) -> Self {
-        self.layers |= layer as u32;
-        self
-    }
-
-    /// Set the texture path to save.
-    pub fn with_texture(mut self, texture_path: String) -> Self {
-        self.texture_path = Some(texture_path);
-        self
-    }
-
-    /// Despawn the tilemap after saving.
-    pub fn remove_after_save(mut self) -> Self {
-        self.remove_after_save = true;
-        self
-    }
-
-    /// Set the saver mode, default is `TilemapSaverMode::Tilemap`.
-    pub fn with_mode(mut self, mode: TilemapSaverMode) -> Self {
-        self.mode = mode;
-        self
-    }
+    pub path: String,
+    pub mode: TilemapSaverMode,
+    pub layers: TilemapLayer,
+    pub texture_path: Option<String>,
+    pub remove_after_save: bool,
 }
 
 pub fn save(
@@ -151,7 +114,7 @@ pub fn save(
         let mut pattern = TilemapPattern::new(Some(name.0.clone()));
 
         // color
-        if saver.layers & 1 != 0 {
+        if saver.layers.contains(TilemapLayer::COLOR) {
             let ser_tiles = storage
                 .storage
                 .clone()
@@ -176,7 +139,7 @@ pub fn save(
 
         // algorithm
         #[cfg(feature = "algorithm")]
-        if saver.layers & (1 << 1) != 0 {
+        if saver.layers.contains(TilemapLayer::PATH) {
             if let Ok(path_tilemap) = path_tilemaps_query.get(entity) {
                 match saver.mode {
                     TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &path_tilemap),

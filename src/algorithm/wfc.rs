@@ -6,6 +6,7 @@ use bevy::{
     math::IVec2,
     prelude::{Commands, Component, ParallelCommands, Query, UVec2},
     reflect::Reflect,
+    tasks::{AsyncComputeTaskPool, Task},
     utils::{HashMap, HashSet},
 };
 use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
@@ -200,7 +201,6 @@ pub struct WfcRunner {
     max_retrace_factor: u32,
     max_retrace_time: u32,
     max_history: usize,
-    fallback: Option<Box<dyn Fn(&mut Commands, Entity, &WfcRunner) + Send + Sync>>,
 }
 
 impl WfcRunner {
@@ -216,7 +216,6 @@ impl WfcRunner {
             max_retrace_factor: size.ilog10().clamp(2, 16),
             max_retrace_time: size.ilog10().clamp(2, 16) * 100,
             max_history: (size.ilog10().clamp(1, 8) * 20) as usize,
-            fallback: None,
         }
     }
 
@@ -289,18 +288,6 @@ impl WfcRunner {
         self
     }
 
-    /// Set the fallback function.
-    /// This function will be called when the algorithm failed to generate a map.
-    ///
-    /// The Entity in the parameter is the entity that the `WfcRunner` is attached to.
-    pub fn with_fallback(
-        mut self,
-        fallback: Box<dyn Fn(&mut Commands, Entity, &WfcRunner) + Send + Sync>,
-    ) -> Self {
-        self.fallback = Some(fallback);
-        self
-    }
-
     /// Get the rule for wfc.
     pub fn get_rule(&self) -> &Vec<Vec<u128>> {
         &self.conn_rules
@@ -316,7 +303,7 @@ impl WfcRunner {
     }
 }
 
-#[derive(Component, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 pub struct WfcData {
     pub(crate) data: Vec<u8>,
     pub(crate) size: UVec2,
@@ -385,7 +372,6 @@ pub struct WfcGrid {
     max_retrace_time: u32,
     retraced_time: u32,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
-    fallback: Option<Box<dyn Fn(&mut Commands, Entity, &WfcRunner) + Send + Sync>>,
 }
 
 impl WfcGrid {
@@ -429,7 +415,6 @@ impl WfcGrid {
             max_retrace_time: runner.max_retrace_time,
             retraced_time: 0,
             sampler: runner.sampler.take(),
-            fallback: runner.fallback.take(),
         }
     }
 
@@ -576,37 +561,49 @@ impl WfcGrid {
         candidates[self.rng.gen_range(0..candidates.len())]
     }
 
-    pub fn apply_data(&mut self, commands: &mut Commands, entity: Entity) {
+    pub fn generate_data(&mut self) -> Option<WfcData> {
+        if self.retraced_time >= self.max_retrace_time {
+            return None;
+        }
+
         let mut data = WfcData::new(self.area.extent);
         self.elements.drain().for_each(|(i, e)| {
             data.set(i, e.element_index.unwrap());
         });
-        commands.entity(entity).insert(data);
+        Some(data)
     }
 }
 
-pub fn wave_function_collapse(
-    commands: ParallelCommands,
-    mut runner_query: Query<(Entity, &mut WfcRunner), Without<WfcData>>,
-) {
-    runner_query
-        .par_iter_mut()
-        .for_each(|(entity, mut runner)| {
-            let mut wfc_grid = WfcGrid::from_runner(&mut runner);
+#[derive(Component)]
+pub struct WfcTask(Task<Option<WfcData>>);
 
+pub fn wave_function_collapse(
+    mut commands: Commands,
+    mut runner_query: Query<(Entity, &mut WfcRunner), Without<WfcTask>>,
+) {
+    let thread_pool = AsyncComputeTaskPool::get();
+    runner_query.iter_mut().for_each(|(entity, mut runner)| {
+        let mut wfc_grid = WfcGrid::from_runner(&mut runner);
+        let task = thread_pool.spawn(async move {
             while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
                 wfc_grid.collapse();
             }
-
-            commands.command_scope(|mut c| {
-                if wfc_grid.retraced_time < wfc_grid.max_retrace_time {
-                    wfc_grid.apply_data(&mut c, entity);
-                } else if let Some(fallback) = wfc_grid.fallback {
-                    fallback(&mut c, entity, &runner);
-                    c.entity(entity).remove::<WfcRunner>();
-                }
-            });
+            wfc_grid.generate_data()
         });
+        commands.entity(entity).insert(WfcTask(task));
+    });
+}
+
+pub fn wfc_data_assigner(mut commands: Commands, mut tasks_query: Query<(Entity, &mut WfcTask)>) {
+    tasks_query.for_each_mut(|(entity, mut task)| {
+        if let Some(data) = bevy::tasks::block_on(futures_lite::future::poll_once(&mut task.0)) {
+            let mut entity = commands.entity(entity);
+            entity.remove::<WfcTask>();
+            if let Some(data) = data {
+                entity.insert(data);
+            }
+        }
+    });
 }
 
 pub fn wfc_applier(

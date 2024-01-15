@@ -10,7 +10,6 @@ use bevy::{
     },
     hierarchy::DespawnRecursiveExt,
     math::IVec2,
-    reflect::Reflect,
     utils::HashMap,
 };
 
@@ -28,13 +27,8 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
 
-pub struct TilemapLoaderBuilder {
-    path: String,
-    map_name: String,
-    layers: u32,
-}
-
-impl TilemapLoaderBuilder {
+#[derive(Component, Clone)]
+pub struct TilemapLoader {
     /// For example if the file tree look like:
     ///
     /// ```
@@ -45,50 +39,9 @@ impl TilemapLoaderBuilder {
     ///         └── (and other data)
     /// ```
     /// Then path = `C:\\maps` and map_name = `beautiful map`
-    pub fn new(path: String, map_name: String) -> Self {
-        TilemapLoaderBuilder {
-            path,
-            map_name,
-            layers: 0,
-        }
-    }
-
-    pub fn with_layer(mut self, layer: TilemapLayer) -> Self {
-        self.layers |= layer as u32;
-        self
-    }
-
-    pub fn build(self, commands: &mut Commands, target: Entity) {
-        commands.entity(target).insert(TilemapLoader {
-            path: self.path,
-            map_name: self.map_name,
-            layers: self.layers,
-        });
-    }
-}
-
-#[derive(Component, Clone, Reflect)]
-pub struct TilemapLoader {
-    pub(crate) path: String,
-    pub(crate) map_name: String,
-    pub(crate) layers: u32,
-}
-
-#[derive(Component, Reflect)]
-pub struct TilemapLoadFailure {
     pub path: String,
     pub map_name: String,
-    pub layers: u32,
-}
-
-impl From<TilemapLoader> for TilemapLoadFailure {
-    fn from(loader: TilemapLoader) -> Self {
-        TilemapLoadFailure {
-            path: loader.path,
-            map_name: loader.map_name,
-            layers: loader.layers,
-        }
-    }
+    pub layers: TilemapLayer,
 }
 
 pub fn load(
@@ -98,10 +51,9 @@ pub fn load(
 ) {
     for (entity, loader) in tilemaps_query.iter() {
         let map_path = Path::new(&loader.path).join(&loader.map_name);
-        let failure = <TilemapLoader as Into<TilemapLoadFailure>>::into(loader.clone());
 
         let Ok(ser_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META) else {
-            complete(&mut commands, entity, failure, false);
+            complete(&mut commands, entity, (), false);
             continue;
         };
 
@@ -116,7 +68,7 @@ pub fn load(
         };
 
         // texture
-        let ser_tiles = if loader.layers & 1 != 0 && ser_tilemap.layers & 1 != 0 {
+        let ser_tiles = if loader.layers.contains(TilemapLayer::COLOR) {
             Some(load_object::<HashMap<IVec2, TileBuilder>>(&map_path, TILES))
         } else {
             None
@@ -124,11 +76,11 @@ pub fn load(
 
         // algorithm
         #[cfg(feature = "algorithm")]
-        if loader.layers & (1 << 1) != 0 {
+        if loader.layers.contains(TilemapLayer::PATH) {
             let Ok(path_tilemap) =
                 load_object::<crate::tilemap::algorithm::path::PathTilemap>(&map_path, PATH_TILES)
             else {
-                complete(&mut commands, entity, failure, false);
+                complete(&mut commands, entity, (), false);
                 continue;
             };
 
@@ -143,7 +95,7 @@ pub fn load(
 
         if let Some(ser_tiles) = ser_tiles {
             let Ok(ser_tiles) = ser_tiles else {
-                complete(&mut commands, entity, failure, false);
+                complete(&mut commands, entity, (), false);
                 continue;
             };
 

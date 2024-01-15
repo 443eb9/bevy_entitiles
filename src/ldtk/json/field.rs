@@ -4,11 +4,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::{
-    match_field, match_field_enum,
-    ldtk::{json::LdtkColor, enums::LdtkEnum},
-    transfer_field, unwrap_field,
-};
+use crate::{ldtk::json::LdtkColor, match_field, match_field_enum, transfer_field, unwrap_field};
 
 use super::{definitions::TilesetRect, EntityRef, GridPoint};
 
@@ -296,21 +292,6 @@ impl Into<Option<IVec2>> for FieldInstance {
                 _ => panic!("Expected Point value!"),
             },
             None => None,
-        }
-    }
-}
-
-enum Test {
-    A,
-    B,
-}
-
-impl LdtkEnum for Test {
-    fn get_identifier(ident: &str) -> Self {
-        match ident {
-            "A" => Test::A,
-            "B" => Test::B,
-            _ => panic!("Unknown identifier: {}", ident),
         }
     }
 }

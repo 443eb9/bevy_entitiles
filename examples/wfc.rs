@@ -50,8 +50,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         )
         // use weights OR custom_sampler
         // .with_weights("examples/wfc_weights.ron".to_string())
-        .with_retrace_settings(Some(8), Some(1000000))
-        .with_fallback(Box::new(|_, e, _| println!("Failed to generate: {:?}", e))),
+        .with_retrace_settings(Some(8), Some(1000000)),
         TilemapBundle {
             tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
             slot_size: TilemapSlotSize(Vec2::new(16., 16.)),

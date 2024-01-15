@@ -151,7 +151,7 @@ fn on_update(
         load_cache.schedule_many(
             &mut commands,
             tilemap,
-            TilemapLayer::Color,
+            TilemapLayer::COLOR,
             to_load.into_iter(),
         );
     }
@@ -160,7 +160,7 @@ fn on_update(
         save_cache.schedule_many(
             &mut commands,
             tilemap,
-            TilemapLayer::Color,
+            TilemapLayer::COLOR,
             to_unload.into_iter(),
         );
     }

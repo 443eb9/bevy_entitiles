@@ -100,7 +100,7 @@ impl Path {
     }
 }
 
-#[derive(Debug, Clone, Copy, Reflect, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PathNode {
     pub index: IVec2,
     pub parent: Option<IVec2>,

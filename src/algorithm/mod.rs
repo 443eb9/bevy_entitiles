@@ -25,6 +25,7 @@ impl Plugin for EntiTilesAlgorithmPlugin {
                 pathfinding::pathfinding_scheduler,
                 pathfinding::path_assigner,
                 wfc::wave_function_collapse,
+                wfc::wfc_data_assigner,
                 wfc::wfc_applier,
             ),
         );

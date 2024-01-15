@@ -33,7 +33,7 @@ pub mod prelude {
             load::{ChunkLoadCache, ChunkLoadConfig},
             save::{ChunkSaveCache, ChunkSaveConfig},
         },
-        map::{load::TilemapLoaderBuilder, save::TilemapSaver},
+        map::{load::TilemapLoader, save::TilemapSaver},
     };
     #[cfg(feature = "physics")]
     pub use crate::tilemap::physics::TileCollision;

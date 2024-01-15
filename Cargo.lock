@@ -570,6 +570,7 @@ dependencies = [
  "bevy_entitiles_derive",
  "bevy_mod_debugdump",
  "bevy_xpbd_2d",
+ "bitflags 2.4.1",
  "futures-lite 2.2.0",
  "image",
  "radsort",

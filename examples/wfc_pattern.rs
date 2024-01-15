@@ -96,12 +96,13 @@ fn setup(mut commands: Commands) {
     }
 
     tilemaps.into_iter().for_each(|map| {
-        commands.entity(map).insert(
-            TilemapSaver::new(PATTERNS_PATH.to_string())
-                .with_mode(TilemapSaverMode::MapPattern)
-                .with_layer(TilemapLayer::Color)
-                .remove_after_save(),
-        );
+        commands.entity(map).insert(TilemapSaver {
+            path: PATTERNS_PATH.to_string(),
+            mode: TilemapSaverMode::MapPattern,
+            layers: TilemapLayer::COLOR,
+            texture_path: None,
+            remove_after_save: true,
+        });
     });
 
     // If you are running this example for the first time,
