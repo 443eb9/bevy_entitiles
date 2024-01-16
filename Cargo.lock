@@ -563,7 +563,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_entitiles"
-version = "0.2.7"
+version = "0.3.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -582,7 +582,7 @@ dependencies = [
 
 [[package]]
 name = "bevy_entitiles_derive"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",

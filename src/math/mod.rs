@@ -46,7 +46,7 @@ pub fn camera_aabb_updater(
         Or<(
             Changed<OrthographicProjection>,
             Changed<Transform>,
-            Added<Camera>,
+            Added<OrthographicProjection>,
         )>,
     >,
     #[cfg(feature = "debug")] camera_aabb_scale: bevy::ecs::system::Res<

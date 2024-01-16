@@ -103,7 +103,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
         ),
         // you can also switch this to SingleMap mode
         // which will apply the result on a single tilemap
-        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
+        WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
     ));
 
     commands.spawn((

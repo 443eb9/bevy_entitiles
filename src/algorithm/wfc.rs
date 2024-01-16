@@ -9,7 +9,11 @@ use bevy::{
     tasks::{AsyncComputeTaskPool, Task},
     utils::{HashMap, HashSet},
 };
-use rand::{distributions::WeightedIndex, rngs::StdRng, Rng, SeedableRng};
+use rand::{
+    distributions::{Uniform, WeightedIndex},
+    rngs::StdRng,
+    Rng, SeedableRng,
+};
 
 use crate::{
     math::{extension::TileIndex, TileArea},
@@ -292,6 +296,31 @@ impl WfcRunner {
     pub fn get_rule(&self) -> &Vec<Vec<u128>> {
         &self.conn_rules
     }
+}
+
+#[derive(Component, Debug, Clone, Reflect)]
+pub struct WfcData {
+    pub(crate) data: Vec<u8>,
+    pub(crate) area: TileArea,
+}
+
+impl WfcData {
+    pub(crate) fn new(area: TileArea) -> Self {
+        Self {
+            data: vec![0; area.size()],
+            area,
+        }
+    }
+
+    pub fn get(&self, index: UVec2) -> Option<u8> {
+        self.data
+            .get((index.y * self.area.extent.x + index.x) as usize)
+            .cloned()
+    }
+
+    pub(crate) fn set(&mut self, index: UVec2, value: u8) {
+        self.data[(index.y * self.area.extent.x + index.x) as usize] = value;
+    }
 
     pub fn elem_idx_to_grid(&self, elem_index: usize) -> IVec2 {
         UVec2 {
@@ -300,31 +329,6 @@ impl WfcRunner {
         }
         .as_ivec2()
             - self.area.origin
-    }
-}
-
-#[derive(Component, Debug, Clone, Reflect)]
-pub struct WfcData {
-    pub(crate) data: Vec<u8>,
-    pub(crate) size: UVec2,
-}
-
-impl WfcData {
-    pub(crate) fn new(size: UVec2) -> Self {
-        Self {
-            data: vec![0; (size.x * size.y) as usize],
-            size,
-        }
-    }
-
-    pub fn get(&self, index: UVec2) -> Option<u8> {
-        self.data
-            .get((index.y * self.size.x + index.x) as usize)
-            .cloned()
-    }
-
-    pub(crate) fn set(&mut self, index: UVec2, value: u8) {
-        self.data[(index.y * self.size.x + index.x) as usize] = value;
     }
 }
 
@@ -434,7 +438,7 @@ impl WfcGrid {
         let psb = match &self.mode {
             WfcMode::NonWeighted => {
                 let psb_vec = elem.get_psbs_vec();
-                psb_vec[self.rng.gen_range(0..psb_vec.len())]
+                psb_vec[self.rng.sample(Uniform::new(0, psb_vec.len()))]
             }
             WfcMode::Weighted(w) => {
                 let psb_vec = elem.get_psbs_vec();
@@ -454,7 +458,7 @@ impl WfcGrid {
         elem.collapsed = true;
         self.remaining -= 1;
 
-        self.retrace_strength *= self.rng.gen_range(1..=self.max_retrace_factor);
+        self.retrace_strength *= self.max_retrace_factor;
 
         let index = elem.index;
         self.constrain(index);
@@ -519,6 +523,7 @@ impl WfcGrid {
             if hist_len <= strength {
                 // max retrace time exceeded
                 self.retraced_time = self.max_retrace_time;
+                return;
             } else {
                 if self.cur_hist >= strength {
                     self.cur_hist -= strength;
@@ -528,6 +533,7 @@ impl WfcGrid {
                     if self.history[hist_to_be].is_none() {
                         // retrace failed
                         self.retraced_time = self.max_retrace_time;
+                        return;
                     } else {
                         self.cur_hist = hist_to_be;
                     }
@@ -558,7 +564,7 @@ impl WfcGrid {
                 candidates.push(*index);
             }
         });
-        candidates[self.rng.gen_range(0..candidates.len())]
+        candidates[self.rng.sample(Uniform::new(0, candidates.len()))]
     }
 
     pub fn generate_data(&mut self) -> Option<WfcData> {
@@ -566,7 +572,7 @@ impl WfcGrid {
             return None;
         }
 
-        let mut data = WfcData::new(self.area.extent);
+        let mut data = WfcData::new(self.area);
         self.elements.drain().for_each(|(i, e)| {
             data.set(i, e.element_index.unwrap());
         });
@@ -590,7 +596,11 @@ pub fn wave_function_collapse(
             }
             wfc_grid.generate_data()
         });
-        commands.entity(entity).insert(WfcTask(task));
+
+        commands
+            .entity(entity)
+            .insert(WfcTask(task))
+            .remove::<WfcRunner>();
     });
 }
 
@@ -608,19 +618,14 @@ pub fn wfc_data_assigner(mut commands: Commands, mut tasks_query: Query<(Entity,
 
 pub fn wfc_applier(
     commands: ParallelCommands,
-    mut tilemaps_query: Query<(
-        Entity,
-        Option<&mut TilemapStorage>,
-        &WfcData,
-        &WfcRunner,
-        &WfcSource,
-    )>,
+    mut tilemaps_query: Query<(Entity, Option<&mut TilemapStorage>, &WfcData, &WfcSource)>,
     #[cfg(feature = "ldtk")] ldtk_patterns: Option<
         bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>,
     >,
 ) {
-    tilemaps_query.par_iter_mut().for_each(
-        |(entity, mut tilemap_storage, wfc_data, runner, source)| {
+    tilemaps_query
+        .par_iter_mut()
+        .for_each(|(entity, mut tilemap_storage, wfc_data, source)| {
             commands.command_scope(|mut c| {
                 match source {
                     WfcSource::SingleTile(tiles) => {
@@ -632,7 +637,7 @@ pub fn wfc_applier(
                             let ser_tile = tiles.get(*e as usize).unwrap();
                             tilemap.set(
                                 &mut c,
-                                runner.elem_idx_to_grid(i),
+                                wfc_data.elem_idx_to_grid(i),
                                 ser_tile.clone().into(),
                             );
                         }
@@ -646,7 +651,7 @@ pub fn wfc_applier(
                             let p = &patterns[*e as usize];
                             tilemap.fill_with_buffer(
                                 &mut c,
-                                (runner.elem_idx_to_grid(i) + runner.area.origin)
+                                (wfc_data.elem_idx_to_grid(i) + wfc_data.area.origin)
                                     * p.tiles.aabb.size(),
                                 p.tiles.clone(),
                             );
@@ -670,7 +675,9 @@ pub fn wfc_applier(
                                             c.spawn_empty().id(),
                                         ),
                                         tilemap_transform: TilemapTransform {
-                                            translation: (runner.elem_idx_to_grid(i) * size * size)
+                                            translation: (wfc_data.elem_idx_to_grid(i)
+                                                * size
+                                                * size)
                                                 .as_vec2(),
                                             ..Default::default()
                                         },
@@ -689,7 +696,9 @@ pub fn wfc_applier(
                                         tile_render_size: TileRenderSize(size.as_vec2()),
                                         slot_size: TilemapSlotSize(size.as_vec2()),
                                         tilemap_transform: TilemapTransform {
-                                            translation: (runner.elem_idx_to_grid(i) * size * size)
+                                            translation: (wfc_data.elem_idx_to_grid(i)
+                                                * size
+                                                * size)
                                                 .as_vec2(),
                                             ..Default::default()
                                         },
@@ -760,7 +769,7 @@ pub fn wfc_applier(
 
                                 wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                                     let (p, bg) = patterns.get_with_index(*e);
-                                    let ptn_idx = runner.elem_idx_to_grid(i);
+                                    let ptn_idx = wfc_data.elem_idx_to_grid(i);
 
                                     let mut bg = bg.clone();
                                     let ptn_render_size = bg.sprite.custom_size.unwrap();
@@ -832,6 +841,5 @@ pub fn wfc_applier(
                 commands.remove::<WfcSource>();
                 commands.remove::<WfcRunner>();
             });
-        },
-    );
+        });
 }

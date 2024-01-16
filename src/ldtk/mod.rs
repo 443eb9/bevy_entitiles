@@ -211,8 +211,8 @@ pub fn load_ldtk_json(
     mut commands: Commands,
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
-    entity_registry: NonSend<LdtkEntityRegistry>,
-    entity_tag_registry: NonSend<LdtkEntityTagRegistry>,
+    entity_registry: Option<NonSend<LdtkEntityRegistry>>,
+    entity_tag_registry: Option<NonSend<LdtkEntityTagRegistry>>,
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
     mut manager: ResMut<LdtkLevelManager>,
@@ -223,6 +223,9 @@ pub fn load_ldtk_json(
     global_entities: Res<LdtkGlobalEntityRegistry>,
 ) {
     for (entity, loader) in loader_query.iter() {
+        let entity_registry = entity_registry.as_ref().map(|r| &**r);
+        let entity_tag_registry = entity_tag_registry.as_ref().map(|r| &**r);
+
         ldtk_assets.initialize(
             &manager,
             &asset_server,
@@ -236,8 +239,8 @@ pub fn load_ldtk_json(
             &mut manager,
             loader,
             &asset_server,
-            &entity_registry,
-            &entity_tag_registry,
+            &entity_registry.unwrap_or(&LdtkEntityRegistry::default()),
+            &entity_tag_registry.unwrap_or(&LdtkEntityTagRegistry::default()),
             entity,
             &mut ldtk_events,
             &mut ldtk_assets,

@@ -12,8 +12,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Optimization
-- Chunk Unloading
 - Tilemap Serializing (Physics)
 - [Tiled](https://www.mapeditor.org/) Support
 - Custom Material
@@ -28,6 +26,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - ~~Physics~~
 - ~~[LDtk](https://ldtk.io/) Full Support~~
 - ~~Infinite Tilemap~~
+- ~~Chunk Unloading~~
 
 ## Feature Flags
 
@@ -81,7 +80,7 @@ I know you are confused about these weird boxes, so please check the [`chunk_unl
 
 Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, the asynchronized one in implemented. So the algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
 
-**Notice: The synchronized pathfinding was removed in 0.2.8.**
+**Notice: The synchronized pathfinding was removed in 0.3.0.**
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/pathfinding.png" width="500px">
@@ -94,7 +93,7 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 | 1000x1000 | 1384.33                 | 993.75                  |
 
 > *Column 1: Bevy 0.12.0, crate 0.2.1, using `pathfinding` example</br>
-> Column 2: Bevy 0.12.0, crate 0.2.8*
+> Column 2: Bevy 0.12.0, crate 0.3.0*
 
 ### Wave Function Collapse
 
@@ -141,7 +140,10 @@ In the following case, each tile has at least one corresponding color gap with i
 
 | Bevy ver | EntiTiles ver | LDtk ver      |
 | -------- | ------------- | ------------- |
+| 0.12.x   | 0.3.0         | 1.5.3         |
 | 0.12.x   | 0.2.7         | 1.5.1         |
 | 0.12.x   | 0.2.3-0.2.6   | 1.4.1         |
 | 0.12.x   | 0.2.0-0.2.2   | Not supported |
 | 0.11.x   | 0.1.x         | Not supported |
+
+*Versions before 0.3.0 is not named following [`Semantic Versioning`](https://semver.org/)*

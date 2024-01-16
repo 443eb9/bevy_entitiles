@@ -1,6 +1,6 @@
 # What's New:
 
-- Removed unnecessary hierarchy to get *much* **much** ***much*** more (5 times faster) better performance.
+- Removed unnecessary hierarchy to get *much* **Much** ***MUCH*** more (about 5 times faster) better performance.
 - Relaxed requirements of dependency versions.
 - Added `TilemapAabbs`.
 - Frustum culling for tilemaps.

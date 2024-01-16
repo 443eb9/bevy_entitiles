@@ -2,11 +2,7 @@ use std::{f32::consts::SQRT_2, fmt::Debug};
 
 use bevy::{
     asset::Handle,
-    ecs::{
-        component::Component,
-        query::Changed,
-        system::{ParallelCommands, Query},
-    },
+    ecs::{component::Component, query::Changed, system::Query},
     math::{Mat2, Quat, Vec4},
     prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
     reflect::Reflect,
@@ -597,9 +593,9 @@ pub fn queued_chunk_aabb_calculator(
 }
 
 pub fn tilemap_aabb_calculator(
-    commands: ParallelCommands,
     mut tilemaps_query: Query<
         (
+            &mut TilemapAabbs,
             &TilemapStorage,
             &TilemapType,
             &TilePivot,
@@ -609,9 +605,8 @@ pub fn tilemap_aabb_calculator(
         Changed<TilemapStorage>,
     >,
 ) {
-    tilemaps_query
-        .par_iter_mut()
-        .for_each(|(storage, ty, tile_pivot, slot_size, transform)| {
+    tilemaps_query.par_iter_mut().for_each(
+        |(mut aabbs, storage, ty, tile_pivot, slot_size, transform)| {
             let mut chunk_aabb: Option<IAabb2d> = None;
             storage.storage.chunks.keys().for_each(|chunk_index| {
                 if let Some(aabb) = &mut chunk_aabb {
@@ -641,16 +636,12 @@ pub fn tilemap_aabb_calculator(
                 slot_size.0,
                 *transform,
             );
-            let world_aabb = Aabb2d {
+
+            aabbs.chunk_aabb = chunk_aabb;
+            aabbs.world_aabb = Aabb2d {
                 min: world_min.min,
                 max: world_max.max,
             };
-
-            commands.command_scope(|mut c| {
-                c.entity(storage.tilemap).insert(TilemapAabbs {
-                    chunk_aabb,
-                    world_aabb,
-                });
-            });
-        });
+        },
+    );
 }
