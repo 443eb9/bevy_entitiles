@@ -124,10 +124,39 @@ pub struct Neighbour {
     /// `<` (neighbour depth is lower),
     /// `>` (neighbour depth is greater)
     /// or `o` (levels overlap and share the same world depth).
-    pub dir: String,
+    /// 
+    /// Since 1.5.3, this value can also be `nw`,`ne`,`sw` or `se` for levels
+    /// only touching corners.
+    pub dir: NeighbourDirection,
 
     /// Neighbour Instance Identifier
     pub level_iid: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+pub enum NeighbourDirection {
+    #[serde(rename = "n")]
+    North,
+    #[serde(rename = "s")]
+    South,
+    #[serde(rename = "w")]
+    West,
+    #[serde(rename = "e")]
+    East,
+    #[serde(rename = "nw")]
+    NorthWest,
+    #[serde(rename = "ne")]
+    NorthEast,
+    #[serde(rename = "sw")]
+    SouthWest,
+    #[serde(rename = "se")]
+    SouthEast,
+    #[serde(rename = "<")]
+    LowerDepth,
+    #[serde(rename = ">")]
+    GreaterDepth,
+    #[serde(rename = "o")]
+    Overlap,
 }
 
 /*
