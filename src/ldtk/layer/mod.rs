@@ -26,7 +26,7 @@ use crate::{
 
 use super::{
     components::{LayerIid, LdtkLoadedLevel, LevelIid, EntityIid, LdtkTempTransform},
-    traits::LdtkEntityRegistry,
+    traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
     json::{level::{LayerInstance, Level, TileInstance, EntityInstance}, field::FieldInstance},
     resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns},
     LdtkLoaderMode,
@@ -50,6 +50,7 @@ impl PackedLdtkEntity {
         self,
         commands: &mut EntityCommands,
         entity_registry: &LdtkEntityRegistry,
+        entity_tag_registry: &LdtkEntityTagRegistry,
         manager: &LdtkLevelManager,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
@@ -67,6 +68,20 @@ impl PackedLdtkEntity {
                 return;
             }
         };
+        
+        self.instance.tags.iter().for_each(|tag| {
+            if let Some(entity_tag) = entity_tag_registry.get(tag) {
+                entity_tag.add_tag(commands);
+            } else if !manager.ignore_unregistered_entity_tags {
+                panic!(
+                    "Could not find entity tag with tag: {}! \
+                    You need to register it using App::register_ldtk_entity_tag::<T>() first! \
+                    Or call LdtkLevelManager::ignore_unregistered_entity_tags to ignore.",
+                    tag
+                );
+            }
+        });
+        
         phantom_entity.spawn(
             commands,
             &self.instance,
@@ -202,6 +217,7 @@ impl<'a> LdtkLayers<'a> {
         ldtk_patterns: &mut LdtkPatterns,
         level: &Level,
         entity_registry: &LdtkEntityRegistry,
+        entity_tag_registry: &LdtkEntityTagRegistry,
         manager: &LdtkLevelManager,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
@@ -220,6 +236,7 @@ impl<'a> LdtkLayers<'a> {
                     entity.instantiate(
                         &mut ldtk_entity,
                         entity_registry,
+                        entity_tag_registry,
                         manager,
                         ldtk_assets,
                         asset_server,

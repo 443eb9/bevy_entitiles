@@ -73,13 +73,17 @@ pub trait LdtkEnum {
     fn get_identifier(ident: &str) -> Self;
 }
 
-pub struct LdtkEntityTag(pub Box<dyn PhantomLdtkEntityTagTrait>);
+pub type LdtkEntityTagRegistry = HashMap<String, Box<dyn PhantomLdtkEntityTagTrait>>;
 
-pub struct PhantomLdtkEntityTag<T: LdtkEnum + Component> {
+pub trait LdtkEntityTag {
+    fn add_tag(commands: &mut EntityCommands);
+}
+
+pub struct PhantomLdtkEntityTag<T: LdtkEntityTag + Component> {
     pub marker: PhantomData<T>,
 }
 
-impl<T: LdtkEnum + Component> PhantomLdtkEntityTag<T> {
+impl<T: LdtkEntityTag + Component> PhantomLdtkEntityTag<T> {
     pub fn new() -> Self {
         Self {
             marker: PhantomData::<T>,
@@ -88,11 +92,11 @@ impl<T: LdtkEnum + Component> PhantomLdtkEntityTag<T> {
 }
 
 pub trait PhantomLdtkEntityTagTrait {
-    fn add_tag(&self, commands: &mut EntityCommands, ident: String);
+    fn add_tag(&self, commands: &mut EntityCommands);
 }
 
-impl<T: LdtkEnum + Component> PhantomLdtkEntityTagTrait for PhantomLdtkEntityTag<T> {
-    fn add_tag(&self, commands: &mut EntityCommands, ident: String) {
-        commands.insert(T::get_identifier(&ident));
+impl<T: LdtkEntityTag + Component> PhantomLdtkEntityTagTrait for PhantomLdtkEntityTag<T> {
+    fn add_tag(&self, commands: &mut EntityCommands) {
+        T::add_tag(commands);
     }
 }

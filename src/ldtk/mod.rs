@@ -42,7 +42,7 @@ use self::{
     layer::{LdtkLayers, PackedLdtkEntity},
     resources::LdtkLevelManager,
     sprite::LdtkEntityMaterial,
-    traits::LdtkEntityRegistry,
+    traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
 };
 
 pub mod app_ext;
@@ -212,6 +212,7 @@ pub fn load_ldtk_json(
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
     entity_registry: NonSend<LdtkEntityRegistry>,
+    entity_tag_registry: NonSend<LdtkEntityTagRegistry>,
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
     mut manager: ResMut<LdtkLevelManager>,
@@ -236,6 +237,7 @@ pub fn load_ldtk_json(
             loader,
             &asset_server,
             &entity_registry,
+            &entity_tag_registry,
             entity,
             &mut ldtk_events,
             &mut ldtk_assets,
@@ -253,6 +255,7 @@ fn load_levels(
     loader: &LdtkLoader,
     asset_server: &AssetServer,
     entity_registry: &LdtkEntityRegistry,
+    entity_tag_registry: &LdtkEntityTagRegistry,
     level_entity: Entity,
     ldtk_events: &mut EventWriter<LdtkEvent>,
     ldtk_assets: &mut LdtkAssets,
@@ -333,6 +336,7 @@ fn load_levels(
         patterns,
         level,
         entity_registry,
+        entity_tag_registry,
         &manager,
         &ldtk_assets,
         asset_server,

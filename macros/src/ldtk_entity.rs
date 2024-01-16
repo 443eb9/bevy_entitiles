@@ -3,7 +3,6 @@ static LDTK_NAME_ATTR: &str = "ldtk_name";
 static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
 static GLOBAL_ENTITY_ATTR: &str = "global_entity";
 static CALLBACK_ATTR: &str = "callback";
-static LDTK_TAG_ATTR: &str = "ldtk_tag";
 
 pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
@@ -56,21 +55,15 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
         }
     };
 
-    let tag = attrs
-        .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == LDTK_TAG_ATTR);
+    let syn::Data::Struct(data_struct) = &input.data else {
+        panic!("LdtkEntity can only be derived for structs");
+    };
 
-    let ctor = if tag.is_none() {
-        let fields = match &input.data {
-            syn::Data::Struct(data) => match &data.fields {
-                syn::Fields::Named(fields) => &fields.named,
-                _ => panic!(
-                    "LdtkEntity can only be derived for structs with named fields! \
-                    Or add #[ldtk_tag] for struct without named fields!"
-                ),
-            },
-            _ => panic!("LdtkEntity can only be derived for structs"),
+    let ctor = if !data_struct.fields.is_empty() {
+        let syn::Fields::Named(fields) = &data_struct.fields else {
+            panic!("LdtkEntity can only be derived for structs with named fields!");
         };
+        let fields = &fields.named;
         let mut fields_cton = Vec::new();
 
         for field in fields.iter() {

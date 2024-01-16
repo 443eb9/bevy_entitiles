@@ -296,6 +296,7 @@ pub struct LdtkLevelManager {
     #[reflect(ignore)]
     pub(crate) filter_mode: FilterMode,
     pub(crate) ignore_unregistered_entities: bool,
+    pub(crate) ignore_unregistered_entity_tags: bool,
     pub(crate) z_index: i32,
     pub(crate) loaded_levels: HashMap<String, Entity>,
     #[cfg(feature = "algorithm")]
@@ -389,10 +390,15 @@ impl LdtkLevelManager {
         self
     }
 
-    /// If `true`, then the entities with unregistered identifiers will be ignored.
-    /// If `false`, then the program will panic.
-    pub fn set_if_ignore_unregistered_entities(&mut self, is_ignore: bool) -> &mut Self {
-        self.ignore_unregistered_entities = is_ignore;
+    /// Call this to make sure entities with unregistered identifiers will be ignored.
+    pub fn ignore_unregistered_entities(&mut self) -> &mut Self {
+        self.ignore_unregistered_entities = true;
+        self
+    }
+
+    /// Call this to make sure entity tags with unregistered identifiers will be ignored.
+    pub fn ignore_unregistered_entity_tags(&mut self) -> &mut Self {
+        self.ignore_unregistered_entity_tags = true;
         self
     }
 

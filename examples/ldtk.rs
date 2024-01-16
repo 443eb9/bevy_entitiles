@@ -36,7 +36,7 @@ use bevy_entitiles::{
     tilemap::physics::PhysicsTile,
     EntiTilesPlugin,
 };
-use bevy_entitiles_derive::{LdtkEntity, LdtkEnum};
+use bevy_entitiles_derive::{LdtkEntity, LdtkEntityTag, LdtkEnum};
 use bevy_xpbd_2d::{
     components::{Collider, Friction, LinearVelocity, Mass, RigidBody},
     plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins},
@@ -69,6 +69,9 @@ fn main() {
         .register_ldtk_entity::<Teleport>("Teleport")
         .register_ldtk_entity::<Ladder>("Ladder")
         .register_ldtk_entity::<SecretArea>("SecretArea")
+        .register_ldtk_entity_tag::<Actor>("actor")
+        .register_ldtk_entity_tag::<Loot>("loot")
+        .register_ldtk_entity_tag::<Region>("region")
         .run();
 }
 
@@ -108,7 +111,8 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
                 ),
             ])),
         })
-        .set_if_ignore_unregistered_entities(true);
+        .ignore_unregistered_entities()
+        .ignore_unregistered_entity_tags();
 }
 
 macro_rules! level_control {
@@ -279,12 +283,10 @@ pub struct Player {
 
 #[derive(Component, LdtkEntity, Reflect)]
 #[spawn_sprite]
-#[ldtk_tag]
 pub struct Ladder;
 
 #[derive(Component, LdtkEntity, Reflect)]
 #[spawn_sprite]
-#[ldtk_tag]
 pub struct SecretArea;
 
 #[derive(Component, LdtkEntity, Reflect)]
@@ -301,3 +303,12 @@ pub struct Item {
 pub struct Teleport {
     pub destination: EntityRef,
 }
+
+#[derive(Component, LdtkEntityTag)]
+pub struct Actor;
+
+#[derive(Component, LdtkEntityTag)]
+pub struct Loot;
+
+#[derive(Component, LdtkEntityTag)]
+pub struct Region;

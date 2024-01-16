@@ -10,7 +10,8 @@
 - Much further support for physics tilemaps.
 - Pathfinding rework. Using bevy async compute to asynchronize the process.
 - Use bevy async compute to asynchronize wfc.
-- Supported `LdtkEnum`s to become the entity tags.
+- Supported LDtk 1.5.3.
+- Added `LdtkEntityTag` which is corresponding to the `Tags` in `Project Entities` panel in LDtk.
 - Supported atlas mode for those extremely large ( more than 2048 atlases ) textures.
 
 # What's Fixed:

@@ -4,13 +4,13 @@ use bevy::{
 };
 
 use super::traits::{
-    LdtkEntity, LdtkEntityRegistry, LdtkEntityTag, LdtkEnum, PhantomLdtkEntity,
+    LdtkEntity, LdtkEntityRegistry, LdtkEntityTag, LdtkEntityTagRegistry, PhantomLdtkEntity,
     PhantomLdtkEntityTag,
 };
 
 pub trait AppExt {
     fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) -> &mut App;
-    fn register_ldtk_entity_tag<T: LdtkEnum + Component>(&mut self) -> &mut App;
+    fn register_ldtk_entity_tag<T: LdtkEntityTag + Component>(&mut self, tag: &str) -> &mut App;
 }
 
 impl AppExt for App {
@@ -29,15 +29,18 @@ impl AppExt for App {
         self
     }
 
-    fn register_ldtk_entity_tag<T: LdtkEnum + Component>(&mut self) -> &mut App {
-        match self.world.get_non_send_resource_mut::<LdtkEntityTag>() {
-            Some(mut tag) => {
-                tag.0 = Box::new(PhantomLdtkEntityTag::<T>::new());
+    fn register_ldtk_entity_tag<T: LdtkEntityTag + Component>(&mut self, tag: &str) -> &mut App {
+        match self
+            .world
+            .get_non_send_resource_mut::<LdtkEntityTagRegistry>()
+        {
+            Some(mut mapper) => {
+                mapper.insert(tag.to_string(), Box::new(PhantomLdtkEntityTag::<T>::new()));
             }
             None => {
-                self.world.insert_non_send_resource(LdtkEntityTag(Box::new(
-                    PhantomLdtkEntityTag::<T>::new(),
-                )));
+                self.world
+                    .insert_non_send_resource(LdtkEntityTagRegistry::default());
+                self.register_ldtk_entity_tag::<T>(tag);
             }
         }
 
