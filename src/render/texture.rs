@@ -4,19 +4,27 @@ use bevy::{
         query::Added,
         system::{Query, ResMut, Resource},
     },
-    math::Vec2,
     prelude::Image,
     render::{
         render_asset::RenderAssets,
-        render_resource::{
-            AddressMode, Extent3d, ImageCopyTexture, Origin3d, SamplerDescriptor, TextureAspect,
-            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-            TextureViewDescriptor, TextureViewDimension,
-        },
-        renderer::{RenderDevice, RenderQueue},
+        render_resource::{AddressMode, SamplerDescriptor},
+        renderer::RenderDevice,
         texture::GpuImage,
     },
     utils::HashMap,
+};
+
+#[cfg(not(feature = "atlas"))]
+use bevy::{
+    math::Vec2,
+    render::{
+        render_resource::{
+            Extent3d, ImageCopyTexture, Origin3d, TextureAspect, TextureDescriptor,
+            TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
+            TextureViewDimension,
+        },
+        renderer::RenderQueue,
+    },
 };
 
 use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor};
@@ -30,15 +38,19 @@ pub struct TilemapTexturesStorage {
 
 impl TilemapTexturesStorage {
     pub fn insert(&mut self, handle: Handle<Image>, desc: &TilemapTextureDescriptor) {
+        #[cfg(not(feature = "atlas"))]
         self.prepare_queue.insert(handle, desc.clone());
+        #[cfg(feature = "atlas")]
+        self.queue_queue.insert(handle, desc.clone());
     }
 
     /// Try to get the processed texture array.
-    pub fn get_texture_array(&self, image: &Handle<Image>) -> Option<&GpuImage> {
+    pub fn get_texture(&self, image: &Handle<Image>) -> Option<&GpuImage> {
         self.textures.get(image)
     }
 
     /// Prepare the texture, creating the texture array and translate images in `queue_texture` function.
+    #[cfg(not(feature = "atlas"))]
     pub fn prepare_textures(&mut self, render_device: &RenderDevice) {
         if self.prepare_queue.is_empty() {
             return;
@@ -110,6 +122,7 @@ impl TilemapTexturesStorage {
     }
 
     /// Translate images to texture array.
+    #[cfg(not(feature = "atlas"))]
     pub fn queue_textures(
         &mut self,
         render_device: &RenderDevice,
@@ -166,6 +179,44 @@ impl TilemapTexturesStorage {
             }
 
             render_queue.submit(vec![command_encoder.finish()]);
+        }
+    }
+
+    #[cfg(feature = "atlas")]
+    pub fn queue_textures(
+        &mut self,
+        render_device: &RenderDevice,
+        render_images: &mut RenderAssets<Image>,
+    ) {
+        if self.queue_queue.is_empty() {
+            return;
+        }
+
+        let to_queue = self.queue_queue.drain().collect::<Vec<_>>();
+
+        for (image_handle, desc) in to_queue.into_iter() {
+            let Some(texture) = render_images.get_mut(&image_handle) else {
+                self.queue_queue.insert(image_handle, desc);
+                continue;
+            };
+
+            let sampler = render_device.create_sampler(&SamplerDescriptor {
+                label: Some("tilemap_texture_atlas_sampler"),
+                address_mode_u: AddressMode::ClampToEdge,
+                address_mode_v: AddressMode::ClampToEdge,
+                address_mode_w: AddressMode::ClampToEdge,
+                mag_filter: desc.filter_mode,
+                min_filter: desc.filter_mode,
+                mipmap_filter: desc.filter_mode,
+                lod_min_clamp: 0.,
+                lod_max_clamp: f32::MAX,
+                compare: None,
+                anisotropy_clamp: 1,
+                border_color: None,
+            });
+
+            texture.sampler = sampler;
+            self.textures.insert(image_handle, texture.clone());
         }
     }
 

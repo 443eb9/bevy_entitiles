@@ -57,6 +57,8 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             }
             .into(),
         );
+        #[cfg(feature = "atlas")]
+        shader_defs.push("ATLAS".into());
 
         let mut vtx_fmt = vec![
             // position

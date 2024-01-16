@@ -35,15 +35,24 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
     output.color = vec4<f32>(pow(input.color.rgb, vec3<f32>(2.2)), input.color.a);
 
 #ifndef PURE_COLOR
-    output.anim_flag = input.index.z;
+#ifdef ATLAS
     var uvs = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
         vec2<f32>(0., 0.),
         vec2<f32>(1., 0.),
         vec2<f32>(1., 1.),
     );
+#else
+    var uvs = array<vec2<f32>, 4>(
+        vec2<f32>(0., 1.),
+        vec2<f32>(0., 0.),
+        vec2<f32>(1., 0.),
+        vec2<f32>(1., 1.),
+    );
+#endif
     output.uv = uvs[(input.v_index + tilemap.uv_rot) % 4u];
     output.flip = input.flip;
+    output.anim_flag = input.index.z;
 
     if input.index.z != -1 {
         // Means that this tile is a animated tile
@@ -81,9 +90,18 @@ fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
         if (input.flip[i] & 2u) != 0u {
             uv.y = 1. - uv.y;
         }
+#ifdef ATLAS
+        let tile_index = vec2<f32>(f32(input.texture_indices[i] % tilemap.texture_tiled_size.x),
+                                   f32(input.texture_indices[i] / tilemap.texture_tiled_size.x));
+        let atlas_uv = (tile_index + uv) * tilemap.tile_uv_size;
+        let tex_color = textureSample(bevy_entitiles::common::color_texture,
+                                      bevy_entitiles::common::color_texture_sampler,
+                                      atlas_uv);
+#else
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
                                       uv, input.texture_indices[i]);
+#endif
         color = mix(color, tex_color, tex_color.a * tilemap.layer_opacities[i]);
 
         if input.anim_flag != -1 {

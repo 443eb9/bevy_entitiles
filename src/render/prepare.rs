@@ -51,6 +51,7 @@ pub fn prepare_tilemaps(
         }
     });
 
+    #[cfg(not(feature = "atlas"))]
     textures_storage.prepare_textures(&render_device);
     uniform_buffers.write(&render_device, &render_queue);
     storage_buffers.write(&render_device, &render_queue);

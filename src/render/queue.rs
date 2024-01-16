@@ -5,7 +5,7 @@ use bevy::{
         render_asset::RenderAssets,
         render_phase::{DrawFunctions, RenderPhase},
         render_resource::{BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
-        renderer::{RenderDevice, RenderQueue},
+        renderer::RenderDevice,
         texture::Image,
         view::ViewUniforms,
     },
@@ -20,6 +20,9 @@ use super::{
     texture::TilemapTexturesStorage,
 };
 
+#[cfg(not(feature = "atlas"))]
+use bevy::render::renderer::RenderQueue;
+
 pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
@@ -33,14 +36,18 @@ pub fn queue(
     mut bind_groups: ResMut<TilemapBindGroups>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    render_queue: Res<RenderQueue>,
-    render_images: Res<RenderAssets<Image>>,
+    #[cfg(not(feature = "atlas"))] render_queue: Res<RenderQueue>,
+    #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<Image>>,
+    #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<Image>>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
     };
 
+    #[cfg(not(feature = "atlas"))]
     textures_storage.queue_textures(&render_device, &render_queue, &render_images);
+    #[cfg(feature = "atlas")]
+    textures_storage.queue_textures(&render_device, &mut render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TilemapViewBindGroup {

@@ -102,6 +102,10 @@ pub struct TilemapUniform {
     pub layer_opacities: Vec4,
     pub hex_legs: f32,
     pub time: f32,
+    #[cfg(feature = "atlas")]
+    pub texture_tiled_size: bevy::math::IVec2,
+    #[cfg(feature = "atlas")]
+    pub tile_uv_size: Vec2,
 }
 
 #[derive(Resource, Default)]
@@ -120,6 +124,18 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
             }
         };
 
+        #[cfg(feature = "atlas")]
+        let (texture_tiled_size, tile_uv_size) = {
+            if let Some(tex) = extracted.texture.as_ref() {
+                (
+                    (tex.desc.size / tex.desc.tile_size).as_ivec2(),
+                    tex.desc.tile_size.as_vec2() / tex.desc.size.as_vec2(),
+                )
+            } else {
+                (bevy::math::IVec2::ZERO, Vec2::ZERO)
+            }
+        };
+
         DynamicOffsetComponent::new(self.buffer().push(TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
@@ -133,6 +149,10 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
                 _ => 0.,
             },
             time: extracted.time,
+            #[cfg(feature = "atlas")]
+            texture_tiled_size,
+            #[cfg(feature = "atlas")]
+            tile_uv_size,
         }))
     }
 

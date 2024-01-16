@@ -36,14 +36,24 @@ struct Tilemap {
     // this value will only be meaningful when the tilemap is hexagonal!
     hex_legs: f32,
     time: f32,
+#ifdef ATLAS
+    // texture size in tiles
+    texture_tiled_size: vec2<i32>,
+    tile_uv_size: vec2<f32>,
+#endif
 }
 
 @group(1) @binding(0)
 var<uniform> tilemap: Tilemap;
 
 #ifndef PURE_COLOR
+#ifdef ATLAS
+@group(2) @binding(0)
+var color_texture: texture_2d<f32>;
+#else
 @group(2) @binding(0)
 var color_texture: texture_2d_array<f32>;
+#endif
 
 @group(2) @binding(1)
 var color_texture_sampler: sampler;

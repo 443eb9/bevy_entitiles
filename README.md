@@ -34,6 +34,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | Flag          | Funtionality                                                                            |
 | ------------- | --------------------------------------------------------------------------------------- |
 | `algorithm`   | Implementation of algorithms                                                            |
+| `atlas`       | Use calculated uv coordinates on a entire texture instead of using texture arrays.      |
 | `debug`       | Show some debug info including aabbs for chunks and tilemaps, path finding results etc. |
 | `ldtk`        | [LDtk](https://ldtk.io/) support.                                                       |
 | `physics`     | Physics support using [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd).              |

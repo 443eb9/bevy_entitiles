@@ -89,35 +89,35 @@ impl TilemapBindGroups {
         textures_storage: &TilemapTexturesStorage,
         entitile_pipeline: &EntiTilesPipeline,
     ) -> bool {
-        if let Some(tilemap_texture) = &tilemap.texture {
-            let Some(texture) = textures_storage.get_texture_array(tilemap_texture.handle()) else {
-                return !textures_storage.contains(tilemap_texture.handle());
-            };
+        let Some(tilemap_texture) = &tilemap.texture else {
+            return true;
+        };
 
-            if !self.colored_textures.contains_key(tilemap_texture.handle()) {
-                self.colored_textures.insert(
-                    tilemap_texture.clone_weak(),
-                    render_device.create_bind_group(
-                        Some("color_texture_bind_group"),
-                        &entitile_pipeline.color_texture_layout,
-                        &[
-                            BindGroupEntry {
-                                binding: 0,
-                                resource: BindingResource::TextureView(&texture.texture_view),
-                            },
-                            BindGroupEntry {
-                                binding: 1,
-                                resource: BindingResource::Sampler(&texture.sampler),
-                            },
-                        ],
-                    ),
-                );
-            }
+        let Some(texture) = textures_storage.get_texture(tilemap_texture.handle()) else {
+            return !textures_storage.contains(tilemap_texture.handle());
+        };
 
-            false
-        } else {
-            true
+        if !self.colored_textures.contains_key(tilemap_texture.handle()) {
+            self.colored_textures.insert(
+                tilemap_texture.clone_weak(),
+                render_device.create_bind_group(
+                    Some("color_texture_bind_group"),
+                    &entitile_pipeline.color_texture_layout,
+                    &[
+                        BindGroupEntry {
+                            binding: 0,
+                            resource: BindingResource::TextureView(&texture.texture_view),
+                        },
+                        BindGroupEntry {
+                            binding: 1,
+                            resource: BindingResource::Sampler(&texture.sampler),
+                        },
+                    ],
+                ),
+            );
         }
+
+        false
     }
 }
 
@@ -176,6 +176,7 @@ impl FromWorld for TilemapBindGroupLayouts {
                 }],
             });
 
+        #[cfg(not(feature = "atlas"))]
         let color_texture_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
                 label: Some("color_texture_layout"),
@@ -186,6 +187,30 @@ impl FromWorld for TilemapBindGroupLayouts {
                         ty: BindingType::Texture {
                             sample_type: TextureSampleType::Float { filterable: true },
                             view_dimension: TextureViewDimension::D2Array,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+            });
+        
+        #[cfg(feature = "atlas")]
+        let color_texture_layout =
+            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
+                label: Some("color_texture_layout"),
+                entries: &[
+                    BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: ShaderStages::FRAGMENT,
+                        ty: BindingType::Texture {
+                            sample_type: TextureSampleType::Float { filterable: true },
+                            view_dimension: TextureViewDimension::D2,
                             multisampled: false,
                         },
                         count: None,

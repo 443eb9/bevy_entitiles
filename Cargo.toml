@@ -59,6 +59,7 @@ image = "0.24.7"
 [features]
 default = []
 algorithm = ["dep:rand", "serializing", "dep:futures-lite"]
+atlas = []
 debug = []
 physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
