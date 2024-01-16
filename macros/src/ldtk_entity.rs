@@ -116,7 +116,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     };
 
     quote::quote! {
-        impl bevy_entitiles::ldtk::entities::LdtkEntity for #ty {
+        impl bevy_entitiles::ldtk::traits::LdtkEntity for #ty {
             fn initialize(
                 commands: &mut bevy::ecs::system::EntityCommands,
                 entity_instance: &bevy_entitiles::ldtk::json::level::EntityInstance,

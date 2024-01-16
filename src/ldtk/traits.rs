@@ -2,56 +2,14 @@ use std::marker::PhantomData;
 
 use bevy::{
     asset::AssetServer,
-    ecs::{bundle::Bundle, system::EntityCommands},
+    ecs::{bundle::Bundle, component::Component, system::EntityCommands},
     utils::HashMap,
 };
 
 use super::{
-    components::{EntityIid, LdtkTempTransform},
     json::{field::FieldInstance, level::EntityInstance},
     resources::{LdtkAssets, LdtkLevelManager},
 };
-
-#[derive(Debug, Clone)]
-pub struct PackedLdtkEntity {
-    pub instance: EntityInstance,
-    pub fields: HashMap<String, FieldInstance>,
-    pub iid: EntityIid,
-    pub transform: LdtkTempTransform,
-}
-
-impl PackedLdtkEntity {
-    pub fn instantiate(
-        self,
-        commands: &mut EntityCommands,
-        entity_registry: &LdtkEntityRegistry,
-        manager: &LdtkLevelManager,
-        ldtk_assets: &LdtkAssets,
-        asset_server: &AssetServer,
-    ) {
-        let phantom_entity = {
-            if let Some(e) = entity_registry.get(&self.instance.identifier) {
-                e
-            } else if !manager.ignore_unregistered_entities {
-                panic!(
-                    "Could not find entity type with entity identifier: {}! \
-                    You need to register it using App::register_ldtk_entity::<T>() first!",
-                    self.instance.identifier
-                );
-            } else {
-                return;
-            }
-        };
-        phantom_entity.spawn(
-            commands,
-            &self.instance,
-            &self.fields,
-            asset_server,
-            &manager,
-            ldtk_assets,
-        )
-    }
-}
 
 pub type LdtkEntityRegistry = HashMap<String, Box<dyn PhantomLdtkEntityTrait>>;
 
@@ -108,5 +66,33 @@ impl<T: LdtkEntity + Bundle> PhantomLdtkEntityTrait for PhantomLdtkEntity<T> {
             ldtk_manager,
             ldtk_assets,
         );
+    }
+}
+
+pub trait LdtkEnum {
+    fn get_identifier(ident: &str) -> Self;
+}
+
+pub struct LdtkEntityTag(pub Box<dyn PhantomLdtkEntityTagTrait>);
+
+pub struct PhantomLdtkEntityTag<T: LdtkEnum + Component> {
+    pub marker: PhantomData<T>,
+}
+
+impl<T: LdtkEnum + Component> PhantomLdtkEntityTag<T> {
+    pub fn new() -> Self {
+        Self {
+            marker: PhantomData::<T>,
+        }
+    }
+}
+
+pub trait PhantomLdtkEntityTagTrait {
+    fn add_tag(&self, commands: &mut EntityCommands, ident: String);
+}
+
+impl<T: LdtkEnum + Component> PhantomLdtkEntityTagTrait for PhantomLdtkEntityTag<T> {
+    fn add_tag(&self, commands: &mut EntityCommands, ident: String) {
+        commands.insert(T::get_identifier(&ident));
     }
 }

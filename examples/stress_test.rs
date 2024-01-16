@@ -1,8 +1,3 @@
-/*
- * Platform: 10600KF Final Goal 1000*1000 tiles at 350fps
- * 2024.1.12 45fps
- */
-
 use bevy::{
     app::{App, PluginGroup, Startup},
     asset::AssetServer,

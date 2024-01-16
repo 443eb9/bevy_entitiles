@@ -33,27 +33,26 @@ use self::{
     components::{
         EntityIid, GlobalEntity, LdtkLoadedLevel, LdtkTempTransform, LdtkUnloadLayer, LevelIid,
     },
-    entities::{LdtkEntityRegistry, PackedLdtkEntity},
     events::{LdtkEvent, LevelEvent},
     json::{
         definitions::LayerType,
         level::{LayerInstance, Level},
         LdtkJson, WorldLayout,
     },
-    layer::LdtkLayers,
+    layer::{LdtkLayers, PackedLdtkEntity},
     resources::LdtkLevelManager,
     sprite::LdtkEntityMaterial,
+    traits::LdtkEntityRegistry,
 };
 
 pub mod app_ext;
 pub mod components;
-pub mod entities;
-pub mod enums;
 pub mod events;
 pub mod json;
 pub mod layer;
 pub mod resources;
 pub mod sprite;
+pub mod traits;
 
 pub const ENTITY_SPRITE_SHADER: Handle<Shader> = Handle::weak_from_u128(89874656485416351634163551);
 

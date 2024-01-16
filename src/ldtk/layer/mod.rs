@@ -1,6 +1,6 @@
 use bevy::{
     asset::AssetServer,
-    ecs::{entity::Entity, system::Commands},
+    ecs::{entity::Entity, system::{Commands, EntityCommands}},
     hierarchy::DespawnRecursiveExt,
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
@@ -25,9 +25,9 @@ use crate::{
 };
 
 use super::{
-    components::{LayerIid, LdtkLoadedLevel, LevelIid},
-    entities::{LdtkEntityRegistry, PackedLdtkEntity},
-    json::level::{LayerInstance, Level, TileInstance},
+    components::{LayerIid, LdtkLoadedLevel, LevelIid, EntityIid, LdtkTempTransform},
+    traits::LdtkEntityRegistry,
+    json::{level::{LayerInstance, Level, TileInstance, EntityInstance}, field::FieldInstance},
     resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns},
     LdtkLoaderMode,
 };
@@ -36,6 +36,47 @@ use super::{
 pub mod path;
 #[cfg(feature = "physics")]
 pub mod physics;
+
+#[derive(Debug, Clone)]
+pub struct PackedLdtkEntity {
+    pub instance: EntityInstance,
+    pub fields: HashMap<String, FieldInstance>,
+    pub iid: EntityIid,
+    pub transform: LdtkTempTransform,
+}
+
+impl PackedLdtkEntity {
+    pub fn instantiate(
+        self,
+        commands: &mut EntityCommands,
+        entity_registry: &LdtkEntityRegistry,
+        manager: &LdtkLevelManager,
+        ldtk_assets: &LdtkAssets,
+        asset_server: &AssetServer,
+    ) {
+        let phantom_entity = {
+            if let Some(e) = entity_registry.get(&self.instance.identifier) {
+                e
+            } else if !manager.ignore_unregistered_entities {
+                panic!(
+                    "Could not find entity type with entity identifier: {}! \
+                    You need to register it using App::register_ldtk_entity::<T>() first!",
+                    self.instance.identifier
+                );
+            } else {
+                return;
+            }
+        };
+        phantom_entity.spawn(
+            commands,
+            &self.instance,
+            &self.fields,
+            asset_server,
+            &manager,
+            ldtk_assets,
+        )
+    }
+}
 
 pub type LayerOpacity = f32;
 

@@ -57,7 +57,7 @@ pub fn expand_ldtk_enum_derive(input: syn::DeriveInput) -> proc_macro::TokenStre
     ];
 
     quote::quote!(
-        impl bevy_entitiles::ldtk::enums::LdtkEnum for #ty {
+        impl bevy_entitiles::ldtk::traits::LdtkEnum for #ty {
             fn get_identifier(ident: &str) -> Self {
                 match ident {
                     #(#variants_cton)*
@@ -124,10 +124,10 @@ fn impl_into_enum(ty: &syn::Ident) -> proc_macro2::TokenStream {
                     Some(v) => match v {
                         bevy_entitiles::ldtk::json::field::FieldValue::LocalEnum(
                             (_, i),
-                        ) => <#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i),
+                        ) => <#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i),
                         bevy_entitiles::ldtk::json::field::FieldValue::ExternEnum(
                             (_, i),
-                        ) => <#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i),
+                        ) => <#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i),
                         _ => panic!("Expected value!"),
                     },
                     None => panic!("Expected value!"),
@@ -146,10 +146,10 @@ fn impl_into_enum_opt(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::Tok
                     Some(v) => match v {
                         bevy_entitiles::ldtk::json::field::FieldValue::LocalEnum(
                             (_, i),
-                        ) => #wrapper(Some(<#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i))),
+                        ) => #wrapper(Some(<#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i))),
                         bevy_entitiles::ldtk::json::field::FieldValue::ExternEnum(
                             (_, i),
-                        ) => #wrapper(Some(<#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i))),
+                        ) => #wrapper(Some(<#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i))),
                         _ => panic!("Expected value!"),
                     },
                     None => #wrapper(None),
@@ -170,14 +170,14 @@ fn impl_into_enum_vec(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2::Tok
                             #wrapper(
                                 i
                                 .iter()
-                                .map(|i| <#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i)).collect()
+                                .map(|i| <#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i)).collect()
                             )
                         }
                         bevy_entitiles::ldtk::json::field::FieldValue::ExternEnumArray((_, i)) => {
                             #wrapper(
                                 i
                                 .iter()
-                                .map(|i| <#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i)).collect()
+                                .map(|i| <#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i)).collect()
                             )
                         }
                         _ => panic!("Expected value!"),
@@ -199,14 +199,14 @@ fn impl_into_enum_opt_vec(ty: &syn::Ident, wrapper: &syn::Ident) -> proc_macro2:
                             #wrapper(Some(
                                 i
                                 .iter()
-                                .map(|i| <#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i)).collect())
+                                .map(|i| <#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i)).collect())
                             )
                         }
                         bevy_entitiles::ldtk::json::field::FieldValue::ExternEnumArray((_, i)) => {
                             #wrapper(Some(
                                 i
                                 .iter()
-                                .map(|i| <#ty as bevy_entitiles::ldtk::enums::LdtkEnum>::get_identifier(&i)).collect())
+                                .map(|i| <#ty as bevy_entitiles::ldtk::traits::LdtkEnum>::get_identifier(&i)).collect())
                             )
                         }
                         _ => panic!("Expected value!"),

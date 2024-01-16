@@ -238,8 +238,6 @@ fn player_spawn(
     ));
 }
 
-// values here may show unreachable pattern warning
-// It doesn't matter, and I don't know how to fix it
 #[derive(LdtkEnum, Reflect, Clone, Copy, Debug)]
 #[wrapper_derive(Reflect, Default)]
 pub enum ItemType {

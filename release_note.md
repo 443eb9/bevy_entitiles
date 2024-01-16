@@ -1,7 +1,7 @@
 # What's New:
 
 - Removed unnecessary hierarchy to get *much* **much** ***much*** more (5 times faster) better performance.
-- Updated dependencies.
+- Relaxed requirements of dependency versions.
 - Added `TilemapAabbs`.
 - Frustum culling for tilemaps.
 - Removed `ui` stuff. They do not deserve my extra attention.
@@ -10,6 +10,7 @@
 - Much further support for physics tilemaps.
 - Pathfinding rework. Using bevy async compute to asynchronize the process.
 - Use bevy async compute to asynchronize wfc.
+- Supported `LdtkEnum`s to become the entity tags.
 - Supported atlas mode for those extremely large ( more than 2048 atlases ) textures.
 
 # What's Fixed:
