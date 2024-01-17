@@ -9,23 +9,24 @@ use bevy::{
         system::{Commands, Query, Res},
     },
     hierarchy::DespawnRecursiveExt,
-    math::IVec2,
-    utils::HashMap,
 };
 
 use crate::{
     serializing::load_object,
     tilemap::{
-        chunking::storage::ChunkedStorage,
+        chunking::storage::{ChunkedStorage, TileBuilderChunkedStorage},
         map::{TilemapStorage, TilemapTexture},
-        tile::TileBuilder,
+        tile::Tile,
     },
 };
 
 use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
-use crate::{serializing::map::PATH_TILES, tilemap::algorithm::path::PathTilemap};
+use crate::{
+    serializing::map::PATH_TILES,
+    tilemap::{algorithm::path::PathTilemap, chunking::storage::PathTileChunkedStorage},
+};
 
 #[cfg(feature = "physics")]
 use crate::{
@@ -75,7 +76,7 @@ pub fn load(
 
         // texture
         let ser_tiles = if loader.layers.contains(TilemapLayer::COLOR) {
-            Some(load_object::<HashMap<IVec2, TileBuilder>>(&map_path, TILES))
+            Some(load_object::<TileBuilderChunkedStorage>(&map_path, TILES))
         } else {
             None
         };
@@ -93,9 +94,29 @@ pub fn load(
                 continue;
             };
 
-            ser_tiles.into_iter().for_each(|(index, tile)| {
-                storage.set(&mut commands, index, tile.into());
-            });
+            let mut bundles = Vec::new();
+            ser_tiles
+                .chunked_iter_some()
+                .for_each(|(chunk_index, in_chunk_index, tile)| {
+                    let tile_entity = commands.spawn_empty().id();
+                    storage
+                        .storage
+                        .set_elem_precise(chunk_index, in_chunk_index, tile_entity);
+                    bundles.push((
+                        tile_entity,
+                        Tile {
+                            tilemap_id: entity,
+                            chunk_index,
+                            in_chunk_index,
+                            index: storage
+                                .storage
+                                .inverse_transform_index(chunk_index, in_chunk_index),
+                            texture: tile.texture.clone(),
+                            color: tile.color,
+                        },
+                    ));
+                });
+            commands.insert_or_spawn_batch(bundles);
         }
 
         if let Some(tex) = texture {
@@ -111,12 +132,15 @@ pub fn load(
         // algorithm
         #[cfg(feature = "algorithm")]
         if loader.layers.contains(TilemapLayer::PATH) {
-            let Ok(path_tilemap) = load_object::<PathTilemap>(&map_path, PATH_TILES) else {
+            let Ok(path_storage) = load_object::<PathTileChunkedStorage>(&map_path, PATH_TILES)
+            else {
                 complete(&mut commands, entity, (), false);
                 continue;
             };
 
-            commands.entity(entity).insert(path_tilemap);
+            commands.entity(entity).insert(PathTilemap {
+                storage: path_storage,
+            });
         }
 
         // physics

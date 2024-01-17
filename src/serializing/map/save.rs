@@ -7,12 +7,12 @@ use bevy::{
         system::{Commands, Query},
     },
     reflect::Reflect,
-    utils::HashMap,
 };
 
 use crate::{
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
+        chunking::storage::ChunkedStorage,
         despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -119,23 +119,23 @@ pub fn save(
 
         // color
         if saver.layers.contains(TilemapLayer::COLOR) {
-            let ser_tiles = storage
-                .storage
-                .clone()
-                .into_mapper()
-                .iter()
-                .map(|t| {
-                    (
-                        *t.0,
-                        <Tile as Into<TileBuilder>>::into(tiles_query.get(*t.1).unwrap().clone()),
-                    )
-                })
-                .collect::<HashMap<_, _>>();
+            let chunk_size = storage.storage.chunk_size;
+            let ser_tiles = storage.storage.chunked_iter_some().fold(
+                ChunkedStorage::<TileBuilder>::new(chunk_size),
+                |mut acc, (chunk_index, in_chunk_index, tile)| {
+                    acc.set_elem_precise(
+                        chunk_index,
+                        in_chunk_index,
+                        tiles_query.get(*tile).unwrap().clone().into(),
+                    );
+                    acc
+                },
+            );
 
             match saver.mode {
                 TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &ser_tiles),
                 TilemapSaverMode::MapPattern => {
-                    pattern.tiles.tiles = ser_tiles;
+                    pattern.tiles.tiles = ser_tiles.into_mapper();
                     pattern.tiles.recalculate_aabb();
                 }
             }
@@ -146,7 +146,9 @@ pub fn save(
         if saver.layers.contains(TilemapLayer::PATH) {
             if let Ok(path_tilemap) = path_tilemaps_query.get(entity) {
                 match saver.mode {
-                    TilemapSaverMode::Tilemap => save_object(&map_path, PATH_TILES, &path_tilemap),
+                    TilemapSaverMode::Tilemap => {
+                        save_object(&map_path, PATH_TILES, &path_tilemap.storage)
+                    }
                     TilemapSaverMode::MapPattern => {
                         pattern.path_tiles.tiles = path_tilemap.storage.clone().into_mapper();
                         pattern.path_tiles.recalculate_aabb();

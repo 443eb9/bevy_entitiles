@@ -149,7 +149,7 @@ pub fn load_color_layer(
                     entities[in_chunk_index_vec] = Some(e);
                 });
 
-                storage.storage.set_chunk(chunk_index, entities);
+                storage.set_chunk_entity(chunk_index, entities);
                 c.insert_or_spawn_batch(tiles);
             });
         });

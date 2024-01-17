@@ -50,24 +50,24 @@ pub fn get_tile_collider(
     let size = size.as_ivec2();
     match ty {
         TilemapType::Square => {
-            let origin = index_to_world(IVec2::ZERO, ty, transform, pivot, slot_size);
+            let left_down = index_to_world(IVec2::ZERO, ty, transform, pivot, slot_size);
+            let up_right = index_to_world(size, ty, transform, pivot, slot_size);
 
             vec![
-                origin,
-                origin + Vec2::new(slot_size.x, 0.),
-                origin + slot_size,
-                origin + Vec2::new(0., slot_size.y),
+                left_down,
+                Vec2::new(up_right.x, left_down.y),
+                up_right,
+                Vec2::new(left_down.x, up_right.y),
             ]
         }
         TilemapType::Isometric => {
-            let origin = index_to_world(IVec2::ZERO, ty, transform, pivot, slot_size);
+            let down = index_to_world(IVec2::ZERO, ty, transform, pivot, slot_size);
+            let up = index_to_world(size, ty, transform, pivot, slot_size);
+            let left = index_to_world(IVec2::new(0, size.y), ty, transform, pivot, slot_size);
+            let right = index_to_world(IVec2::new(size.x, 0), ty, transform, pivot, slot_size);
+            let offset = transform.apply_rotation(Vec2::new(slot_size.x / 2., 0.));
 
-            vec![
-                origin + Vec2::new(slot_size.x / 2., 0.),
-                origin + Vec2::new(slot_size.x, slot_size.y / 2.),
-                origin + Vec2::new(slot_size.x / 2., slot_size.y),
-                origin + Vec2::new(0., slot_size.y / 2.),
-            ]
+            vec![down + offset, up + offset, right + offset, left + offset]
         }
         TilemapType::Hexagonal(leg) => {
             let mut vertices = Vec::new();

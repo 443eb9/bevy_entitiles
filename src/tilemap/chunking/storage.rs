@@ -1,15 +1,10 @@
 use std::fmt::Debug;
 
-use bevy::{
-    ecs::entity::Entity,
-    math::IVec2,
-    reflect::Reflect,
-    utils::{HashMap, HashSet},
-};
+use bevy::{ecs::entity::Entity, math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{
-    math::{aabb::Aabb2d, extension::DivToFloor},
-    tilemap::tile::Tile,
+    math::extension::DivToFloor,
+    tilemap::tile::{Tile, TileBuilder},
     DEFAULT_CHUNK_SIZE,
 };
 
@@ -18,20 +13,20 @@ pub type InChunkIndex = usize;
 
 pub type EntityChunkedStorage = ChunkedStorage<Entity>;
 pub type ColorTileChunkedStorage = ChunkedStorage<Tile>;
+pub type TileBuilderChunkedStorage = ChunkedStorage<TileBuilder>;
 #[cfg(feature = "algorithm")]
 pub type PathTileChunkedStorage = ChunkedStorage<crate::tilemap::algorithm::path::PathTile>;
 #[cfg(feature = "physics")]
 pub type PhysicsTileChunkedStorage = ChunkedStorage<crate::tilemap::physics::PhysicsTile>;
 #[cfg(feature = "physics")]
-pub type PackedPhysicsTileChunkedStorage = ChunkedStorage<crate::tilemap::physics::PackedPhysicsTile>;
+pub type PackedPhysicsTileChunkedStorage =
+    ChunkedStorage<crate::tilemap::physics::PackedPhysicsTile>;
 
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct ChunkedStorage<T: Debug + Clone + Reflect> {
     pub chunk_size: u32,
     pub chunks: HashMap<IVec2, Vec<Option<T>>>,
-    pub reserved: HashMap<IVec2, Aabb2d>,
-    pub calc_queue: HashSet<IVec2>,
 }
 
 impl<T: Debug + Clone + Reflect> Default for ChunkedStorage<T> {
@@ -39,8 +34,6 @@ impl<T: Debug + Clone + Reflect> Default for ChunkedStorage<T> {
         Self {
             chunk_size: DEFAULT_CHUNK_SIZE,
             chunks: HashMap::new(),
-            reserved: HashMap::new(),
-            calc_queue: HashSet::new(),
         }
     }
 }
@@ -80,7 +73,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
 
     pub fn set_elem(&mut self, index: IVec2, elem: T) {
         let idx = self.transform_index(index);
-        self.queue_aabb(index);
         self.chunks
             .entry(idx.0)
             .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])[idx.1] =
@@ -88,7 +80,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     }
 
     pub fn set_elem_precise(&mut self, chunk_index: IVec2, in_chunk_index: usize, elem: T) {
-        self.calc_queue.insert(chunk_index);
         self.chunks
             .entry(chunk_index)
             .or_insert_with(|| vec![None; (self.chunk_size * self.chunk_size) as usize])
@@ -97,7 +88,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
 
     pub fn remove_elem(&mut self, index: IVec2) -> Option<T> {
         let idx = self.transform_index(index);
-        self.queue_aabb(index);
         self.chunks.get_mut(&idx.0).and_then(|c| c[idx.1].take())
     }
 
@@ -107,8 +97,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
 
     pub fn clear(&mut self) {
         self.chunks.clear();
-        self.reserved.clear();
-        self.calc_queue.clear();
     }
 
     #[inline]
@@ -130,7 +118,6 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
 
     #[inline]
     pub fn set_chunk(&mut self, index: IVec2, chunk: Vec<Option<T>>) {
-        self.queue_aabb(index);
         self.chunks.insert(index, chunk);
     }
 
@@ -139,6 +126,15 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         let c = index.div_to_floor(isize);
         let idx = index - c * isize;
         (c, (idx.y * isize.x + idx.x) as usize)
+    }
+
+    pub fn inverse_transform_index(&self, chunk_index: IVec2, in_chunk_index: usize) -> IVec2 {
+        let isize = IVec2::splat(self.chunk_size as i32);
+        let idx = IVec2::new(
+            in_chunk_index as i32 % self.chunk_size as i32,
+            in_chunk_index as i32 / self.chunk_size as i32,
+        );
+        chunk_index * isize + idx
     }
 
     pub fn into_mapper(mut self) -> HashMap<IVec2, T> {
@@ -194,37 +190,5 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
                     })
             })
             .flatten()
-    }
-
-    /// Declare that a chunk is existent.
-    /// Use `reserve_with_aabb` if you can provide the aabb.
-    /// Or `reserve_many` to reserve multiple chunks.
-    #[inline]
-    pub fn reserve(&mut self, index: IVec2) {
-        self.queue_aabb(index);
-    }
-
-    #[inline]
-    pub fn reserve_with_aabb(&mut self, index: IVec2, aabb: Aabb2d) {
-        self.reserved.insert(index, aabb);
-    }
-
-    #[inline]
-    pub fn reserve_many(&mut self, indices: impl Iterator<Item = IVec2>) {
-        indices.for_each(|i| {
-            self.queue_aabb(i);
-        });
-    }
-
-    #[inline]
-    pub fn reserve_many_with_aabbs(&mut self, indices: impl Iterator<Item = (IVec2, Aabb2d)>) {
-        self.reserved.extend(indices);
-    }
-
-    #[inline]
-    fn queue_aabb(&mut self, index: IVec2) {
-        if !self.reserved.contains_key(&index) {
-            self.calc_queue.insert(index);
-        }
     }
 }

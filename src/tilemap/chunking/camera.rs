@@ -33,7 +33,7 @@ impl CameraChunkUpdater {
     /// - If a chunk is intersected with the detect aabb, then it must be visible.
     /// - If a chunk is intersected with the update aabb, then it must be loaded/generated
     ///   when there's some chunk invisible.
-    /// 
+    ///
     /// See the example `chunk_unloading` for further details.
     pub fn new(detect_scale: f32, update_scale: f32) -> Self {
         assert!(
@@ -70,7 +70,6 @@ pub fn camera_chunk_update(
                 .with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));
 
             let detected = storage
-                .storage
                 .reserved
                 .iter()
                 .filter_map(|(chunk_index, aabb)| {
@@ -92,20 +91,16 @@ pub fn camera_chunk_update(
 
             let mut cur_visible = HashSet::with_capacity(cam_updater.last_updation.len());
 
-            storage
-                .storage
-                .reserved
-                .iter()
-                .for_each(|(chunk_index, aabb)| {
-                    if update_aabb.is_intersected(*aabb) {
-                        if !cam_updater.last_updation.contains(chunk_index) {
-                            updation_event.send(CameraChunkUpdation::Entered(entity, *chunk_index));
-                        }
-                        cur_visible.insert(*chunk_index);
-                    } else if cam_updater.last_updation.contains(chunk_index) {
-                        updation_event.send(CameraChunkUpdation::Left(entity, *chunk_index));
+            storage.reserved.iter().for_each(|(chunk_index, aabb)| {
+                if update_aabb.is_intersected(*aabb) {
+                    if !cam_updater.last_updation.contains(chunk_index) {
+                        updation_event.send(CameraChunkUpdation::Entered(entity, *chunk_index));
                     }
-                });
+                    cur_visible.insert(*chunk_index);
+                } else if cam_updater.last_updation.contains(chunk_index) {
+                    updation_event.send(CameraChunkUpdation::Left(entity, *chunk_index));
+                }
+            });
 
             cam_updater.last_updation = cur_visible;
         });

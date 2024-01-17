@@ -1,6 +1,7 @@
 # What's New:
 
 - (De)Serializing for physics layers.
+- Unified the format of different tilemap layers.
 
 # What's Fixed:
 

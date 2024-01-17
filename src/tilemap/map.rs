@@ -9,6 +9,7 @@ use bevy::{
     render::render_resource::{FilterMode, TextureUsages},
     sprite::TextureAtlas,
     transform::components::Transform,
+    utils::{HashMap, HashSet},
 };
 
 use crate::math::{
@@ -274,6 +275,8 @@ pub struct TilemapAabbs {
 pub struct TilemapStorage {
     pub(crate) tilemap: Entity,
     pub(crate) storage: EntityChunkedStorage,
+    pub reserved: HashMap<IVec2, Aabb2d>,
+    pub calc_queue: HashSet<IVec2>,
 }
 
 impl TilemapStorage {
@@ -291,6 +294,8 @@ impl Default for TilemapStorage {
         Self {
             tilemap: Entity::PLACEHOLDER,
             storage: Default::default(),
+            reserved: Default::default(),
+            calc_queue: Default::default(),
         }
     }
 }
@@ -327,16 +332,25 @@ impl TilemapStorage {
 
         let mut tile_entity = commands.spawn_empty();
         self.storage.set_elem(index, tile_entity.id());
+        self.reserve(new_tile.chunk_index);
         tile_entity.insert(new_tile);
     }
 
     #[inline]
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
         if let Some(e) = entity {
-            self.storage.set_elem(index, e);
+            let (chunk_index, in_chunk_index) = self.storage.transform_index(index);
+            self.storage.set_elem_precise(chunk_index, in_chunk_index, e);
+            self.reserve(chunk_index);
         } else {
             self.storage.remove_elem(index);
         }
+    }
+
+    #[inline]
+    pub(crate) fn set_chunk_entity(&mut self, index: IVec2, chunk: Vec<Option<Entity>>) {
+        self.storage.chunks.insert(index, chunk);
+        self.reserve(index);
     }
 
     /// Update some properties of a tile.
@@ -375,6 +389,38 @@ impl TilemapStorage {
             .for_each(|entity| {
                 commands.entity(entity).insert(DespawnMe);
             });
+    }
+
+    /// Declare that a chunk is existent.
+    /// Use `reserve_with_aabb` if you can provide the aabb.
+    /// Or `reserve_many` to reserve multiple chunks.
+    #[inline]
+    pub fn reserve(&mut self, index: IVec2) {
+        self.queue_aabb(index);
+    }
+
+    #[inline]
+    pub fn reserve_with_aabb(&mut self, index: IVec2, aabb: Aabb2d) {
+        self.reserved.insert(index, aabb);
+    }
+
+    #[inline]
+    pub fn reserve_many(&mut self, indices: impl Iterator<Item = IVec2>) {
+        indices.for_each(|i| {
+            self.queue_aabb(i);
+        });
+    }
+
+    #[inline]
+    pub fn reserve_many_with_aabbs(&mut self, indices: impl Iterator<Item = (IVec2, Aabb2d)>) {
+        self.reserved.extend(indices);
+    }
+
+    #[inline]
+    fn queue_aabb(&mut self, index: IVec2) {
+        if !self.reserved.contains_key(&index) {
+            self.calc_queue.insert(index);
+        }
     }
 
     /// Despawn the entire tilemap.
@@ -570,7 +616,6 @@ pub fn queued_chunk_aabb_calculator(
         |(mut storage, ty, tile_pivot, slot_size, transform)| {
             let chunk_size = storage.storage.chunk_size;
             let ext = storage
-                .storage
                 .calc_queue
                 .drain()
                 .map(|i| {
@@ -587,7 +632,7 @@ pub fn queued_chunk_aabb_calculator(
                     )
                 })
                 .collect::<Vec<_>>();
-            storage.storage.reserved.extend(ext);
+            storage.reserved.extend(ext);
         },
     );
 }

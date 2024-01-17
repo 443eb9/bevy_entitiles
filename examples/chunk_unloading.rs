@@ -61,11 +61,11 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, on_update)
         .insert_resource(ChunkSaveConfig {
-            path: "C:\\maps".to_string(),
+            path: "C:\\saves".to_string(),
             chunks_per_frame: 1,
         })
         .insert_resource(ChunkLoadConfig {
-            path: "C:\\maps".to_string(),
+            path: "C:\\saves".to_string(),
             chunks_per_frame: 1,
         })
         // We need to disable frustum culling to see the load/save process.
@@ -112,7 +112,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // but it's not on the tilemap yet.
     // So when the camera enters/leaves this chunk, you will receive the event
     // for this chunk.
-    tilemap.storage.get_storage_raw().reserve_many(
+    tilemap.storage.reserve_many(
         (-7..=6)
             .into_iter()
             .flat_map(move |x| (-7..=6).into_iter().map(move |y| IVec2 { x, y })),
@@ -124,28 +124,28 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Then all the chunks will be saved to your disk.
     // Or you can write your own code to make allow the chunks to be generated at runtime.
 
-    tilemap.storage.fill_rect(
-        &mut commands,
-        bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
-    );
+    // tilemap.storage.fill_rect(
+    //     &mut commands,
+    //     bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+    //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+    // );
 
     #[allow(unused_mut)]
     let mut physics_tilemap = PhysicsTilemap::new_with_chunk_size(16);
-    physics_tilemap.fill_rect_custom(
-        bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
-        |_| {
-            if rand::random::<u32>() % 10 == 0 {
-                Some(PhysicsTile {
-                    rigid_body: true,
-                    friction: Some(0.2),
-                })
-            } else {
-                None
-            }
-        },
-        false,
-    );
+    // physics_tilemap.fill_rect_custom(
+    //     bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+    //     |_| {
+    //         if rand::random::<u32>() % 10 == 0 {
+    //             Some(PhysicsTile {
+    //                 rigid_body: true,
+    //                 friction: Some(0.2),
+    //             })
+    //         } else {
+    //             None
+    //         }
+    //     },
+    //     false,
+    // );
     commands.entity(entity).insert(physics_tilemap);
 
     commands.entity(entity).insert(tilemap);
