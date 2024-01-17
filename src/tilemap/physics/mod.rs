@@ -59,6 +59,12 @@ pub struct PackedPhysicsTile {
     pub physics_tile: PhysicsTile,
 }
 
+impl Into<PhysicsTile> for PackedPhysicsTile {
+    fn into(self) -> PhysicsTile {
+        self.physics_tile
+    }
+}
+
 impl Tiles for PackedPhysicsTile {}
 
 impl PackedPhysicsTile {

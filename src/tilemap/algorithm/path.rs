@@ -3,7 +3,7 @@ use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 use crate::{
     math::TileArea,
     tilemap::{
-        buffers::Tiles,
+        buffers::{PathTileBuffer, Tiles},
         chunking::storage::{ChunkedStorage, PathTileChunkedStorage},
     },
 };
@@ -74,5 +74,11 @@ impl PathTilemap {
                 self.set(IVec2 { x, y }, path_tile);
             }
         }
+    }
+
+    pub fn fill_with_buffer(&mut self, origin: IVec2, buffer: PathTileBuffer) {
+        buffer.tiles.into_iter().for_each(|(index, tile)| {
+            self.set(index + origin, tile);
+        });
     }
 }

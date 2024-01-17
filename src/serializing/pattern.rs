@@ -6,7 +6,7 @@ use crate::tilemap::buffers::TileBuilderBuffer;
 #[cfg(feature = "algorithm")]
 use crate::tilemap::buffers::PathTileBuffer;
 #[cfg(feature = "physics")]
-use crate::tilemap::buffers::PhysicsTileBuffer;
+use crate::tilemap::buffers::PackedPhysicsTileBuffer;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct TilemapPattern {
@@ -15,7 +15,7 @@ pub struct TilemapPattern {
     #[cfg(feature = "algorithm")]
     pub(crate) path_tiles: PathTileBuffer,
     #[cfg(feature = "physics")]
-    pub(crate) physics_tiles: PhysicsTileBuffer,
+    pub(crate) physics_tiles: PackedPhysicsTileBuffer,
 }
 
 impl TilemapPattern {
@@ -26,7 +26,7 @@ impl TilemapPattern {
             #[cfg(feature = "algorithm")]
             path_tiles: PathTileBuffer::new(),
             #[cfg(feature = "physics")]
-            physics_tiles: PhysicsTileBuffer::new(),
+            physics_tiles: PackedPhysicsTileBuffer::new(),
         }
     }
 }

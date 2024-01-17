@@ -164,7 +164,21 @@ pub fn save(
                     TilemapSaverMode::Tilemap => {
                         save_object(&map_path, PHYSICS_TILES, &physics_tilemap.data)
                     }
-                    TilemapSaverMode::MapPattern => todo!(),
+                    TilemapSaverMode::MapPattern => {
+                        pattern.physics_tiles.tiles = physics_tilemap
+                            .data
+                            .clone()
+                            .into_mapper()
+                            .into_iter()
+                            .map(|(index, mut tile)| {
+                                tile.collider.iter_mut().for_each(|v| {
+                                    *v = *v - transform.translation;
+                                });
+                                (index, tile)
+                            })
+                            .collect();
+                        pattern.physics_tiles.recalculate_aabb();
+                    }
                 }
             }
         }

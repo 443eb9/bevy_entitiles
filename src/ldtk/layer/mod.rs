@@ -146,7 +146,7 @@ impl<'a> LdtkLayers<'a> {
         let tile_size = texture.desc.tile_size;
         let tile_index = IVec2 {
             x: tile.px[0] / tile_size.x as i32,
-            y: -tile.px[1] / tile_size.y as i32,
+            y: -tile.px[1] / tile_size.y as i32 - 1,
         };
 
         if let Some(ser_tile) = pattern.tiles.get_mut(tile_index) {
@@ -273,7 +273,7 @@ impl<'a> LdtkLayers<'a> {
 
                         tilemap
                             .storage
-                            .fill_with_buffer(commands, IVec2::NEG_Y, pattern.tiles);
+                            .fill_with_buffer(commands, IVec2::ZERO, pattern.tiles);
 
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
