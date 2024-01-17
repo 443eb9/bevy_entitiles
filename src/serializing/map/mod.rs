@@ -22,6 +22,7 @@ use self::save::TilemapSaver;
 pub const TILEMAP_META: &str = "tilemap.ron";
 pub const TILES: &str = "tiles.ron";
 pub const PATH_TILES: &str = "path_tiles.ron";
+pub const PHYSICS_TILES: &str = "physics_tiles.ron";
 
 pub mod load;
 pub mod save;
@@ -186,14 +187,6 @@ impl Into<FilterMode> for SerializedFilterMode {
         }
     }
 }
-
-// #[repr(u32)]
-// #[derive(Serialize, Deserialize, Reflect, Hash, Eq, PartialEq, Clone, Copy, Debug)]
-// pub enum TilemapLayer {
-//     Color = 1,
-//     Path = 1 << 1,
-//     Physics = 1 << 2,
-// }
 
 bitflags::bitflags! {
     #[derive(Serialize, Deserialize, Hash, Eq, PartialEq, Clone, Copy, Debug)]

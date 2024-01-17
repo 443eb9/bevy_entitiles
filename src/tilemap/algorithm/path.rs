@@ -2,7 +2,10 @@ use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 
 use crate::{
     math::TileArea,
-    tilemap::{buffers::Tiles, chunking::storage::ChunkedStorage},
+    tilemap::{
+        buffers::Tiles,
+        chunking::storage::{ChunkedStorage, PathTileChunkedStorage},
+    },
 };
 
 #[derive(Component, Debug, Clone, Copy, Reflect)]
@@ -16,7 +19,7 @@ impl Tiles for PathTile {}
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTilemap {
-    pub(crate) storage: ChunkedStorage<PathTile>,
+    pub(crate) storage: PathTileChunkedStorage,
 }
 
 impl PathTilemap {

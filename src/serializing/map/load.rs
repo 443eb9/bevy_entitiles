@@ -25,7 +25,13 @@ use crate::{
 use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
-use super::PATH_TILES;
+use crate::{serializing::map::PATH_TILES, tilemap::algorithm::path::PathTilemap};
+
+#[cfg(feature = "physics")]
+use crate::{
+    serializing::map::PHYSICS_TILES,
+    tilemap::{chunking::storage::PackedPhysicsTileChunkedStorage, physics::PhysicsTilemap},
+};
 
 #[derive(Component, Clone)]
 pub struct TilemapLoader {
@@ -74,25 +80,13 @@ pub fn load(
             None
         };
 
-        // algorithm
-        #[cfg(feature = "algorithm")]
-        if loader.layers.contains(TilemapLayer::PATH) {
-            let Ok(path_tilemap) =
-                load_object::<crate::tilemap::algorithm::path::PathTilemap>(&map_path, PATH_TILES)
-            else {
-                complete(&mut commands, entity, (), false);
-                continue;
-            };
-
-            commands.entity(entity).insert(path_tilemap);
-        }
-
         let mut storage = TilemapStorage {
             tilemap: entity,
             storage: ChunkedStorage::new(ser_tilemap.chunk_size),
             ..Default::default()
         };
 
+        // color
         if let Some(ser_tiles) = ser_tiles {
             let Ok(ser_tiles) = ser_tiles else {
                 complete(&mut commands, entity, (), false);
@@ -112,6 +106,46 @@ pub fn load(
             let mut bundle = ser_tilemap.into_pure_color_tilemap(entity);
             bundle.storage = storage;
             complete(&mut commands, entity, bundle, true);
+        }
+
+        // algorithm
+        #[cfg(feature = "algorithm")]
+        if loader.layers.contains(TilemapLayer::PATH) {
+            let Ok(path_tilemap) = load_object::<PathTilemap>(&map_path, PATH_TILES) else {
+                complete(&mut commands, entity, (), false);
+                continue;
+            };
+
+            commands.entity(entity).insert(path_tilemap);
+        }
+
+        // physics
+        #[cfg(feature = "physics")]
+        if loader.layers.contains(TilemapLayer::PHYSICS) {
+            let Ok(physics_tiles) =
+                load_object::<PackedPhysicsTileChunkedStorage>(&map_path, PHYSICS_TILES)
+            else {
+                complete(&mut commands, entity, (), false);
+                continue;
+            };
+
+            let mut physics_storage = ChunkedStorage::new(ser_tilemap.chunk_size);
+
+            physics_tiles
+                .chunked_iter_some()
+                .for_each(|(chunk_index, in_chunk_index, tile)| {
+                    physics_storage.set_elem_precise(
+                        chunk_index,
+                        in_chunk_index,
+                        tile.spawn(&mut commands, ser_tilemap.ty),
+                    );
+                });
+
+            commands.entity(entity).insert(PhysicsTilemap {
+                storage: physics_storage,
+                spawn_queue: Vec::new(),
+                data: physics_tiles,
+            });
         }
     }
 }

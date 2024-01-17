@@ -60,3 +60,18 @@ pub fn despawn_tiles(mut commands: Commands, query: Query<&Tile, With<DespawnMe>
 
     commands.spawn_batch(despawned_tiles);
 }
+
+#[cfg(feature = "physics")]
+pub fn despawn_physics_tilemaps(
+    commands: ParallelCommands,
+    query: Query<(Entity, &super::physics::PhysicsTilemap), With<DespawnMe>>,
+) {
+    query.par_iter().for_each(|(entity, physics_tilemap)| {
+        commands.command_scope(|mut c| {
+            physics_tilemap.storage.iter_some().for_each(|entity| {
+                c.entity(*entity).despawn();
+            });
+            c.entity(entity).despawn();
+        });
+    });
+}

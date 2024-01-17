@@ -13,6 +13,7 @@ use bevy::{
 use crate::{
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
+        despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
@@ -21,7 +22,7 @@ use crate::{
     },
 };
 
-use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
+use super::{SerializedTilemap, TilemapLayer, PHYSICS_TILES, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
@@ -58,7 +59,7 @@ pub struct TilemapSaver {
 
 pub fn save(
     mut commands: Commands,
-    tilemaps_query: Query<(
+    mut tilemaps_query: Query<(
         Entity,
         &TilemapName,
         &TileRenderSize,
@@ -66,7 +67,7 @@ pub fn save(
         &TilemapType,
         &TilePivot,
         &TilemapLayerOpacities,
-        &TilemapStorage,
+        &mut TilemapStorage,
         &TilemapTransform,
         Option<&TilemapTexture>,
         Option<&TilemapAnimations>,
@@ -75,6 +76,9 @@ pub fn save(
     tiles_query: Query<&Tile>,
     #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
         &crate::tilemap::algorithm::path::PathTilemap,
+    >,
+    #[cfg(feature = "physics")] physics_tilemaps_query: Query<
+        &crate::tilemap::physics::PhysicsTilemap,
     >,
 ) {
     for (
@@ -85,12 +89,12 @@ pub fn save(
         ty,
         tile_pivot,
         layer_opacities,
-        storage,
+        mut storage,
         transform,
         texture,
         animations,
         saver,
-    ) in tilemaps_query.iter()
+    ) in tilemaps_query.iter_mut()
     {
         let map_dir = Path::new(&saver.path);
         let map_path = map_dir.join(&name.0);
@@ -151,12 +155,25 @@ pub fn save(
             }
         }
 
+        #[cfg(feature = "physics")]
+        if saver.layers.contains(TilemapLayer::PHYSICS) {
+            if let Ok(physics_tilemap) = physics_tilemaps_query.get(entity) {
+                match saver.mode {
+                    TilemapSaverMode::Tilemap => {
+                        save_object(&map_path, PHYSICS_TILES, &physics_tilemap.data)
+                    }
+                    TilemapSaverMode::MapPattern => todo!(),
+                }
+            }
+        }
+
         if saver.mode == TilemapSaverMode::MapPattern {
             save_object(map_dir, format!("{}.ron", name.0).as_str(), &pattern);
         }
 
         if saver.remove_after_save {
-            commands.entity(entity).despawn();
+            storage.despawn(&mut commands);
+            commands.entity(entity).insert(DespawnMe);
         }
 
         commands.entity(entity).remove::<TilemapSaver>();

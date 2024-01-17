@@ -67,7 +67,13 @@ pub fn draw_path(
 
         for node in path.iter() {
             gizmos.circle_2d(
-                crate::tilemap::coordinates::index_to_world(*node, ty, transform, pivot, slot_size),
+                crate::tilemap::coordinates::index_to_world(
+                    *node,
+                    ty,
+                    transform,
+                    pivot.0,
+                    slot_size.0,
+                ),
                 10.,
                 Color::YELLOW_GREEN,
             );

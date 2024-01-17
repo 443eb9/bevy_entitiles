@@ -1,22 +1,9 @@
 # What's New:
 
-- Removed unnecessary hierarchy to get *much* **Much** ***MUCH*** more (about 5 times faster) better performance.
-- Relaxed requirements of dependency versions.
-- Added `TilemapAabbs`.
-- Frustum culling for tilemaps.
-- Removed `ui` stuff. They do not deserve my extra attention.
-- Broke the limitation of tile animations.
-- Removed support of `bevy_rapier` as to support both physics libraries is tiring.
-- Much further support for physics tilemaps.
-- Pathfinding rework. Using bevy async compute to asynchronize the process.
-- Use bevy async compute to asynchronize wfc.
-- Supported LDtk 1.5.3.
-- Added `LdtkEntityTag` which is corresponding to the `Tags` in `Project Entities` panel in LDtk.
-- Supported atlas mode for those extremely large ( more than 2048 atlases ) textures.
+- (De)Serializing for physics layers.
 
 # What's Fixed:
 
-- Tiles and tilemaps won't update after you removed them.
-- Spawning another tilemap while the program is running will cause panic. (FINALLY SOLVED!!!)
-- The result of `index_to_world` is incorrect.
-- Deriving `LdtkEntity` and `LdtkEnum` requires to `use` them first.
+- Isometric tilemaps have the wrong default pivot. It supposed to be `[0, 0]` but actually `[0.5, 0]`.
+- Colliders for isometric tiles have the wrong position when it's parent has the pivot other than `[0, 0]`.
+- Tiles of tilemaps won't despawn after the tilemaps is saved.

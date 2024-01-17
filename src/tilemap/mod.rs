@@ -41,7 +41,12 @@ impl Plugin for EntiTilesTilemapPlugin {
 
         app.add_systems(
             PostUpdate,
-            (despawn::despawn_tilemap, despawn::despawn_tiles),
+            (
+                despawn::despawn_tilemap,
+                despawn::despawn_tiles,
+                #[cfg(feature = "physics")]
+                despawn::despawn_physics_tilemaps,
+            ),
         );
 
         app.register_type::<TileLayer>()

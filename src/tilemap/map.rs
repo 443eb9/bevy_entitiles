@@ -18,7 +18,7 @@ use crate::math::{
 
 use super::{
     buffers::TileBuilderBuffer,
-    chunking::storage::ChunkedStorage,
+    chunking::storage::{ChunkedStorage, EntityChunkedStorage},
     despawn::DespawnMe,
     tile::{TileAnimation, TileBuilder, TileUpdater},
 };
@@ -273,7 +273,7 @@ pub struct TilemapAabbs {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapStorage {
     pub(crate) tilemap: Entity,
-    pub(crate) storage: ChunkedStorage<Entity>,
+    pub(crate) storage: EntityChunkedStorage,
 }
 
 impl TilemapStorage {
@@ -388,7 +388,7 @@ impl TilemapStorage {
     ///
     /// **Notice**: This may cause some problems if you do something inappropriately.
     #[inline]
-    pub fn get_storage_raw(&mut self) -> &mut ChunkedStorage<Entity> {
+    pub fn get_storage_raw(&mut self) -> &mut EntityChunkedStorage {
         &mut self.storage
     }
 

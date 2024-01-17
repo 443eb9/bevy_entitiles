@@ -21,9 +21,9 @@ use crate::{
 };
 
 use super::{
-    buffers::{PhysicsTilesBuffer, Tiles},
-    chunking::storage::ChunkedStorage,
-    map::TilemapStorage,
+    buffers::{PhysicsTileBuffer, Tiles},
+    chunking::storage::{ChunkedStorage, EntityChunkedStorage, PackedPhysicsTileChunkedStorage},
+    map::TilemapType,
 };
 
 pub mod systems;
@@ -51,7 +51,7 @@ impl Plugin for EntiTilesPhysicsTilemapPlugin {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PackedPhysicsTile {
     pub parent: IVec2,
@@ -59,19 +59,23 @@ pub struct PackedPhysicsTile {
     pub physics_tile: PhysicsTile,
 }
 
+impl Tiles for PackedPhysicsTile {}
+
 impl PackedPhysicsTile {
-    pub fn spawn(&self, commands: &mut Commands, storage: &TilemapStorage) -> Option<Entity> {
-        storage.get(self.parent).map(|e| {
-            let mut entity = commands.entity(e);
-            entity.insert(Collider::convex_hull(self.collider.clone()).unwrap());
-            if self.physics_tile.rigid_body {
-                entity.insert(RigidBody::Static);
+    pub fn spawn(&self, commands: &mut Commands, ty: TilemapType) -> Entity {
+        let mut entity = commands.spawn(match ty {
+            TilemapType::Square | TilemapType::Isometric => {
+                Collider::convex_hull(self.collider.clone()).unwrap()
             }
-            if let Some(friction) = &self.physics_tile.friction {
-                entity.insert(Friction::new(*friction));
-            }
-            e
-        })
+            TilemapType::Hexagonal(_) => Collider::polyline(self.collider.clone(), None),
+        });
+        if self.physics_tile.rigid_body {
+            entity.insert(RigidBody::Static);
+        }
+        if let Some(friction) = &self.physics_tile.friction {
+            entity.insert(Friction::new(*friction));
+        }
+        entity.id()
     }
 }
 
@@ -175,8 +179,9 @@ impl DataPhysicsTilemap {
 
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
-    pub(crate) storage: ChunkedStorage<Entity>,
+    pub(crate) storage: EntityChunkedStorage,
     pub(crate) spawn_queue: Vec<(IAabb2d, PhysicsTile)>,
+    pub(crate) data: PackedPhysicsTileChunkedStorage,
 }
 
 impl PhysicsTilemap {
@@ -184,6 +189,7 @@ impl PhysicsTilemap {
         PhysicsTilemap {
             storage: ChunkedStorage::default(),
             spawn_queue: Vec::new(),
+            data: ChunkedStorage::default(),
         }
     }
 
@@ -191,13 +197,11 @@ impl PhysicsTilemap {
         PhysicsTilemap {
             storage: ChunkedStorage::new(chunk_size),
             spawn_queue: Vec::new(),
+            data: ChunkedStorage::new(chunk_size),
         }
     }
 
     /// Get a tile.
-    ///
-    /// **Notice** This tile entity is the parent of the collider.
-    /// And it's shared with the `Tile` entity.
     #[inline]
     pub fn get(&self, index: IVec2) -> Option<Entity> {
         self.storage.get_elem(index).cloned()
@@ -213,6 +217,15 @@ impl PhysicsTilemap {
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.storage.remove_elem(index) {
             commands.entity(entity).despawn();
+        }
+    }
+
+    #[inline]
+    pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
+        if let Some(chunk) = self.storage.remove_chunk(index) {
+            chunk.into_iter().filter_map(|e| e).for_each(|entity| {
+                commands.entity(entity).despawn();
+            });
         }
     }
 
@@ -264,7 +277,7 @@ impl PhysicsTilemap {
     }
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than setting them one by one.
-    pub fn fill_with_buffer(&mut self, origin: IVec2, buffer: PhysicsTilesBuffer) {
+    pub fn fill_with_buffer(&mut self, origin: IVec2, buffer: PhysicsTileBuffer) {
         self.spawn_queue.extend(
             buffer
                 .tiles

@@ -17,6 +17,7 @@ pub mod save;
 
 pub const TILE_CHUNKS_FOLDER: &str = "tile_chunks";
 pub const PATH_TILE_CHUNKS_FOLDER: &str = "path_tile_chunks";
+pub const PHYSICS_TILE_CHUNKS_FOLDER: &str = "physics_tile_chunks";
 
 pub struct EntiTilesChunkSerializingPlugin;
 
@@ -28,10 +29,14 @@ impl Plugin for EntiTilesChunkSerializingPlugin {
                 save::save_color_layer,
                 #[cfg(feature = "algorithm")]
                 save::save_path_layer,
+                #[cfg(feature = "physics")]
+                save::save_physics_layer,
                 save::render_chunk_remover,
                 load::load_color_layer,
                 #[cfg(feature = "algorithm")]
                 load::load_path_layer,
+                #[cfg(feature = "physics")]
+                load::load_physics_layer,
                 chunk_tag_remover,
             ),
         );

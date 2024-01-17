@@ -9,12 +9,14 @@ use super::tile::{Tile, TileBuilder};
 /// A marker trait
 pub trait Tiles: Debug + Clone + Reflect {}
 
-pub type ColorTilesBuffer = TileBuffer<Tile>;
+pub type ColorTileBuffer = TileBuffer<Tile>;
 pub type TileBuilderBuffer = TileBuffer<TileBuilder>;
 #[cfg(feature = "algorithm")]
-pub type PathTilesBuffer = TileBuffer<super::algorithm::path::PathTile>;
+pub type PathTileBuffer = TileBuffer<super::algorithm::path::PathTile>;
 #[cfg(feature = "physics")]
-pub type PhysicsTilesBuffer = TileBuffer<super::physics::PhysicsTile>;
+pub type PhysicsTileBuffer = TileBuffer<super::physics::PhysicsTile>;
+#[cfg(feature = "physics")]
+pub type PackedPhysicsTileBuffer = TileBuffer<super::physics::PackedPhysicsTile>;
 
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]

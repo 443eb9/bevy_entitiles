@@ -21,10 +21,12 @@ use bevy_entitiles::{
             TilePivot, TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize,
             TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapType,
         },
+        physics::{PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
+use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -34,6 +36,8 @@ fn main() {
         .add_plugins((
             DefaultPlugins,
             EntiTilesPlugin,
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
@@ -83,7 +87,26 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         })
     });
 
-    commands.entity(entity).insert((tilemap, path_tilemap));
+    let mut physics_tilemap = PhysicsTilemap::new();
+    physics_tilemap.set(
+        IVec2 { x: 2, y: 3 },
+        PhysicsTile {
+            rigid_body: true,
+            friction: Some(0.5),
+        },
+    );
+    physics_tilemap.fill_rect(
+        TileArea::new(IVec2 { x: 3, y: 4 }, UVec2 { x: 5, y: 4 }),
+        PhysicsTile {
+            rigid_body: false,
+            friction: None,
+        },
+        true,
+    );
+
+    commands
+        .entity(entity)
+        .insert((tilemap, path_tilemap, physics_tilemap));
 }
 
 fn save_and_load(
@@ -97,7 +120,7 @@ fn save_and_load(
             commands.entity(t).insert(TilemapSaver {
                 path: "C:\\saves".to_string(),
                 mode: TilemapSaverMode::Tilemap,
-                layers: TilemapLayer::COLOR | TilemapLayer::PATH,
+                layers: TilemapLayer::all(),
                 texture_path: Some("test_isometric.png".to_string()),
                 remove_after_save: true,
             });
@@ -110,7 +133,7 @@ fn save_and_load(
         commands.spawn(TilemapLoader {
             path: "C:\\saves".to_string(),
             map_name: "test_map".to_string(),
-            layers: TilemapLayer::COLOR | TilemapLayer::PATH,
+            layers: TilemapLayer::all(),
         });
         println!("Loading tilemap...");
     }

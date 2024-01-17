@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use bevy::{
+    ecs::entity::Entity,
     math::IVec2,
     reflect::Reflect,
     utils::{HashMap, HashSet},
@@ -8,8 +9,21 @@ use bevy::{
 
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor},
+    tilemap::tile::Tile,
     DEFAULT_CHUNK_SIZE,
 };
+
+pub type ChunkIndex = IVec2;
+pub type InChunkIndex = usize;
+
+pub type EntityChunkedStorage = ChunkedStorage<Entity>;
+pub type ColorTileChunkedStorage = ChunkedStorage<Tile>;
+#[cfg(feature = "algorithm")]
+pub type PathTileChunkedStorage = ChunkedStorage<crate::tilemap::algorithm::path::PathTile>;
+#[cfg(feature = "physics")]
+pub type PhysicsTileChunkedStorage = ChunkedStorage<crate::tilemap::physics::PhysicsTile>;
+#[cfg(feature = "physics")]
+pub type PackedPhysicsTileChunkedStorage = ChunkedStorage<crate::tilemap::physics::PackedPhysicsTile>;
 
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
@@ -87,6 +101,10 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         self.chunks.get_mut(&idx.0).and_then(|c| c[idx.1].take())
     }
 
+    pub fn remove_chunk(&mut self, index: IVec2) -> Option<Vec<Option<T>>> {
+        self.chunks.remove(&index)
+    }
+
     pub fn clear(&mut self) {
         self.chunks.clear();
         self.reserved.clear();
@@ -116,7 +134,7 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         self.chunks.insert(index, chunk);
     }
 
-    pub fn transform_index(&self, index: IVec2) -> (IVec2, usize) {
+    pub fn transform_index(&self, index: IVec2) -> (ChunkIndex, InChunkIndex) {
         let isize = IVec2::splat(self.chunk_size as i32);
         let c = index.div_to_floor(isize);
         let idx = index - c * isize;
@@ -163,8 +181,19 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
     }
 
     #[inline]
-    pub fn remove_chunk(&mut self, index: IVec2) -> Option<Vec<Option<T>>> {
-        self.chunks.remove(&index)
+    pub fn chunked_iter_some(&self) -> impl Iterator<Item = (ChunkIndex, InChunkIndex, &T)> {
+        self.chunks
+            .iter()
+            .map(|(chunk_index, chunk)| {
+                chunk
+                    .iter()
+                    .enumerate()
+                    .filter_map(move |(in_chunk_index, elem)| {
+                        elem.as_ref()
+                            .map(|elem| (*chunk_index, in_chunk_index, elem))
+                    })
+            })
+            .flatten()
     }
 
     /// Declare that a chunk is existent.

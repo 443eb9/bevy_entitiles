@@ -5,17 +5,17 @@ use bevy::{
     },
     math::UVec2,
 };
-use bevy_xpbd_2d::components::{Collider, Friction, RigidBody};
 
 use crate::{
     math::aabb::IAabb2d,
     tilemap::{
+        chunking::storage::ChunkedStorage,
         coordinates,
         map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
     },
 };
 
-use super::{DataPhysicsTilemap, PhysicsTilemap};
+use super::{DataPhysicsTilemap, PackedPhysicsTile, PhysicsTilemap};
 
 pub fn spawn_colliders(
     commands: ParallelCommands,
@@ -32,34 +32,25 @@ pub fn spawn_colliders(
             let physics_tiles = physics_tilemap.spawn_queue.drain(..).collect::<Vec<_>>();
             physics_tiles.into_iter().for_each(|(aabb, physics_tile)| {
                 commands.command_scope(|mut c| {
-                    let mut tile_entity = c.spawn_empty();
-
                     let vertices = coordinates::get_tile_collider_world(
                         aabb.min,
                         ty,
                         aabb.size().as_uvec2(),
                         transform,
-                        tile_pivot,
-                        slot_size,
+                        tile_pivot.0,
+                        slot_size.0,
                     );
-                    let collider = match ty {
-                        TilemapType::Square | TilemapType::Isometric => {
-                            Collider::convex_hull(vertices).unwrap()
-                        }
-                        TilemapType::Hexagonal(_) => Collider::polyline(vertices, None),
+
+                    let packed_tile = PackedPhysicsTile {
+                        parent: aabb.min,
+                        collider: vertices.clone(),
+                        physics_tile,
                     };
 
-                    if physics_tile.rigid_body {
-                        tile_entity.insert((collider, RigidBody::Static));
-                    } else {
-                        tile_entity.insert(collider);
-                    }
-
-                    if let Some(coe) = physics_tile.friction {
-                        tile_entity.insert(Friction::new(coe));
-                    }
-
-                    physics_tilemap.storage.set_elem(aabb.min, tile_entity.id());
+                    physics_tilemap
+                        .storage
+                        .set_elem(aabb.min, packed_tile.spawn(&mut c, *ty));
+                    physics_tilemap.data.set_elem(aabb.min, packed_tile);
                 });
             });
         },
@@ -141,6 +132,7 @@ pub fn data_physics_tilemap_analyzer(
                     c.entity(entity).insert(PhysicsTilemap {
                         storage: Default::default(),
                         spawn_queue: aabbs,
+                        data: ChunkedStorage::default(),
                     });
                 }
 

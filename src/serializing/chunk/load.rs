@@ -22,11 +22,18 @@ use crate::{
     },
 };
 
-#[cfg(feature = "algorithm")]
-use super::PATH_TILE_CHUNKS_FOLDER;
 use super::TILE_CHUNKS_FOLDER;
+
 #[cfg(feature = "algorithm")]
-use crate::tilemap::{algorithm::path::PathTilemap, buffers::PathTilesBuffer};
+use crate::{
+    serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
+    tilemap::{algorithm::path::PathTilemap, buffers::PathTileBuffer},
+};
+#[cfg(feature = "physics")]
+use crate::{
+    serializing::chunk::PHYSICS_TILE_CHUNKS_FOLDER,
+    tilemap::{buffers::PackedPhysicsTileBuffer, map::TilemapType, physics::PhysicsTilemap},
+};
 
 #[derive(Component)]
 pub struct ScheduledLoadChunks;
@@ -46,15 +53,17 @@ impl ChunkLoadCache {
         &mut self,
         commands: &mut Commands,
         tilemap: Entity,
-        layer: TilemapLayer,
+        layers: TilemapLayer,
         chunk_index: IVec2,
     ) {
-        self.0
-            .entry(tilemap)
-            .or_default()
-            .entry(layer)
-            .or_default()
-            .push_front(chunk_index);
+        for layer in layers {
+            self.0
+                .entry(tilemap)
+                .or_default()
+                .entry(layer)
+                .or_default()
+                .push_front(chunk_index);
+        }
         commands.entity(tilemap).insert(ScheduledLoadChunks);
     }
 
@@ -63,26 +72,27 @@ impl ChunkLoadCache {
         &mut self,
         commands: &mut Commands,
         tilemap: Entity,
-        layer: TilemapLayer,
-        chunk_indices: impl Iterator<Item = IVec2>,
+        layers: TilemapLayer,
+        chunk_indices: impl Iterator<Item = IVec2> + Clone,
     ) {
-        let queue = self.0.entry(tilemap).or_default().entry(layer).or_default();
-        queue.reserve(chunk_indices.size_hint().0);
-        chunk_indices.for_each(|chunk_index| queue.push_front(chunk_index));
+        for layer in layers {
+            let queue = self.0.entry(tilemap).or_default().entry(layer).or_default();
+            queue.reserve(chunk_indices.size_hint().0);
+            chunk_indices
+                .clone()
+                .for_each(|chunk_index| queue.push_front(chunk_index));
+        }
         commands.entity(tilemap).insert(ScheduledLoadChunks);
     }
 
     #[inline]
     pub fn pop_chunk(&mut self, tilemap: Entity, layer: TilemapLayer) -> Option<IVec2> {
-        self.0
-            .get_mut(&tilemap)
-            .map(|layers| {
-                layers
-                    .get_mut(&layer)
-                    .map(|chunks| chunks.pop_back())
-                    .flatten()
-            })
-            .flatten()
+        self.0.get_mut(&tilemap).and_then(|layers| {
+            layers
+                .get_mut(&layer)
+                .map(|chunks| chunks.pop_back())
+                .flatten()
+        })
     }
 }
 
@@ -164,7 +174,7 @@ pub fn load_path_layer(
                 return;
             };
 
-            let Ok(chunk) = load_object::<PathTilesBuffer>(
+            let Ok(chunk) = load_object::<PathTileBuffer>(
                 &Path::new(&config.path)
                     .join(&name.0)
                     .join(PATH_TILE_CHUNKS_FOLDER),
@@ -178,6 +188,54 @@ pub fn load_path_layer(
                 c[(in_chunk_index.y * chunk_size + in_chunk_index.x) as usize] = Some(tile);
             });
             path_tilemap.storage.get_chunk(chunk_index).replace(&c);
+        });
+    });
+}
+
+#[cfg(feature = "physics")]
+pub fn load_physics_layer(
+    mut commands: Commands,
+    mut tilemaps_query: Query<
+        (Entity, &TilemapName, &TilemapType, &mut PhysicsTilemap),
+        With<ScheduledLoadChunks>,
+    >,
+    config: Res<ChunkLoadConfig>,
+    mut cache: ResMut<ChunkLoadCache>,
+) {
+    tilemaps_query.for_each_mut(|(entity, name, ty, mut physics_tilemap)| {
+        let chunk_size = physics_tilemap.storage.chunk_size as i32;
+        (0..config.chunks_per_frame).into_iter().for_each(|_| {
+            let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PHYSICS) else {
+                cache
+                    .0
+                    .get_mut(&entity)
+                    .unwrap()
+                    .remove(&TilemapLayer::PHYSICS);
+                return;
+            };
+
+            let Ok(chunk) = load_object::<PackedPhysicsTileBuffer>(
+                &Path::new(&config.path)
+                    .join(&name.0)
+                    .join(PHYSICS_TILE_CHUNKS_FOLDER),
+                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
+            ) else {
+                return;
+            };
+
+            let mut new_chunk = vec![None; (chunk_size * chunk_size) as usize];
+            chunk.tiles.iter().for_each(|(in_chunk_index, tile)| {
+                new_chunk[(in_chunk_index.y * chunk_size + in_chunk_index.x) as usize] =
+                    Some(tile.clone());
+            });
+            physics_tilemap.data.set_chunk(chunk_index, new_chunk);
+
+            let mut new_chunk = vec![None; (chunk_size * chunk_size) as usize];
+            chunk.tiles.into_iter().for_each(|(in_chunk_index, tile)| {
+                new_chunk[(in_chunk_index.y * chunk_size + in_chunk_index.x) as usize] =
+                    Some(tile.spawn(&mut commands, *ty));
+            });
+            physics_tilemap.storage.set_chunk(chunk_index, new_chunk);
         });
     });
 }

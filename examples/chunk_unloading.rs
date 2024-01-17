@@ -33,10 +33,12 @@ use bevy_entitiles::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapType,
         },
+        physics::{PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
+use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -53,10 +55,11 @@ fn main() {
             }),
             EntiTilesPlugin,
             EntiTilesHelpersPlugin { inspector: false },
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, on_update)
-        .register_type::<HashSet<IVec2>>()
         .insert_resource(ChunkSaveConfig {
             path: "C:\\maps".to_string(),
             chunks_per_frame: 1,
@@ -88,7 +91,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     let entity = commands.spawn_empty().id();
     let mut tilemap = TilemapBundle {
-        name: TilemapName("infinite_map".to_string()),
+        name: TilemapName("laggy_map".to_string()),
         tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,
@@ -116,14 +119,34 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     );
 
     // In this example, we will load from/save to the disk when the camera enters/leaves the chunk,
-    // So if you are running this example for the first time, you need to uncomment the following lines
-    // to save the chunks on your disk.
+    // So if you are running this example for the first time, you need to uncomment the following lines,
+    // and scan the whole tilemap until all the chunks are disappeared.
+    // Then all the chunks will be saved to your disk.
+    // Or you can write your own code to make allow the chunks to be generated at runtime.
 
-    // tilemap.storage.fill_rect(
-    //     &mut commands,
-    //     bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
-    //     TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
-    // );
+    tilemap.storage.fill_rect(
+        &mut commands,
+        bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+    );
+
+    #[allow(unused_mut)]
+    let mut physics_tilemap = PhysicsTilemap::new_with_chunk_size(16);
+    physics_tilemap.fill_rect_custom(
+        bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+        |_| {
+            if rand::random::<u32>() % 10 == 0 {
+                Some(PhysicsTile {
+                    rigid_body: true,
+                    friction: Some(0.2),
+                })
+            } else {
+                None
+            }
+        },
+        false,
+    );
+    commands.entity(entity).insert(physics_tilemap);
 
     commands.entity(entity).insert(tilemap);
 }
@@ -151,7 +174,7 @@ fn on_update(
         load_cache.schedule_many(
             &mut commands,
             tilemap,
-            TilemapLayer::COLOR,
+            TilemapLayer::all(),
             to_load.into_iter(),
         );
     }
@@ -160,7 +183,7 @@ fn on_update(
         save_cache.schedule_many(
             &mut commands,
             tilemap,
-            TilemapLayer::COLOR,
+            TilemapLayer::all(),
             to_unload.into_iter(),
         );
     }

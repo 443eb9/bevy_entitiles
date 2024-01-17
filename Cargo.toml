@@ -94,7 +94,7 @@ required-features = ["physics"]
 [[example]]
 name = "save_and_load"
 path = "examples/save_and_load.rs"
-required-features = ["algorithm"]
+required-features = ["algorithm", "physics"]
 
 [[example]]
 name = "ldtk"
@@ -114,7 +114,7 @@ required-features = ["algorithm", "ldtk", "physics"]
 [[example]]
 name = "chunk_unloading"
 path = "examples/chunk_unloading.rs"
-required-features = ["debug", "serializing"]
+required-features = ["debug", "algorithm", "serializing", "physics"]
 
 [[example]]
 name = "stress_test"
