@@ -64,7 +64,7 @@ debug = []
 physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
-ui = []
+tiled = []
 
 [[example]]
 name = "basic"

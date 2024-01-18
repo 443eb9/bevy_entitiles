@@ -17,6 +17,7 @@ use bevy::{
     utils::HashMap,
 };
 
+use crate::tilemap::tile::RawTileAnimation;
 use crate::{
     serializing::pattern::TilemapPattern,
     tilemap::map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
@@ -306,6 +307,8 @@ pub struct LdtkLoadConfig {
     #[reflect(ignore)]
     pub filter_mode: FilterMode,
     pub z_index: i32,
+    /// Map a certain texture index to a animation.
+    pub animation_mapper: HashMap<u32, RawTileAnimation>,
     pub ignore_unregistered_entities: bool,
     pub ignore_unregistered_entity_tags: bool,
 }

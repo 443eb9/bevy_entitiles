@@ -1,0 +1,50 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "orthogonal.tmx",
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "Tileset1.tsx": {
+            "scaleInDock": 4,
+            "scaleInEditor": 5.5
+        },
+        "orthogonal.tmx": {
+            "scale": 8,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 63,
+                "y": 53.9375
+            }
+        },
+        "tilemap_orthogonal.tmx": {
+            "scale": 1,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 417,
+                "y": 228.5
+            }
+        }
+    },
+    "last.imagePath": "F:/EverythingBevy/bevy_entitiles/assets/tiled",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 8,
+    "map.tileWidth": 8,
+    "openFiles": [
+        "orthogonal.tmx"
+    ],
+    "project": "Tilemap.tiled-project",
+    "recentFiles": [
+        "orthogonal.tmx",
+        "tilemap_orthogonal.tmx",
+        "Tileset1.tsx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 8,
+        "width": 8
+    }
+}

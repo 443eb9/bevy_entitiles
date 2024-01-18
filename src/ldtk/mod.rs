@@ -406,7 +406,7 @@ fn load_layer(
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
             layer.auto_layer_tiles.iter().for_each(|tile| {
-                ldtk_layers.set_tile(layer_index, layer, tile);
+                ldtk_layers.set_tile(layer_index, layer, tile, config);
             });
         }
         LayerType::Entities => {
@@ -437,7 +437,7 @@ fn load_layer(
         }
         LayerType::Tiles => {
             layer.grid_tiles.iter().for_each(|tile| {
-                ldtk_layers.set_tile(layer_index, layer, tile);
+                ldtk_layers.set_tile(layer_index, layer, tile, config);
             });
         }
     }

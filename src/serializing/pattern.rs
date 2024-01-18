@@ -1,5 +1,6 @@
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
+use crate::prelude::TilemapAnimations;
 
 use crate::tilemap::buffers::TileBuilderBuffer;
 
@@ -12,6 +13,7 @@ use crate::tilemap::buffers::PackedPhysicsTileBuffer;
 pub struct TilemapPattern {
     pub(crate) label: Option<String>,
     pub(crate) tiles: TileBuilderBuffer,
+    pub(crate) animations: TilemapAnimations,
     #[cfg(feature = "algorithm")]
     pub(crate) path_tiles: PathTileBuffer,
     #[cfg(feature = "physics")]
@@ -23,6 +25,7 @@ impl TilemapPattern {
         Self {
             label,
             tiles: TileBuilderBuffer::new(),
+            animations: Default::default(),
             #[cfg(feature = "algorithm")]
             path_tiles: PathTileBuffer::new(),
             #[cfg(feature = "physics")]

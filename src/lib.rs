@@ -13,6 +13,8 @@ pub mod math;
 pub mod render;
 #[cfg(feature = "serializing")]
 pub mod serializing;
+#[cfg(feature = "tiled")]
+pub mod tiled;
 pub mod tilemap;
 
 pub const MAX_LAYER_COUNT: usize = 4;
@@ -45,7 +47,7 @@ pub mod prelude {
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
             TilemapTransform, TilemapType,
         },
-        tile::{TileAnimation, TileBuilder, TileLayer, TileUpdater},
+        tile::{RawTileAnimation, TileBuilder, TileLayer, TileUpdater},
     };
 }
 

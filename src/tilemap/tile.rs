@@ -139,8 +139,14 @@ impl TileBuilder {
 #[derive(ShaderType, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileAnimation {
-    pub start: u32,
-    pub length: u32,
+    pub(crate) start: u32,
+    pub(crate) length: u32,
+    pub(crate) fps: u32,
+}
+
+#[derive(Debug, Clone, Reflect)]
+pub struct RawTileAnimation {
+    pub sequence: Vec<u32>,
     pub fps: u32,
 }
 

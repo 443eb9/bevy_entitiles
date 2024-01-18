@@ -68,7 +68,7 @@ impl PackedLdtkEntity {
                 return;
             }
         };
-        
+
         self.instance.tags.iter().for_each(|tag| {
             if let Some(entity_tag) = entity_tag_registry.get(tag) {
                 entity_tag.add_tag(commands);
@@ -81,7 +81,7 @@ impl PackedLdtkEntity {
                 );
             }
         });
-        
+
         phantom_entity.spawn(
             commands,
             &self.instance,
@@ -139,7 +139,7 @@ impl<'a> LdtkLayers<'a> {
         }
     }
 
-    pub fn set_tile(&mut self, layer_index: usize, layer: &LayerInstance, tile: &TileInstance) {
+    pub fn set_tile(&mut self, layer_index: usize, layer: &LayerInstance, tile: &TileInstance, config: &LdtkLoadConfig) {
         self.try_create_new_layer(layer_index, layer);
 
         let (pattern, texture, _, _) = self.layers[layer_index].as_mut().unwrap();
@@ -148,21 +148,25 @@ impl<'a> LdtkLayers<'a> {
             x: tile.px[0] / tile_size.x as i32,
             y: -tile.px[1] / tile_size.y as i32 - 1,
         };
+        let texture_index = tile.tile_id as u32;
 
         if let Some(ser_tile) = pattern.tiles.get_mut(tile_index) {
             let TileTexture::Static(tile_layers) = &mut ser_tile.texture else {
-                unreachable!()
+                panic!("Trying to insert multiple layers into a animated tile at {}!", tile_index);
             };
-            tile_layers.push(TileLayer::new().with_texture_index(tile.tile_id as u32));
+            tile_layers.push(TileLayer::new().with_texture_index(texture_index));
         } else {
-            let builder = TileBuilder::new()
-                .with_layer(
+            let mut builder = TileBuilder::new().with_color(Vec4::new(1., 1., 1., tile.alpha));
+            builder = if let Some(anim) = config.animation_mapper.get(&texture_index) {
+                let animation = pattern.animations.register(anim.clone());
+                builder.with_animation(animation)
+            } else {
+                builder.with_layer(
                     0,
-                    TileLayer::new()
-                        .with_texture_index(tile.tile_id as u32)
-                        .with_flip_raw(tile.flip as u32),
+                    TileLayer::new().with_texture_index(texture_index).with_flip_raw(tile.flip as u32),
                 )
-                .with_color(Vec4::new(1., 1., 1., tile.alpha));
+            };
+
             pattern.tiles.tiles.insert(tile_index, builder);
         }
     }
@@ -194,6 +198,7 @@ impl<'a> LdtkLayers<'a> {
                     aabb,
                     tiles: HashMap::new(),
                 },
+                animations: Default::default(),
                 #[cfg(feature = "algorithm")]
                 path_tiles: TileBuffer {
                     aabb,
@@ -246,15 +251,15 @@ impl<'a> LdtkLayers<'a> {
                 });
 
                 self.layers
-                .drain(..)
-                .enumerate()
-                .filter_map(|(i,e)| {
-                    if let Some(e) = e {
-                        Some((i,e))
-                    }else {
-                        None
-                    }
-                })
+                    .drain(..)
+                    .enumerate()
+                    .filter_map(|(i, e)| {
+                        if let Some(e) = e {
+                            Some((i, e))
+                        } else {
+                            None
+                        }
+                    })
                     .for_each(|(index, (pattern, texture, iid, opacity))| {
                         let tilemap_entity = commands.spawn_empty().id();
                         let mut tilemap = TilemapBundle {
@@ -270,6 +275,7 @@ impl<'a> LdtkLayers<'a> {
                                 ..Default::default()
                             },
                             layer_opacities: TilemapLayerOpacities([opacity; 4].into()),
+                            animations: pattern.animations.clone(),
                             ..Default::default()
                         };
 
@@ -283,24 +289,24 @@ impl<'a> LdtkLayers<'a> {
                                 commands.entity(tilemap_entity).insert(
                                     crate::tilemap::algorithm::path::PathTilemap {
                                         storage:
-                                            crate::tilemap::chunking::storage::ChunkedStorage::from_mapper(
-                                                path_tilemap.clone(),
-                                                None,
-                                            ),
+                                        crate::tilemap::chunking::storage::ChunkedStorage::from_mapper(
+                                            path_tilemap.clone(),
+                                            None,
+                                        ),
                                     },
                                 );
                             }
                         }
 
                         #[cfg(feature = "physics")]
-                        if let Some((physics_layer,physics_data,size)) = &self.physics_layer {
-                            if pattern.label.clone().unwrap() == physics_layer.parent { 
+                        if let Some((physics_layer, physics_data, size)) = &self.physics_layer {
+                            if pattern.label.clone().unwrap() == physics_layer.parent {
                                 commands.entity(tilemap_entity).insert(crate::tilemap::physics::DataPhysicsTilemap::new(
                                     IVec2::new(0, -(size.y as i32)),
                                     physics_data.clone(),
                                     *size,
                                     physics_layer.air,
-                                    physics_layer.tiles.clone().unwrap_or_default()
+                                    physics_layer.tiles.clone().unwrap_or_default(),
                                 ));
                             }
                         }
