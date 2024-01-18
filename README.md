@@ -12,7 +12,6 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Tilemap Serializing (Physics)
 - [Tiled](https://www.mapeditor.org/) Support
 - Custom Material
 - Volumetric Clouds / Fog
@@ -27,6 +26,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 - ~~[LDtk](https://ldtk.io/) Full Support~~
 - ~~Infinite Tilemap~~
 - ~~Chunk Unloading~~
+- ~~Tilemap Serializing~~
 
 ## Feature Flags
 

@@ -19,7 +19,7 @@ use bevy::{
     input::{keyboard::KeyCode, Input},
     math::Vec2,
     reflect::Reflect,
-    render::{mesh::Mesh, texture::ImagePlugin, view::Msaa},
+    render::{mesh::Mesh, render_resource::FilterMode, texture::ImagePlugin, view::Msaa},
     sprite::TextureAtlas,
     utils::HashMap,
     DefaultPlugins,
@@ -30,7 +30,7 @@ use bevy_entitiles::{
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
         layer::physics::LdtkPhysicsLayer,
-        resources::{LdtkAssets, LdtkLevelManager},
+        resources::{LdtkAdditionalLayers, LdtkAssets, LdtkLevelManager, LdtkLoadConfig},
         sprite::LdtkEntityMaterial,
     },
     tilemap::physics::PhysicsTile,
@@ -64,6 +64,40 @@ fn main() {
         .insert_resource(Msaa::Off)
         .insert_resource(Gravity(Vec2::new(0., -98.)))
         .insert_resource(PhysicsDebugConfig::all())
+        .insert_resource(LdtkLoadConfig {
+            // replace the filename with grid_vania.ldtk before running
+            // this file uses finalbossblues-icons_full_16 and it only exists
+            // in my local disk.
+            file_path: "assets/ldtk/ignore grid_vania.ldtk".to_string(),
+            asset_path_prefix: "ldtk/".to_string(),
+            filter_mode: FilterMode::Nearest,
+            ignore_unregistered_entities: true,
+            ..Default::default()
+        })
+        .insert_resource(LdtkAdditionalLayers {
+            physics_layer: Some(LdtkPhysicsLayer {
+                identifier: "PhysicsColliders".to_string(),
+                air: 0,
+                parent: "Collisions".to_string(),
+                tiles: Some(HashMap::from([
+                    (
+                        1,
+                        PhysicsTile {
+                            rigid_body: true,
+                            friction: Some(0.9),
+                        },
+                    ),
+                    (
+                        2,
+                        PhysicsTile {
+                            rigid_body: true,
+                            friction: Some(0.1),
+                        },
+                    ),
+                ])),
+            }),
+            ..Default::default()
+        })
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
         .register_ldtk_entity::<Teleport>("Teleport")
@@ -75,44 +109,8 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    // If you are not interested with the toc currently, use `.initialize` instead.
-    // Tocs will be inserted as resources.
-    let tocs = manager.initialize_get_tocs(
-        &mut commands,
-        // replace the filename with grid_vania.ldtk before running
-        // this file uses finalbossblues-icons_full_16 and it only exists
-        // in my local disk.
-        "assets/ldtk/ignore grid_vania.ldtk".to_string(),
-        "ldtk/".to_string(),
-    );
-
-    println!("tocs: {:?}", tocs);
-    manager
-        .set_physics_layer(LdtkPhysicsLayer {
-            identifier: "PhysicsColliders".to_string(),
-            air: 0,
-            parent: "Collisions".to_string(),
-            tiles: Some(HashMap::from([
-                (
-                    1,
-                    PhysicsTile {
-                        rigid_body: true,
-                        friction: Some(0.9),
-                    },
-                ),
-                (
-                    2,
-                    PhysicsTile {
-                        rigid_body: true,
-                        friction: Some(0.1),
-                    },
-                ),
-            ])),
-        })
-        .ignore_unregistered_entities()
-        .ignore_unregistered_entity_tags();
 }
 
 macro_rules! level_control {
@@ -148,6 +146,7 @@ fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<
 fn hot_reload(
     input: Res<Input<KeyCode>>,
     mut manager: ResMut<LdtkLevelManager>,
+    config: Res<LdtkLoadConfig>,
     mut assets: ResMut<LdtkAssets>,
     asset_server: Res<AssetServer>,
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
@@ -155,8 +154,9 @@ fn hot_reload(
     mut mesh_assets: ResMut<Assets<Mesh>>,
 ) {
     if input.just_pressed(KeyCode::Return) {
-        manager.reload_json();
+        manager.reload_json(&config);
         assets.initialize(
+            &config,
             &manager,
             &asset_server,
             &mut atlas_assets,

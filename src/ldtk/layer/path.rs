@@ -1,11 +1,11 @@
-use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
+use bevy::{ecs::system::Resource, math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{
     ldtk::json::{definitions::LayerType, level::LayerInstance},
     tilemap::algorithm::path::PathTile,
 };
 
-#[derive(Debug, Clone, Reflect)]
+#[derive(Debug, Resource, Clone, Reflect)]
 pub struct LdtkPathLayer {
     pub identifier: String,
     pub parent: String,

@@ -1,7 +1,6 @@
 use bevy::{
     asset::AssetServer,
     ecs::{entity::Entity, system::{Commands, EntityCommands}},
-    hierarchy::DespawnRecursiveExt,
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
     sprite::SpriteBundle,
@@ -28,7 +27,7 @@ use super::{
     components::{LayerIid, LdtkLoadedLevel, LevelIid, EntityIid, LdtkTempTransform},
     traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
     json::{level::{LayerInstance, Level, TileInstance, EntityInstance}, field::FieldInstance},
-    resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns},
+    resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns, LdtkLoadConfig},
     LdtkLoaderMode,
 };
 
@@ -52,13 +51,14 @@ impl PackedLdtkEntity {
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
         manager: &LdtkLevelManager,
+        config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
     ) {
         let phantom_entity = {
             if let Some(e) = entity_registry.get(&self.instance.identifier) {
                 e
-            } else if !manager.ignore_unregistered_entities {
+            } else if !config.ignore_unregistered_entities {
                 panic!(
                     "Could not find entity type with entity identifier: {}! \
                     You need to register it using App::register_ldtk_entity::<T>() first!",
@@ -72,7 +72,7 @@ impl PackedLdtkEntity {
         self.instance.tags.iter().for_each(|tag| {
             if let Some(entity_tag) = entity_tag_registry.get(tag) {
                 entity_tag.add_tag(commands);
-            } else if !manager.ignore_unregistered_entity_tags {
+            } else if !config.ignore_unregistered_entity_tags {
                 panic!(
                     "Could not find entity tag with tag: {}! \
                     You need to register it using App::register_ldtk_entity_tag::<T>() first! \
@@ -219,6 +219,7 @@ impl<'a> LdtkLayers<'a> {
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
         manager: &LdtkLevelManager,
+        config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
     ) {
@@ -238,6 +239,7 @@ impl<'a> LdtkLayers<'a> {
                         entity_registry,
                         entity_tag_registry,
                         manager,
+                        config,
                         ldtk_assets,
                         asset_server,
                     );
@@ -364,7 +366,7 @@ impl<'a> LdtkLayers<'a> {
                     level_pack,
                     self.background.clone(),
                 );
-                commands.entity(self.level_entity).despawn_recursive();
+                commands.entity(self.level_entity).despawn();
             }
         }
     }

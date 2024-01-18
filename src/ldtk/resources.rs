@@ -132,19 +132,21 @@ impl LdtkAssets {
     /// or maybe the identifier of an entity.
     pub fn initialize(
         &mut self,
+        config: &LdtkLoadConfig,
         manager: &LdtkLevelManager,
         asset_server: &AssetServer,
         atlas_assets: &mut Assets<TextureAtlas>,
         material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
     ) {
-        self.associated_file = manager.file_path.clone();
-        self.load_texture(manager, asset_server, atlas_assets);
-        self.load_entities(manager, material_assets, mesh_assets);
+        self.associated_file = config.file_path.clone();
+        self.load_texture(config, manager, asset_server, atlas_assets);
+        self.load_entities(config, manager, material_assets, mesh_assets);
     }
 
     fn load_texture(
         &mut self,
+        config: &LdtkLoadConfig,
         manager: &LdtkLevelManager,
         asset_server: &AssetServer,
         atlas_assets: &mut Assets<TextureAtlas>,
@@ -155,7 +157,7 @@ impl LdtkAssets {
                 return;
             };
 
-            let texture = asset_server.load(Path::new(&manager.asset_path_prefix).join(path));
+            let texture = asset_server.load(Path::new(&config.asset_path_prefix).join(path));
             let desc = TilemapTextureDescriptor {
                 size: UVec2 {
                     x: tileset.px_wid as u32,
@@ -165,7 +167,7 @@ impl LdtkAssets {
                     x: tileset.tile_grid_size as u32,
                     y: tileset.tile_grid_size as u32,
                 },
-                filter_mode: manager.filter_mode,
+                filter_mode: config.filter_mode,
             };
             let texture = TilemapTexture {
                 texture,
@@ -181,6 +183,7 @@ impl LdtkAssets {
 
     fn load_entities(
         &mut self,
+        config: &LdtkLoadConfig,
         manager: &LdtkLevelManager,
         material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
@@ -233,7 +236,7 @@ impl LdtkAssets {
                     .map(|(index, entity)| {
                         (
                             entity.identifier.clone(),
-                            (ldtk_data.defs.entities.len() - index) as f32 + manager.z_index as f32,
+                            (ldtk_data.defs.entities.len() - index) as f32 + config.z_index as f32,
                         )
                     })
                     .collect::<HashMap<String, f32>>();
@@ -289,70 +292,39 @@ impl LdtkTocs {
 }
 
 #[derive(Resource, Default, Reflect)]
-pub struct LdtkLevelManager {
-    pub(crate) file_path: String,
-    pub(crate) asset_path_prefix: String,
-    pub(crate) ldtk_json: Option<LdtkJson>,
-    #[reflect(ignore)]
-    pub(crate) filter_mode: FilterMode,
-    pub(crate) ignore_unregistered_entities: bool,
-    pub(crate) ignore_unregistered_entity_tags: bool,
-    pub(crate) z_index: i32,
-    pub(crate) loaded_levels: HashMap<String, Entity>,
+pub struct LdtkAdditionalLayers {
     #[cfg(feature = "algorithm")]
-    pub(crate) path_layer: Option<super::layer::path::LdtkPathLayer>,
+    pub path_layer: Option<super::layer::path::LdtkPathLayer>,
     #[cfg(feature = "physics")]
-    pub(crate) physics_layer: Option<super::layer::physics::LdtkPhysicsLayer>,
+    pub physics_layer: Option<super::layer::physics::LdtkPhysicsLayer>,
+}
+
+#[derive(Resource, Default, Reflect)]
+pub struct LdtkLoadConfig {
+    pub file_path: String,
+    pub asset_path_prefix: String,
+    #[reflect(ignore)]
+    pub filter_mode: FilterMode,
+    pub z_index: i32,
+    pub ignore_unregistered_entities: bool,
+    pub ignore_unregistered_entity_tags: bool,
+}
+
+#[derive(Resource, Default, Reflect)]
+pub struct LdtkLevelManager {
+    pub(crate) ldtk_json: Option<LdtkJson>,
+    pub(crate) loaded_levels: HashMap<String, Entity>,
 }
 
 impl LdtkLevelManager {
-    /// `file_path`: The path to the ldtk file relative to the working directory.
-    ///
-    /// `asset_path_prefix`: The path to the ldtk file relative to the assets folder.
-    ///
-    /// For example, your ldtk file is located at `assets/ldtk/fantastic_map.ldtk`,
-    /// so `asset_path_prefix` will be `ldtk/`.
-    pub fn initialize(
-        &mut self,
-        commands: &mut Commands,
-        file_path: String,
-        asset_path_prefix: String,
-    ) -> &mut Self {
-        self.initialize_get_tocs(commands, file_path, asset_path_prefix);
-        self
-    }
-
-    pub fn initialize_get_tocs(
-        &mut self,
-        commands: &mut Commands,
-        file_path: String,
-        asset_path_prefix: String,
-    ) -> LdtkTocs {
-        self.file_path = file_path;
-        self.asset_path_prefix = asset_path_prefix;
-        self.reload_json();
-        let tocs = LdtkTocs(
-            self.get_cached_data()
-                .toc
-                .iter()
-                .map(|toc| {
-                    (
-                        toc.identifier.clone(),
-                        toc.instances_data
-                            .iter()
-                            .map(|inst| (inst.iids.clone(), inst.clone()))
-                            .collect(),
-                    )
-                })
-                .collect(),
-        );
-        commands.insert_resource(tocs.clone());
-        tocs
-    }
-
     /// Reloads the ldtk file and refresh the level cache.
-    pub fn reload_json(&mut self) {
-        let path = std::env::current_dir().unwrap().join(&self.file_path);
+    pub fn reload_json(&mut self, config: &LdtkLoadConfig) {
+        if config.file_path.is_empty() {
+            error!("No specified ldtk level file path!");
+            return;
+        }
+
+        let path = std::env::current_dir().unwrap().join(&config.file_path);
         let str_raw = match read_to_string(&path) {
             Ok(data) => data,
             Err(e) => panic!("Could not read file at path: {:?}!\n{}", path, e),
@@ -360,52 +332,8 @@ impl LdtkLevelManager {
 
         self.ldtk_json = match serde_json::from_str::<LdtkJson>(&str_raw) {
             Ok(data) => Some(data),
-            Err(e) => panic!("Could not parse file at path: {}!\n{}", self.file_path, e),
+            Err(e) => panic!("Could not parse file at path: {}!\n{}", config.file_path, e),
         };
-    }
-
-    /// Set this to allow the algorithm to figure out the colliders.
-    /// The layer you specify must be an int grid, or the program will panic.
-    ///
-    /// The `air_value` is the value of the tiles in the int grid which will be considered as air.
-    #[cfg(feature = "physics")]
-    pub fn set_physics_layer(
-        &mut self,
-        physics: super::layer::physics::LdtkPhysicsLayer,
-    ) -> &mut Self {
-        self.physics_layer = Some(physics);
-        self
-    }
-
-    /// Set this to allow automatic path tilemap generating.
-    #[cfg(feature = "algorithm")]
-    pub fn set_path_layer(&mut self, path: super::layer::path::LdtkPathLayer) -> &mut Self {
-        self.path_layer = Some(path);
-        self
-    }
-
-    /// The filter mode of the tilemap texture.
-    pub fn set_filter_mode(&mut self, filter_mode: FilterMode) -> &mut Self {
-        self.filter_mode = filter_mode;
-        self
-    }
-
-    /// Call this to make sure entities with unregistered identifiers will be ignored.
-    pub fn ignore_unregistered_entities(&mut self) -> &mut Self {
-        self.ignore_unregistered_entities = true;
-        self
-    }
-
-    /// Call this to make sure entity tags with unregistered identifiers will be ignored.
-    pub fn ignore_unregistered_entity_tags(&mut self) -> &mut Self {
-        self.ignore_unregistered_entity_tags = true;
-        self
-    }
-
-    /// The z index of the tilemap will be `base_z_index - level_index`.
-    pub fn set_base_z_index(&mut self, z_index: i32) -> &mut Self {
-        self.z_index = z_index;
-        self
     }
 
     pub fn get_cached_data(&self) -> &LdtkJson {
@@ -414,7 +342,6 @@ impl LdtkLevelManager {
     }
 
     pub fn load(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
-        self.check_initialized();
         let level = level.to_string();
 
         if self.loaded_levels.contains_key(&level.to_string()) {

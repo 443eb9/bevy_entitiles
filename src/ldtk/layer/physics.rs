@@ -1,8 +1,8 @@
-use bevy::{reflect::Reflect, utils::HashMap};
+use bevy::{ecs::system::Resource, reflect::Reflect, utils::HashMap};
 
 use crate::tilemap::physics::PhysicsTile;
 
-#[derive(Debug, Clone, Reflect)]
+#[derive(Debug, Resource, Clone, Reflect)]
 pub struct LdtkPhysicsLayer {
     pub identifier: String,
     pub parent: String,

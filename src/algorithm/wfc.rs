@@ -523,7 +523,6 @@ impl WfcGrid {
             if hist_len <= strength {
                 // max retrace time exceeded
                 self.retraced_time = self.max_retrace_time;
-                return;
             } else {
                 if self.cur_hist >= strength {
                     self.cur_hist -= strength;
@@ -533,7 +532,6 @@ impl WfcGrid {
                     if self.history[hist_to_be].is_none() {
                         // retrace failed
                         self.retraced_time = self.max_retrace_time;
-                        return;
                     } else {
                         self.cur_hist = hist_to_be;
                     }
@@ -541,9 +539,12 @@ impl WfcGrid {
             }
 
             // in case the cur_hist is 0
-            self.history[(self.cur_hist + hist_len - 1) % hist_len]
-                .clone()
-                .unwrap()
+            self.history[(self.cur_hist + hist_len - 1) % hist_len].clone()
+        };
+
+        let Some(hist) = hist else {
+            self.retraced_time = self.max_retrace_time;
+            return;
         };
 
         self.remaining = hist.remaining;
@@ -620,14 +621,17 @@ pub fn wfc_applier(
     mut commands: Commands,
     mut tilemaps_query: Query<(
         Entity,
-        &TilemapType,
-        &TileRenderSize,
+        Option<&TilemapType>,
+        Option<&TileRenderSize>,
         Option<&mut TilemapStorage>,
         &WfcData,
         &WfcSource,
     )>,
     #[cfg(feature = "ldtk")] ldtk_patterns: Option<
         bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>,
+    >,
+    #[cfg(feature = "ldtk")] mut ldtk_manager: bevy::ecs::system::ResMut<
+        crate::ldtk::resources::LdtkLevelManager,
     >,
     #[cfg(feature = "algorithm")] mut path_tilemaps_query: Query<
         &mut crate::tilemap::algorithm::path::PathTilemap,
@@ -674,10 +678,10 @@ pub fn wfc_applier(
                             p.physics_tiles.tiles.iter().for_each(|(index, tile)| {
                                 let mut tile = tile.clone();
                                 tile.collider.iter_mut().for_each(|v| {
-                                    *v = *v + origin.as_vec2() * tile_render_size.0;
+                                    *v = *v + origin.as_vec2() * tile_render_size.unwrap().0;
                                 });
                                 tilemap.data.set_elem(*index + origin, tile.clone());
-                                let entity = tile.spawn(&mut commands, *ty);
+                                let entity = tile.spawn(&mut commands, *ty.unwrap());
                                 tilemap.storage.set_elem(*index + origin, entity);
                             });
                         }
@@ -739,12 +743,13 @@ pub fn wfc_applier(
                 #[cfg(feature = "ldtk")]
                 WfcSource::LdtkMapPattern(mode) => {
                     use crate::ldtk::resources::LdtkWfcManager;
-                    use bevy::{hierarchy::DespawnRecursiveExt, log::warn, prelude::SpatialBundle};
+                    use bevy::{hierarchy::DespawnRecursiveExt, log::warn};
 
                     let Some(patterns) = &ldtk_patterns else {
                         return;
                     };
-                    if !patterns.is_ready() {
+                    if !patterns.is_ready() && ldtk_manager.is_initialized() {
+                        ldtk_manager.load_all_patterns(&mut commands);
                         return;
                     }
                     if tilemap_storage.is_some() {
@@ -753,8 +758,6 @@ pub fn wfc_applier(
 
                     match mode {
                         LdtkWfcMode::SingleMap => {
-                            commands.entity(entity).insert(SpatialBundle::default());
-
                             let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
 
                             let mut layers = (0..layer_sample.len())
@@ -797,9 +800,7 @@ pub fn wfc_applier(
                                     let (_, target) = &mut layers[layer_index];
                                     target.storage.fill_with_buffer(
                                         &mut commands,
-                                        // as the y axis in LDtk is reversed
-                                        // all the patterns will extend downwards
-                                        (ptn_idx + IVec2::Y) * layer.0.tiles.aabb.size() - IVec2::Y,
+                                        (ptn_idx + IVec2::Y) * layer.0.tiles.aabb.size(),
                                         layer.0.tiles.clone(),
                                     );
 

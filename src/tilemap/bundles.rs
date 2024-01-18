@@ -23,10 +23,19 @@ pub struct DataTilemapBundle {
     pub ty: TilemapType,
     /// The pivot of the tiles.
     pub tile_pivot: TilePivot,
-    /// The transform of the tilemap. It's not the same one as `Transform`.
-    /// If you want to move or rotate the tilemap, you need to change this.
-    /// Modify the `Transform` component will not work.
-    pub tilemap_transform: TilemapTransform,
+}
+
+impl Into<TilemapBundle> for DataTilemapBundle {
+    fn into(self) -> TilemapBundle {
+        TilemapBundle {
+            name: self.name,
+            tile_render_size: self.tile_render_size,
+            slot_size: self.slot_size,
+            ty: self.ty,
+            tile_pivot: self.tile_pivot,
+            ..Default::default()
+        }
+    }
 }
 
 /// The bundle of the tilemap with a texture.
@@ -69,6 +78,39 @@ pub struct TilemapBundle {
     pub transform: Transform,
     /// Just to make sure the child sprites are correctly rendered.
     pub global_transform: GlobalTransform,
+}
+
+impl Into<DataTilemapBundle> for TilemapBundle {
+    fn into(self) -> DataTilemapBundle {
+        DataTilemapBundle {
+            name: self.name,
+            tile_render_size: self.tile_render_size,
+            slot_size: self.slot_size,
+            ty: self.ty,
+            tile_pivot: self.tile_pivot,
+            ..Default::default()
+        }
+    }
+}
+
+impl Into<PureColorTilemapBundle> for TilemapBundle {
+    fn into(self) -> PureColorTilemapBundle {
+        PureColorTilemapBundle {
+            name: self.name,
+            tile_render_size: self.tile_render_size,
+            slot_size: self.slot_size,
+            ty: self.ty,
+            tile_pivot: self.tile_pivot,
+            layer_opacities: self.layer_opacities,
+            storage: self.storage,
+            tilemap_transform: self.tilemap_transform,
+            visibility: self.visibility,
+            inherited_visibility: self.inherited_visibility,
+            view_visibility: self.view_visibility,
+            transform: self.transform,
+            global_transform: self.global_transform,
+        }
+    }
 }
 
 /// The bundle of the tilemap without a texture. This can be cheaper.

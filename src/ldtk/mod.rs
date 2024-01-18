@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use bevy::{
-    app::{Plugin, Update},
+    app::{Plugin, Startup, Update},
     asset::{load_internal_asset, AssetServer, Assets, Handle},
     ecs::{
         entity::Entity,
@@ -23,7 +23,9 @@ use crate::{
             level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
             EntityRef, GridPoint, LdtkColor, Toc, World,
         },
-        resources::{LdtkAssets, LdtkGlobalEntityRegistry, LdtkPatterns, LdtkTocs},
+        resources::{
+            LdtkAdditionalLayers, LdtkAssets, LdtkGlobalEntityRegistry, LdtkPatterns, LdtkTocs,
+        },
         sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
     },
     tilemap::map::TilemapStorage,
@@ -40,7 +42,7 @@ use self::{
         LdtkJson, WorldLayout,
     },
     layer::{LdtkLayers, PackedLdtkEntity},
-    resources::LdtkLevelManager,
+    resources::{LdtkLevelManager, LdtkLoadConfig},
     sprite::LdtkEntityMaterial,
     traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
 };
@@ -69,6 +71,7 @@ impl Plugin for EntiTilesLdtkPlugin {
 
         app.add_plugins(Material2dPlugin::<LdtkEntityMaterial>::default());
 
+        app.add_systems(Startup, parse_ldtk_json);
         app.add_systems(
             Update,
             (
@@ -83,6 +86,8 @@ impl Plugin for EntiTilesLdtkPlugin {
         app.insert_non_send_resource(LdtkEntityRegistry::default());
 
         app.init_resource::<LdtkLevelManager>()
+            .init_resource::<LdtkLoadConfig>()
+            .init_resource::<LdtkAdditionalLayers>()
             .init_resource::<LdtkAssets>()
             .init_resource::<LdtkPatterns>()
             .init_resource::<LdtkTocs>()
@@ -120,6 +125,8 @@ impl Plugin for EntiTilesLdtkPlugin {
             .register_type::<GridPoint>();
 
         app.register_type::<LdtkLevelManager>()
+            .register_type::<LdtkLoadConfig>()
+            .register_type::<LdtkAdditionalLayers>()
             .register_type::<LdtkAssets>()
             .register_type::<LdtkPatterns>()
             .register_type::<LdtkGlobalEntityRegistry>();
@@ -138,12 +145,15 @@ impl Plugin for EntiTilesLdtkPlugin {
     }
 }
 
+fn parse_ldtk_json(mut manager: ResMut<LdtkLevelManager>, config: Res<LdtkLoadConfig>) {
+    manager.reload_json(&config);
+}
+
 fn global_entity_registerer(
     mut registry: ResMut<LdtkGlobalEntityRegistry>,
     query: Query<(Entity, &EntityIid), Added<GlobalEntity>>,
 ) {
     query.for_each(|(entity, iid)| {
-        println!("Registering global entity: {:?}", iid.0);
         registry.register(iid.clone(), entity);
     });
 }
@@ -215,7 +225,9 @@ pub fn load_ldtk_json(
     entity_tag_registry: Option<NonSend<LdtkEntityTagRegistry>>,
     mut atlas_assets: ResMut<Assets<TextureAtlas>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
+    config: Res<LdtkLoadConfig>,
     mut manager: ResMut<LdtkLevelManager>,
+    addi_layers: Res<LdtkAdditionalLayers>,
     mut ldtk_assets: ResMut<LdtkAssets>,
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
@@ -227,6 +239,7 @@ pub fn load_ldtk_json(
         let entity_tag_registry = entity_tag_registry.as_ref().map(|r| &**r);
 
         ldtk_assets.initialize(
+            &config,
             &manager,
             &asset_server,
             &mut atlas_assets,
@@ -236,7 +249,9 @@ pub fn load_ldtk_json(
 
         load_levels(
             &mut commands,
+            &config,
             &mut manager,
+            &addi_layers,
             loader,
             &asset_server,
             &entity_registry.unwrap_or(&LdtkEntityRegistry::default()),
@@ -254,7 +269,9 @@ pub fn load_ldtk_json(
 
 fn load_levels(
     commands: &mut Commands,
+    config: &LdtkLoadConfig,
     manager: &mut LdtkLevelManager,
+    addi_layers: &LdtkAdditionalLayers,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
     entity_registry: &LdtkEntityRegistry,
@@ -285,35 +302,33 @@ fn load_levels(
         y: level.px_hei as u32,
     };
 
-    let background = load_background(level, translation, level_px, asset_server, &manager);
+    let background = load_background(level, translation, level_px, asset_server, config);
 
     let mut ldtk_layers = LdtkLayers::new(
         level_entity,
         level.layer_instances.len(),
         &ldtk_assets,
         translation,
-        manager.z_index,
+        config.z_index,
         loader.mode,
         background,
     );
 
     for (layer_index, layer) in level.layer_instances.iter().enumerate() {
         #[cfg(feature = "algorithm")]
-        if let Some(path) = manager.path_layer.as_ref() {
+        if let Some(path) = addi_layers.path_layer.as_ref() {
             if layer.identifier == path.identifier {
-                ldtk_layers.assign_path_layer(
-                    manager.path_layer.clone().unwrap(),
-                    layer::path::analyze_path_layer(layer, path),
-                );
+                ldtk_layers
+                    .assign_path_layer(path.clone(), layer::path::analyze_path_layer(layer, path));
                 continue;
             }
         }
 
         #[cfg(feature = "physics")]
-        if let Some(phy) = manager.physics_layer.as_ref() {
+        if let Some(phy) = addi_layers.physics_layer.as_ref() {
             if layer.identifier == phy.identifier {
                 ldtk_layers.assign_physics_layer(
-                    manager.physics_layer.clone().unwrap(),
+                    phy.clone(),
                     layer.int_grid_csv.clone(),
                     UVec2 {
                         x: layer.c_wid as u32,
@@ -329,7 +344,7 @@ fn load_levels(
             layer,
             &mut ldtk_layers,
             translation,
-            &manager,
+            config,
             &global_entities,
         );
     }
@@ -340,8 +355,9 @@ fn load_levels(
         level,
         entity_registry,
         entity_tag_registry,
-        &manager,
-        &ldtk_assets,
+        manager,
+        config,
+        ldtk_assets,
         asset_server,
     );
 
@@ -356,12 +372,12 @@ fn load_background(
     translation: Vec2,
     level_px: UVec2,
     asset_server: &AssetServer,
-    manager: &LdtkLevelManager,
+    config: &LdtkLoadConfig,
 ) -> SpriteBundle {
     let texture = level
         .bg_rel_path
         .as_ref()
-        .map(|path| asset_server.load(Path::new(&manager.asset_path_prefix).join(path)));
+        .map(|path| asset_server.load(Path::new(&config.asset_path_prefix).join(path)));
 
     SpriteBundle {
         sprite: Sprite {
@@ -373,7 +389,7 @@ fn load_background(
         transform: Transform::from_xyz(
             level_px.x as f32 / 2. + translation.x,
             -(level_px.y as f32) / 2. + translation.y,
-            manager.z_index as f32 - level.layer_instances.len() as f32 - 1.,
+            config.z_index as f32 - level.layer_instances.len() as f32 - 1.,
         ),
         ..Default::default()
     }
@@ -384,7 +400,7 @@ fn load_layer(
     layer: &LayerInstance,
     ldtk_layers: &mut LdtkLayers,
     translation: Vec2,
-    manager: &LdtkLevelManager,
+    config: &LdtkLoadConfig,
     global_entities: &LdtkGlobalEntityRegistry,
 ) {
     match layer.ty {
@@ -411,7 +427,7 @@ fn load_layer(
                     iid,
                     transform: LdtkTempTransform {
                         level_translation: translation,
-                        z_index: manager.z_index as f32
+                        z_index: config.z_index as f32
                             - layer_index as f32
                             - (1. - (order as f32 / layer.entity_instances.len() as f32)),
                     },

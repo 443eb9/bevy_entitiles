@@ -16,7 +16,7 @@ pub mod serializing;
 pub mod tilemap;
 
 pub const MAX_LAYER_COUNT: usize = 4;
-pub const DEFAULT_CHUNK_SIZE: u32 = 32;
+pub const DEFAULT_CHUNK_SIZE: u32 = 16;
 
 pub mod prelude {
     #[cfg(feature = "algorithm")]

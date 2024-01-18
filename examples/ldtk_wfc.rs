@@ -10,7 +10,7 @@ use bevy::{
     input::{keyboard::KeyCode, Input},
     math::{IVec2, UVec2, Vec2, Vec3Swizzles},
     reflect::Reflect,
-    render::color::Color,
+    render::{color::Color, render_resource::FilterMode},
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     utils::HashMap,
@@ -20,7 +20,9 @@ use bevy_entitiles::{
     algorithm::wfc::{LdtkWfcMode, WfcRules, WfcRunner, WfcSource},
     ldtk::{
         layer::physics::LdtkPhysicsLayer,
-        resources::{LdtkLevelManager, LdtkPatterns, LdtkWfcManager},
+        resources::{
+            LdtkAdditionalLayers, LdtkLevelManager, LdtkLoadConfig, LdtkPatterns, LdtkWfcManager,
+        },
     },
     math::TileArea,
     tilemap::{map::TilemapType, physics::PhysicsTile},
@@ -46,6 +48,36 @@ fn main() {
                 .map(|i| (i, format!("World_Level_{}", i)))
                 .collect(),
         ))
+        .insert_resource(LdtkLoadConfig {
+            file_path: "assets/ldtk/wfc_source.ldtk".to_string(),
+            asset_path_prefix: "ldtk/".to_string(),
+            filter_mode: FilterMode::Nearest,
+            ..Default::default()
+        })
+        .insert_resource(LdtkAdditionalLayers {
+            physics_layer: Some(LdtkPhysicsLayer {
+                identifier: "PhysicsCollider".to_string(),
+                air: 0,
+                parent: "Patterns".to_string(),
+                tiles: Some(HashMap::from([
+                    (
+                        1,
+                        PhysicsTile {
+                            rigid_body: true,
+                            friction: Some(0.5),
+                        },
+                    ),
+                    (
+                        2,
+                        PhysicsTile {
+                            rigid_body: true,
+                            friction: Some(0.8),
+                        },
+                    ),
+                ])),
+            }),
+            ..Default::default()
+        })
         .insert_resource(PhysicsDebugConfig::all())
         .add_systems(Startup, setup)
         .add_systems(Update, (player_control, load_level))
@@ -61,37 +93,8 @@ struct Player {
 #[derive(Component, Reflect)]
 struct LevelChange(UVec2);
 
-fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-
-    manager
-        .initialize(
-            &mut commands,
-            "assets/ldtk/wfc_source.ldtk".to_string(),
-            "ldtk/".to_string(),
-        )
-        .set_physics_layer(LdtkPhysicsLayer {
-            identifier: "PhysicsCollider".to_string(),
-            air: 0,
-            parent: "Patterns".to_string(),
-            tiles: Some(HashMap::from([
-                (
-                    1,
-                    PhysicsTile {
-                        rigid_body: true,
-                        friction: Some(0.5),
-                    },
-                ),
-                (
-                    2,
-                    PhysicsTile {
-                        rigid_body: true,
-                        friction: Some(0.8),
-                    },
-                ),
-            ])),
-        })
-        .load_all_patterns(&mut commands);
 
     let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TilemapType::Square);
     commands.spawn((
@@ -103,7 +106,7 @@ fn setup(mut commands: Commands, mut manager: ResMut<LdtkLevelManager>) {
         ),
         // you can also switch this to SingleMap mode
         // which will apply the result on a single tilemap
-        WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
+        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
     ));
 
     commands.spawn((
