@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#171c39" nextlayerid="7" nextobjectid="9">
+ <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
+ <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
+ <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
+ <imagelayer id="2" name="TestImage" offsetx="47.5909" offsety="34.1364">
+  <image source="beautiful-image.png"/>
+ </imagelayer>
+ <layer id="1" name="Base" width="30" height="20">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,62,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,67,0,62,0,0,0,0,0,217,0,0,0,0,0,217,0,0,0,0,217,0,0,0,
+0,13,14,14,14,14,2147483661,79,217,0,0,0,62,0,0,0,0,217,0,0,0,0,217,0,0,0,0,0,0,0,
+0,25,1,1,26,26,2147483673,79,0,0,0,0,217,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,25,26,3,1,2,2147483673,79,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,25,2,26,1,26,2147483673,79,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,37,38,38,38,38,2147483685,79,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,66,0,79,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,62,0,0,78,0,79,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,79,0,0,0,0,0,0,0,0,13,14,14,2147483661,0,0,0,0,0,0,0,0,0,0,
+0,0,0,217,0,16,17,17,17,2147483664,2147483668,19,19,19,19,20,25,5,1,2147483673,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,28,5,1,5,2147483676,0,0,0,0,0,0,25,98,1,2147483673,0,0,0,0,0,0,0,0,0,0,
+0,217,0,0,0,40,41,41,41,2147483688,0,0,0,0,0,0,37,98,38,2147483685,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,217,0,0,0,0,0,0,0,0,0,0,0,0,109,110,111,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,121,122,123,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+ <group id="3" name="Objects">
+  <objectgroup id="4" name="Detect">
+   <object id="1" name="DetectBridge" type="DetestArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13"/>
+   <object id="3" name="DetectTorch" type="DetectArea" x="43.3636" y="62">
+    <ellipse/>
+   </object>
+   <object id="4" name="DetectWaterFall" type="DetectArea" x="136" y="88">
+    <polygon points="0,0 0,32 -8,32 -8,48 16,48 16,32 8,32 8,0"/>
+   </object>
+  </objectgroup>
+  <objectgroup draworder="index" id="5" name="Tiles">
+   <object id="7" name="StackingA" type="Isometric" gid="389" x="59.6825" y="44.3392" width="32" height="16" rotation="79.116"/>
+   <object id="5" name="BlockTest" type="Square" gid="2147484033" x="64" y="80" width="16" height="16"/>
+   <object id="6" name="BlockProps" type="Square" gid="386" x="136" y="72" width="16" height="16">
+    <properties>
+     <property name="IntProp" type="int" value="-1"/>
+     <property name="boolProp" type="bool" value="true"/>
+     <property name="cur_color" type="color" value="#ff1fadd8"/>
+     <property name="entityConfig" type="file" value="beautiful-image.png"/>
+     <property name="float_prop" type="float" value="5.2"/>
+     <property name="health" type="float" value="5"/>
+     <property name="reference" type="object" value="5"/>
+     <property name="string_prop" value="5521asdvav"/>
+    </properties>
+   </object>
+   <object id="8" name="StackingB" type="Isometric" gid="390" x="69.125" y="85.5" width="32" height="16"/>
+  </objectgroup>
+ </group>
+</map>

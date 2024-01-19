@@ -3,21 +3,110 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "orthogonal.tmx",
+    "activeFile": "tilemaps/hexgonal.tmx",
     "expandedProjectPaths": [
+        "tilemaps",
+        "tilesets",
+        "world_test",
         "."
     ],
     "fileStates": {
+        "D:/Program Files/Tiled/examples/desert.tmx": {
+            "scale": 0.906953125,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 638.401240416918,
+                "y": 638.9525368248773
+            }
+        },
+        "D:/Program Files/Tiled/examples/desert.tsx": {
+            "scaleInDock": 1
+        },
+        "D:/Program Files/Tiled/examples/hexagonal-mini.tmx": {
+            "scale": 4.743379790940766,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 142.93605612076246,
+                "y": 91.39053145774415
+            }
+        },
+        "D:/Program Files/Tiled/examples/hexagonal-mini.tmx#hex mini": {
+            "scaleInDock": 1
+        },
+        "D:/Program Files/Tiled/examples/isometric_grass_and_water.tmx": {
+            "scale": 0.85084375,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 798.0313659235318,
+                "y": 400.19098688801563
+            }
+        },
+        "D:/Program Files/Tiled/examples/isometric_grass_and_water.tmx#isometric_grass_and_water": {
+            "scaleInDock": 1
+        },
+        "D:/Program Files/Tiled/examples/sewer_automap/sewers.tmx": {
+            "scale": 1.5603494623655914,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 371.0707209923335,
+                "y": 371.39116202945985
+            }
+        },
+        "D:/Program Files/Tiled/examples/sewer_automap/sewers.tmx#rules_sewers": {
+            "scaleInDock": 1
+        },
+        "D:/Program Files/Tiled/examples/sewer_automap/sewers.tmx#sewer_tileset": {
+            "scaleInDock": 1
+        },
+        "Hexagonal.tmx": {
+            "scale": 8,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 121.0625,
+                "y": 90.1875
+            }
+        },
+        "Isometric.tsx": {
+            "scaleInDock": 11,
+            "scaleInEditor": 23
+        },
+        "Squares.tsx": {
+            "scaleInDock": 8,
+            "scaleInEditor": 23
+        },
         "Tileset1.tsx": {
             "scaleInDock": 4,
             "scaleInEditor": 5.5
         },
-        "orthogonal.tmx": {
-            "scale": 8,
+        "hexgonal.tmx": {
+            "scale": 4,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 63,
-                "y": 53.9375
+                "x": 142.875,
+                "y": 132.375
+            }
+        },
+        "isometric.tmx": {
+            "scale": 5.4624999999999995,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 120.00000000000001,
+                "y": 60.13729977116705
+            }
+        },
+        "orthogonal.tmx": {
+            "expandedGroupLayers": [
+                3
+            ],
+            "expandedObjectLayers": [
+                5,
+                3
+            ],
+            "scale": 5.5,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 116.63636363636364,
+                "y": 63.727272727272734
             }
         },
         "tilemap_orthogonal.tmx": {
@@ -27,24 +116,103 @@
                 "x": 417,
                 "y": 228.5
             }
+        },
+        "tilemaps/hexgonal.tmx": {
+            "scale": 3.516532258064516,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 146.59328058708866,
+                "y": 167.3523678477239
+            }
+        },
+        "tilemaps/isometric.tmx": {
+            "scale": 5.4624999999999995,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 120.00000000000001,
+                "y": 87.9633867276888
+            }
+        },
+        "tilemaps/orthogonal.tmx": {
+            "scale": 5.450625,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 120.07797270955167,
+                "y": 107.9692695791767
+            }
+        },
+        "tilemaps/tilesets/Hexagonal.tsx": {
+            "scaleInDock": 1
+        },
+        "tilemaps/tilesets/Isometric.tsx": {
+            "scaleInDock": 1
+        },
+        "tilemaps/tilesets/Squares.tsx": {
+            "scaleInDock": 1
+        },
+        "tilemaps/tilesets/Tileset1.tsx": {
+            "scaleInDock": 1
+        },
+        "tilesets/Hexagonal.tsx": {
+            "scaleInDock": 4,
+            "scaleInEditor": 5.5
+        },
+        "tilesets/Iso.tsx": {
+            "scaleInDock": 1,
+            "scaleInEditor": 11
+        },
+        "tilesets/Isometric.tsx": {
+            "scaleInDock": 8,
+            "scaleInEditor": 1
+        },
+        "tilesets/Squares.tsx": {
+            "scaleInDock": 8,
+            "scaleInEditor": 1
+        },
+        "tilesets/Tileset1.tsx": {
+            "scaleInDock": 5.5,
+            "scaleInEditor": 5.5
+        },
+        "tilesets/Tileset2.tsx": {
+            "scaleInDock": 1.5,
+            "scaleInEditor": 4
         }
     },
+    "frame.defaultDuration": 300,
+    "last.externalTilesetPath": "F:/EverythingBevy/bevy_entitiles/assets/tiled/tilesets",
     "last.imagePath": "F:/EverythingBevy/bevy_entitiles/assets/tiled",
+    "last.worldFilePath": "F:/EverythingBevy/bevy_entitiles/assets/tiled/world_test",
+    "loadedWorlds": [
+        "F:/EverythingBevy/bevy_entitiles/assets/tiled/world_test/test.world"
+    ],
+    "map.height": 5,
     "map.lastUsedFormat": "tmx",
-    "map.tileHeight": 8,
-    "map.tileWidth": 8,
+    "map.orientation": null,
+    "map.tileHeight": 56,
+    "map.tileWidth": 28,
+    "map.width": 10,
     "openFiles": [
-        "orthogonal.tmx"
+        "tilemaps/hexgonal.tmx"
     ],
     "project": "Tilemap.tiled-project",
+    "property.type": "string",
     "recentFiles": [
+        "tilemaps/hexgonal.tmx",
+        "tilesets/Hexagonal.tsx",
+        "tilesets/Tileset1.tsx",
+        "tilemaps/orthogonal.tmx",
+        "tilemaps/isometric.tmx",
         "orthogonal.tmx",
-        "tilemap_orthogonal.tmx",
-        "Tileset1.tsx"
+        "hexgonal.tmx",
+        "Hexagonal.tmx",
+        "isometric.tmx",
+        "tilesets/Tileset2.tsx",
+        "tilesets/Iso.tsx",
+        "tilesets/Squares.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
-        "height": 8,
-        "width": 8
+        "height": 56,
+        "width": 28
     }
 }
