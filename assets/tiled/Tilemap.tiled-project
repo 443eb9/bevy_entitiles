@@ -10,5 +10,46 @@
     "properties": [
     ],
     "propertyTypes": [
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 1,
+            "members": [
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "hp",
+                    "type": "float",
+                    "value": 0
+                }
+            ],
+            "name": "Block",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "EntityType",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "Player",
+                "Enemy"
+            ],
+            "valuesAsFlags": false
+        }
     ]
 }

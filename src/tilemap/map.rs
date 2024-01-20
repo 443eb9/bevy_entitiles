@@ -350,6 +350,7 @@ impl TilemapStorage {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub(crate) fn set_chunk_entity(&mut self, index: IVec2, chunk: Vec<Option<Entity>>) {
         self.storage.chunks.insert(index, chunk);
         self.reserve(index);

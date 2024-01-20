@@ -41,24 +41,23 @@ impl<'de> Deserialize<'de> for LdtkColor {
     where
         D: serde::Deserializer<'de>,
     {
+        struct LdtkColorVisitor;
+        impl<'de> Visitor<'de> for LdtkColorVisitor {
+            type Value = LdtkColor;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a color in the format #RRGGBB")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(LdtkColor::from(value.to_string()))
+            }
+        }
+
         deserializer.deserialize_str(LdtkColorVisitor)
-    }
-}
-
-pub struct LdtkColorVisitor;
-
-impl<'de> Visitor<'de> for LdtkColorVisitor {
-    type Value = LdtkColor;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a color in the format #RRGGBB")
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(LdtkColor::from(value.to_string()))
     }
 }
 

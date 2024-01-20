@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#171c39" nextlayerid="7" nextobjectid="9">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="7" nextobjectid="9">
  <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
  <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
  <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
  <imagelayer id="2" name="TestImage" offsetx="47.5909" offsety="34.1364">
-  <image source="beautiful-image.png"/>
+  <image source="../beautiful-image.png" width="256" height="128"/>
  </imagelayer>
  <layer id="1" name="Base" width="30" height="20">
   <data encoding="csv">
@@ -42,13 +42,23 @@
   </objectgroup>
   <objectgroup draworder="index" id="5" name="Tiles">
    <object id="7" name="StackingA" type="Isometric" gid="389" x="59.6825" y="44.3392" width="32" height="16" rotation="79.116"/>
-   <object id="5" name="BlockTest" type="Square" gid="2147484033" x="64" y="80" width="16" height="16"/>
+   <object id="5" name="BlockTest" type="Square" gid="2147484033" x="64" y="80" width="16" height="16">
+    <properties>
+     <property name="Block" type="class" propertytype="Block">
+      <properties>
+       <property name="Name" value="SampleEnemy"/>
+       <property name="hp" type="float" value="10"/>
+      </properties>
+     </property>
+     <property name="Ty" propertytype="EntityType" value="Enemy"/>
+    </properties>
+   </object>
    <object id="6" name="BlockProps" type="Square" gid="386" x="136" y="72" width="16" height="16">
     <properties>
      <property name="IntProp" type="int" value="-1"/>
      <property name="boolProp" type="bool" value="true"/>
      <property name="cur_color" type="color" value="#ff1fadd8"/>
-     <property name="entityConfig" type="file" value="beautiful-image.png"/>
+     <property name="entityConfig" type="file" value="../beautiful-image.png"/>
      <property name="float_prop" type="float" value="5.2"/>
      <property name="health" type="float" value="5"/>
      <property name="reference" type="object" value="5"/>

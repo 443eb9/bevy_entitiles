@@ -12,3 +12,4 @@
 - Tiles of tilemaps won't despawn after the tilemaps is saved.
 - Wfc module panics if wfc is failed.
 - Program sometimes will panic ( Source buffer/texture is missing the `COPY_SRC` usage flag ) right after a tilemap is spawned.
+- The `TilePivot` does not really affects the way tile scales.
