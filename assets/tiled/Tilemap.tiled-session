@@ -119,10 +119,10 @@
         },
         "tilemaps/hexagonal.tmx": {
             "scale": 2.594727891156462,
-            "selectedLayer": 0,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 142.98223766140134,
-                "y": 120.05112407419549
+                "x": 74.38159533328965,
+                "y": 70.72032509667696
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -137,7 +137,7 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 48.66666666666666,
+                "x": 48.33333333333333,
                 "y": 23.833333333333343
             }
         },
@@ -223,7 +223,7 @@
         "tilemaps/infinite.tmx"
     ],
     "project": "Tilemap.tiled-project",
-    "property.type": "bool",
+    "property.type": "AnotherSquare",
     "recentFiles": [
         "tilemaps/orthogonal.tmx",
         "tilemaps/hexagonal.tmx",

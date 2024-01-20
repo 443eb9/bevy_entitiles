@@ -53,19 +53,22 @@
      <property name="Ty" propertytype="EntityType" value="Enemy"/>
     </properties>
    </object>
-   <object id="6" name="BlockProps" type="Square" gid="386" x="136" y="72" width="16" height="16">
+   <object id="6" name="BlockProps" type="Square" gid="386" x="136" y="72" width="16" height="16"/>
+   <object id="8" name="StackingB" type="Isometric" gid="390" x="69.125" y="85.5" width="32" height="16">
     <properties>
-     <property name="IntProp" type="int" value="-1"/>
-     <property name="boolProp" type="bool" value="true"/>
-     <property name="cur_color" type="color" value="#ff1fadd8"/>
-     <property name="entityConfig" type="file" value="../beautiful-image.png"/>
-     <property name="float_prop" type="float" value="5.2"/>
-     <property name="health" type="float" value="5"/>
-     <property name="reference" type="object" value="5"/>
-     <property name="string_prop" value="5521asdvav"/>
+     <property name="Component" type="class" propertytype="AnotherSquare">
+      <properties>
+       <property name="Descrption" value="Test"/>
+       <property name="hp" type="float" value="50"/>
+       <property name="level" type="int" value="2"/>
+       <property name="rigid_body" type="bool" value="true"/>
+       <property name="target" type="object" value="7"/>
+       <property name="texture" type="file" value="../test_square.png"/>
+       <property name="tint" type="color" value="#1e6e44d8"/>
+      </properties>
+     </property>
     </properties>
    </object>
-   <object id="8" name="StackingB" type="Isometric" gid="390" x="69.125" y="85.5" width="32" height="16"/>
   </objectgroup>
  </group>
 </map>

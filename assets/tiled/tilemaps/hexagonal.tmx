@@ -11,10 +11,6 @@
 </data>
  </layer>
  <objectgroup id="2" name="Object Layer 1">
-  <object id="1" x="74.5052" y="71.0928">
-   <properties>
-    <property name="a" type="bool" value="false"/>
-   </properties>
-  </object>
+  <object id="1" x="74.5052" y="71.0928"/>
  </objectgroup>
 </map>
