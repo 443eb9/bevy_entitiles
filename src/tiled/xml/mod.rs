@@ -320,3 +320,22 @@ pub struct TiledGroup {
     #[serde(rename = "$value")]
     pub content: Vec<GroupContent>,
 }
+
+#[cfg(test)]
+mod test {
+    use test::property::PropertyInstance;
+
+    use super::*;
+
+    #[test]
+    fn test_parse() {
+        let map = quick_xml::de::from_str::<TiledTilemap>(
+            std::fs::read_to_string("assets/tiled/tilemaps/isometric.tmx")
+                .unwrap()
+                .as_str(),
+        )
+        .unwrap();
+
+        dbg!(map);
+    }
+}

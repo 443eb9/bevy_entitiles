@@ -21,6 +21,13 @@
                     "value": ""
                 },
                 {
+                    "name": "Nested",
+                    "propertyType": "Block",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
                     "name": "Type",
                     "propertyType": "EntityType",
                     "type": "string",

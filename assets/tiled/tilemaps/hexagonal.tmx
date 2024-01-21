@@ -11,6 +11,20 @@
 </data>
  </layer>
  <objectgroup id="2" name="Object Layer 1">
-  <object id="1" x="74.5052" y="71.0928"/>
+  <object id="1" x="74.5052" y="71.0928">
+   <properties>
+    <property name="Component" type="class" propertytype="AnotherSquare">
+     <properties>
+      <property name="Descrption" value="Test"/>
+      <property name="hp" type="float" value="50"/>
+      <property name="level" type="int" value="2"/>
+      <property name="rigid_body" type="bool" value="true"/>
+      <property name="target" type="object" value="7"/>
+      <property name="texture" type="file" value="../test_square.png"/>
+      <property name="tint" type="color" value="#1e6e44d8"/>
+     </properties>
+    </property>
+   </properties>
+  </object>
  </objectgroup>
 </map>

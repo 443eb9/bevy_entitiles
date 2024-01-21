@@ -50,7 +50,6 @@
        <property name="hp" type="float" value="10"/>
       </properties>
      </property>
-     <property name="Ty" propertytype="EntityType" value="Enemy"/>
     </properties>
    </object>
    <object id="6" name="BlockProps" type="Square" gid="386" x="136" y="72" width="16" height="16"/>

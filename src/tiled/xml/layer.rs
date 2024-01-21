@@ -2,7 +2,7 @@ use std::fmt::Formatter;
 
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use super::{default::*, TiledColor};
+use super::{default::*, property::Components, TiledColor};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TiledLayer {
@@ -12,6 +12,8 @@ pub enum TiledLayer {
     Objects(ObjectLayer),
     #[serde(rename = "imagelayer")]
     Image(ImageLayer),
+    #[serde(other)]
+    Other,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -112,7 +114,7 @@ pub struct TileLayerData {
     #[serde(rename = "@compression")]
     #[serde(default)]
     pub compression: DataCompression,
-    
+
     #[serde(rename = "$value")]
     pub content: TileLayerContent,
 }
@@ -330,6 +332,9 @@ pub struct Object {
     #[serde(rename = "@visible")]
     #[serde(default = "default_true")]
     pub visible: bool,
+
+    #[serde(default)]
+    pub properties: Components,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
