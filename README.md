@@ -68,7 +68,7 @@ The gif on the right is the map generated with wave function collapse. And the o
 
 ### Chunk Unloading
 
-I know you are confused about these weird boxes, so please check the [`chunk_unloading`]([examples/chunk_unloading.rs](https://github.com/443eb9/bevy_entitiles/blob/master/examples/chunk_unloading.rs)) example if you want to get further info.
+I know you are confused about these weird boxes, so please check the [`chunk_unloading`](https://github.com/443eb9/bevy_entitiles/blob/master/examples/chunk_unloading.rs) example if you want to get further info.
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/chunk_unloading.gif" width="500px">
