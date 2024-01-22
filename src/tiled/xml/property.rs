@@ -31,9 +31,6 @@ impl<'de> Deserialize<'de> for Components {
                 let mut components = HashMap::default();
                 while let Some(key) = map.next_key::<String>()? {
                     match key.as_str() {
-                        "@name" => {
-                            dbg!(map.next_value::<String>()?);
-                        }
                         "property" => {
                             let component = map.next_value::<ClassInstance>()?;
                             components.insert(component.name.clone(), component);
@@ -147,15 +144,15 @@ impl<'de> Deserialize<'de> for PropertyInstance {
                 let mut ty = "string".to_string();
                 let mut value = None;
                 while let Some(key) = map.next_key::<String>()? {
-                    dbg!(key.as_str());
                     match key.as_str() {
                         "@name" => {
                             name = Some(map.next_value::<String>()?);
-                            dbg!(name.as_ref().unwrap());
                         }
                         "@type" => {
                             ty = map.next_value::<String>()?;
-                            dbg!(ty.as_str());
+                            if ty == "class" {
+                                panic!("Nested class properties are not supported yet!");
+                            }
                         }
                         "@value" => match ty.as_str() {
                             "int" => {
@@ -176,17 +173,10 @@ impl<'de> Deserialize<'de> for PropertyInstance {
                             "object" => {
                                 value = Some(PropertyValue::ObjectRef(map.next_value::<u32>()?));
                             }
-                            "class" => {
-                                value =
-                                    Some(PropertyValue::Class(map.next_value::<ClassInstance>()?));
-                            }
                             _ => unreachable!(),
                         },
                         "property" => {
                             return map.next_value::<PropertyInstance>();
-                        }
-                        "@propertytype" => {
-                            value = Some(PropertyValue::Class(map.next_value::<ClassInstance>()?));
                         }
                         _ => panic!("Unknown key for PropertyInstance: {}", key),
                     }
@@ -213,5 +203,4 @@ pub enum PropertyValue {
     Color(TiledColor),
     Enum(String, String),
     ObjectRef(u32),
-    Class(ClassInstance),
 }

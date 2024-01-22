@@ -323,8 +323,6 @@ pub struct TiledGroup {
 
 #[cfg(test)]
 mod test {
-    use test::property::PropertyInstance;
-
     use super::*;
 
     #[test]
