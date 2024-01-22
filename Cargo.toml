@@ -14,7 +14,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.12.1", default-features = false, features = [
+bevy = { version = "0.12", default-features = false, features = [
     "bevy_core_pipeline",
     "bevy_render",
     "bevy_asset",
@@ -27,15 +27,15 @@ bevy = { version = "0.12.1", default-features = false, features = [
     "bevy_ui",
     "default_font",
 ] }
-ron = { version = "0.8.0", optional = true }
-rand = { version = "0.8.0", optional = true }
-serde = { version = "1.0.150", optional = true }
+ron = { version = "0.8", optional = true }
+rand = { version = "0.8", optional = true }
+serde = { version = "1", optional = true }
 bevy_xpbd_2d = { version = "0.3.3", optional = true }
-serde_json = { version = "1.0.100", optional = true }
+serde_json = { version = "1", optional = true }
 bevy_entitiles_derive = { version = "0.2.0", optional = true, path = "macros" }
-futures-lite = { version = "2.2.0", optional = true }
-radsort = "0.1.0"
-bitflags = "2.4.0"
+futures-lite = { version = "2", optional = true }
+radsort = "0.1"
+bitflags = "2"
 
 [dev-dependencies]
 bevy = { version = "0.12.1", default-features = false, features = [
