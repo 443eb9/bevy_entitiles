@@ -2,28 +2,30 @@
 
 A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
-Try to be the most **comprehensive**, **performant**, and **up-to-date** bevy 2d tilemap crate.
+Try to be the most **comprehensive**, **performant**, and **up-to-date** 2d tilemap crate for bevy.
 
 This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
 
 It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
+
+This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap)(Rendering) and [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk)(LDtk entity spawning)
 
 ## Future Goals
 
 *The higher the priority, the more towards the front in the following list.*
 
 - [Tiled](https://www.mapeditor.org/) Support
+- Runtime Mesh & Texture Baking
 - Custom Material
 - Volumetric Clouds / Fog
 - SSAO
 - Realtime Lighting
-- Runtime Mesh & Texture Baking
 - Wang Tiling
 - Tilemap Mask
 - ~~Frustum Culling~~
 - ~~Pathfinding~~
 - ~~Physics~~
-- ~~[LDtk](https://ldtk.io/) Full Support~~
+- ~~[LDtk](https://ldtk.io/) Support~~
 - ~~Infinite Tilemap~~
 - ~~Chunk Unloading~~
 - ~~Tilemap Serializing~~
@@ -38,6 +40,7 @@ It's **NOT** recommended to use the code in `dev` branch! There's full of incomp
 | `ldtk`        | [LDtk](https://ldtk.io/) support.                                                       |
 | `physics`     | Physics support using [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd).              |
 | `serializing` | Save and load the tilemap from files. Also contains tools for upgrading files.          |
+| `tiled`       | [Tiled](https://www.mapeditor.org/) support.                                            |
 
 ## Coordinate Systems
 
@@ -123,11 +126,9 @@ In the following case, each tile has at least one corresponding color gap with i
 
 *\* Rendered layer means the layer that will be **rendered**. You can insert as much layers as you want, but only the 4 top layers will be rendered.*
 
-## Special Thanks & References
+## References
 
 - SSAO & Volumetric Clouds / Fog inspired by [this video](https://www.bilibili.com/video/BV1KG411U7uk/).
-- [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap) I took this crate as the reference and learnt the basis of bevy rendering!
-- [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk) I was confused and have no idea about how to instantiate LDtk entities before I read this crate! I also learnt proc macros and many other things from this crate!
 
 ## Assets
 
@@ -138,12 +139,12 @@ In the following case, each tile has at least one corresponding color gap with i
 
 *LDtk version is the version that json api has changed. So you can also use 1.5.2 in 0.2.7.</br>See [this](https://ldtk.io/json/next/#changes) for more information.*
 
-| Bevy ver | EntiTiles ver | LDtk ver      |
-| -------- | ------------- | ------------- |
-| 0.12.x   | 0.3.0         | 1.5.3         |
-| 0.12.x   | 0.2.7         | 1.5.1         |
-| 0.12.x   | 0.2.3-0.2.6   | 1.4.1         |
-| 0.12.x   | 0.2.0-0.2.2   | Not supported |
-| 0.11.x   | 0.1.x         | Not supported |
+| Bevy ver | EntiTiles ver | LDtk ver      | Tiled ver     |
+| -------- | ------------- | ------------- | ------------- |
+| 0.12.x   | 0.3.0         | 1.5.3         | Not supported |
+| 0.12.x   | 0.2.7         | 1.5.1         | Not supported |
+| 0.12.x   | 0.2.3-0.2.6   | 1.4.1         | Not supported |
+| 0.12.x   | 0.2.0-0.2.2   | Not supported | Not supported |
+| 0.11.x   | 0.1.x         | Not supported | Not supported |
 
 *Versions before 0.3.0 is not named following [`Semantic Versioning`](https://semver.org/)*

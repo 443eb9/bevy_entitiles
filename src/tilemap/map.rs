@@ -16,6 +16,7 @@ use crate::math::{
     aabb::{Aabb2d, IAabb2d},
     TileArea,
 };
+use crate::tilemap::tile::RawTileAnimation;
 
 use super::{
     buffers::TileBuilderBuffer,
@@ -340,7 +341,8 @@ impl TilemapStorage {
     pub(crate) fn set_entity(&mut self, index: IVec2, entity: Option<Entity>) {
         if let Some(e) = entity {
             let (chunk_index, in_chunk_index) = self.storage.transform_index(index);
-            self.storage.set_elem_precise(chunk_index, in_chunk_index, e);
+            self.storage
+                .set_elem_precise(chunk_index, in_chunk_index, e);
             self.reserve(chunk_index);
         } else {
             self.storage.remove_elem(index);
@@ -348,6 +350,7 @@ impl TilemapStorage {
     }
 
     #[inline]
+    #[allow(dead_code)]
     pub(crate) fn set_chunk_entity(&mut self, index: IVec2, chunk: Vec<Option<Entity>>) {
         self.storage.chunks.insert(index, chunk);
         self.reserve(index);
@@ -583,12 +586,16 @@ pub struct TilemapAnimations(pub(crate) Vec<i32>);
 
 impl TilemapAnimations {
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.
-    pub fn register_animation(&mut self, fps: u32, seq: Vec<u32>) -> TileAnimation {
-        self.0.push(fps as i32);
+    pub fn register(&mut self, anim: RawTileAnimation) -> TileAnimation {
+        self.0.push(anim.fps as i32);
         let start = self.0.len() as u32;
-        let length = seq.len() as u32;
-        self.0.extend(seq.into_iter().map(|i| i as i32));
-        TileAnimation { start, length, fps }
+        let length = anim.sequence.len() as u32;
+        self.0.extend(anim.sequence.into_iter().map(|i| i as i32));
+        TileAnimation {
+            start,
+            length,
+            fps: anim.fps,
+        }
     }
 }
 

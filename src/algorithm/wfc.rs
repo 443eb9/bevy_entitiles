@@ -778,6 +778,10 @@ pub fn wfc_applier(
                                                 DEFAULT_CHUNK_SIZE,
                                                 entity,
                                             ),
+                                            animations: layer_sample[layer_idx]
+                                                .0
+                                                .animations
+                                                .clone(),
                                             ..Default::default()
                                         },
                                     )

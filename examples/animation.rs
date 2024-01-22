@@ -15,7 +15,7 @@ use bevy_entitiles::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTextureDescriptor, TilemapType,
         },
-        tile::TileBuilder,
+        tile::{RawTileAnimation, TileBuilder},
     },
     EntiTilesPlugin,
 };
@@ -55,8 +55,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     };
 
-    let anim_a = tilemap.animations.register_animation(2, vec![0, 1, 2, 3]);
-    let anim_b = tilemap.animations.register_animation(3, vec![0, 1, 2]);
+    let anim_a = tilemap.animations.register(RawTileAnimation {
+        fps: 2,
+        sequence: vec![0, 1, 2, 3],
+    });
+    let anim_b = tilemap.animations.register(RawTileAnimation {
+        fps: 3,
+        sequence: vec![0, 1, 2],
+    });
 
     tilemap.storage.fill_rect(
         &mut commands,

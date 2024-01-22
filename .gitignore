@@ -2,3 +2,4 @@
 /examples/test*
 /assets/ldtk/ignore*
 /macros/target
+/.idea

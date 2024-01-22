@@ -142,6 +142,16 @@ impl TilemapTexturesStorage {
                 continue;
             };
 
+            if !raw_gpu_image
+                .texture
+                .usage()
+                .contains(TextureUsages::COPY_SRC)
+            {
+                self.queue_queue
+                    .insert(image_handle.clone_weak(), desc.clone());
+                continue;
+            }
+
             let tile_count = desc.size / desc.tile_size;
             let array_gpu_image = self.textures.get(image_handle).unwrap();
             let mut command_encoder = render_device.create_command_encoder(&Default::default());

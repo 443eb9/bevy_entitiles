@@ -24,6 +24,7 @@ use bevy::{
     utils::HashMap,
     DefaultPlugins,
 };
+use bevy_entitiles::tilemap::tile::RawTileAnimation;
 use bevy_entitiles::{
     ldtk::{
         app_ext::AppExt,
@@ -72,6 +73,13 @@ fn main() {
             asset_path_prefix: "ldtk/".to_string(),
             filter_mode: FilterMode::Nearest,
             ignore_unregistered_entities: true,
+            animation_mapper: HashMap::from([(
+                470,
+                RawTileAnimation {
+                    sequence: vec![469, 446, 447],
+                    fps: 3,
+                },
+            )]),
             ..Default::default()
         })
         .insert_resource(LdtkAdditionalLayers {

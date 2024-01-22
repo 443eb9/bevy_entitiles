@@ -1,0 +1,123 @@
+{
+    "automappingRulesFile": "",
+    "commands": [
+    ],
+    "compatibilityVersion": 1100,
+    "extensionsPath": "extensions",
+    "folders": [
+        "."
+    ],
+    "properties": [
+    ],
+    "propertyTypes": [
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 4,
+            "members": [
+                {
+                    "name": "Descrption",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "Nested",
+                    "propertyType": "Block",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
+                    "name": "Type",
+                    "propertyType": "EntityType",
+                    "type": "string",
+                    "value": "Player"
+                },
+                {
+                    "name": "hp",
+                    "type": "float",
+                    "value": 0
+                },
+                {
+                    "name": "level",
+                    "type": "int",
+                    "value": 0
+                },
+                {
+                    "name": "rigid_body",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "target",
+                    "type": "object",
+                    "value": 0
+                },
+                {
+                    "name": "texture",
+                    "type": "file",
+                    "value": ""
+                },
+                {
+                    "name": "tint",
+                    "type": "color",
+                    "value": ""
+                }
+            ],
+            "name": "AnotherSquare",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 1,
+            "members": [
+                {
+                    "name": "Name",
+                    "type": "string",
+                    "value": ""
+                },
+                {
+                    "name": "hp",
+                    "type": "float",
+                    "value": 0
+                }
+            ],
+            "name": "Block",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "id": 2,
+            "name": "EntityType",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "Player",
+                "Enemy"
+            ],
+            "valuesAsFlags": false
+        }
+    ]
+}

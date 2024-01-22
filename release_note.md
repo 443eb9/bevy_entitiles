@@ -4,6 +4,7 @@
 - Unified the format of different tilemap layers.
 - Allow mapping texture index to animation for LDtk maps.
 - Split the `LdtkLevelManager` into small resources and simplified the api.
+- Relaxed dependencies. #11
 
 # What's Fixed:
 
@@ -11,3 +12,4 @@
 - Colliders for isometric tiles have the wrong position when it's parent has the pivot other than `[0, 0]`.
 - Tiles of tilemaps won't despawn after the tilemaps is saved.
 - Wfc module panics if fail.
+- Compilation bug due to winit v0.28.7 #8
