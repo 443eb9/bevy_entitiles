@@ -3,7 +3,7 @@
  <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
  <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
  <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
- <imagelayer id="2" name="TestImage" offsetx="47.5909" offsety="34.1364" repeaty="1">
+ <imagelayer id="2" name="TestImage" offsetx="47.5909" offsety="34.1364" repeatx="1" repeaty="1">
   <image source="../beautiful-image.png" width="256" height="128"/>
  </imagelayer>
  <layer id="1" name="Base" width="30" height="20">

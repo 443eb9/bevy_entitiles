@@ -263,14 +263,16 @@ impl TiledAssets {
             map.xml
                 .layers
                 .iter()
-                .filter_map(|layer| {
+                .rev()
+                .enumerate()
+                .filter_map(|(z, layer)| {
                     if let TiledLayer::Image(layer) = layer {
-                        Some(layer)
+                        Some((z, layer))
                     } else {
                         None
                     }
                 })
-                .for_each(|layer| {
+                .for_each(|(z, layer)| {
                     let image_path = map
                         .path
                         .parent()
@@ -315,12 +317,10 @@ impl TiledAssets {
                         uvs.clear();
                         indices.clear();
 
-                        let repeat_origin_x =
-                            origin.x - (origin.x / image_size.x).ceil() * image_size.x;
-                        dbg!(map_size.x / image_size.x);
-                        dbg!(map_size);
-                        dbg!(image_size);
-                        for i in 0..(map_size.x / image_size.x).ceil_to_u32() {
+                        let left = (origin.x / image_size.x).ceil_to_u32();
+                        let right = ((map_size.x - origin.x) / image_size.x).ceil_to_u32();
+                        let repeat_origin_x = origin.x - left as f32 * image_size.x;
+                        for i in 0..(left + right) {
                             uvs.push(image_uvs.clone());
                             vertices.push(
                                 image_verts
@@ -335,7 +335,6 @@ impl TiledAssets {
                             );
                             indices.push(unit_indices.iter().map(|i| i + mesh_index * 4).collect());
                             mesh_index += 1;
-                            println!("mesh_index: {}", mesh_index);
                         }
                     }
 
@@ -344,9 +343,10 @@ impl TiledAssets {
                         vertices.clear();
                         uvs.clear();
 
-                        let repeat_origin_y =
-                            origin.y - (origin.y / image_size.y).ceil() * image_size.y;
-                        for i in 0..(map_size.y / image_size.y).ceil_to_u32() {
+                        let up = ((map_size.y - origin.y) / image_size.y).ceil_to_u32();
+                        let down = (origin.y / image_size.y).ceil_to_u32();
+                        let repeat_origin_y = origin.y - down as f32 * image_size.y;
+                        for i in 0..(up + down) {
                             origin_images.iter().for_each(|image| {
                                 uvs.push(image_uvs.clone());
                                 vertices.push(
@@ -374,7 +374,7 @@ impl TiledAssets {
                                 Mesh::ATTRIBUTE_POSITION,
                                 vertices
                                     .into_iter()
-                                    .flat_map(|image| image.into_iter().map(|v| v.extend(0.)))
+                                    .flat_map(|image| image.into_iter().map(|v| v.extend(z as f32)))
                                     .collect::<Vec<_>>(),
                             )
                             .with_inserted_attribute(

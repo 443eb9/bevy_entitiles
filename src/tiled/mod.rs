@@ -1,11 +1,11 @@
 use bevy::{
-    app::{Plugin, Startup, Update},
+    app::{Plugin, PreStartup, Update},
     asset::{load_internal_asset, AssetServer, Assets, Handle},
     ecs::{
         entity::Entity,
         system::{Commands, Query, Res, ResMut},
     },
-    render::{mesh::Mesh, render_resource::Shader, texture::Image},
+    render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
 };
 
@@ -37,7 +37,7 @@ impl Plugin for EntiTilesTiledPlugin {
 
         app.add_plugins(Material2dPlugin::<TiledSpriteMaterial>::default());
 
-        app.add_systems(Startup, parse_tiled_xml);
+        app.add_systems(PreStartup, parse_tiled_xml);
 
         app.init_resource::<TiledLoadConfig>()
             .init_resource::<TiledAssets>()
@@ -100,8 +100,8 @@ fn load_tiled_tilemap(
     let tiled_data = manager.get_cached_data().get(&loader.map).unwrap();
 
     tiled_data.xml.layers.iter().for_each(|layer| match layer {
-        TiledLayer::Tiles(_) => {},
-        TiledLayer::Objects(_) => {},
+        TiledLayer::Tiles(_) => {}
+        TiledLayer::Objects(_) => {}
         TiledLayer::Image(layer) => {
             let (mesh, material) = (
                 tiled_assets.clone_image_layer_mesh_handle(&tiled_data.name, layer.id),
