@@ -1,27 +1,28 @@
+use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub struct Tileset {
+pub struct TiledTileset {
     /// The name of this tileset.
     #[serde(rename = "@name")]
     pub name: String,
 
     /// The (maximum) width of the tiles in this
-    ///  tileset. Irrelevant for image collection
-    ///  tilesets, but stores the maximum tile width.
+    /// tileset. Irrelevant for image collection
+    /// tilesets, but stores the maximum tile width.
     #[serde(rename = "@tilewidth")]
     pub tile_width: u32,
 
     /// The (maximum) height of the tiles in this
-    ///  tileset. Irrelevant for image collection
-    ///  tilesets, but stores the maximum tile height.
+    /// tileset. Irrelevant for image collection
+    /// tilesets, but stores the maximum tile height.
     #[serde(rename = "@tileheight")]
     pub tile_height: u32,
 
     /// The spacing in pixels between the tiles
     /// in this tileset (applies to the tileset
-    ///  image, defaults to 0). Irrelevant for
+    /// image, defaults to 0). Irrelevant for
     /// image collection tilesets.
     #[serde(rename = "@spacing")]
     #[serde(default)]
@@ -29,7 +30,7 @@ pub struct Tileset {
 
     /// The margin around the tiles in this tileset
     /// (applies to the tileset image, defaults to
-    ///  0). Irrelevant for image collection tilesets.
+    /// 0). Irrelevant for image collection tilesets.
     #[serde(rename = "@margin")]
     #[serde(default)]
     pub margin: u32,
@@ -74,7 +75,7 @@ pub struct Tileset {
     pub transformations: TilesetTransformations,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ObjectAlignment {
     #[default]
@@ -90,7 +91,7 @@ pub enum ObjectAlignment {
     BottomRight,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum FillMode {
     #[default]
@@ -98,7 +99,7 @@ pub enum FillMode {
     PreserveAspectFit,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct TilesetImage {
     /// The reference to the tileset image file
     /// (Tiled supports most common image formats).
@@ -117,7 +118,7 @@ pub struct TilesetImage {
     pub height: u32,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize)]
 pub struct TilesetTransformations {
     /// Whether the tiles in this set can be
     /// flipped horizontally (default 0)

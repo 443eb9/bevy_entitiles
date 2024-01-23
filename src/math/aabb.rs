@@ -113,6 +113,15 @@ macro_rules! impl_aabb {
                     && self.max.y <= other.max.y
             }
         }
+
+        impl From<[$data_ty; 2]> for $aabb_ty {
+            fn from(value: [$data_ty; 2]) -> Self {
+                Self {
+                    min: value[0].into(),
+                    max: value[1].into(),
+                }
+            }
+        }
     };
 }
 

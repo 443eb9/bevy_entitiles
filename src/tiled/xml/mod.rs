@@ -1,6 +1,6 @@
 use std::fmt::Formatter;
 
-use bevy::{math::Vec4, render::color::Color};
+use bevy::{math::Vec4, reflect::Reflect, render::color::Color};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use self::{
@@ -13,7 +13,7 @@ pub mod layer;
 pub mod property;
 pub mod tileset;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub struct TiledTilemap {
     /// The TMX format version. Was “1.0” so far,
@@ -111,7 +111,7 @@ pub struct TiledTilemap {
     pub groups: Vec<TiledGroup>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MapOrientation {
     Orthogonal,
@@ -120,7 +120,7 @@ pub enum MapOrientation {
     Hexagonal,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum TileRenderOrder {
     RightDown,
@@ -129,7 +129,7 @@ pub enum TileRenderOrder {
     LeftUp,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum StaggeredAxis {
     X,
@@ -137,7 +137,7 @@ pub enum StaggeredAxis {
     Y,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum StaggeredIndex {
     #[default]
@@ -145,7 +145,7 @@ pub enum StaggeredIndex {
     Even,
 }
 
-#[derive(Debug, Default, Clone, Copy, Serialize)]
+#[derive(Debug, Default, Clone, Reflect, Copy, Serialize)]
 pub struct TiledColor {
     pub a: f32,
     pub r: f32,
@@ -207,7 +207,7 @@ impl<'de> Deserialize<'de> for TiledColor {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct TilesetDef {
     /// The first global tile ID of this tileset
     /// (this global ID maps to the first tile
@@ -228,7 +228,7 @@ pub struct TilesetDef {
     pub source: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub enum GroupContent {
     #[serde(rename = "layer")]
     Layer(TiledLayer),
@@ -236,7 +236,7 @@ pub enum GroupContent {
     Group(ObjectLayer),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct TiledGroup {
     /// Unique ID of the layer (defaults to 0, with valid
     /// IDs being at least 1). Each layer that added to a

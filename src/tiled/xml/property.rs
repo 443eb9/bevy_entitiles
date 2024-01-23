@@ -1,4 +1,4 @@
-use bevy::utils::HashMap;
+use bevy::{reflect::Reflect, utils::HashMap};
 use serde::{
     de::{IgnoredAny, Visitor},
     Deserialize, Serialize,
@@ -8,7 +8,7 @@ use super::TiledColor;
 
 pub type FieldIdentifier = String;
 
-#[derive(Debug, Default, Clone, Serialize)]
+#[derive(Debug, Default, Clone, Reflect, Serialize)]
 pub struct Components(HashMap<String, ClassInstance>);
 
 impl<'de> Deserialize<'de> for Components {
@@ -47,7 +47,7 @@ impl<'de> Deserialize<'de> for Components {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Reflect, Serialize)]
 pub struct ClassInstance {
     pub name: String,
     pub ty: String,
@@ -110,13 +110,13 @@ impl<'de> Deserialize<'de> for ClassInstance {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct PropertiesWrapper {
     #[serde(rename = "property")]
     pub properties: Vec<PropertyInstance>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Reflect, Serialize)]
 pub struct PropertyInstance {
     pub name: String,
     pub ty: String,
@@ -194,7 +194,7 @@ impl<'de> Deserialize<'de> for PropertyInstance {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub enum PropertyValue {
     Int(i32),
     Float(f32),

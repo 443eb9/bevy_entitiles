@@ -3,11 +3,11 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "tilemaps/isometric.tmx",
+    "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
         "world_test",
-        "tilesets",
         ".",
+        "tilesets",
         "tilemaps"
     ],
     "fileStates": {
@@ -132,8 +132,8 @@
             "scale": 2.594727891156462,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 143.56033296191916,
-                "y": 120.43652094120733
+                "x": 147.22160319853188,
+                "y": 123.90509274431409
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -156,8 +156,8 @@
             "scale": 5.4624999999999995,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 118.07780320366135,
-                "y": 85.76659038901602
+                "x": 119.90846681922199,
+                "y": 60.137299771167065
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -173,14 +173,15 @@
                 3
             ],
             "expandedObjectLayers": [
+                5,
                 3,
-                5
+                4
             ],
-            "scale": 5.450625,
-            "selectedLayer": 3,
+            "scale": 3,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 71.91835798646945,
-                "y": 87.78809769521845
+                "x": 152,
+                "y": 81.5
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -209,7 +210,7 @@
         },
         "tilesets/Squares.tsx": {
             "scaleInDock": 8,
-            "scaleInEditor": 1
+            "scaleInEditor": 8
         },
         "tilesets/Tileset1.tsx": {
             "scaleInDock": 5.5,
@@ -239,22 +240,23 @@
     "openFiles": [
         "tilemaps/hexagonal.tmx",
         "tilemaps/orthogonal.tmx",
-        "tilemaps/isometric.tmx"
+        "tilemaps/isometric.tmx",
+        "tilesets/Squares.tsx"
     ],
     "project": "Tilemap.tiled-project",
     "property.type": "AnotherSquare",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
-        "tilemaps/orthogonal.tmx",
+        "tilesets/Squares.tsx",
         "tilemaps/isometric.tmx",
+        "tilemaps/orthogonal.tmx",
+        "tilesets/Hexagonal.tsx",
         "tilemaps/orthogonal.tmj",
         "tilemaps/infinite.tmx",
         "tilesets/Isometric.tsx",
-        "tilesets/Squares.tsx",
         "tilemaps/hexagonal..tmj",
         "tilemaps/hexgonal.tmx",
         "tilesets/Tileset2.tsx",
-        "tilesets/Hexagonal.tsx",
         "tilesets/Tileset1.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",

@@ -1,29 +1,39 @@
 use bevy::{
     app::{App, Startup},
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::Commands,
+    ecs::system::{Commands, ResMut},
     render::color::Color,
     DefaultPlugins,
 };
-use bevy_entitiles::{tiled::xml::TiledTilemap, EntiTilesPlugin};
+use bevy_entitiles::{
+    tiled::{
+        resources::{TiledLoadConfig, TiledTilemapManger},
+        xml::TiledTilemap,
+    },
+    EntiTilesPlugin,
+};
+use helpers::EntiTilesHelpersPlugin;
+
+mod helpers;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, EntiTilesPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            EntiTilesPlugin,
+            EntiTilesHelpersPlugin::default(),
+        ))
         .add_systems(Startup, setup)
+        .insert_resource(TiledLoadConfig {
+            map_path: vec!["assets/tiled/tilemaps/orthogonal.tmx".to_string()],
+        })
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, mut manager: ResMut<TiledTilemapManger>) {
     commands.spawn(Camera2dBundle::default());
-    dbg!(quick_xml::de::from_str::<TiledTilemap>(
-        // std::fs::read_to_string("assets/tiled/tilemaps/orthogonal.tmx")
-        std::fs::read_to_string("assets/tiled/tilemaps/hexagonal.tmx")
-            // std::fs::read_to_string("assets/tiled/tilemaps/isometric.tmx")
-            .unwrap()
-            .as_str(),
-    )
-    .unwrap());
+
+    manager.switch_to(&mut commands, "orthogonal".to_string(), None);
 }
 
 pub struct AnotherSquare {

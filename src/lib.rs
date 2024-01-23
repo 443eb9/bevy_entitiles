@@ -16,6 +16,7 @@ pub mod serializing;
 #[cfg(feature = "tiled")]
 pub mod tiled;
 pub mod tilemap;
+pub mod utils;
 
 pub const MAX_LAYER_COUNT: usize = 4;
 pub const DEFAULT_CHUNK_SIZE: u32 = 16;
@@ -69,6 +70,8 @@ impl Plugin for EntiTilesPlugin {
             serializing::EntiTilesSerializingPlugin,
             #[cfg(feature = "ldtk")]
             ldtk::EntiTilesLdtkPlugin,
+            #[cfg(feature = "tiled")]
+            tiled::EntiTilesTiledPlugin,
         ));
     }
 }

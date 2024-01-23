@@ -147,4 +147,4 @@ In the following case, each tile has at least one corresponding color gap with i
 | 0.12.x   | 0.2.0-0.2.2   | Not supported | Not supported |
 | 0.11.x   | 0.1.x         | Not supported | Not supported |
 
-*Versions before 0.3.0 is not named following [`Semantic Versioning`](https://semver.org/)*
+*Versions before 0.3.0 are not named following [`Semantic Versioning`](https://semver.org/)*

@@ -345,9 +345,9 @@ impl LdtkLevelManager {
     }
 
     pub fn load(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
-        let level = level.to_string();
+        self.check_initialized();
 
-        if self.loaded_levels.contains_key(&level.to_string()) {
+        if self.loaded_levels.contains_key(&level) {
             error!("Trying to load {:?} that is already loaded!", level);
         } else {
             let entity = commands.spawn(LdtkLoader {
@@ -382,7 +382,7 @@ impl LdtkLevelManager {
 
     pub fn switch_to(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
         self.check_initialized();
-        if self.loaded_levels.contains_key(&level.to_string()) {
+        if self.loaded_levels.contains_key(&level) {
             error!("Trying to load {:?} that is already loaded!", level);
         } else {
             self.unload_all(commands);
@@ -391,7 +391,6 @@ impl LdtkLevelManager {
     }
 
     pub fn unload(&mut self, commands: &mut Commands, level: String) {
-        let level = level.to_string();
         if let Some(l) = self.loaded_levels.get(&level) {
             commands.entity(*l).insert(LdtkUnloader);
             self.loaded_levels.remove(&level);

@@ -1,10 +1,11 @@
 use std::fmt::Formatter;
 
+use bevy::reflect::Reflect;
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use super::{default::*, property::Components, TiledColor};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub enum TiledLayer {
     #[serde(rename = "layer")]
     Tiles(TileLayer),
@@ -16,7 +17,7 @@ pub enum TiledLayer {
     Other,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct TileLayer {
     /// Unique ID of the layer (defaults to 0, with valid
     /// IDs being at least 1). Each layer that added to a
@@ -99,7 +100,7 @@ pub struct TileLayer {
     pub data: TileLayerData,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct TileLayerData {
     /// The encoding used to encode the tile layer
     /// data. When used, it can be “base64” and
@@ -119,14 +120,14 @@ pub struct TileLayerData {
     pub content: TileLayerContent,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum DataEncoding {
     Csv,
     Base64,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum DataCompression {
     #[default]
@@ -136,7 +137,7 @@ pub enum DataCompression {
     Zstd,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct Chunk {
     /// The x coordinate of the chunk in tiles.
     #[serde(rename = "@x")]
@@ -158,14 +159,14 @@ pub struct Chunk {
     pub tiles: Tiles,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum TileLayerContent {
     Tile(Tiles),
     Chunk(Vec<Chunk>),
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Reflect, Serialize)]
 pub struct Tiles(Vec<u32>);
 
 impl<'de> Deserialize<'de> for Tiles {
@@ -198,7 +199,7 @@ impl<'de> Deserialize<'de> for Tiles {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct ObjectLayer {
     /// Unique ID of the layer (defaults to 0, with valid
     /// IDs being at least 1). Each layer that added to a
@@ -271,7 +272,7 @@ pub struct ObjectLayer {
     pub objects: Vec<Object>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct Object {
     /// Unique ID of the object (defaults to 0,
     /// with valid IDs being at least 1). Each
@@ -337,7 +338,7 @@ pub struct Object {
     pub properties: Components,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct ImageLayer {
     /// Unique ID of the layer (defaults to 0, with valid
     /// IDs being at least 1). Each layer that added to a
@@ -408,13 +409,13 @@ pub struct ImageLayer {
 
     /// Whether the image drawn by this layer is
     /// repeated along the X axis. (since Tiled 1.8)
-    #[serde(rename = "repeatx")]
+    #[serde(rename = "@repeatx")]
     #[serde(default)]
     pub repeat_x: bool,
 
     /// Whether the image drawn by this layer is
     /// repeated along the Y axis. (since Tiled 1.8)
-    #[serde(rename = "repeaty")]
+    #[serde(rename = "@repeaty")]
     #[serde(default)]
     pub repeat_y: bool,
 
@@ -422,7 +423,7 @@ pub struct ImageLayer {
     pub image: Image,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct Image {
     /// The reference to the tileset image file
     /// (Tiled supports most common image formats).

@@ -11,7 +11,7 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::math::extension::DivToCeil;
+use crate::{math::extension::DivToCeil, utils::mesh::clip_mesh};
 
 use super::{
     json::{
@@ -139,7 +139,7 @@ impl TileRenderMode {
                             .map(|p| (Vec2::new(p.x, -p.y) + pivot) * tile_size + offset)
                             .collect();
                         let mut u = corner_uv.to_vec();
-                        clip_mesh(&mut v, &mut u, [Vec2::ZERO, render_size]);
+                        clip_mesh(&mut v, &mut u, [Vec2::ZERO, render_size].into());
                         vertices.extend(
                             v.into_iter()
                                 .map(|v| Vec2::new(v.x, -v.y) - pivot * render_size),
@@ -393,7 +393,7 @@ impl NineSliceBorders {
                         },
                     ];
                     let mut u = border_slice_uvs[i].to_vec();
-                    clip_mesh(&mut v, &mut u, valid_rects[i]);
+                    clip_mesh(&mut v, &mut u, valid_rects[i].into());
                     vertices.extend(v);
                     uvs.extend(u);
                     vertex_indices.extend(base_indices.iter().map(|v| v + quad_count * 4));
@@ -424,7 +424,7 @@ impl NineSliceBorders {
                     origin + tiled_size * Vec2::new(dx, dy + 1.),
                 ];
                 let mut u = inner_slice_uvs.to_vec();
-                clip_mesh(&mut v, &mut u, valid_inner_range);
+                clip_mesh(&mut v, &mut u, valid_inner_range.into());
                 vertices.extend(v);
                 uvs.extend(u);
                 vertex_indices.extend(base_indices.iter().map(|v| v + quad_count * 4));
@@ -441,20 +441,4 @@ impl NineSliceBorders {
             indices: vertex_indices,
         }
     }
-}
-
-fn clip_mesh(vertices: &mut Vec<Vec2>, uvs: &mut Vec<Vec2>, valid_rect: [Vec2; 2]) {
-    let size = vertices[2] - vertices[0];
-    vertices
-        .iter_mut()
-        .for_each(|v| *v = v.clamp(valid_rect[0], valid_rect[1]));
-    let clipped_size = vertices[2] - vertices[0];
-    let clipped_ratio = clipped_size / size;
-    let uv_size_clipped = (uvs[2] - uvs[0]) * clipped_ratio;
-    *uvs = vec![
-        uvs[0],
-        uvs[0] + Vec2::new(uv_size_clipped.x, 0.),
-        uvs[0] + uv_size_clipped,
-        uvs[0] + Vec2::new(0., uv_size_clipped.y),
-    ];
 }
