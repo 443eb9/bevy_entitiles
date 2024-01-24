@@ -105,7 +105,7 @@ In the following case, each tile has at least one corresponding color gap with i
 **Notice: The funtionality of visualizing the process of wfc was removed in 0.2.6**
 
 <div>
-	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/pathfinding.png" width="500px">
+	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/wfc.png" width="500px">
 </div>
 
 | Size    | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms | Time(avg of 3 tests) ms |

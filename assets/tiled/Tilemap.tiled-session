@@ -5,8 +5,8 @@
     },
     "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
-        "world_test",
         ".",
+        "world_test",
         "tilesets",
         "tilemaps"
     ],
@@ -177,11 +177,11 @@
                 3,
                 4
             ],
-            "scale": 3,
+            "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 152,
-                "y": 81.5
+                "x": 142,
+                "y": 93.25
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
