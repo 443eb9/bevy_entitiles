@@ -5,15 +5,32 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query, Res, ResMut},
     },
+    math::{IVec2, Vec2},
     render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
+};
+
+use crate::{
+    tilemap::{
+        buffers::TileBuilderBuffer,
+        bundles::TilemapBundle,
+        map::{
+            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTransform,
+            TilemapType,
+        },
+        tile::{TileBuilder, TileLayer},
+    },
+    DEFAULT_CHUNK_SIZE,
 };
 
 use self::{
     components::TiledLoader,
     resources::{TiledAssets, TiledLoadConfig, TiledTilemapManger},
     sprite::TiledSpriteMaterial,
-    xml::layer::TiledLayer,
+    xml::{
+        layer::{TileLayerContent, TiledLayer},
+        MapOrientation,
+    },
 };
 
 pub mod components;
@@ -100,7 +117,77 @@ fn load_tiled_tilemap(
     let tiled_data = manager.get_cached_data().get(&loader.map).unwrap();
 
     tiled_data.xml.layers.iter().for_each(|layer| match layer {
-        TiledLayer::Tiles(_) => {}
+        TiledLayer::Tiles(layer) => {
+            let tile_size = Vec2::new(
+                tiled_data.xml.tile_width as f32,
+                tiled_data.xml.tile_height as f32,
+            );
+            let layer_size = IVec2::new(layer.width as i32, layer.height as i32);
+            let entity = commands.spawn_empty().id();
+
+            let mut tilemap = TilemapBundle {
+                name: TilemapName(layer.name.clone()),
+                tile_render_size: TileRenderSize(tile_size),
+                slot_size: TilemapSlotSize(tile_size),
+                ty: match tiled_data.xml.orientation {
+                    MapOrientation::Orthogonal => TilemapType::Square,
+                    MapOrientation::Isometric => TilemapType::Isometric,
+                    MapOrientation::Staggered => TilemapType::Hexagonal(0),
+                    MapOrientation::Hexagonal => {
+                        TilemapType::Hexagonal(tiled_data.xml.hex_side_length)
+                    }
+                },
+                storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
+                tilemap_transform: TilemapTransform::from_translation(Vec2::new(
+                    layer.offset_x as f32,
+                    layer.offset_y as f32,
+                )),
+                ..Default::default()
+            };
+
+            let mut tileset = None;
+            let mut buffer = TileBuilderBuffer::new();
+
+            match &layer.data.content {
+                TileLayerContent::Tile(tiles) => {
+                    tiles.0.iter().enumerate().for_each(|(index, tile)| {
+                        if *tile == 0 {
+                            return;
+                        }
+
+                        let tileset = tileset.unwrap_or_else(|| {
+                            let ts = tiled_assets.get_tileset(*tile);
+                            tilemap.texture = ts.texture.clone();
+                            tileset = Some(ts);
+                            ts
+                        });
+
+                        let texture_index = *tile - tileset.def.first_gid;
+                        assert!(
+                            texture_index < tileset.xml.tile_count,
+                            "Invalid tile index {} ∉ [{}, {}]. Are you using multiple tilesets in \
+                            one layer? That's currrently unsupported.",
+                            texture_index,
+                            tileset.def.first_gid,
+                            tileset.def.first_gid + tileset.xml.tile_count - 1
+                        );
+
+                        buffer.set(
+                            IVec2::new(index as i32 % layer_size.x, index as i32 / layer_size.x),
+                            TileBuilder::new()
+                                .with_layer(0, TileLayer::new().with_texture_index(texture_index)),
+                        );
+                    });
+
+                    tilemap
+                        .storage
+                        .fill_with_buffer(commands, IVec2::ZERO, buffer);
+                }
+                TileLayerContent::Chunk(_) => todo!(),
+            }
+
+            commands.entity(entity).insert(tilemap);
+        }
         TiledLayer::Objects(_) => {}
         TiledLayer::Image(layer) => {
             let (mesh, material) = (

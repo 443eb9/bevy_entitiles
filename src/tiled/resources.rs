@@ -21,7 +21,7 @@ use bevy::{
 use crate::{
     math::extension::F32Integerize,
     tilemap::map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
-    utils::asset::AssetPath,
+    utils::{asset::AssetPath, mesh::clip_quad_mesh},
 };
 
 use super::{
@@ -294,16 +294,16 @@ impl TiledAssets {
                     let image_size = Vec2::new(layer.image.width as f32, layer.image.height as f32);
                     let image_verts = vec![
                         Vec2::ZERO,
-                        Vec2::new(0., image_size.y),
-                        image_size,
                         Vec2::new(image_size.x, 0.),
+                        image_size,
+                        Vec2::new(0., image_size.y),
                     ];
-                    let image_uvs = vec![Vec2::Y, Vec2::ZERO, Vec2::X, Vec2::ONE];
+                    let image_uvs = vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
                     let map_size = Vec2::new(
                         (map.xml.width * map.xml.tile_width) as f32,
                         (map.xml.height * map.xml.tile_height) as f32,
                     );
-                    let unit_indices = vec![0, 1, 2, 0, 2, 3];
+                    let unit_indices = vec![0, 3, 1, 1, 3, 2];
 
                     let mut vertices =
                         vec![image_verts.iter().map(|v| *v + origin).collect::<Vec<_>>()];
@@ -311,8 +311,8 @@ impl TiledAssets {
                     let mut indices = vec![unit_indices.clone()];
                     let mut mesh_index = 0;
 
+                    // TODO clip mesh
                     if layer.repeat_x {
-                        println!("repeat_x");
                         vertices.clear();
                         uvs.clear();
                         indices.clear();
@@ -321,18 +321,16 @@ impl TiledAssets {
                         let right = ((map_size.x - origin.x) / image_size.x).ceil_to_u32();
                         let repeat_origin_x = origin.x - left as f32 * image_size.x;
                         for i in 0..(left + right) {
-                            uvs.push(image_uvs.clone());
-                            vertices.push(
-                                image_verts
-                                    .iter()
-                                    .map(|v| {
-                                        *v + Vec2::new(
-                                            i as f32 * image_size.x + repeat_origin_x,
-                                            0.,
-                                        )
-                                    })
-                                    .collect(),
-                            );
+                            let unclipped_uvs = image_uvs.clone();
+                            let unclipped_verts = image_verts
+                                .iter()
+                                .map(|v| {
+                                    *v + Vec2::new(i as f32 * image_size.x + repeat_origin_x, 0.)
+                                })
+                                .collect::<Vec<Vec2>>();
+
+                            uvs.push(unclipped_uvs);
+                            vertices.push(unclipped_verts);
                             indices.push(unit_indices.iter().map(|i| i + mesh_index * 4).collect());
                             mesh_index += 1;
                         }
@@ -348,18 +346,19 @@ impl TiledAssets {
                         let repeat_origin_y = origin.y - down as f32 * image_size.y;
                         for i in 0..(up + down) {
                             origin_images.iter().for_each(|image| {
-                                uvs.push(image_uvs.clone());
-                                vertices.push(
-                                    image
-                                        .iter()
-                                        .map(|v| {
-                                            *v + Vec2::new(
-                                                0.,
-                                                i as f32 * image_size.y + repeat_origin_y,
-                                            )
-                                        })
-                                        .collect(),
-                                );
+                                let unclipped_uvs = image_uvs.clone();
+                                let unclipped_verts = image
+                                    .iter()
+                                    .map(|v| {
+                                        *v + Vec2::new(
+                                            0.,
+                                            i as f32 * image_size.y + repeat_origin_y,
+                                        )
+                                    })
+                                    .collect::<Vec<Vec2>>();
+
+                                uvs.push(unclipped_uvs);
+                                vertices.push(unclipped_verts);
                                 indices.push(
                                     unit_indices.iter().map(|i| i + mesh_index * 4).collect(),
                                 );

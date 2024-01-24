@@ -167,7 +167,7 @@ pub enum TileLayerContent {
 }
 
 #[derive(Debug, Clone, Reflect, Serialize)]
-pub struct Tiles(Vec<u32>);
+pub struct Tiles(pub Vec<u32>);
 
 impl<'de> Deserialize<'de> for Tiles {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

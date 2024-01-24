@@ -11,7 +11,7 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{math::extension::DivToCeil, utils::mesh::clip_mesh};
+use crate::{math::extension::DivToCeil, utils::mesh::clip_quad_mesh};
 
 use super::{
     json::{
@@ -139,7 +139,7 @@ impl TileRenderMode {
                             .map(|p| (Vec2::new(p.x, -p.y) + pivot) * tile_size + offset)
                             .collect();
                         let mut u = corner_uv.to_vec();
-                        clip_mesh(&mut v, &mut u, [Vec2::ZERO, render_size].into());
+                        clip_quad_mesh(&mut v, &mut u, [Vec2::ZERO, render_size].into());
                         vertices.extend(
                             v.into_iter()
                                 .map(|v| Vec2::new(v.x, -v.y) - pivot * render_size),
@@ -393,7 +393,7 @@ impl NineSliceBorders {
                         },
                     ];
                     let mut u = border_slice_uvs[i].to_vec();
-                    clip_mesh(&mut v, &mut u, valid_rects[i].into());
+                    clip_quad_mesh(&mut v, &mut u, valid_rects[i].into());
                     vertices.extend(v);
                     uvs.extend(u);
                     vertex_indices.extend(base_indices.iter().map(|v| v + quad_count * 4));
@@ -424,7 +424,7 @@ impl NineSliceBorders {
                     origin + tiled_size * Vec2::new(dx, dy + 1.),
                 ];
                 let mut u = inner_slice_uvs.to_vec();
-                clip_mesh(&mut v, &mut u, valid_inner_range.into());
+                clip_quad_mesh(&mut v, &mut u, valid_inner_range.into());
                 vertices.extend(v);
                 uvs.extend(u);
                 vertex_indices.extend(base_indices.iter().map(|v| v + quad_count * 4));
