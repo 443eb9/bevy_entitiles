@@ -1,8 +1,4 @@
-use bevy::{
-    ecs::bundle::Bundle,
-    render::view::{InheritedVisibility, ViewVisibility, Visibility},
-    transform::components::{GlobalTransform, Transform},
-};
+use bevy::ecs::bundle::Bundle;
 
 use super::map::{
     TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -68,16 +64,6 @@ pub struct TilemapBundle {
     pub texture: TilemapTexture,
     /// All the animation sequences of the tilemap.
     pub animations: TilemapAnimations,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub visibility: Visibility,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub inherited_visibility: InheritedVisibility,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub view_visibility: ViewVisibility,
-    /// Modify `TilemapTransform` instead of this one.
-    pub transform: Transform,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub global_transform: GlobalTransform,
 }
 
 impl Into<DataTilemapBundle> for TilemapBundle {
@@ -104,11 +90,6 @@ impl Into<PureColorTilemapBundle> for TilemapBundle {
             layer_opacities: self.layer_opacities,
             storage: self.storage,
             tilemap_transform: self.tilemap_transform,
-            visibility: self.visibility,
-            inherited_visibility: self.inherited_visibility,
-            view_visibility: self.view_visibility,
-            transform: self.transform,
-            global_transform: self.global_transform,
         }
     }
 }
@@ -139,14 +120,4 @@ pub struct PureColorTilemapBundle {
     /// If you want to move or rotate the tilemap, you need to change this.
     /// Modify the `Transform` component will not work.
     pub tilemap_transform: TilemapTransform,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub visibility: Visibility,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub inherited_visibility: InheritedVisibility,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub view_visibility: ViewVisibility,
-    /// Modify `TilemapTransform` instead of this one.
-    pub transform: Transform,
-    /// Just to make sure the child sprites are correctly rendered.
-    pub global_transform: GlobalTransform,
 }

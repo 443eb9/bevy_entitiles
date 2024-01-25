@@ -5,6 +5,7 @@
 - Allow mapping texture index to animation for LDtk maps.
 - Split the `LdtkLevelManager` into small resources and simplified the api.
 - Relaxed dependencies. #11
+- Removed redundant components in tilemap bundles.
 
 # What's Fixed:
 

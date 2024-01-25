@@ -25,7 +25,12 @@ fn main() {
         ))
         .add_systems(Startup, setup)
         .insert_resource(TiledLoadConfig {
-            map_path: vec!["assets/tiled/tilemaps/hexagonal.tmx".to_string()],
+            map_path: vec![
+                "assets/tiled/tilemaps/hexagonal.tmx".to_string(),
+                "assets/tiled/tilemaps/infinite.tmx".to_string(),
+                "assets/tiled/tilemaps/orthogonal.tmx".to_string(),
+                "assets/tiled/tilemaps/isometric.tmx".to_string(),
+            ],
         })
         .run();
 }
@@ -34,6 +39,9 @@ fn setup(mut commands: Commands, mut manager: ResMut<TiledTilemapManger>) {
     commands.spawn(Camera2dBundle::default());
 
     manager.switch_to(&mut commands, "hexagonal".to_string(), None);
+    manager.switch_to(&mut commands, "infinite".to_string(), None);
+    manager.switch_to(&mut commands, "orthogonal".to_string(), None);
+    manager.switch_to(&mut commands, "isometric".to_string(), None);
 }
 
 pub struct AnotherSquare {

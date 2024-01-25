@@ -15,7 +15,7 @@ use bevy::{
         texture::Image,
     },
     sprite::Mesh2d,
-    utils::{HashMap, HashSet},
+    utils::{hashbrown::hash_map::Entry, HashMap, HashSet},
 };
 
 use crate::{
@@ -49,7 +49,6 @@ pub struct PackedTiledTilemap {
 #[derive(Debug, Clone, Reflect)]
 pub struct PackedTiledTileset {
     pub name: String,
-    pub def: TilesetDef,
     pub xml: TiledTileset,
     pub texture: TilemapTexture,
 }
@@ -75,8 +74,12 @@ impl TiledTilemapManger {
                     PackedTiledTilemap {
                         name,
                         path: path.to_path_buf(),
-                        xml: quick_xml::de::from_str(&std::fs::read_to_string(path).unwrap())
-                            .unwrap(),
+                        xml: quick_xml::de::from_str(
+                            &std::fs::read_to_string(path).unwrap_or_else(|err| {
+                                panic!("Failed to read {:?}\n{:?}", path, err)
+                            }),
+                        )
+                        .unwrap_or_else(|err| panic!("Failed to parse {:?}\n{:?}", path, err)),
                     },
                 )
             })
@@ -147,20 +150,22 @@ impl TiledTilemapManger {
 #[derive(Resource, Default, Reflect)]
 pub struct TiledAssets {
     pub(crate) version: u32,
-    /// First gid to tileset
     pub(crate) tilesets: Vec<PackedTiledTileset>,
+    /// (tileset_index, first_gid)
+    pub(crate) tilemap_tilesets: HashMap<String, Vec<(usize, u32)>>,
     #[reflect(ignore)]
     pub(crate) image_layer_mesh: HashMap<String, HashMap<u32, Handle<Mesh>>>,
     pub(crate) image_layer_materials: HashMap<String, HashMap<u32, Handle<TiledSpriteMaterial>>>,
 }
 
 impl TiledAssets {
-    pub fn get_tileset(&self, gid: u32) -> &PackedTiledTileset {
-        self.tilesets
+    /// Returns (tileset, first_gid)
+    pub fn get_tileset(&self, gid: u32, tilemap: &str) -> (&PackedTiledTileset, u32) {
+        let (index, first_gid) = self.tilemap_tilesets[tilemap]
             .iter()
-            .rev()
-            .find(|tileset| tileset.def.first_gid <= gid)
-            .unwrap()
+            .find(|(_, first_gid)| *first_gid <= gid)
+            .unwrap();
+        (&self.tilesets[*index], *first_gid)
     }
 
     pub fn clone_image_layer_mesh_handle(&self, map: &str, layer: u32) -> Handle<Mesh> {
@@ -202,54 +207,62 @@ impl TiledAssets {
 
     fn load_tilesets(&mut self, manager: &TiledTilemapManger, asset_server: &AssetServer) {
         let tiled_xml = manager.get_cached_data();
-        let tileset_records: HashSet<u32> = HashSet::default();
+        let mut tileset_records = HashMap::default();
 
-        self.tilesets = tiled_xml
-            .iter()
-            .flat_map(|(_, map)| {
-                map.xml.tilesets.iter().filter_map(|tileset_def| {
-                    if tileset_records.contains(&tileset_def.first_gid) {
-                        return None;
+        tiled_xml.iter().for_each(|(_, map)| {
+            map.xml.tilesets.iter().for_each(|tileset_def| {
+                let tileset_path = map.path.parent().unwrap().join(&tileset_def.source);
+                let tileset_xml = quick_xml::de::from_str::<TiledTileset>(
+                    &std::fs::read_to_string(&tileset_path).unwrap(),
+                )
+                .unwrap();
+
+                match tileset_records.entry(tileset_xml.name.clone()) {
+                    Entry::Occupied(e) => {
+                        self.tilemap_tilesets
+                            .entry(map.name.clone())
+                            .or_default()
+                            .push((*e.get(), tileset_def.first_gid));
                     }
+                    Entry::Vacant(_) => {
+                        self.tilemap_tilesets
+                            .entry(map.name.clone())
+                            .or_default()
+                            .push((self.tilesets.len(), tileset_def.first_gid));
+                    }
+                }
 
-                    let tileset_path = map.path.parent().unwrap().join(&tileset_def.source);
-                    let tileset_xml = quick_xml::de::from_str::<TiledTileset>(
-                        &std::fs::read_to_string(&tileset_path).unwrap(),
-                    )
-                    .unwrap();
-
-                    let source_path = tileset_path
-                        .parent()
-                        .unwrap()
-                        .join(&tileset_xml.image.source);
-                    let texture = TilemapTexture {
-                        texture: asset_server.load(source_path.to_asset_path()),
-                        desc: TilemapTextureDescriptor {
-                            size: UVec2 {
-                                x: tileset_xml.image.width,
-                                y: tileset_xml.image.height,
-                            },
-                            tile_size: UVec2 {
-                                x: tileset_xml.tile_width,
-                                y: tileset_xml.tile_height,
-                            },
-                            filter_mode: FilterMode::Nearest,
+                let source_path = tileset_path
+                    .parent()
+                    .unwrap()
+                    .join(&tileset_xml.image.source);
+                let texture = TilemapTexture {
+                    texture: asset_server.load(source_path.to_asset_path()),
+                    desc: TilemapTextureDescriptor {
+                        size: UVec2 {
+                            x: tileset_xml.image.width,
+                            y: tileset_xml.image.height,
                         },
-                        rotation: TilemapRotation::None,
-                    };
+                        tile_size: UVec2 {
+                            x: tileset_xml.tile_width,
+                            y: tileset_xml.tile_height,
+                        },
+                        filter_mode: FilterMode::Nearest,
+                    },
+                    rotation: TilemapRotation::None,
+                };
 
-                    Some(PackedTiledTileset {
-                        name: tileset_xml.name.clone(),
-                        def: tileset_def.clone(),
-                        xml: tileset_xml,
-                        texture,
-                    })
-                })
-            })
-            .collect::<Vec<_>>();
+                self.tilesets.push(PackedTiledTileset {
+                    name: tileset_xml.name.clone(),
+                    xml: tileset_xml,
+                    texture,
+                });
+            });
 
-        self.tilesets
-            .sort_by(|l, r| l.def.first_gid.cmp(&r.def.first_gid));
+            self.tilemap_tilesets.values_mut().for_each(|v| {
+                v.sort_by(|(_, a), (_, b)| a.cmp(b));
+            });
+        });
     }
 
     fn load_image_layers(

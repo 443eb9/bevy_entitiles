@@ -1,14 +1,26 @@
 use std::fmt::Formatter;
 
-use bevy::reflect::Reflect;
+use bevy::{
+    math::{IVec2, UVec2},
+    reflect::Reflect,
+};
+use quick_xml::se;
 use serde::{de::Visitor, Deserialize, Serialize};
+
+use crate::{
+    tiled::resources::TiledAssets,
+    tilemap::{
+        map::TilemapTexture,
+        tile::{TileBuilder, TileLayer},
+    },
+};
 
 use super::{default::*, property::Components, TiledColor};
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub enum TiledLayer {
     #[serde(rename = "layer")]
-    Tiles(TileLayer),
+    Tiles(ColorTileLayer),
     #[serde(rename = "objectgroup")]
     Objects(ObjectLayer),
     #[serde(rename = "imagelayer")]
@@ -18,7 +30,7 @@ pub enum TiledLayer {
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-pub struct TileLayer {
+pub struct ColorTileLayer {
     /// Unique ID of the layer (defaults to 0, with valid
     /// IDs being at least 1). Each layer that added to a
     /// map gets a unique id. Even if a layer is deleted,
@@ -96,12 +108,74 @@ pub struct TileLayer {
     #[serde(rename = "@height")]
     pub height: u32,
 
-    #[serde(rename = "$value")]
-    pub data: TileLayerData,
+    pub data: ColorTileLayerData,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize)]
+#[serde(untagged)]
+pub enum ColorTileLayerData {
+    Tiles(TileData),
+    Chunks(ChunkData),
+}
+
+impl<'de> Deserialize<'de> for ColorTileLayerData {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ColorTileLayerDataVisitor;
+        impl<'de> Visitor<'de> for ColorTileLayerDataVisitor {
+            type Value = ColorTileLayerData;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a string or a sequence")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut encoding = None;
+                let mut compression = None;
+                let mut chunks = vec![];
+                let mut tiles = None;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "@encoding" => encoding = Some(map.next_value::<DataEncoding>()?),
+                        "@compression" => compression = Some(map.next_value::<DataCompression>()?),
+                        "chunk" => {
+                            chunks.push(map.next_value::<Chunk>()?);
+                        }
+                        "$text" => {
+                            tiles = Some(map.next_value::<Tiles>()?);
+                        }
+                        _ => panic!("Unknown key for ColorTileLayerData: {}", key),
+                    }
+                }
+
+                if let Some(tiles) = tiles {
+                    Ok(ColorTileLayerData::Tiles(TileData {
+                        encoding: encoding.unwrap(),
+                        compression: compression.unwrap_or_default(),
+                        content: tiles,
+                    }))
+                } else {
+                    Ok(ColorTileLayerData::Chunks(ChunkData {
+                        encoding: encoding.unwrap(),
+                        compression: compression.unwrap_or_default(),
+                        content: chunks,
+                    }))
+                }
+            }
+        }
+
+        deserializer.deserialize_map(ColorTileLayerDataVisitor)
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-pub struct TileLayerData {
+pub struct TileData {
     /// The encoding used to encode the tile layer
     /// data. When used, it can be “base64” and
     /// “csv” at the moment. (optional)
@@ -117,7 +191,27 @@ pub struct TileLayerData {
     pub compression: DataCompression,
 
     #[serde(rename = "$value")]
-    pub content: TileLayerContent,
+    pub content: Tiles,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+pub struct ChunkData {
+    /// The encoding used to encode the tile layer
+    /// data. When used, it can be “base64” and
+    /// “csv” at the moment. (optional)
+    #[serde(rename = "@encoding")]
+    pub encoding: DataEncoding,
+
+    /// The compression used to compress the tile
+    /// layer data. Tiled supports “gzip”, “zlib”
+    /// and (as a compile-time option since Tiled
+    /// 1.3) “zstd”.
+    #[serde(rename = "@compression")]
+    #[serde(default)]
+    pub compression: DataCompression,
+
+    #[serde(rename = "chunk")]
+    pub content: Vec<Chunk>,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
@@ -135,35 +229,6 @@ pub enum DataCompression {
     Gzip,
     Zlib,
     Zstd,
-}
-
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-pub struct Chunk {
-    /// The x coordinate of the chunk in tiles.
-    #[serde(rename = "@x")]
-    pub x: u32,
-
-    /// The y coordinate of the chunk in tiles.
-    #[serde(rename = "@y")]
-    pub y: u32,
-
-    /// The width of the chunk in tiles.
-    #[serde(rename = "@width")]
-    pub width: u32,
-
-    /// The height of the chunk in tiles.
-    #[serde(rename = "@height")]
-    pub height: u32,
-
-    #[serde(rename = "$value")]
-    pub tiles: Tiles,
-}
-
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum TileLayerContent {
-    Tile(Tiles),
-    Chunk(Vec<Chunk>),
 }
 
 #[derive(Debug, Clone, Reflect, Serialize)]
@@ -197,6 +262,82 @@ impl<'de> Deserialize<'de> for Tiles {
 
         deserializer.deserialize_str(TilesVisitor)
     }
+}
+
+impl Tiles {
+    pub fn iter_decoded<'a>(
+        &'a self,
+        size: IVec2,
+        tiled_assets: &'a TiledAssets,
+        tilemap_texture: &'a mut TilemapTexture,
+        tilemap_name: &'a str,
+    ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
+        let mut tileset = None;
+        let mut first_gid = 0;
+        self.0
+            .iter()
+            .enumerate()
+            .filter_map(move |(index, texture)| {
+                if *texture == 0 {
+                    return None;
+                }
+
+                let texture = *texture;
+                let tileset = tileset.unwrap_or_else(|| {
+                    let (ts, gid) = tiled_assets.get_tileset(texture, tilemap_name);
+                    tileset = Some(ts);
+                    first_gid = gid;
+                    *tilemap_texture = ts.texture.clone();
+                    ts
+                });
+
+                let mut layer = TileLayer::new();
+                if texture > i32::MAX as u32 {
+                    let flip = texture >> 30;
+                    layer = layer
+                        .with_flip_raw(if flip == 3 { flip } else { flip ^ 3 })
+                        .with_texture_index((texture & 0x3FFF_FFFF) - first_gid);
+                } else {
+                    layer = layer.with_texture_index(texture - first_gid);
+                }
+
+                assert!(
+                    layer.texture_index < tileset.xml.tile_count as i32,
+                    "Index {} is not in range [{}, {}]. Are you using \
+                    multiple tilesets on one layer which is currently not supported?",
+                    layer.texture_index,
+                    0,
+                    tileset.xml.tile_count - 1
+                );
+
+                Some((
+                    IVec2::new(index as i32 % size.x, size.y - 1 - index as i32 / size.x),
+                    TileBuilder::new().with_layer(0, layer),
+                ))
+            })
+    }
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+pub struct Chunk {
+    /// The x coordinate of the chunk in tiles.
+    #[serde(rename = "@x")]
+    pub x: i32,
+
+    /// The y coordinate of the chunk in tiles.
+    #[serde(rename = "@y")]
+    pub y: i32,
+
+    /// The width of the chunk in tiles.
+    #[serde(rename = "@width")]
+    pub width: u32,
+
+    /// The height of the chunk in tiles.
+    #[serde(rename = "@height")]
+    pub height: u32,
+
+    #[serde(rename = "$value")]
+    pub tiles: Tiles,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]

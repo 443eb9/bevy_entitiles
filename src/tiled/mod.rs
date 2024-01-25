@@ -25,10 +25,12 @@ use crate::{
 
 use self::{
     components::TiledLoader,
-    resources::{TiledAssets, TiledLoadConfig, TiledTilemapManger},
+    resources::{
+        PackedTiledTilemap, PackedTiledTileset, TiledAssets, TiledLoadConfig, TiledTilemapManger,
+    },
     sprite::TiledSpriteMaterial,
     xml::{
-        layer::{TileLayerContent, TiledLayer},
+        layer::{ColorTileLayer, ColorTileLayerData, TiledLayer},
         MapOrientation,
     },
 };
@@ -145,47 +147,45 @@ fn load_tiled_tilemap(
                 ..Default::default()
             };
 
-            let mut tileset = None;
             let mut buffer = TileBuilderBuffer::new();
 
-            match &layer.data.content {
-                TileLayerContent::Tile(tiles) => {
-                    tiles.0.iter().enumerate().for_each(|(index, tile)| {
-                        if *tile == 0 {
-                            return;
-                        }
-
-                        let tileset = tileset.unwrap_or_else(|| {
-                            let ts = tiled_assets.get_tileset(*tile);
-                            tilemap.texture = ts.texture.clone();
-                            tileset = Some(ts);
-                            ts
+            match &layer.data {
+                ColorTileLayerData::Tiles(tiles) => {
+                    tiles
+                        .content
+                        .iter_decoded(
+                            layer_size,
+                            tiled_assets,
+                            &mut tilemap.texture,
+                            &tiled_data.name,
+                        )
+                        .for_each(|(index, builder)| {
+                            buffer.set(index, builder);
                         });
-
-                        let texture_index = *tile - tileset.def.first_gid;
-                        assert!(
-                            texture_index < tileset.xml.tile_count,
-                            "Invalid tile index {} ∉ [{}, {}]. Are you using multiple tilesets in \
-                            one layer? That's currrently unsupported.",
-                            texture_index,
-                            tileset.def.first_gid,
-                            tileset.def.first_gid + tileset.xml.tile_count - 1
-                        );
-
-                        buffer.set(
-                            IVec2::new(index as i32 % layer_size.x, index as i32 / layer_size.x),
-                            TileBuilder::new()
-                                .with_layer(0, TileLayer::new().with_texture_index(texture_index)),
-                        );
-                    });
-
-                    tilemap
-                        .storage
-                        .fill_with_buffer(commands, IVec2::ZERO, buffer);
                 }
-                TileLayerContent::Chunk(_) => todo!(),
+                ColorTileLayerData::Chunks(chunks) => {
+                    chunks.content.iter().for_each(|chunk| {
+                        let offset = IVec2::new(chunk.x, -chunk.y - chunk.height as i32);
+                        let size = IVec2::new(chunk.width as i32, chunk.height as i32);
+
+                        chunk
+                            .tiles
+                            .iter_decoded(
+                                size,
+                                tiled_assets,
+                                &mut tilemap.texture,
+                                &tiled_data.name,
+                            )
+                            .for_each(|(index, builder)| {
+                                buffer.set(index + offset, builder);
+                            });
+                    });
+                }
             }
 
+            tilemap
+                .storage
+                .fill_with_buffer(commands, IVec2::ZERO, buffer);
             commands.entity(entity).insert(tilemap);
         }
         TiledLayer::Objects(_) => {}
