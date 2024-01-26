@@ -704,7 +704,7 @@ pub fn wfc_applier(
                                         DEFAULT_CHUNK_SIZE,
                                         commands.spawn_empty().id(),
                                     ),
-                                    tilemap_transform: TilemapTransform {
+                                    transform: TilemapTransform {
                                         translation: (wfc_data.elem_idx_to_grid(i) * size * size)
                                             .as_vec2(),
                                         ..Default::default()
@@ -723,7 +723,7 @@ pub fn wfc_applier(
                                     ty: TilemapType::Square,
                                     tile_render_size: TileRenderSize(size.as_vec2()),
                                     slot_size: TilemapSlotSize(size.as_vec2()),
-                                    tilemap_transform: TilemapTransform {
+                                    transform: TilemapTransform {
                                         translation: (wfc_data.elem_idx_to_grid(i) * size * size)
                                             .as_vec2(),
                                         ..Default::default()

@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "tilemaps/orthogonal.tmx",
+    "activeFile": "tilemaps/isometric.tmx",
     "expandedProjectPaths": [
         ".",
         "world_test",
@@ -133,7 +133,7 @@
             "selectedLayer": 1,
             "viewCenter": {
                 "x": 147.22160319853188,
-                "y": 123.51969587730224
+                "y": 123.90509274431409
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -148,16 +148,19 @@
             "scale": 5.5,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 54.363636363636374,
-                "y": 19.36363636363636
+                "x": 64,
+                "y": 0.09090909090909349
             }
         },
         "tilemaps/isometric.tmx": {
+            "expandedObjectLayers": [
+                2
+            ],
             "scale": 5.4624999999999995,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 119.72540045766593,
-                "y": 60.137299771167065
+                "x": 93.36384439359269,
+                "y": 37.9862700228833
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -173,15 +176,15 @@
                 3
             ],
             "expandedObjectLayers": [
-                4,
                 3,
+                4,
                 5
             ],
             "scale": 8,
-            "selectedLayer": 0,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 51.375,
-                "y": 87.4375
+                "x": 120,
+                "y": 79.9375
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -241,16 +244,17 @@
         "tilemaps/hexagonal.tmx",
         "tilemaps/orthogonal.tmx",
         "tilemaps/isometric.tmx",
-        "tilesets/Squares.tsx"
+        "tilesets/Squares.tsx",
+        "tilemaps/infinite.tmx"
     ],
     "project": "Tilemap.tiled-project",
     "property.type": "AnotherSquare",
     "recentFiles": [
-        "tilemaps/infinite.tmx",
         "tilemaps/hexagonal.tmx",
+        "tilemaps/orthogonal.tmx",
+        "tilemaps/infinite.tmx",
         "tilesets/Squares.tsx",
         "tilemaps/isometric.tmx",
-        "tilemaps/orthogonal.tmx",
         "tilesets/Hexagonal.tsx",
         "tilemaps/orthogonal.tmj",
         "tilesets/Isometric.tsx",

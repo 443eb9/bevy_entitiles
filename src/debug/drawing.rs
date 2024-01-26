@@ -3,7 +3,8 @@ use bevy::{ecs::system::Query, gizmos::gizmos::Gizmos, math::Vec2, render::color
 use crate::{
     math::{aabb::Aabb2d, CameraAabb2d},
     tilemap::map::{
-        TilePivot, TilemapAabbs, TilemapSlotSize, TilemapStorage, TilemapTransform, TilemapType,
+        TilePivot, TilemapAabbs, TilemapAxisFlip, TilemapSlotSize, TilemapStorage,
+        TilemapTransform, TilemapType,
     },
 };
 
@@ -15,18 +16,20 @@ pub fn draw_chunk_aabb(
     tilemaps: Query<(
         &TilemapType,
         &TilePivot,
+        &TilemapAxisFlip,
         &TilemapSlotSize,
         &TilemapTransform,
         &TilemapStorage,
     )>,
 ) {
-    for (ty, tile_pivot, slot_size, transform, storage) in tilemaps.iter() {
+    for (ty, tile_pivot, axis_flip, slot_size, transform, storage) in tilemaps.iter() {
         storage.storage.chunks.keys().for_each(|chunk| {
             let aabb = Aabb2d::from_tilemap(
                 *chunk,
                 storage.storage.chunk_size,
                 *ty,
                 tile_pivot.0,
+                *axis_flip,
                 slot_size.0,
                 *transform,
             );

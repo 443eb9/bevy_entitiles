@@ -269,7 +269,7 @@ impl<'a> LdtkLayers<'a> {
                             slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
                             texture: texture.clone(),
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, tilemap_entity),
-                            tilemap_transform: TilemapTransform {
+                            transform: TilemapTransform {
                                 translation: self.translation,
                                 z_index: self.base_z_index - index as i32 - 1,
                                 ..Default::default()

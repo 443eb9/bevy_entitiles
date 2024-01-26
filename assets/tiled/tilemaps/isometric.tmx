@@ -13,23 +13,6 @@
  <objectgroup id="2" name="Object Layer 1">
   <object id="1" x="45.3089" y="31.2128">
    <properties>
-    <property name="FakeSquare" type="class" propertytype="AnotherSquare">
-     <properties>
-      <property name="Descrption" value="aveavw"/>
-      <property name="Nested" type="class" propertytype="Block">
-       <properties>
-        <property name="Name" value="another name"/>
-        <property name="hp" type="float" value="50"/>
-       </properties>
-      </property>
-      <property name="hp" type="float" value="50"/>
-      <property name="level" type="int" value="2"/>
-      <property name="rigid_body" type="bool" value="true"/>
-      <property name="target" type="object" value="1"/>
-      <property name="texture" type="file" value="../beautiful-image.png"/>
-      <property name="tint" type="color" value="#ffbaff1a"/>
-     </properties>
-    </property>
     <property name="Isometric" type="class" propertytype="Block"/>
    </properties>
    <polygon points="0,0 28.4668,32.6773 29.016,-9.24485"/>

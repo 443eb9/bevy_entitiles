@@ -1,8 +1,8 @@
 use bevy::ecs::bundle::Bundle;
 
 use super::map::{
-    TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-    TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+    TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
+    TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
 };
 
 /// The bundle of the tilemap with no actual tiles.
@@ -19,6 +19,8 @@ pub struct DataTilemapBundle {
     pub ty: TilemapType,
     /// The pivot of the tiles.
     pub tile_pivot: TilePivot,
+    /// The axes for the tilemap.
+    pub axis_direction: TilemapAxisFlip,
 }
 
 impl Into<TilemapBundle> for DataTilemapBundle {
@@ -58,8 +60,9 @@ pub struct TilemapBundle {
     pub storage: TilemapStorage,
     /// The transform of the tilemap. It's not the same one as `Transform`.
     /// If you want to move or rotate the tilemap, you need to change this.
-    /// Modify the `Transform` component will not work.
-    pub tilemap_transform: TilemapTransform,
+    pub transform: TilemapTransform,
+    /// The axes for the tilemap.
+    pub axis_flip: TilemapAxisFlip,
     /// The texture of the tilemap.
     pub texture: TilemapTexture,
     /// All the animation sequences of the tilemap.
@@ -89,7 +92,8 @@ impl Into<PureColorTilemapBundle> for TilemapBundle {
             tile_pivot: self.tile_pivot,
             layer_opacities: self.layer_opacities,
             storage: self.storage,
-            tilemap_transform: self.tilemap_transform,
+            transform: self.transform,
+            axis_flip: self.axis_flip,
         }
     }
 }
@@ -118,6 +122,7 @@ pub struct PureColorTilemapBundle {
     pub storage: TilemapStorage,
     /// The transform of the tilemap. It's not the same one as `Transform`.
     /// If you want to move or rotate the tilemap, you need to change this.
-    /// Modify the `Transform` component will not work.
-    pub tilemap_transform: TilemapTransform,
+    pub transform: TilemapTransform,
+    /// The axes for the tilemap.
+    pub axis_flip: TilemapAxisFlip,
 }

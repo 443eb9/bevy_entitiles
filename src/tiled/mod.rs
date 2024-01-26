@@ -15,8 +15,8 @@ use crate::{
         buffers::TileBuilderBuffer,
         bundles::TilemapBundle,
         map::{
-            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTransform,
-            TilemapType,
+            TilePivot, TileRenderSize, TilemapAxisFlip, TilemapName, TilemapSlotSize,
+            TilemapStorage, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -140,10 +140,12 @@ fn load_tiled_tilemap(
                     }
                 },
                 storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
-                tilemap_transform: TilemapTransform::from_translation(Vec2::new(
+                transform: TilemapTransform::from_translation(Vec2::new(
                     layer.offset_x as f32,
                     layer.offset_y as f32,
                 )),
+                axis_flip: TilemapAxisFlip::Y,
+                // tile_pivot: TilePivot(Vec2::new(0., 1.)),
                 ..Default::default()
             };
 

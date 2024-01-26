@@ -5,7 +5,9 @@
 - Allow mapping texture index to animation for LDtk maps.
 - Split the `LdtkLevelManager` into small resources and simplified the api.
 - Relaxed dependencies. #11
-- Removed redundant components in tilemap bundles.
+- Removed redundant components in tilemap bundles and renamed `tilemap_transform` to `transform`.
+- Added bunch of new functions for aabbs.
+- Added `TilemapAxisFlip` to allow flipping the extend direction of tilemaps (currently square maps only).
 
 # What's Fixed:
 

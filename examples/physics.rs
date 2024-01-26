@@ -90,7 +90,7 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(16, entity),
-        tilemap_transform: TilemapTransform::from_z_index(-1),
+        transform: TilemapTransform::from_z_index(-1),
         texture: TilemapTexture::new(
             assets_server.load("test_isometric.png"),
             TilemapTextureDescriptor::new(
@@ -120,7 +120,7 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
-        tilemap_transform: TilemapTransform::from_translation(Vec2::new(500., -100.)),
+        transform: TilemapTransform::from_translation(Vec2::new(500., -100.)),
         texture: TilemapTexture::new(
             assets_server.load("test_square.png"),
             TilemapTextureDescriptor::new(

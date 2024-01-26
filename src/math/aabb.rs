@@ -1,6 +1,8 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect};
 
-use crate::tilemap::map::{TilemapTransform, TilemapType};
+use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 use super::{extension::Vec2Integerize, TileArea};
 
@@ -112,6 +114,23 @@ macro_rules! impl_aabb {
                     && self.min.y >= other.min.y
                     && self.max.y <= other.max.y
             }
+
+            #[inline]
+            pub fn justify(&mut self) {
+                if self.min.x > self.max.x {
+                    std::mem::swap(&mut self.min.x, &mut self.max.x);
+                }
+
+                if self.min.y > self.max.y {
+                    std::mem::swap(&mut self.min.y, &mut self.max.y);
+                }
+            }
+
+            #[inline]
+            pub fn justified(mut self) -> Self {
+                self.justify();
+                self
+            }
         }
 
         impl From<[$data_ty; 2]> for $aabb_ty {
@@ -119,6 +138,50 @@ macro_rules! impl_aabb {
                 Self {
                     min: value[0].into(),
                     max: value[1].into(),
+                }
+            }
+        }
+
+        impl Add<$data_ty> for $aabb_ty {
+            type Output = Self;
+
+            fn add(self, rhs: $data_ty) -> Self::Output {
+                Self {
+                    min: self.min + rhs,
+                    max: self.max + rhs,
+                }
+            }
+        }
+
+        impl Sub<$data_ty> for $aabb_ty {
+            type Output = Self;
+
+            fn sub(self, rhs: $data_ty) -> Self::Output {
+                Self {
+                    min: self.min - rhs,
+                    max: self.max - rhs,
+                }
+            }
+        }
+
+        impl Mul<$data_ty> for $aabb_ty {
+            type Output = Self;
+
+            fn mul(self, rhs: $data_ty) -> Self::Output {
+                Self {
+                    min: self.min * rhs,
+                    max: self.max * rhs,
+                }
+            }
+        }
+
+        impl Div<$data_ty> for $aabb_ty {
+            type Output = Self;
+
+            fn div(self, rhs: $data_ty) -> Self::Output {
+                Self {
+                    min: self.min / rhs,
+                    max: self.max / rhs,
                 }
             }
         }
@@ -134,55 +197,64 @@ impl Aabb2d {
         chunk_size: u32,
         ty: TilemapType,
         tile_pivot: Vec2,
+        axis_flip: TilemapAxisFlip,
         slot_size: Vec2,
         transform: TilemapTransform,
     ) -> Self {
         let pivot_offset = tile_pivot * slot_size;
+        let chunk_index = chunk_index.as_vec2();
+        assert!(
+            axis_flip.is_empty() || ty == TilemapType::Square,
+            "Axis flip is only supported for square tilemaps currently."
+        );
+        let axis = axis_flip.as_vec2();
 
-        transform.transform_aabb(match ty {
-            TilemapType::Square => {
-                let chunk_render_size = slot_size * chunk_size as f32;
-                Aabb2d {
-                    min: chunk_index.as_vec2() * chunk_render_size - pivot_offset,
-                    max: (chunk_index + 1).as_vec2() * chunk_render_size - pivot_offset,
+        transform.transform_aabb(
+            match ty {
+                TilemapType::Square => {
+                    let chunk_render_size = slot_size * chunk_size as f32;
+                    Aabb2d {
+                        min: chunk_index * chunk_render_size - pivot_offset,
+                        max: (chunk_index + 1.) * chunk_render_size - pivot_offset,
+                    } * axis
+                }
+                TilemapType::Isometric => {
+                    let half_chunk_render_size = chunk_size as f32 * slot_size / 2.;
+                    let center_x = (chunk_index.x - chunk_index.y) * half_chunk_render_size.x;
+                    let center_y = (chunk_index.x + chunk_index.y + 1.) * half_chunk_render_size.y;
+                    let center = Vec2 {
+                        x: center_x,
+                        y: center_y,
+                    } - pivot_offset;
+
+                    Aabb2d {
+                        min: center - half_chunk_render_size,
+                        max: center + half_chunk_render_size,
+                    }
+                }
+                TilemapType::Hexagonal(c) => {
+                    /*
+                     * MATHEMATICAL MAGIC!!!!!!!
+                     */
+                    let Vec2 { x: a, y: b } = slot_size;
+                    let c = c as f32;
+                    let Vec2 { x, y } = chunk_index;
+                    let n = chunk_size as f32;
+
+                    let min = Vec2 {
+                        x: a * x * n - a / 2. * y * n - (n / 2. - 1.) * a - a / 2.,
+                        y: (b + c) / 2. * y * n,
+                    };
+                    let max = Vec2 {
+                        x: a * x * n - a / 2. * y * n + 1. * a * n,
+                        y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
+                    };
+
+                    Aabb2d { min, max }
                 }
             }
-            TilemapType::Isometric => {
-                let chunk_index = chunk_index.as_vec2();
-                let half_chunk_render_size = chunk_size as f32 * slot_size / 2.;
-                let center_x = (chunk_index.x - chunk_index.y) * half_chunk_render_size.x;
-                let center_y = (chunk_index.x + chunk_index.y + 1.) * half_chunk_render_size.y;
-                let center = Vec2 {
-                    x: center_x,
-                    y: center_y,
-                } - pivot_offset;
-
-                Aabb2d {
-                    min: center - half_chunk_render_size,
-                    max: center + half_chunk_render_size,
-                }
-            }
-            TilemapType::Hexagonal(c) => {
-                /*
-                 * MATHEMATICAL MAGIC!!!!!!!
-                 */
-                let Vec2 { x: a, y: b } = slot_size;
-                let c = c as f32;
-                let Vec2 { x, y } = chunk_index.as_vec2();
-                let n = chunk_size as f32;
-
-                let min = Vec2 {
-                    x: a * x * n - a / 2. * y * n - (n / 2. - 1.) * a - a / 2.,
-                    y: (b + c) / 2. * y * n,
-                };
-                let max = Vec2 {
-                    x: a * x * n - a / 2. * y * n + 1. * a * n,
-                    y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
-                };
-
-                Aabb2d { min, max }
-            }
-        })
+            .justified(),
+        )
     }
 
     #[inline]

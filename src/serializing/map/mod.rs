@@ -104,7 +104,7 @@ impl SerializedTilemap {
                 storage: ChunkedStorage::new(self.chunk_size),
                 ..Default::default()
             },
-            tilemap_transform: self.tilemap_transform,
+            transform: self.tilemap_transform,
             texture,
             animations: self.animations.clone().unwrap(),
             ..Default::default()
@@ -124,7 +124,7 @@ impl SerializedTilemap {
                 storage: ChunkedStorage::new(self.chunk_size),
                 ..Default::default()
             },
-            tilemap_transform: self.tilemap_transform,
+            transform: self.tilemap_transform,
             ..Default::default()
         }
     }

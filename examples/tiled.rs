@@ -38,10 +38,10 @@ fn main() {
 fn setup(mut commands: Commands, mut manager: ResMut<TiledTilemapManger>) {
     commands.spawn(Camera2dBundle::default());
 
-    manager.switch_to(&mut commands, "hexagonal".to_string(), None);
-    manager.switch_to(&mut commands, "infinite".to_string(), None);
+    // manager.switch_to(&mut commands, "hexagonal".to_string(), None);
+    // manager.switch_to(&mut commands, "infinite".to_string(), None);
     manager.switch_to(&mut commands, "orthogonal".to_string(), None);
-    manager.switch_to(&mut commands, "isometric".to_string(), None);
+    // manager.switch_to(&mut commands, "isometric".to_string(), None);
 }
 
 pub struct AnotherSquare {

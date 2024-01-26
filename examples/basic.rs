@@ -146,7 +146,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             ),
             TilemapRotation::None,
         ),
-        tilemap_transform: TilemapTransform {
+        transform: TilemapTransform {
             translation: Vec2 { x: -400., y: 0. },
             ..Default::default()
         },
@@ -168,7 +168,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(32, entity),
-        tilemap_transform: TilemapTransform {
+        transform: TilemapTransform {
             translation: Vec2 { x: 0., y: -300. },
             ..Default::default()
         },

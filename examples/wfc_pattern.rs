@@ -62,7 +62,7 @@ fn setup(mut commands: Commands) {
                 slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
                 ty: TilemapType::Square,
                 storage: TilemapStorage::new(16, entity),
-                tilemap_transform: TilemapTransform::from_translation(Vec2 {
+                transform: TilemapTransform::from_translation(Vec2 {
                     x: (col * TILE_SIZE) as f32 * 8.,
                     y: (row * TILE_SIZE) as f32 * -8. - 8. * PATTERN_SIZE as f32,
                 }),

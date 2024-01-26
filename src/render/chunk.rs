@@ -78,6 +78,7 @@ impl TilemapRenderChunk {
                 tilemap.chunk_size,
                 tilemap.ty,
                 tilemap.tile_pivot,
+                tilemap.axis_flip,
                 tilemap.slot_size,
                 tilemap.transform,
             ),

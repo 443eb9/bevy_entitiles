@@ -303,13 +303,13 @@ impl TiledAssets {
                             }),
                         );
 
-                    let origin = Vec2::new(layer.offset_x, layer.offset_y);
+                    let origin = Vec2::new(layer.offset_x, -layer.offset_y);
                     let image_size = Vec2::new(layer.image.width as f32, layer.image.height as f32);
                     let image_verts = vec![
                         Vec2::ZERO,
                         Vec2::new(image_size.x, 0.),
-                        image_size,
-                        Vec2::new(0., image_size.y),
+                        Vec2::new(image_size.x, -image_size.y),
+                        Vec2::new(0., -image_size.y),
                     ];
                     let image_uvs = vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
                     let map_size = Vec2::new(

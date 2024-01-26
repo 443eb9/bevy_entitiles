@@ -59,6 +59,12 @@ impl<'de> Deserialize<'de> for ClassInstance {
     where
         D: serde::Deserializer<'de>,
     {
+        #[derive(Deserialize)]
+        struct PropertiesWrapper {
+            #[serde(rename = "property")]
+            properties: Vec<PropertyInstance>,
+        }
+
         struct ClassInstanceVisitor;
         impl<'de> Visitor<'de> for ClassInstanceVisitor {
             type Value = ClassInstance;
@@ -101,19 +107,13 @@ impl<'de> Deserialize<'de> for ClassInstance {
                 Ok(ClassInstance {
                     name: name.unwrap(),
                     ty: ty.unwrap(),
-                    properties: properties.unwrap(),
+                    properties: properties.unwrap_or_default(),
                 })
             }
         }
 
         deserializer.deserialize_map(ClassInstanceVisitor)
     }
-}
-
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-pub struct PropertiesWrapper {
-    #[serde(rename = "property")]
-    pub properties: Vec<PropertyInstance>,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize)]
@@ -150,9 +150,6 @@ impl<'de> Deserialize<'de> for PropertyInstance {
                         }
                         "@type" => {
                             ty = map.next_value::<String>()?;
-                            if ty == "class" {
-                                panic!("Nested class properties are not supported yet!");
-                            }
                         }
                         "@value" => match ty.as_str() {
                             "int" => {
@@ -175,6 +172,14 @@ impl<'de> Deserialize<'de> for PropertyInstance {
                             }
                             _ => unreachable!(),
                         },
+                        "@propertytype" => {
+                            panic!(
+                                "Seems like there is a nested custom class type {} \
+                                in the property {} which is not supported yet.",
+                                map.next_value::<String>()?,
+                                name.unwrap()
+                            );
+                        }
                         "property" => {
                             return map.next_value::<PropertyInstance>();
                         }

@@ -6,7 +6,7 @@ fn get_mesh_origin(input: VertexInput) -> vec2<f32> {
     /*
      * ANOTHER MATHEMATICAL MAGIC!!!!!!!
      */
-    let index = vec2<f32>(input.index.xy);
+    let index = vec2<f32>(input.index.xy) * tilemap.axis_dir;
 
     return vec2<f32>(
         tilemap.slot_size.x * (index.x - 0.5 * index.y),

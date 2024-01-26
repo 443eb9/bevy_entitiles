@@ -33,6 +33,7 @@ struct Tilemap {
     slot_size: vec2<f32>,
     pivot: vec2<f32>,
     layer_opacities: vec4<f32>,
+    axis_dir: vec2<f32>,
     // this value will only be meaningful when the tilemap is hexagonal!
     hex_legs: f32,
     time: f32,

@@ -149,6 +149,34 @@ impl Into<Transform> for TilemapTransform {
     }
 }
 
+bitflags::bitflags! {
+    #[derive(Component, Debug, Clone, Copy)]
+    pub struct TilemapAxisFlip: u32 {
+        const NONE = 0b00;
+        const X    = 0b01;
+        const Y    = 0b10;
+    }
+}
+
+impl Default for TilemapAxisFlip {
+    fn default() -> Self {
+        Self::NONE
+    }
+}
+
+impl TilemapAxisFlip {
+    pub fn as_vec2(self) -> Vec2 {
+        let mut v = Vec2::ONE;
+        if self.contains(Self::X) {
+            v.x = -1.;
+        }
+        if self.contains(Self::Y) {
+            v.y = -1.;
+        }
+        v
+    }
+}
+
 #[derive(Component, Clone, Default, Debug, Reflect)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
@@ -615,12 +643,13 @@ pub fn queued_chunk_aabb_calculator(
         &mut TilemapStorage,
         &TilemapType,
         &TilePivot,
+        &TilemapAxisFlip,
         &TilemapSlotSize,
         &TilemapTransform,
     )>,
 ) {
     tilemaps_query.par_iter_mut().for_each(
-        |(mut storage, ty, tile_pivot, slot_size, transform)| {
+        |(mut storage, ty, tile_pivot, axis_direction, slot_size, transform)| {
             let chunk_size = storage.storage.chunk_size;
             let ext = storage
                 .calc_queue
@@ -633,6 +662,7 @@ pub fn queued_chunk_aabb_calculator(
                             chunk_size,
                             *ty,
                             tile_pivot.0,
+                            *axis_direction,
                             slot_size.0,
                             *transform,
                         ),
@@ -651,6 +681,7 @@ pub fn tilemap_aabb_calculator(
             &TilemapStorage,
             &TilemapType,
             &TilePivot,
+            &TilemapAxisFlip,
             &TilemapSlotSize,
             &TilemapTransform,
         ),
@@ -658,7 +689,7 @@ pub fn tilemap_aabb_calculator(
     >,
 ) {
     tilemaps_query.par_iter_mut().for_each(
-        |(mut aabbs, storage, ty, tile_pivot, slot_size, transform)| {
+        |(mut aabbs, storage, ty, tile_pivot, axis_direction, slot_size, transform)| {
             let mut chunk_aabb: Option<IAabb2d> = None;
             storage.storage.chunks.keys().for_each(|chunk_index| {
                 if let Some(aabb) = &mut chunk_aabb {
@@ -677,6 +708,7 @@ pub fn tilemap_aabb_calculator(
                 storage.storage.chunk_size,
                 *ty,
                 tile_pivot.0,
+                *axis_direction,
                 slot_size.0,
                 *transform,
             );
@@ -685,6 +717,7 @@ pub fn tilemap_aabb_calculator(
                 storage.storage.chunk_size,
                 *ty,
                 tile_pivot.0,
+                *axis_direction,
                 slot_size.0,
                 *transform,
             );

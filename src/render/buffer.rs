@@ -100,6 +100,7 @@ pub struct TilemapUniform {
     pub slot_size: Vec2,
     pub pivot: Vec2,
     pub layer_opacities: Vec4,
+    pub axis_dir: Vec2,
     pub hex_legs: f32,
     pub time: f32,
     #[cfg(feature = "atlas")]
@@ -144,6 +145,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
             slot_size: extracted.slot_size,
             pivot: extracted.tile_pivot,
             layer_opacities: extracted.layer_opacities,
+            axis_dir: extracted.axis_flip.as_vec2(),
             hex_legs: match extracted.ty {
                 TilemapType::Hexagonal(legs) => legs as f32,
                 _ => 0.,

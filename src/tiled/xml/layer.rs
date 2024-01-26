@@ -1,7 +1,7 @@
 use std::fmt::Formatter;
 
 use bevy::{
-    math::{IVec2, UVec2},
+    math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
 };
 use quick_xml::se;
@@ -311,7 +311,7 @@ impl Tiles {
                 );
 
                 Some((
-                    IVec2::new(index as i32 % size.x, size.y - 1 - index as i32 / size.x),
+                    IVec2::new(index as i32 % size.x, index as i32 / size.x),
                     TileBuilder::new().with_layer(0, layer),
                 ))
             })
@@ -477,6 +477,59 @@ pub struct Object {
 
     #[serde(default)]
     pub properties: Components,
+
+    #[serde(default)]
+    pub shape: ObjectShape,
+}
+
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ObjectShape {
+    Eclipse,
+    Polygon(Polygon),
+    #[serde(other)]
+    #[default]
+    Default,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize)]
+pub struct Polygon {
+    pub points: Vec<Vec2>,
+}
+
+impl<'de> Deserialize<'de> for Polygon {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct PolygonVisitor;
+        impl<'de> Visitor<'de> for PolygonVisitor {
+            type Value = Polygon;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(Polygon {
+                    points: v
+                        .split(' ')
+                        .into_iter()
+                        .map(|p| {
+                            let components =
+                                p.split(',').map(|c| c.parse().unwrap()).collect::<Vec<_>>();
+                            Vec2::new(components[0], components[1])
+                        })
+                        .collect(),
+                })
+            }
+        }
+
+        deserializer.deserialize_str(PolygonVisitor)
+    }
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
