@@ -145,7 +145,6 @@ fn load_tiled_tilemap(
                     layer.offset_y as f32,
                 )),
                 axis_flip: TilemapAxisFlip::Y,
-                // tile_pivot: TilePivot(Vec2::new(0., 1.)),
                 ..Default::default()
             };
 
@@ -155,12 +154,7 @@ fn load_tiled_tilemap(
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
-                        .iter_decoded(
-                            layer_size,
-                            tiled_assets,
-                            &mut tilemap.texture,
-                            &tiled_data.name,
-                        )
+                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data.name)
                         .for_each(|(index, builder)| {
                             buffer.set(index, builder);
                         });
@@ -172,12 +166,7 @@ fn load_tiled_tilemap(
 
                         chunk
                             .tiles
-                            .iter_decoded(
-                                size,
-                                tiled_assets,
-                                &mut tilemap.texture,
-                                &tiled_data.name,
-                            )
+                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data.name)
                             .for_each(|(index, builder)| {
                                 buffer.set(index + offset, builder);
                             });

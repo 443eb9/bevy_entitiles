@@ -10,8 +10,10 @@ use serde::{de::Visitor, Deserialize, Serialize};
 use crate::{
     tiled::resources::TiledAssets,
     tilemap::{
+        self,
+        bundles::TilemapBundle,
         map::TilemapTexture,
-        tile::{TileBuilder, TileLayer},
+        tile::{RawTileAnimation, TileAnimation, TileBuilder, TileLayer},
     },
 };
 
@@ -269,8 +271,8 @@ impl Tiles {
         &'a self,
         size: IVec2,
         tiled_assets: &'a TiledAssets,
-        tilemap_texture: &'a mut TilemapTexture,
-        tilemap_name: &'a str,
+        layer_tilemap: &'a mut TilemapBundle,
+        tiled_name: &'a str,
     ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
         let mut tileset = None;
         let mut first_gid = 0;
@@ -284,21 +286,35 @@ impl Tiles {
 
                 let texture = *texture;
                 let tileset = tileset.unwrap_or_else(|| {
-                    let (ts, gid) = tiled_assets.get_tileset(texture, tilemap_name);
+                    let (ts, gid) = tiled_assets.get_tileset(texture, tiled_name);
                     tileset = Some(ts);
                     first_gid = gid;
-                    *tilemap_texture = ts.texture.clone();
+                    layer_tilemap.texture = ts.texture.clone();
                     ts
                 });
 
+                let mut builder = TileBuilder::new();
                 let mut layer = TileLayer::new();
+                let mut tile_id = texture - first_gid;
                 if texture > i32::MAX as u32 {
                     let flip = texture >> 30;
-                    layer = layer
-                        .with_flip_raw(if flip == 3 { flip } else { flip ^ 3 })
-                        .with_texture_index((texture & 0x3FFF_FFFF) - first_gid);
+                    layer = layer.with_flip_raw(if flip == 3 { flip } else { flip ^ 3 });
+                    tile_id = (texture & 0x3FFF_FFFF) - first_gid;
+                }
+
+                if let Some(anim) = tileset
+                    .special_tiles
+                    .get(&tile_id)
+                    .and_then(|t| t.animation.as_ref())
+                {
+                    builder = builder.with_animation(layer_tilemap.animations.register(
+                        RawTileAnimation {
+                            sequence: anim.frames.iter().map(|f| f.tile_id).collect(),
+                            fps: 1000 / anim.frames[0].duration,
+                        },
+                    ));
                 } else {
-                    layer = layer.with_texture_index(texture - first_gid);
+                    builder = builder.with_layer(0, layer.with_texture_index(tile_id));
                 }
 
                 assert!(
@@ -312,7 +328,7 @@ impl Tiles {
 
                 Some((
                     IVec2::new(index as i32 % size.x, index as i32 / size.x),
-                    TileBuilder::new().with_layer(0, layer),
+                    builder,
                 ))
             })
     }

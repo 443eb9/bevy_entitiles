@@ -1,4 +1,4 @@
-use bevy::reflect::Reflect;
+use bevy::{reflect::Reflect, utils::HashMap};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
@@ -73,6 +73,10 @@ pub struct TiledTileset {
 
     #[serde(default)]
     pub transformations: TilesetTransformations,
+
+    #[serde(rename = "tile")]
+    #[serde(default)]
+    pub special_tiles: Vec<TiledTile>,
 }
 
 #[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
@@ -140,4 +144,68 @@ pub struct TilesetTransformations {
     /// used to produce more variations (default 0)
     #[serde(rename = "@preferuntransformed")]
     pub prefer_untransformed: bool,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+pub struct TiledTile {
+    /// The local tile ID within its tileset.
+    #[serde(rename = "@id")]
+    pub id: u32,
+
+    /// The class of the tile. Is inherited by tile objects.
+    /// (since 1.0, defaults to “”, was saved as class in 1.9)
+    #[serde(rename = "@type")]
+    #[serde(default)]
+    pub ty: String,
+
+    /// A percentage indicating the probability that this
+    /// tile is chosen when it competes with others while editing with the terrain tool. (defaults to 0)
+    #[serde(rename = "@probability")]
+    #[serde(default)]
+    pub probability: f32,
+
+    /// The X position of the sub-rectangle representing
+    /// this tile (default: 0)
+    #[serde(rename = "@x")]
+    #[serde(default)]
+    pub x: u32,
+
+    /// The Y position of the sub-rectangle representing
+    /// this tile (default: 0)
+    #[serde(rename = "@y")]
+    #[serde(default)]
+    pub y: u32,
+
+    /// The width of the sub-rectangle representing this
+    /// tile (defaults to the image width)
+    #[serde(rename = "@width")]
+    #[serde(default)]
+    pub width: u32,
+
+    /// The height of the sub-rectangle representing this
+    /// tile (defaults to the image height)
+    #[serde(rename = "@height")]
+    #[serde(default)]
+    pub height: u32,
+
+    #[serde(default)]
+    pub animation: Option<TiledAnimation>,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+pub struct TiledAnimation {
+    #[serde(rename = "frame")]
+    pub frames: Vec<TiledAnimationFrame>,
+}
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+pub struct TiledAnimationFrame {
+    /// The local ID of a tile within the parent <tileset>.
+    #[serde(rename = "@tileid")]
+    pub tile_id: u32,
+
+    /// How long (in milliseconds) this frame should be
+    /// displayed before advancing to the next frame.
+    #[serde(rename = "@duration")]
+    pub duration: u32,   
 }

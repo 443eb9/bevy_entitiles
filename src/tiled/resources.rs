@@ -29,7 +29,7 @@ use super::{
     sprite::TiledSpriteMaterial,
     xml::{
         layer::{ImageLayer, TiledLayer},
-        tileset::TiledTileset,
+        tileset::{TiledTile, TiledTileset},
         TiledTilemap, TilesetDef,
     },
 };
@@ -50,6 +50,7 @@ pub struct PackedTiledTilemap {
 pub struct PackedTiledTileset {
     pub name: String,
     pub xml: TiledTileset,
+    pub special_tiles: HashMap<u32, TiledTile>,
     pub texture: TilemapTexture,
 }
 
@@ -254,6 +255,11 @@ impl TiledAssets {
 
                 self.tilesets.push(PackedTiledTileset {
                     name: tileset_xml.name.clone(),
+                    special_tiles: tileset_xml
+                        .special_tiles
+                        .iter()
+                        .map(|tile| (tile.id, tile.clone()))
+                        .collect(),
                     xml: tileset_xml,
                     texture,
                 });
