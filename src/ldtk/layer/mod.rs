@@ -1,6 +1,9 @@
 use bevy::{
     asset::AssetServer,
-    ecs::{entity::Entity, system::{Commands, EntityCommands}},
+    ecs::{
+        entity::Entity,
+        system::{Commands, EntityCommands},
+    },
     math::{IVec2, UVec2, Vec2, Vec4},
     prelude::SpatialBundle,
     sprite::SpriteBundle,
@@ -24,10 +27,13 @@ use crate::{
 };
 
 use super::{
-    components::{LayerIid, LdtkLoadedLevel, LevelIid, EntityIid, LdtkTempTransform},
+    components::{EntityIid, LayerIid, LdtkLoadedLevel, LdtkTempTransform, LevelIid},
+    json::{
+        field::FieldInstance,
+        level::{EntityInstance, LayerInstance, Level, TileInstance},
+    },
+    resources::{LdtkAssets, LdtkLoadConfig, LdtkPatterns},
     traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
-    json::{level::{LayerInstance, Level, TileInstance, EntityInstance}, field::FieldInstance},
-    resources::{LdtkAssets, LdtkLevelManager, LdtkPatterns, LdtkLoadConfig},
     LdtkLoaderMode,
 };
 
@@ -50,7 +56,6 @@ impl PackedLdtkEntity {
         commands: &mut EntityCommands,
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
-        manager: &LdtkLevelManager,
         config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
@@ -87,7 +92,6 @@ impl PackedLdtkEntity {
             &self.instance,
             &self.fields,
             asset_server,
-            &manager,
             ldtk_assets,
         )
     }
@@ -139,7 +143,13 @@ impl<'a> LdtkLayers<'a> {
         }
     }
 
-    pub fn set_tile(&mut self, layer_index: usize, layer: &LayerInstance, tile: &TileInstance, config: &LdtkLoadConfig) {
+    pub fn set_tile(
+        &mut self,
+        layer_index: usize,
+        layer: &LayerInstance,
+        tile: &TileInstance,
+        config: &LdtkLoadConfig,
+    ) {
         self.try_create_new_layer(layer_index, layer);
 
         let (pattern, texture, _, _) = self.layers[layer_index].as_mut().unwrap();
@@ -152,7 +162,10 @@ impl<'a> LdtkLayers<'a> {
 
         if let Some(ser_tile) = pattern.tiles.get_mut(tile_index) {
             let TileTexture::Static(tile_layers) = &mut ser_tile.texture else {
-                panic!("Trying to insert multiple layers into a animated tile at {}!", tile_index);
+                panic!(
+                    "Trying to insert multiple layers into a animated tile at {}!",
+                    tile_index
+                );
             };
             tile_layers.push(TileLayer::new().with_texture_index(texture_index));
         } else {
@@ -163,7 +176,9 @@ impl<'a> LdtkLayers<'a> {
             } else {
                 builder.with_layer(
                     0,
-                    TileLayer::new().with_texture_index(texture_index).with_flip_raw(tile.flip as u32),
+                    TileLayer::new()
+                        .with_texture_index(texture_index)
+                        .with_flip_raw(tile.flip as u32),
                 )
             };
 
@@ -223,7 +238,6 @@ impl<'a> LdtkLayers<'a> {
         level: &Level,
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
-        manager: &LdtkLevelManager,
         config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
@@ -234,16 +248,13 @@ impl<'a> LdtkLayers<'a> {
                 let mut entities = HashMap::with_capacity(self.entities.len());
 
                 self.entities.drain(..).for_each(|entity| {
-                    let mut ldtk_entity = commands.spawn((
-                        entity.transform.clone(),
-                        entity.iid.clone()
-                    ));
+                    let mut ldtk_entity =
+                        commands.spawn((entity.transform.clone(), entity.iid.clone()));
                     entities.insert(entity.iid.clone(), ldtk_entity.id());
                     entity.instantiate(
                         &mut ldtk_entity,
                         entity_registry,
                         entity_tag_registry,
-                        manager,
                         config,
                         ldtk_assets,
                         asset_server,

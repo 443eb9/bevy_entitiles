@@ -8,12 +8,12 @@ use super::traits::{
     PhantomLdtkEntityTag,
 };
 
-pub trait AppExt {
+pub trait LdtkApp {
     fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) -> &mut App;
     fn register_ldtk_entity_tag<T: LdtkEntityTag + Component>(&mut self, tag: &str) -> &mut App;
 }
 
-impl AppExt for App {
+impl LdtkApp for App {
     fn register_ldtk_entity<T: LdtkEntity + Bundle>(&mut self, ident: &str) -> &mut App {
         match self.world.get_non_send_resource_mut::<LdtkEntityRegistry>() {
             Some(mut mapper) => {

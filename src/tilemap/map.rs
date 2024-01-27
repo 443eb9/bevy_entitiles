@@ -220,6 +220,16 @@ impl TilemapTexture {
         )
     }
 
+    pub fn get_atlas_rect(&self, index: u32) -> Aabb2d {
+        let tile_count = self.desc.size / self.desc.tile_size;
+        let tile_index = Vec2::new((index % tile_count.x) as f32, (index / tile_count.x) as f32);
+        let tile_size = self.desc.tile_size.as_vec2() / self.desc.size.as_vec2();
+        Aabb2d {
+            min: tile_index * tile_size,
+            max: (tile_index + Vec2::ONE) * tile_size,
+        }
+    }
+
     /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
     pub(crate) fn set_usage(&mut self, image_assets: &mut ResMut<Assets<Image>>) {
         let Some(image) = image_assets.get(&self.clone_weak()) else {
@@ -254,9 +264,7 @@ impl TilemapTextureDescriptor {
         assert_eq!(
             size % tile_size,
             UVec2::ZERO,
-            "Invalid tilemap texture descriptor! The size must be divisible by the tile size! \
-            If the spare pixels are not needed and you are not using this texture for ui, \
-            you can \"lie\" to the descriptor by setting the size to fit the tiles."
+            "Invalid tilemap texture descriptor! The size must be divisible by the tile size!"
         );
 
         Self {

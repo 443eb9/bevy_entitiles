@@ -3,12 +3,12 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "tilemaps/isometric.tmx",
+    "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
-        ".",
-        "world_test",
         "tilesets",
-        "tilemaps"
+        "tilemaps",
+        "world_test",
+        "."
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -132,8 +132,8 @@
             "scale": 2.594727891156462,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 147.22160319853188,
-                "y": 123.90509274431409
+                "x": 146.83620633151997,
+                "y": 123.51969587730224
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -148,8 +148,8 @@
             "scale": 5.5,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 64,
-                "y": 0.09090909090909349
+                "x": 63.636363636363626,
+                "y": -0.09090909090909349
             }
         },
         "tilemaps/isometric.tmx": {
@@ -159,8 +159,8 @@
             "scale": 5.4624999999999995,
             "selectedLayer": 1,
             "viewCenter": {
-                "x": 93.36384439359269,
-                "y": 37.9862700228833
+                "x": 93.54691075514876,
+                "y": 38.16933638443937
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -176,15 +176,15 @@
                 3
             ],
             "expandedObjectLayers": [
-                3,
                 4,
+                3,
                 5
             ],
             "scale": 8,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 120,
-                "y": 79.9375
+                "x": 93.125,
+                "y": 75.1875
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -216,7 +216,7 @@
             "scaleInEditor": 8
         },
         "tilesets/Tileset1.tsx": {
-            "scaleInDock": 5.5,
+            "scaleInDock": 4,
             "scaleInEditor": 5.5
         },
         "tilesets/Tileset2.tsx": {
@@ -248,13 +248,13 @@
         "tilemaps/infinite.tmx"
     ],
     "project": "Tilemap.tiled-project",
-    "property.type": "AnotherSquare",
+    "property.type": "PlainBlock",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
-        "tilemaps/orthogonal.tmx",
         "tilemaps/infinite.tmx",
         "tilesets/Squares.tsx",
         "tilemaps/isometric.tmx",
+        "tilemaps/orthogonal.tmx",
         "tilesets/Hexagonal.tsx",
         "tilemaps/orthogonal.tmj",
         "tilesets/Isometric.tsx",

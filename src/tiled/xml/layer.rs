@@ -1,19 +1,16 @@
 use std::fmt::Formatter;
 
 use bevy::{
-    math::{IVec2, UVec2, Vec2},
+    math::{IVec2, Vec2},
     reflect::Reflect,
 };
-use quick_xml::se;
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::{
     tiled::resources::TiledAssets,
     tilemap::{
-        self,
         bundles::TilemapBundle,
-        map::TilemapTexture,
-        tile::{RawTileAnimation, TileAnimation, TileBuilder, TileLayer},
+        tile::{RawTileAnimation, TileBuilder, TileLayer},
     },
 };
 
@@ -426,11 +423,11 @@ pub struct ObjectLayer {
     pub parallax_y: f32,
 
     #[serde(rename = "object")]
-    pub objects: Vec<Object>,
+    pub objects: Vec<TiledObjectInstance>,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-pub struct Object {
+pub struct TiledObjectInstance {
     /// Unique ID of the object (defaults to 0,
     /// with valid IDs being at least 1). Each
     /// object that is placed on a map gets a

@@ -1,5 +1,6 @@
 # What's New:
 
+- Basic support for [Tiled](https://www.mapeditor.org/) (Experimental)
 - (De)Serializing for physics layers.
 - Unified the format of different tilemap layers.
 - Allow mapping texture index to animation for LDtk maps.
@@ -8,6 +9,7 @@
 - Removed redundant components in tilemap bundles and renamed `tilemap_transform` to `transform`.
 - Added bunch of new functions for aabbs.
 - Added `TilemapAxisFlip` to allow flipping the extend direction of tilemaps (currently square maps only).
+- Removed `LdtkLevelManager` when initializing LDtk entities.
 
 # What's Fixed:
 

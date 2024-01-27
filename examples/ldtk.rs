@@ -27,7 +27,7 @@ use bevy::{
 use bevy_entitiles::tilemap::tile::RawTileAnimation;
 use bevy_entitiles::{
     ldtk::{
-        app_ext::AppExt,
+        app_ext::LdtkApp,
         events::LdtkEvent,
         json::{field::FieldInstance, level::EntityInstance, EntityRef},
         layer::physics::LdtkPhysicsLayer,
@@ -223,8 +223,6 @@ fn player_spawn(
     _fields: &HashMap<String, FieldInstance>,
     // the asset server
     _asset_server: &AssetServer,
-    // the ldtk level manager, I think you are familiar with it
-    _ldtk_manager: &LdtkLevelManager,
     // the ldtk assets, like sprites and meshes
     _ldtk_assets: &LdtkAssets,
 ) {

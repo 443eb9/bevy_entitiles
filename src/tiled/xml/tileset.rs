@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, utils::HashMap};
+use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
@@ -207,5 +207,5 @@ pub struct TiledAnimationFrame {
     /// How long (in milliseconds) this frame should be
     /// displayed before advancing to the next frame.
     #[serde(rename = "@duration")]
-    pub duration: u32,   
+    pub duration: u32,
 }

@@ -3,10 +3,7 @@ use std::fmt::Formatter;
 use bevy::{math::Vec4, reflect::Reflect, render::color::Color};
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use self::{
-    default::*,
-    layer::{ObjectLayer, TiledLayer},
-};
+use self::{default::*, layer::TiledLayer};
 
 pub mod default;
 pub mod layer;
@@ -229,14 +226,6 @@ pub struct TilesetDef {
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
-pub enum GroupContent {
-    #[serde(rename = "layer")]
-    Layer(TiledLayer),
-    #[serde(rename = "objectgroup")]
-    Group(ObjectLayer),
-}
-
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub struct TiledGroup {
     /// Unique ID of the layer (defaults to 0, with valid
     /// IDs being at least 1). Each layer that added to a
@@ -318,7 +307,13 @@ pub struct TiledGroup {
     pub height: u32,
 
     #[serde(rename = "$value")]
-    pub content: Vec<GroupContent>,
+    #[serde(default)]
+    pub layers: Vec<TiledLayer>,
+
+    #[serde(rename = "group")]
+    #[serde(default)]
+    #[reflect(ignore)]
+    pub groups: Vec<TiledGroup>,
 }
 
 #[cfg(test)]

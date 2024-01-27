@@ -355,7 +355,6 @@ fn load_levels(
         level,
         entity_registry,
         entity_tag_registry,
-        manager,
         config,
         ldtk_assets,
         asset_server,

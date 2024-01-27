@@ -1,19 +1,19 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect};
+use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect, render::render_resource::ShaderType};
 
 use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 use super::{extension::Vec2Integerize, TileArea};
 
-#[derive(Clone, Copy, Default, Debug, Reflect)]
+#[derive(Clone, Copy, Default, Debug, Reflect, ShaderType)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct Aabb2d {
     pub min: Vec2,
     pub max: Vec2,
 }
 
-#[derive(Clone, Copy, Default, Debug, Reflect)]
+#[derive(Clone, Copy, Default, Debug, Reflect, ShaderType)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct IAabb2d {
     pub min: IVec2,

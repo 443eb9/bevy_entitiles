@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, utils::HashMap};
+use bevy::{reflect::Reflect, render::color::Color, utils::HashMap};
 use serde::{
     de::{IgnoredAny, Visitor},
     Deserialize, Serialize,
@@ -6,45 +6,10 @@ use serde::{
 
 use super::TiledColor;
 
-pub type FieldIdentifier = String;
-
-#[derive(Debug, Default, Clone, Reflect, Serialize)]
-pub struct Components(HashMap<String, ClassInstance>);
-
-impl<'de> Deserialize<'de> for Components {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct CustomPropertiesVisitor;
-        impl<'de> Visitor<'de> for CustomPropertiesVisitor {
-            type Value = Components;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a custom property")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::MapAccess<'de>,
-            {
-                let mut components = HashMap::default();
-                while let Some(key) = map.next_key::<String>()? {
-                    match key.as_str() {
-                        "property" => {
-                            let component = map.next_value::<ClassInstance>()?;
-                            components.insert(component.name.clone(), component);
-                        }
-                        _ => panic!("Unknown key: {}", key),
-                    }
-                }
-
-                Ok(Components(components))
-            }
-        }
-
-        deserializer.deserialize_map(CustomPropertiesVisitor)
-    }
+#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize)]
+pub struct Components {
+    #[serde(rename = "property")]
+    pub instances: Vec<ClassInstance>,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize)]
@@ -143,6 +108,8 @@ impl<'de> Deserialize<'de> for PropertyInstance {
                 let mut name = None;
                 let mut ty = "string".to_string();
                 let mut value = None;
+                let mut enum_ty = None;
+
                 while let Some(key) = map.next_key::<String>()? {
                     match key.as_str() {
                         "@name" => {
@@ -170,21 +137,31 @@ impl<'de> Deserialize<'de> for PropertyInstance {
                             "object" => {
                                 value = Some(PropertyValue::ObjectRef(map.next_value::<u32>()?));
                             }
-                            _ => unreachable!(),
+                            _ => {
+                                panic!(
+                                    "Seems like there is a nested custom class type {} \
+                                    in the property {} which is not supported yet.",
+                                    map.next_value::<String>()?,
+                                    name.unwrap()
+                                );
+                            }
                         },
                         "@propertytype" => {
-                            panic!(
-                                "Seems like there is a nested custom class type {} \
-                                in the property {} which is not supported yet.",
-                                map.next_value::<String>()?,
-                                name.unwrap()
-                            );
+                            enum_ty = Some(map.next_value::<String>()?);
                         }
                         "property" => {
                             return map.next_value::<PropertyInstance>();
                         }
                         _ => panic!("Unknown key for PropertyInstance: {}", key),
                     }
+                }
+
+                if let Some(enum_name) = enum_ty {
+                    let PropertyValue::String(variant) = value.unwrap() else {
+                        unreachable!()
+                    };
+
+                    value = Some(PropertyValue::Enum(enum_name, variant));
                 }
 
                 Ok(PropertyInstance {
@@ -196,6 +173,35 @@ impl<'de> Deserialize<'de> for PropertyInstance {
         }
 
         deserializer.deserialize_map(PropertyInstanceVisitor)
+    }
+}
+
+macro_rules! impl_into {
+    ($ty:ty, $variant:ident) => {
+        impl Into<$ty> for PropertyInstance {
+            fn into(self) -> $ty {
+                match self.value {
+                    PropertyValue::$variant(x) => x,
+                    _ => panic!("Expected {} value!", stringify!($variant)),
+                }
+            }
+        }
+    };
+}
+
+impl_into!(i32, Int);
+impl_into!(f32, Float);
+impl_into!(bool, Bool);
+impl_into!(String, String);
+impl_into!(TiledColor, Color);
+impl_into!(u32, ObjectRef);
+
+impl Into<Color> for PropertyInstance {
+    fn into(self) -> Color {
+        match self.value {
+            PropertyValue::Color(x) => x.into(),
+            _ => panic!("Expected Color value!"),
+        }
     }
 }
 

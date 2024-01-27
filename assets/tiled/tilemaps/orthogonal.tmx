@@ -3,7 +3,7 @@
  <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
  <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
  <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
- <imagelayer id="2" name="TestImage" offsetx="47.5909" offsety="34.1364">
+ <imagelayer id="2" name="TestImage" offsetx="47.5909" offsety="34.1364" repeatx="1" repeaty="1">
   <image source="../beautiful-image.png" width="256" height="128"/>
  </imagelayer>
  <layer id="1" name="Base" width="30" height="20">
@@ -31,43 +31,32 @@
 </data>
  </layer>
  <group id="3" name="Objects">
-  <objectgroup id="4" name="Detect">
-   <object id="1" name="DetectBridge" type="DetestArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13"/>
-   <object id="3" name="DetectTorch" type="DetectArea" x="43.3636" y="62">
+  <objectgroup id="4" name="Region">
+   <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13" visible="0"/>
+   <object id="3" name="Torch" type="DetectArea" x="43.3636" y="62" visible="0">
     <ellipse/>
    </object>
-   <object id="4" name="DetectWaterFall" type="DetectArea" x="136" y="88">
+   <object id="4" name="WaterFall" type="DetectArea" x="136" y="88" visible="0">
     <polygon points="0,0 0,32 -8,32 -8,48 16,48 16,32 8,32 8,0"/>
    </object>
   </objectgroup>
-  <objectgroup draworder="index" id="5" name="Tiles">
-   <object id="7" name="StackingA" type="Isometric" gid="389" x="59.6825" y="44.3392" width="32" height="16" rotation="79.116"/>
-   <object id="5" name="BlockTest" type="Square" gid="2147484033" x="64" y="80" width="16" height="16">
+  <objectgroup id="5" name="Tiles">
+   <object id="7" name="StackingA" type="PlainBlock" gid="389" x="59.6825" y="44.3392" width="32" height="16" rotation="79.116"/>
+   <object id="5" name="BlockTest" type="PlainBlock" gid="2147484033" x="64" y="80" width="16" height="16"/>
+   <object id="6" name="BlockProps" type="Block" gid="386" x="136" y="72" width="16" height="16">
     <properties>
      <property name="Block" type="class" propertytype="Block">
       <properties>
-       <property name="Name" value="SampleEnemy"/>
-       <property name="hp" type="float" value="10"/>
+       <property name="Collision" type="bool" value="true"/>
+       <property name="Hardness" type="float" value="20"/>
+       <property name="Name" value="Box"/>
+       <property name="Shape" propertytype="ShapeType" value="Square"/>
+       <property name="Tint" type="color" value="#ff443eb9"/>
       </properties>
      </property>
     </properties>
    </object>
-   <object id="6" name="BlockProps" type="Square" gid="386" x="136" y="72" width="16" height="16"/>
-   <object id="8" name="StackingB" type="Isometric" gid="390" x="69.125" y="85.5" width="32" height="16">
-    <properties>
-     <property name="Component" type="class" propertytype="AnotherSquare">
-      <properties>
-       <property name="Descrption" value="Test"/>
-       <property name="hp" type="float" value="50"/>
-       <property name="level" type="int" value="2"/>
-       <property name="rigid_body" type="bool" value="true"/>
-       <property name="target" type="object" value="7"/>
-       <property name="texture" type="file" value="../test_square.png"/>
-       <property name="tint" type="color" value="#1e6e44d8"/>
-      </properties>
-     </property>
-    </properties>
-   </object>
+   <object id="8" name="StackingB" type="PlainBlock" gid="390" x="69.125" y="85.5" width="32" height="16"/>
   </objectgroup>
  </group>
 </map>

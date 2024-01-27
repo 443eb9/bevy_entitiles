@@ -13,78 +13,33 @@
         {
             "color": "#ffa0a0a4",
             "drawFill": true,
-            "id": 4,
+            "id": 6,
             "members": [
                 {
-                    "name": "Descrption",
-                    "type": "string",
-                    "value": ""
-                },
-                {
-                    "name": "Type",
-                    "propertyType": "EntityType",
-                    "type": "string",
-                    "value": "Player"
-                },
-                {
-                    "name": "hp",
-                    "type": "float",
-                    "value": 0
-                },
-                {
-                    "name": "level",
-                    "type": "int",
-                    "value": 0
-                },
-                {
-                    "name": "rigid_body",
+                    "name": "Collision",
                     "type": "bool",
                     "value": false
                 },
                 {
-                    "name": "target",
-                    "type": "object",
+                    "name": "Hardness",
+                    "type": "float",
                     "value": 0
                 },
-                {
-                    "name": "texture",
-                    "type": "file",
-                    "value": ""
-                },
-                {
-                    "name": "tint",
-                    "type": "color",
-                    "value": ""
-                }
-            ],
-            "name": "AnotherSquare",
-            "type": "class",
-            "useAs": [
-                "property",
-                "map",
-                "layer",
-                "object",
-                "tile",
-                "tileset",
-                "wangcolor",
-                "wangset",
-                "project"
-            ]
-        },
-        {
-            "color": "#ffa0a0a4",
-            "drawFill": true,
-            "id": 1,
-            "members": [
                 {
                     "name": "Name",
                     "type": "string",
                     "value": ""
                 },
                 {
-                    "name": "hp",
-                    "type": "float",
-                    "value": 0
+                    "name": "Shape",
+                    "propertyType": "ShapeType",
+                    "type": "string",
+                    "value": "Square"
+                },
+                {
+                    "name": "Tint",
+                    "type": "color",
+                    "value": ""
                 }
             ],
             "name": "Block",
@@ -102,13 +57,16 @@
             ]
         },
         {
-            "id": 2,
-            "name": "EntityType",
+            "id": 5,
+            "name": "ShapeType",
             "storageType": "string",
             "type": "enum",
             "values": [
-                "Player",
-                "Enemy"
+                "Square",
+                "Isometry",
+                "Hexagon",
+                "Polygon",
+                "Eclipse"
             ],
             "valuesAsFlags": false
         }

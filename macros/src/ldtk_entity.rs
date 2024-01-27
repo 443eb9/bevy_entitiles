@@ -43,7 +43,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 syn::Meta::List(meta) => {
                     let func = &meta.tokens;
                     quote::quote!(
-                        #func(commands, entity_instance, fields, asset_server, ldtk_manager, ldtk_assets);
+                        #func(commands, entity_instance, fields, asset_server, ldtk_assets);
                     )
                 }
                 _ => {
@@ -115,7 +115,6 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
                 entity_instance: &bevy_entitiles::ldtk::json::level::EntityInstance,
                 fields: &bevy::utils::HashMap<String, bevy_entitiles::ldtk::json::field::FieldInstance>,
                 asset_server: &bevy::prelude::AssetServer,
-                ldtk_manager: &bevy_entitiles::ldtk::resources::LdtkLevelManager,
                 ldtk_assets: &bevy_entitiles::ldtk::resources::LdtkAssets,
             ) {
                 #callback

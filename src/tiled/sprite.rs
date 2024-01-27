@@ -5,6 +5,8 @@ use bevy::{
     sprite::Material2d,
 };
 
+use crate::math::aabb::Aabb2d;
+
 use super::TILED_SPRITE_SHADER;
 
 #[derive(AsBindGroup, Asset, Debug, Clone, Reflect)]
@@ -12,6 +14,8 @@ pub struct TiledSpriteMaterial {
     #[texture(0)]
     #[sampler(1)]
     pub image: Handle<Image>,
+    #[uniform(2)]
+    pub atlas: Aabb2d,
 }
 
 impl Material2d for TiledSpriteMaterial {
