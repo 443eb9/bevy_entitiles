@@ -251,19 +251,30 @@ impl Aabb2d {
                      */
                     let Vec2 { x: a, y: b } = slot_size;
                     let c = c as f32;
-                    let Vec2 { x, y } = chunk_index;
+                    let Vec2 { x, y } = chunk_index * axis;
                     let n = chunk_size;
 
                     let min = Vec2 {
-                        x: a * x * n - a / 2. * y * n - (n / 2. - 1.) * a - a / 2.,
+                        x: a * n * (x - y / 2.) - (n / 2. - 0.5) * a,
                         y: (b + c) / 2. * y * n,
                     };
                     let max = Vec2 {
-                        x: a * x * n - a / 2. * y * n + 1. * a * n,
+                        x: a * n * (x - y / 2. + 1.),
                         y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
                     };
 
-                    Aabb2d { min, max }
+                    let flip_offset = Vec2 {
+                        x: ((flipped.x - flipped.y / 2.) * (chunk_size - 1.)) * a,
+                        y: (b + c) / 2. * flipped.y * (chunk_size - 1.),
+                    };
+
+                    let center = (min + max) / 2. - pivot_offset + flip_offset;
+                    let half_chunk_render_size = (max - min) / 2.;
+
+                    Aabb2d {
+                        min: center - half_chunk_render_size,
+                        max: center + half_chunk_render_size,
+                    }
                 }
             }
             .justified(),

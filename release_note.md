@@ -19,3 +19,4 @@
 - Wfc module panics if fail.
 - Compilation bug due to winit v0.28.7 #8
 - Fix broken link in README.md #9
+- Hexagonal tilemaps are not affected by `TilemapPivot`.
