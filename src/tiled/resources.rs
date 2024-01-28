@@ -406,7 +406,6 @@ impl TiledAssets {
                         }),
                     );
 
-                let origin = Vec2::new(layer.offset_x, -layer.offset_y);
                 let image_size = Vec2::new(layer.image.width as f32, layer.image.height as f32);
                 let image_verts = vec![
                     Vec2::ZERO,
@@ -415,9 +414,10 @@ impl TiledAssets {
                     Vec2::new(0., -image_size.y),
                 ];
                 let image_uvs = vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
+                let tile_size = Vec2::new(map.xml.tile_width as f32, map.xml.tile_height as f32);
                 let map_size = coordinates::calculate_map_size(
                     UVec2::new(map.xml.width, map.xml.height),
-                    Vec2::new(map.xml.tile_width as f32, map.xml.tile_height as f32),
+                    tile_size,
                     match map.xml.orientation {
                         MapOrientation::Orthogonal => TilemapType::Square,
                         MapOrientation::Isometric => TilemapType::Isometric,
@@ -427,12 +427,21 @@ impl TiledAssets {
                         }
                     },
                 );
+
                 // TODO compatible with infinite maps
-                let map_origin = Vec2::ZERO;
+                let map_origin = match map.xml.orientation {
+                    MapOrientation::Orthogonal => Vec2::ZERO,
+                    MapOrientation::Isometric => {
+                        Vec2::new(-(map.xml.height as f32) / 2. * tile_size.x, 0.)
+                    }
+                    MapOrientation::Staggered => todo!(),
+                    MapOrientation::Hexagonal => todo!(),
+                };
                 let map_area = Aabb2d {
                     min: Vec2::new(map_origin.x, map_origin.y - map_size.y),
                     max: Vec2::new(map_origin.x + map_size.x, map_origin.y - map_origin.y),
                 };
+                let origin = Vec2::new(layer.offset_x, -layer.offset_y) + map_origin;
                 let unit_indices = vec![0, 3, 1, 1, 3, 2];
 
                 let mut vertices =
@@ -472,7 +481,6 @@ impl TiledAssets {
                     let up = ((map_area.max.y - origin.y) / image_size.y).ceil_to_u32();
                     let down = ((origin.y - map_area.min.y) / image_size.y).ceil_to_u32();
                     let repeat_origin_y = origin.y - (down as f32 - 1.) * image_size.y;
-                    dbg!(repeat_origin_y, origin.y, map_area, up, down);
                     for i in 0..(up + down) {
                         origin_images.iter().for_each(|image| {
                             let unclipped_uvs = image_uvs.clone();

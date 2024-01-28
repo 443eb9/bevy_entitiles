@@ -1,8 +1,16 @@
 use bevy::{
-    app::{Plugin, PreStartup, Update}, asset::{load_internal_asset, AssetServer, Assets, Handle}, ecs::{
+    app::{Plugin, PreStartup, Update},
+    asset::{load_internal_asset, AssetServer, Assets, Handle},
+    ecs::{
         entity::Entity,
+        query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
-    }, math::{IVec2, Vec2}, render::{mesh::Mesh, render_resource::Shader}, sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle}, transform::components::Transform
+    },
+    math::{IVec2, Vec2},
+    render::{mesh::Mesh, render_resource::Shader},
+    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
+    transform::components::Transform,
+    utils::HashMap,
 };
 
 use crate::{
@@ -11,15 +19,15 @@ use crate::{
         buffers::TileBuilderBuffer,
         bundles::TilemapBundle,
         map::{
-            TileRenderSize, TilemapAxisFlip, TilemapName, TilemapSlotSize, TilemapStorage,
-            TilemapTransform, TilemapType,
+            TilePivot, TileRenderSize, TilemapAxisFlip, TilemapName, TilemapSlotSize,
+            TilemapStorage, TilemapTransform, TilemapType,
         },
     },
     DEFAULT_CHUNK_SIZE,
 };
 
 use self::{
-    components::TiledLoader,
+    components::{TiledLoadedTilemap, TiledLoader, TiledUnloadLayer, TiledUnloader},
     resources::{PackedTiledTilemap, TiledAssets, TiledLoadConfig, TiledTilemapManger},
     sprite::TiledSpriteMaterial,
     xml::{
@@ -60,7 +68,10 @@ impl Plugin for EntiTilesTiledPlugin {
             .register_type::<TiledAssets>()
             .register_type::<TiledTilemapManger>();
 
-        app.add_systems(Update, load_tiled_xml);
+        app.add_systems(
+            Update,
+            (unload_tiled_layer, unload_tiled_tilemap, load_tiled_xml),
+        );
 
         app.init_non_send_resource::<TiledObjectRegistry>();
     }
@@ -68,6 +79,29 @@ impl Plugin for EntiTilesTiledPlugin {
 
 fn parse_tiled_xml(mut manager: ResMut<TiledTilemapManger>, config: Res<TiledLoadConfig>) {
     manager.reload_xml(&config);
+}
+
+fn unload_tiled_tilemap(
+    mut commands: Commands,
+    tilemaps_query: Query<(Entity, &TiledLoadedTilemap), With<TiledUnloader>>,
+) {
+    tilemaps_query.for_each(|(entity, tilemap)| {
+        tilemap.unload(&mut commands);
+        commands.entity(entity).despawn();
+    });
+}
+
+fn unload_tiled_layer(
+    mut commands: Commands,
+    mut layers_query: Query<(Entity, Option<&mut TilemapStorage>), With<TiledUnloadLayer>>,
+) {
+    layers_query.for_each_mut(|(entity, storage)| {
+        if let Some(mut st) = storage {
+            st.despawn(&mut commands);
+        } else {
+            commands.entity(entity).despawn();
+        }
+    });
 }
 
 fn load_tiled_xml(
@@ -98,6 +132,7 @@ fn load_tiled_xml(
             &asset_server,
             &loader,
             &object_registry,
+            entity,
         );
 
         commands.entity(entity).remove::<TiledLoader>();
@@ -112,8 +147,14 @@ fn load_tiled_tilemap(
     asset_server: &AssetServer,
     loader: &TiledLoader,
     object_registry: &TiledObjectRegistry,
+    map_entity: Entity,
 ) {
     let tiled_data = manager.get_cached_data().get(&loader.map).unwrap();
+    let mut loaded_map = TiledLoadedTilemap {
+        map: tiled_data.name.clone(),
+        layers: HashMap::default(),
+        objects: HashMap::default(),
+    };
 
     tiled_data.xml.layers.iter().for_each(|layer| {
         load_layer(
@@ -124,6 +165,7 @@ fn load_tiled_tilemap(
             asset_server,
             object_registry,
             config,
+            &mut loaded_map,
         )
     });
 
@@ -136,8 +178,11 @@ fn load_tiled_tilemap(
             asset_server,
             object_registry,
             config,
+            &mut loaded_map,
         )
     });
+
+    commands.entity(map_entity).insert(loaded_map);
 }
 
 fn load_group(
@@ -148,6 +193,7 @@ fn load_group(
     asset_server: &AssetServer,
     object_registry: &TiledObjectRegistry,
     config: &TiledLoadConfig,
+    loaded_map: &mut TiledLoadedTilemap,
 ) {
     group.layers.iter().for_each(|content| {
         load_layer(
@@ -158,6 +204,7 @@ fn load_group(
             asset_server,
             object_registry,
             config,
+            loaded_map,
         )
     });
 
@@ -170,6 +217,7 @@ fn load_group(
             asset_server,
             object_registry,
             config,
+            loaded_map,
         )
     });
 }
@@ -182,6 +230,7 @@ fn load_layer(
     asset_server: &AssetServer,
     object_registry: &TiledObjectRegistry,
     config: &TiledLoadConfig,
+    loaded_map: &mut TiledLoadedTilemap,
 ) {
     match layer {
         TiledLayer::Tiles(layer) => {
@@ -209,7 +258,18 @@ fn load_layer(
                     layer.offset_x as f32,
                     layer.offset_y as f32,
                 )),
-                axis_flip: TilemapAxisFlip::Y,
+                axis_flip: match tiled_data.xml.orientation {
+                    MapOrientation::Orthogonal => TilemapAxisFlip::Y,
+                    MapOrientation::Isometric => TilemapAxisFlip::all(),
+                    MapOrientation::Staggered => todo!(),
+                    MapOrientation::Hexagonal => todo!(),
+                },
+                tile_pivot: match tiled_data.xml.orientation {
+                    MapOrientation::Orthogonal => Default::default(),
+                    MapOrientation::Isometric => TilePivot(Vec2::new(0.5, 0.)),
+                    MapOrientation::Staggered => todo!(),
+                    MapOrientation::Hexagonal => todo!(),
+                },
                 ..Default::default()
             };
 
@@ -219,7 +279,7 @@ fn load_layer(
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
-                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data.name)
+                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data)
                         .for_each(|(index, builder)| {
                             buffer.set(index, builder);
                         });
@@ -231,7 +291,7 @@ fn load_layer(
 
                         chunk
                             .tiles
-                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data.name)
+                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data)
                             .for_each(|(index, builder)| {
                                 buffer.set(index + offset, builder);
                             });
@@ -243,6 +303,8 @@ fn load_layer(
                 .storage
                 .fill_with_buffer(commands, IVec2::ZERO, buffer);
             commands.entity(entity).insert(tilemap);
+
+            loaded_map.layers.insert(layer.id, entity);
         }
         TiledLayer::Objects(layer) => {
             layer.objects.iter().for_each(|obj| {
@@ -270,6 +332,8 @@ fn load_layer(
                     tiled_assets,
                     tiled_data.name.clone(),
                 );
+
+                loaded_map.objects.insert(obj.id, entity.id());
             });
         }
         TiledLayer::Image(layer) => {
@@ -278,12 +342,16 @@ fn load_layer(
                 tiled_assets.clone_image_layer_material_handle(&tiled_data.name, layer.id),
             );
 
-            commands.spawn(MaterialMesh2dBundle {
-                mesh: Mesh2dHandle(mesh),
-                material,
-                transform: Transform::from_xyz(0., 0., z),
-                ..Default::default()
-            });
+            let entity = commands
+                .spawn(MaterialMesh2dBundle {
+                    mesh: Mesh2dHandle(mesh),
+                    material,
+                    transform: Transform::from_xyz(0., 0., z),
+                    ..Default::default()
+                })
+                .id();
+
+            loaded_map.layers.insert(layer.id, entity);
         }
         TiledLayer::Other => {}
     }

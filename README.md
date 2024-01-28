@@ -4,7 +4,7 @@ A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
 Try to be the most **comprehensive**, **performant**, and **up-to-date** 2d tilemap crate for bevy.
 
-This repo is under maintenance as long as this message exists. ( Hope this message can bring you peace of mind. Yeah, that's childish :p )
+This repo is under maintenance as long as this message exists!!
 
 It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
 

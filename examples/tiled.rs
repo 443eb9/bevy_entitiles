@@ -1,11 +1,12 @@
 use bevy::{
-    app::{App, PluginGroup, Startup},
+    app::{App, PluginGroup, Startup, Update},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         bundle::Bundle,
         component::Component,
-        system::{Commands, ResMut},
+        system::{Commands, Res, ResMut},
     },
+    input::{keyboard::KeyCode, Input},
     render::{color::Color, texture::ImagePlugin},
     DefaultPlugins,
 };
@@ -13,7 +14,6 @@ use bevy_entitiles::{
     tiled::{
         app_ext::TiledApp,
         resources::{TiledLoadConfig, TiledTilemapManger},
-        xml::TiledTilemap,
     },
     EntiTilesPlugin,
 };
@@ -29,6 +29,7 @@ fn main() {
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, switching)
         .insert_resource(TiledLoadConfig {
             map_path: vec![
                 "assets/tiled/tilemaps/hexagonal.tmx".to_string(),
@@ -43,13 +44,31 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, mut manager: ResMut<TiledTilemapManger>) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
+}
 
-    // manager.switch_to(&mut commands, "hexagonal".to_string(), None);
-    // manager.switch_to(&mut commands, "infinite".to_string(), None);
-    // manager.switch_to(&mut commands, "orthogonal".to_string(), None);
-    manager.switch_to(&mut commands, "isometric".to_string(), None);
+macro_rules! map_switching {
+    ($key:ident, $map:expr, $input:expr, $manager:expr, $commands:expr) => {
+        if $input.just_pressed(KeyCode::$key) {
+            $manager.switch_to(&mut $commands, $map.to_string(), None);
+        }
+    };
+}
+
+fn switching(
+    mut commands: Commands,
+    mut manager: ResMut<TiledTilemapManger>,
+    input: Res<Input<KeyCode>>,
+) {
+    // not supported
+    // map_switching!(Key1, "hexagonal", input, manager, commands);
+    
+    // not fully supported
+    map_switching!(Key2, "infinite", input, manager, commands);
+
+    map_switching!(Key3, "orthogonal", input, manager, commands);
+    map_switching!(Key4, "isometric", input, manager, commands);
 }
 
 #[derive(Bundle)]

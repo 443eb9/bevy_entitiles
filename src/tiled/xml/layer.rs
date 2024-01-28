@@ -7,14 +7,14 @@ use bevy::{
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::{
-    tiled::resources::TiledAssets,
+    tiled::resources::{PackedTiledTilemap, TiledAssets},
     tilemap::{
         bundles::TilemapBundle,
         tile::{RawTileAnimation, TileBuilder, TileLayer},
     },
 };
 
-use super::{default::*, property::Components, TiledColor};
+use super::{default::*, property::Components, MapOrientation, TiledColor};
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub enum TiledLayer {
@@ -269,7 +269,7 @@ impl Tiles {
         size: IVec2,
         tiled_assets: &'a TiledAssets,
         layer_tilemap: &'a mut TilemapBundle,
-        tiled_name: &'a str,
+        tiled_data: &'a PackedTiledTilemap,
     ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
         let mut tileset = None;
         let mut first_gid = 0;
@@ -283,7 +283,7 @@ impl Tiles {
 
                 let texture = *texture;
                 let tileset = tileset.unwrap_or_else(|| {
-                    let (ts, gid) = tiled_assets.get_tileset(texture, tiled_name);
+                    let (ts, gid) = tiled_assets.get_tileset(texture, &tiled_data.name);
                     tileset = Some(ts);
                     first_gid = gid;
                     layer_tilemap.texture = ts.texture.clone();
@@ -323,10 +323,16 @@ impl Tiles {
                     tileset.xml.tile_count - 1
                 );
 
-                Some((
-                    IVec2::new(index as i32 % size.x, index as i32 / size.x),
-                    builder,
-                ))
+                let mut index = IVec2::new(index as i32 % size.x, index as i32 / size.x);
+
+                match tiled_data.xml.orientation {
+                    MapOrientation::Orthogonal => {},
+                    MapOrientation::Isometric => index = IVec2::new(index.y, index.x),
+                    MapOrientation::Staggered => todo!(),
+                    MapOrientation::Hexagonal => todo!(),
+                }
+
+                Some((index, builder))
             })
     }
 }

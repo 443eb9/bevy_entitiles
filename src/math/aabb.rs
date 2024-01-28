@@ -2,10 +2,7 @@ use std::ops::{Add, Div, Mul, Sub};
 
 use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect, render::render_resource::ShaderType};
 
-use crate::tilemap::{
-    coordinates,
-    map::{TilemapAxisFlip, TilemapTransform, TilemapType},
-};
+use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 use super::{extension::Vec2Integerize, TileArea};
 
@@ -231,7 +228,7 @@ impl Aabb2d {
                         } else {
                             flipped.x * (chunk_size / 2. - 1.) - flipped.y * chunk_size / 2.
                         },
-                        y: (flipped.x + flipped.y) * (chunk_size - 1.) / 2.,
+                        y: (flipped.x + flipped.y) * chunk_size / 2.,
                     } * slot_size;
 
                     let center = Vec2 {
