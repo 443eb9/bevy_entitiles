@@ -14,6 +14,6 @@ Each chapter is short, so hopefully you'll be able to use the crate after readin
 - [Rendering](./chapter02_rendering.md)
 - [Algorithms](./chapter03_algorithms.md)
 - [Physics](./chapter04_physics.md)
-- [Save and Read](./chapter05_serializing.md)
+- [Save and Load](./chapter05_serializing.md)
 - [Importing maps from LDtk](./chapter06_ldtk_import.md)
 - [Importing maps from Tiled] This section is still under development and will be written when it is finished.

@@ -8,7 +8,6 @@
 - 完整的了解路线
 
 每一章都不长，希望你看完之后能够熟练使用本crate！如果你发现任何已过时的内容或错字之类的问题，欢迎提交issue或pr！
-**For English speakers: Each chapter has its English version after the Chinese version. It's translated by ChatGPT so I cannot grant its accuracy.**
 
 # 目录
 - [基本API](./chapter01_basic.md)
