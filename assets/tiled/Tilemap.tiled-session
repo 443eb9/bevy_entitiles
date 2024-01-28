@@ -6,9 +6,9 @@
     "activeFile": "tilemaps/isometric.tmx",
     "expandedProjectPaths": [
         "tilesets",
-        "tilemaps",
+        ".",
         "world_test",
-        "."
+        "tilemaps"
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -159,8 +159,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 98.66666666666666,
-                "y": 20.5
+                "x": 105.33333333333333,
+                "y": 93.5
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -183,8 +183,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 109.66666666666666,
-                "y": 122.83333333333333
+                "x": 117.16666666666666,
+                "y": 77.16666666666666
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
