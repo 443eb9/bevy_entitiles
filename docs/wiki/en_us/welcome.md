@@ -10,6 +10,7 @@ You'll get a detailed explanation of the crate here including but not limited to
 Each chapter is short, so hopefully you'll be able to use the crate after reading it! If you find any outdated content or typos, feel free to submit an issue or pr!
 
 # Catalog
+
 - [Basic API](./chapter01_basic.md)
 - [Rendering](./chapter02_rendering.md)
 - [Algorithms](./chapter03_algorithms.md)

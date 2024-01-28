@@ -10,6 +10,7 @@
 每一章都不长，希望你看完之后能够熟练使用本crate！如果你发现任何已过时的内容或错字之类的问题，欢迎提交issue或pr！
 
 # 目录
+
 - [基本API](./chapter01_basic.md)
 - [渲染](./chapter02_rendering.md)
 - [算法](./chapter03_algorithms.md)
