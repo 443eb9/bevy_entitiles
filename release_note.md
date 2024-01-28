@@ -10,6 +10,7 @@
 - Added bunch of new functions for aabbs.
 - Added `TilemapAxisFlip` which allows you to flipping the extend direction of tilemaps.
 - Removed `LdtkLevelManager` when initializing LDtk entities.
+- Removed `TileCollision` event.
 
 # What's Fixed:
 

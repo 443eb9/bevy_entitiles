@@ -3,13 +3,12 @@ use bevy::{
     asset::Assets,
     ecs::{
         component::Component,
-        event::EventReader,
         query::With,
         system::{Query, ResMut},
     },
     input::{keyboard::KeyCode, Input},
     math::{IVec2, Vec3},
-    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Update, Vec2},
+    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::{
         color::Color,
         mesh::{shape::Circle, Mesh},
@@ -28,7 +27,7 @@ use bevy_entitiles::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
         },
-        physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap, TileCollision},
+        physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
@@ -51,7 +50,6 @@ fn main() {
             PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, collision_events)
         .add_systems(FixedUpdate, character_move)
         .run();
 }
@@ -186,12 +184,6 @@ fn setup(
         LinearVelocity::ZERO,
         Character,
     ));
-}
-
-fn collision_events(mut collision: EventReader<TileCollision>) {
-    for c in collision.read() {
-        println!("Collision: {:?}", c);
-    }
 }
 
 #[derive(Component)]

@@ -1,24 +1,13 @@
 use bevy::{
     app::{App, Plugin, Update},
-    ecs::{
-        component::Component,
-        entity::Entity,
-        event::{Event, EventReader, EventWriter},
-        system::{Commands, Query},
-    },
+    ecs::{component::Component, entity::Entity, system::Commands},
     math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
     utils::HashMap,
 };
-use bevy_xpbd_2d::{
-    components::{Collider, Friction, RigidBody},
-    plugins::collision::contact_reporting::{CollisionEnded, CollisionStarted},
-};
+use bevy_xpbd_2d::components::{Collider, Friction, RigidBody};
 
-use crate::{
-    math::{aabb::IAabb2d, TileArea},
-    tilemap::tile::Tile,
-};
+use crate::math::{aabb::IAabb2d, TileArea};
 
 use super::{
     buffers::{PhysicsTileBuffer, Tiles},
@@ -35,17 +24,12 @@ impl Plugin for EntiTilesPhysicsTilemapPlugin {
         app.add_systems(
             Update,
             (
-                collision_handler,
                 systems::spawn_colliders,
                 systems::data_physics_tilemap_analyzer,
             ),
         );
 
-        app.add_event::<TileCollision>();
-
-        app.register_type::<TileCollision>()
-            .register_type::<CollisionData>()
-            .register_type::<PhysicsTilemap>()
+        app.register_type::<PhysicsTilemap>()
             .register_type::<DataPhysicsTilemap>()
             .register_type::<PhysicsTile>();
     }
@@ -291,55 +275,4 @@ impl PhysicsTilemap {
                 .map(|(index, tile)| (IAabb2d::splat(index + origin), tile)),
         );
     }
-}
-
-#[derive(Event, Debug, Reflect)]
-pub enum TileCollision {
-    Started(CollisionData),
-    Stopped(CollisionData),
-}
-
-#[derive(Debug, Reflect, Clone)]
-pub struct CollisionData {
-    pub tile_index: IVec2,
-    pub tile_entity: Entity,
-    pub collider_entity: Entity,
-}
-
-fn get_collision(e1: Entity, e2: Entity, query: &Query<&Tile>) -> Option<CollisionData> {
-    let (e_tile, e_other, tile) = {
-        if let Ok(t) = query.get(e1) {
-            (e1, e2, t)
-        } else if let Ok(t) = query.get(e2) {
-            (e2, e1, t)
-        } else {
-            return None;
-        }
-    };
-
-    Some(CollisionData {
-        tile_index: tile.index,
-        tile_entity: e_tile,
-        collider_entity: e_other,
-    })
-}
-
-pub fn collision_handler(
-    mut collision_start: EventReader<CollisionStarted>,
-    mut collision_end: EventReader<CollisionEnded>,
-    mut tile_collision: EventWriter<TileCollision>,
-    tiles_query: Query<&Tile>,
-) {
-    let mut colls = Vec::with_capacity(collision_start.len());
-    for c in collision_start.read() {
-        if let Some(data) = get_collision(c.0, c.1, &tiles_query) {
-            colls.push(TileCollision::Started(data));
-        }
-    }
-    for c in collision_end.read() {
-        if let Some(data) = get_collision(c.0, c.1, &tiles_query) {
-            colls.push(TileCollision::Stopped(data));
-        }
-    }
-    tile_collision.send_batch(colls);
 }

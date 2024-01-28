@@ -38,8 +38,10 @@ pub mod prelude {
         },
         map::{load::TilemapLoader, save::TilemapSaver},
     };
+    #[cfg(feature = "tiled")]
+    pub use crate::tiled::resources::{TiledLoadConfig, TiledTilemapManger};
     #[cfg(feature = "physics")]
-    pub use crate::tilemap::physics::TileCollision;
+    pub use crate::tilemap::physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap};
     pub use crate::tilemap::{
         bundles::{PureColorTilemapBundle, TilemapBundle},
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
