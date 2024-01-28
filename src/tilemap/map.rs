@@ -19,10 +19,7 @@ use crate::math::{
 use crate::tilemap::tile::RawTileAnimation;
 
 use super::{
-    buffers::TileBuilderBuffer,
-    chunking::storage::{ChunkedStorage, EntityChunkedStorage},
-    despawn::DespawnMe,
-    tile::{TileAnimation, TileBuilder, TileUpdater},
+    buffers::TileBuilderBuffer, chunking::storage::{ChunkedStorage, EntityChunkedStorage}, coordinates, despawn::DespawnMe, tile::{TileAnimation, TileBuilder, TileUpdater}
 };
 
 /// Defines the shape of tiles in a tilemap.

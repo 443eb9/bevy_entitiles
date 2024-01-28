@@ -8,7 +8,7 @@
 - Relaxed dependencies. #11
 - Removed redundant components in tilemap bundles and renamed `tilemap_transform` to `transform`.
 - Added bunch of new functions for aabbs.
-- Added `TilemapAxisFlip` to allow flipping the extend direction of tilemaps (currently square maps only).
+- Added `TilemapAxisFlip` to allow flipping the extend direction of tilemaps.
 - Removed `LdtkLevelManager` when initializing LDtk entities.
 
 # What's Fixed:

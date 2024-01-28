@@ -34,7 +34,7 @@ pub fn spawn_colliders(
                 commands.command_scope(|mut c| {
                     let vertices = coordinates::get_tile_collider_world(
                         aabb.min,
-                        ty,
+                        *ty,
                         aabb.size().as_uvec2(),
                         transform,
                         tile_pivot.0,

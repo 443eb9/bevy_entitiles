@@ -39,6 +39,7 @@ fn main() {
             ignore_unregisterd_objects: true,
         })
         .register_tiled_object::<BlockBundle>("Block")
+        .register_tiled_object::<PlainBlockBundle>("PlainBlock")
         .run();
 }
 
@@ -47,9 +48,47 @@ fn setup(mut commands: Commands, mut manager: ResMut<TiledTilemapManger>) {
 
     // manager.switch_to(&mut commands, "hexagonal".to_string(), None);
     // manager.switch_to(&mut commands, "infinite".to_string(), None);
-    manager.switch_to(&mut commands, "orthogonal".to_string(), None);
-    // manager.switch_to(&mut commands, "isometric".to_string(), None);
+    // manager.switch_to(&mut commands, "orthogonal".to_string(), None);
+    manager.switch_to(&mut commands, "isometric".to_string(), None);
 }
+
+#[derive(Bundle)]
+pub struct PlainBlockBundle {
+    pub block: PlainBlock,
+}
+
+impl bevy_entitiles::tiled::traits::TiledObject for PlainBlockBundle {
+    fn initialize(
+        commands: &mut bevy::ecs::system::EntityCommands,
+        object_instance: &bevy_entitiles::tiled::xml::layer::TiledObjectInstance,
+        components: &bevy::utils::HashMap<
+            String,
+            bevy_entitiles::tiled::xml::property::ClassInstance,
+        >,
+        asset_server: &bevy::prelude::AssetServer,
+        tiled_assets: &bevy_entitiles::tiled::resources::TiledAssets,
+        tiled_map: String,
+    ) {
+        if object_instance.visible {
+            let (mesh, z) = tiled_assets.clone_object_mesh_handle(&tiled_map, object_instance.id);
+            commands.insert(bevy::sprite::MaterialMesh2dBundle {
+                material: tiled_assets.clone_object_material_handle(&tiled_map, object_instance.id),
+                mesh: bevy::sprite::Mesh2dHandle(mesh),
+                transform: bevy::transform::components::Transform::from_xyz(
+                    object_instance.x,
+                    -object_instance.y,
+                    z,
+                ),
+                ..Default::default()
+            });
+        }
+
+        commands.insert(PlainBlock);
+    }
+}
+
+#[derive(Component)]
+pub struct PlainBlock;
 
 #[derive(Bundle)]
 pub struct BlockBundle {

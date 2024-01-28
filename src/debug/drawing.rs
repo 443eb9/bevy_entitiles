@@ -72,7 +72,7 @@ pub fn draw_path(
             gizmos.circle_2d(
                 crate::tilemap::coordinates::index_to_world(
                     *node,
-                    ty,
+                    *ty,
                     transform,
                     pivot.0,
                     slot_size.0,

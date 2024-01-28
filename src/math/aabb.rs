@@ -2,7 +2,10 @@ use std::ops::{Add, Div, Mul, Sub};
 
 use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect, render::render_resource::ShaderType};
 
-use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
+use crate::tilemap::{
+    coordinates,
+    map::{TilemapAxisFlip, TilemapTransform, TilemapType},
+};
 
 use super::{extension::Vec2Integerize, TileArea};
 
@@ -203,29 +206,39 @@ impl Aabb2d {
     ) -> Self {
         let pivot_offset = tile_pivot * slot_size;
         let chunk_index = chunk_index.as_vec2();
-        assert!(
-            axis_flip.is_empty() || ty == TilemapType::Square,
-            "Axis flip is only supported for square tilemaps currently."
-        );
         let axis = axis_flip.as_vec2();
+        let flipped = (axis - 1.) / 2.;
+        let chunk_size = chunk_size as f32;
 
         transform.transform_aabb(
             match ty {
                 TilemapType::Square => {
-                    let chunk_render_size = slot_size * chunk_size as f32;
+                    let chunk_render_size = slot_size * chunk_size;
                     Aabb2d {
                         min: chunk_index * chunk_render_size - pivot_offset,
                         max: (chunk_index + 1.) * chunk_render_size - pivot_offset,
                     } * axis
                 }
                 TilemapType::Isometric => {
-                    let half_chunk_render_size = chunk_size as f32 * slot_size / 2.;
+                    let chunk_index = chunk_index * axis;
+                    let half_chunk_render_size = chunk_size * slot_size / 2.;
                     let center_x = (chunk_index.x - chunk_index.y) * half_chunk_render_size.x;
                     let center_y = (chunk_index.x + chunk_index.y + 1.) * half_chunk_render_size.y;
+
+                    let flip_offset = Vec2 {
+                        x: if axis_flip.is_all() {
+                            0.5
+                        } else {
+                            flipped.x * (chunk_size / 2. - 1.) - flipped.y * chunk_size / 2.
+                        },
+                        y: (flipped.x + flipped.y) * (chunk_size - 1.) / 2.,
+                    } * slot_size;
+
                     let center = Vec2 {
                         x: center_x,
                         y: center_y,
-                    } - pivot_offset;
+                    } - pivot_offset
+                        + flip_offset;
 
                     Aabb2d {
                         min: center - half_chunk_render_size,
@@ -239,7 +252,7 @@ impl Aabb2d {
                     let Vec2 { x: a, y: b } = slot_size;
                     let c = c as f32;
                     let Vec2 { x, y } = chunk_index;
-                    let n = chunk_size as f32;
+                    let n = chunk_size;
 
                     let min = Vec2 {
                         x: a * x * n - a / 2. * y * n - (n / 2. - 1.) * a - a / 2.,

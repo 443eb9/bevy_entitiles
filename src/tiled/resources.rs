@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    f32::consts::PI,
+    path::{Path, PathBuf},
+};
 
 use bevy::{
     asset::{AssetServer, Assets, Handle},
@@ -18,7 +21,10 @@ use bevy::{
 
 use crate::{
     math::{aabb::Aabb2d, extension::F32Integerize},
-    tilemap::map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
+    tilemap::{
+        coordinates,
+        map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor, TilemapType},
+    },
     utils::asset::AssetPath,
 };
 
@@ -28,7 +34,7 @@ use super::{
     xml::{
         layer::TiledLayer,
         tileset::{TiledTile, TiledTileset},
-        TiledGroup, TiledTilemap,
+        MapOrientation, TiledGroup, TiledTilemap,
     },
 };
 
@@ -409,10 +415,24 @@ impl TiledAssets {
                     Vec2::new(0., -image_size.y),
                 ];
                 let image_uvs = vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
-                let map_size = Vec2::new(
-                    (map.xml.width * map.xml.tile_width) as f32,
-                    (map.xml.height * map.xml.tile_height) as f32,
+                let map_size = coordinates::calculate_map_size(
+                    UVec2::new(map.xml.width, map.xml.height),
+                    Vec2::new(map.xml.tile_width as f32, map.xml.tile_height as f32),
+                    match map.xml.orientation {
+                        MapOrientation::Orthogonal => TilemapType::Square,
+                        MapOrientation::Isometric => TilemapType::Isometric,
+                        MapOrientation::Staggered => TilemapType::Hexagonal(0),
+                        MapOrientation::Hexagonal => {
+                            TilemapType::Hexagonal(map.xml.hex_side_length)
+                        }
+                    },
                 );
+                // TODO compatible with infinite maps
+                let map_origin = Vec2::ZERO;
+                let map_area = Aabb2d {
+                    min: Vec2::new(map_origin.x, map_origin.y - map_size.y),
+                    max: Vec2::new(map_origin.x + map_size.x, map_origin.y - map_origin.y),
+                };
                 let unit_indices = vec![0, 3, 1, 1, 3, 2];
 
                 let mut vertices =
@@ -427,15 +447,15 @@ impl TiledAssets {
                     uvs.clear();
                     indices.clear();
 
-                    let left = (origin.x / image_size.x).ceil_to_u32();
-                    let right = ((map_size.x - origin.x) / image_size.x).ceil_to_u32();
+                    let left = ((origin.x - map_area.min.x) / image_size.x).ceil_to_u32();
+                    let right = ((map_area.max.x - origin.x) / image_size.x).ceil_to_u32();
                     let repeat_origin_x = origin.x - left as f32 * image_size.x;
                     for i in 0..(left + right) {
                         let unclipped_uvs = image_uvs.clone();
                         let unclipped_verts = image_verts
                             .iter()
                             .map(|v| *v + Vec2::new(i as f32 * image_size.x + repeat_origin_x, 0.))
-                            .collect::<Vec<Vec2>>();
+                            .collect();
 
                         uvs.push(unclipped_uvs);
                         vertices.push(unclipped_verts);
@@ -449,9 +469,10 @@ impl TiledAssets {
                     vertices.clear();
                     uvs.clear();
 
-                    let up = ((map_size.y - origin.y) / image_size.y).ceil_to_u32();
-                    let down = (origin.y / image_size.y).ceil_to_u32();
-                    let repeat_origin_y = origin.y - down as f32 * image_size.y;
+                    let up = ((map_area.max.y - origin.y) / image_size.y).ceil_to_u32();
+                    let down = ((origin.y - map_area.min.y) / image_size.y).ceil_to_u32();
+                    let repeat_origin_y = origin.y - (down as f32 - 1.) * image_size.y;
+                    dbg!(repeat_origin_y, origin.y, map_area, up, down);
                     for i in 0..(up + down) {
                         origin_images.iter().for_each(|image| {
                             let unclipped_uvs = image_uvs.clone();
@@ -460,7 +481,7 @@ impl TiledAssets {
                                 .map(|v| {
                                     *v + Vec2::new(0., i as f32 * image_size.y + repeat_origin_y)
                                 })
-                                .collect::<Vec<Vec2>>();
+                                .collect();
 
                             uvs.push(unclipped_uvs);
                             vertices.push(unclipped_verts);
@@ -545,7 +566,11 @@ impl TiledAssets {
                                         Vec2::ZERO,
                                     ]
                                     .into_iter()
-                                    .map(|v| v.extend(0.))
+                                    .map(|v| {
+                                        Vec2::from_angle(-object.rotation / 180. * PI)
+                                            .rotate(v)
+                                            .extend(0.)
+                                    })
                                     .collect::<Vec<_>>(),
                                 )
                                 .with_inserted_attribute(

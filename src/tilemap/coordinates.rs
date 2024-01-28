@@ -1,11 +1,11 @@
 use bevy::math::{IVec2, UVec2, Vec2};
 
-use super::map::{TilemapTransform, TilemapType};
+use super::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 /// Get the world position of the center of a slot.
 pub fn index_to_world(
     index: IVec2,
-    ty: &TilemapType,
+    ty: TilemapType,
     transform: &TilemapTransform,
     pivot: Vec2,
     slot_size: Vec2,
@@ -24,7 +24,7 @@ pub fn index_to_world(
             }
             TilemapType::Hexagonal(legs) => Vec2 {
                 x: slot_size.x * (index.x - 0.5 * index.y - pivot.x),
-                y: (slot_size.y + *legs as f32) / 2. * (index.y - pivot.y),
+                y: (slot_size.y + legs as f32) / 2. * (index.y - pivot.y),
             },
         }
     })
@@ -32,7 +32,7 @@ pub fn index_to_world(
 
 pub fn index_to_rel(
     index: IVec2,
-    ty: &TilemapType,
+    ty: TilemapType,
     transform: &TilemapTransform,
     pivot: Vec2,
     slot_size: Vec2,
@@ -41,7 +41,7 @@ pub fn index_to_rel(
 }
 
 pub fn get_tile_collider(
-    ty: &TilemapType,
+    ty: TilemapType,
     slot_size: Vec2,
     size: UVec2,
     transform: &TilemapTransform,
@@ -75,7 +75,7 @@ pub fn get_tile_collider(
                 x: slot_x,
                 y: slot_y,
             } = slot_size;
-            let leg_gap = slot_size.y / 2. - *leg as f32 / 2.;
+            let leg_gap = slot_size.y / 2. - leg as f32 / 2.;
 
             /*
              * /3\
@@ -131,7 +131,7 @@ pub fn get_tile_collider(
 
 pub fn get_tile_collider_world(
     origin: IVec2,
-    ty: &TilemapType,
+    ty: TilemapType,
     size: UVec2,
     transform: &TilemapTransform,
     pivot: Vec2,
@@ -142,4 +142,29 @@ pub fn get_tile_collider_world(
         .into_iter()
         .map(|v| v + offset)
         .collect()
+}
+
+pub fn calculate_map_size(size: UVec2, slot_size: Vec2, ty: TilemapType) -> Vec2 {
+    let size = size.as_vec2();
+    match ty {
+        TilemapType::Square => Vec2::new(size.x * slot_size.x, size.y * slot_size.y),
+        TilemapType::Isometric => (size.x + size.y) / 2. * slot_size,
+        TilemapType::Hexagonal(_) => todo!(),
+    }
+}
+
+pub fn get_tilemap_axis(ty: TilemapType, slot_size: Vec2, flip: TilemapAxisFlip) -> (Vec2, Vec2) {
+    let (x, y) = match ty {
+        TilemapType::Square => (Vec2::X, Vec2::Y),
+        TilemapType::Isometric => (
+            slot_size.normalize(),
+            Vec2::new(slot_size.x, -slot_size.y).normalize(),
+        ),
+        TilemapType::Hexagonal(leg) => (
+            Vec2::X,
+            Vec2::new(-slot_size.x, (slot_size.y + leg as f32) / 2.).normalize(),
+        ),
+    };
+    let flip = flip.as_vec2();
+    (x * flip.x, y * flip.y)
 }
