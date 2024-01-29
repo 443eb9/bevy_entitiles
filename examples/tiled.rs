@@ -61,12 +61,8 @@ fn switching(
     mut manager: ResMut<TiledTilemapManger>,
     input: Res<Input<KeyCode>>,
 ) {
-    // not supported
-    // map_switching!(Key1, "hexagonal", input, manager, commands);
-    
-    // not fully supported
+    map_switching!(Key1, "hexagonal", input, manager, commands); 
     map_switching!(Key2, "infinite", input, manager, commands);
-
     map_switching!(Key3, "orthogonal", input, manager, commands);
     map_switching!(Key4, "isometric", input, manager, commands);
 }

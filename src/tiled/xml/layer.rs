@@ -10,6 +10,7 @@ use crate::{
     tiled::resources::{PackedTiledTilemap, TiledAssets},
     tilemap::{
         bundles::TilemapBundle,
+        coordinates,
         tile::{RawTileAnimation, TileBuilder, TileLayer},
     },
 };
@@ -326,10 +327,14 @@ impl Tiles {
                 let mut index = IVec2::new(index as i32 % size.x, index as i32 / size.x);
 
                 match tiled_data.xml.orientation {
-                    MapOrientation::Orthogonal => {},
+                    MapOrientation::Orthogonal => {}
                     MapOrientation::Isometric => index = IVec2::new(index.y, index.x),
-                    MapOrientation::Staggered => todo!(),
-                    MapOrientation::Hexagonal => todo!(),
+                    _ => {
+                        index = coordinates::destaggerize_index(
+                            index,
+                            tiled_data.xml.stagger_index.into(),
+                        );
+                    }
                 }
 
                 Some((index, builder))

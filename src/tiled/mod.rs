@@ -254,21 +254,22 @@ fn load_layer(
                     }
                 },
                 storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
-                transform: TilemapTransform::from_translation(Vec2::new(
-                    layer.offset_x as f32,
-                    layer.offset_y as f32,
-                )),
+                transform: TilemapTransform::from_translation(
+                    Vec2::new(layer.offset_x as f32, layer.offset_y as f32)
+                        + match tiled_data.xml.orientation {
+                            MapOrientation::Orthogonal | MapOrientation::Isometric => Vec2::ZERO,
+                            MapOrientation::Staggered | MapOrientation::Hexagonal => {
+                                tiled_data.xml.stagger_index.get_offset() * tile_size
+                            }
+                        },
+                ),
                 axis_flip: match tiled_data.xml.orientation {
-                    MapOrientation::Orthogonal => TilemapAxisFlip::Y,
                     MapOrientation::Isometric => TilemapAxisFlip::all(),
-                    MapOrientation::Staggered => todo!(),
-                    MapOrientation::Hexagonal => todo!(),
+                    _ => TilemapAxisFlip::Y,
                 },
                 tile_pivot: match tiled_data.xml.orientation {
-                    MapOrientation::Orthogonal => Default::default(),
                     MapOrientation::Isometric => TilePivot(Vec2::new(0.5, 0.)),
-                    MapOrientation::Staggered => todo!(),
-                    MapOrientation::Hexagonal => todo!(),
+                    _ => TilePivot::default(),
                 },
                 ..Default::default()
             };
@@ -286,7 +287,7 @@ fn load_layer(
                 }
                 ColorTileLayerData::Chunks(chunks) => {
                     chunks.content.iter().for_each(|chunk| {
-                        let offset = IVec2::new(chunk.x, -chunk.y - chunk.height as i32);
+                        let offset = IVec2::new(chunk.x, chunk.y);
                         let size = IVec2::new(chunk.width as i32, chunk.height as i32);
 
                         chunk

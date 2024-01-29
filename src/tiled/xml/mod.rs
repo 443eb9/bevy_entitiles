@@ -1,7 +1,13 @@
 use std::fmt::Formatter;
 
-use bevy::{math::Vec4, reflect::Reflect, render::color::Color};
+use bevy::{
+    math::{Vec2, Vec4},
+    reflect::Reflect,
+    render::color::Color,
+};
 use serde::{de::Visitor, Deserialize, Serialize};
+
+use crate::tilemap::{coordinates::StaggerMode, map::TilemapType};
 
 use self::{default::*, layer::TiledLayer};
 
@@ -75,7 +81,7 @@ pub struct TiledTilemap {
     /// the staggered axis are shifted. (since 0.11)
     #[serde(rename = "@staggerindex")]
     #[serde(default)]
-    pub stagger_index: StaggeredIndex,
+    pub stagger_index: StaggerIndex,
 
     /// X coordinate of the parallax origin in
     ///  pixels (defaults to 0). (since 1.8)
@@ -108,7 +114,7 @@ pub struct TiledTilemap {
     pub groups: Vec<TiledGroup>,
 }
 
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Reflect, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum MapOrientation {
     Orthogonal,
@@ -117,7 +123,18 @@ pub enum MapOrientation {
     Hexagonal,
 }
 
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
+impl MapOrientation {
+    pub fn as_tilemap_type(self, leg: u32) -> TilemapType {
+        match self {
+            MapOrientation::Orthogonal => TilemapType::Square,
+            MapOrientation::Isometric => TilemapType::Isometric,
+            MapOrientation::Staggered => TilemapType::Hexagonal(0),
+            MapOrientation::Hexagonal => TilemapType::Hexagonal(leg),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Reflect, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum TileRenderOrder {
     RightDown,
@@ -126,7 +143,7 @@ pub enum TileRenderOrder {
     LeftUp,
 }
 
-#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum StaggeredAxis {
     X,
@@ -134,12 +151,30 @@ pub enum StaggeredAxis {
     Y,
 }
 
-#[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Reflect, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum StaggeredIndex {
+pub enum StaggerIndex {
     #[default]
     Odd,
     Even,
+}
+
+impl Into<StaggerMode> for StaggerIndex {
+    fn into(self) -> StaggerMode {
+        match self {
+            StaggerIndex::Odd => StaggerMode::Odd,
+            StaggerIndex::Even => StaggerMode::Even,
+        }
+    }
+}
+
+impl StaggerIndex {
+    pub fn get_offset(self) -> Vec2 {
+        match self {
+            StaggerIndex::Odd => Vec2::ZERO,
+            StaggerIndex::Even => Vec2::new(0.5, 0.),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Reflect, Copy, Serialize)]

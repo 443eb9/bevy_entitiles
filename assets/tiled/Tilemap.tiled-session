@@ -129,11 +129,11 @@
             "expandedObjectLayers": [
                 2
             ],
-            "scale": 2,
-            "selectedLayer": 1,
+            "scale": 1.5,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 143.5,
-                "y": 109.25
+                "x": 182,
+                "y": 114.33333333333331
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -145,11 +145,11 @@
             }
         },
         "tilemaps/infinite.tmx": {
-            "scale": 5.5,
-            "selectedLayer": 0,
+            "scale": 3,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 63.27272727272728,
-                "y": -0.2727272727272805
+                "x": 80.66666666666666,
+                "y": -5.5
             }
         },
         "tilemaps/isometric.tmx": {
@@ -159,8 +159,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 105.33333333333333,
-                "y": 93.5
+                "x": 105,
+                "y": 93.16666666666666
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -176,15 +176,15 @@
                 3
             ],
             "expandedObjectLayers": [
-                5,
                 4,
-                3
+                3,
+                5
             ],
             "scale": 3,
-            "selectedLayer": 0,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 117.16666666666666,
-                "y": 77.16666666666666
+                "x": 116.66666666666666,
+                "y": 76.83333333333333
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -251,9 +251,9 @@
     "property.type": "PlainBlock",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
+        "tilesets/Squares.tsx",
         "tilemaps/orthogonal.tmx",
         "tilemaps/infinite.tmx",
-        "tilesets/Squares.tsx",
         "tilemaps/isometric.tmx",
         "tilesets/Hexagonal.tsx",
         "tilemaps/orthogonal.tmj",

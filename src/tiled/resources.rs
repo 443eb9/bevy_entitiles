@@ -9,7 +9,7 @@ use bevy::{
         entity::Entity,
         system::{Commands, Resource},
     },
-    log::error,
+    log::{error, warn},
     math::{UVec2, Vec2},
     reflect::Reflect,
     render::{
@@ -23,7 +23,7 @@ use crate::{
     math::{aabb::Aabb2d, extension::F32Integerize},
     tilemap::{
         coordinates,
-        map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor, TilemapType},
+        map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
     },
     utils::asset::AssetPath,
 };
@@ -415,27 +415,28 @@ impl TiledAssets {
                 ];
                 let image_uvs = vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y];
                 let tile_size = Vec2::new(map.xml.tile_width as f32, map.xml.tile_height as f32);
-                let map_size = coordinates::calculate_map_size(
-                    UVec2::new(map.xml.width, map.xml.height),
-                    tile_size,
-                    match map.xml.orientation {
-                        MapOrientation::Orthogonal => TilemapType::Square,
-                        MapOrientation::Isometric => TilemapType::Isometric,
-                        MapOrientation::Staggered => TilemapType::Hexagonal(0),
-                        MapOrientation::Hexagonal => {
-                            TilemapType::Hexagonal(map.xml.hex_side_length)
-                        }
-                    },
-                );
+                let map_size = match map.xml.orientation {
+                    MapOrientation::Orthogonal | MapOrientation::Isometric => {
+                        coordinates::calculate_map_size(
+                            UVec2::new(map.xml.width, map.xml.height),
+                            tile_size,
+                            map.xml.orientation.as_tilemap_type(map.xml.hex_side_length),
+                        )
+                    }
+                    MapOrientation::Staggered | MapOrientation::Hexagonal => {
+                        coordinates::calculate_map_size_staggered(
+                            UVec2::new(map.xml.width, map.xml.height),
+                            tile_size,
+                            map.xml.hex_side_length,
+                        )
+                    }
+                };
 
-                // TODO compatible with infinite maps
                 let map_origin = match map.xml.orientation {
-                    MapOrientation::Orthogonal => Vec2::ZERO,
                     MapOrientation::Isometric => {
                         Vec2::new(-(map.xml.height as f32) / 2. * tile_size.x, 0.)
                     }
-                    MapOrientation::Staggered => todo!(),
-                    MapOrientation::Hexagonal => todo!(),
+                    _ => Vec2::ZERO,
                 };
                 let map_area = Aabb2d {
                     min: Vec2::new(map_origin.x, map_origin.y - map_size.y),
@@ -450,7 +451,21 @@ impl TiledAssets {
                 let mut indices = vec![unit_indices.clone()];
                 let mut mesh_index = 0;
 
-                // TODO clip mesh
+                if (layer.repeat_x || layer.repeat_y)
+                    && (layer.offset_x < 0. || layer.offset_y < 0.)
+                {
+                    warn!(
+                        "Repeated image layers must have positive offset! \
+                        But got {} in layer {} in map {}! \
+                        This will lead to wrong image repeating counts! \
+                        But if you don't mind getting extra images, \
+                        you can ignore this warning.",
+                        origin - map_origin,
+                        layer.name,
+                        map.name
+                    );
+                }
+
                 if layer.repeat_x {
                     vertices.clear();
                     uvs.clear();

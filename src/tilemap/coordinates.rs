@@ -145,12 +145,36 @@ pub fn get_tile_collider_world(
 }
 
 pub fn calculate_map_size(size: UVec2, slot_size: Vec2, ty: TilemapType) -> Vec2 {
-    let size = size.as_vec2();
+    let sizef = size.as_vec2();
     match ty {
-        TilemapType::Square => Vec2::new(size.x * slot_size.x, size.y * slot_size.y),
-        TilemapType::Isometric => (size.x + size.y) / 2. * slot_size,
-        TilemapType::Hexagonal(_) => todo!(),
+        TilemapType::Square => Vec2::new(sizef.x * slot_size.x, sizef.y * slot_size.y),
+        TilemapType::Isometric => (sizef.x + sizef.y) / 2. * slot_size,
+        TilemapType::Hexagonal(leg) => {
+            if size.y == 0 {
+                Vec2::ZERO
+            } else {
+                let leg = leg as f32;
+                let a = (leg + slot_size.y) / 2.;
+                let b = (slot_size.y - leg) / 2.;
+                Vec2::new((sizef.x + sizef.y) * slot_size.x, b + sizef.y * a)
+            }
+        }
     }
+}
+
+pub fn calculate_map_size_staggered(size: UVec2, slot_size: Vec2, leg: u32) -> Vec2 {
+    let leg = leg as f32;
+    let sizef = size.as_vec2();
+    if size.y == 0 {
+        return Vec2::ZERO;
+    }
+    if size.y == 1 {
+        return slot_size * sizef;
+    }
+
+    let a = (leg + slot_size.y) / 2.;
+    let b = (slot_size.y - leg) / 2.;
+    Vec2::new((sizef.x + 0.5) * slot_size.x, b + sizef.y * a)
 }
 
 pub fn get_tilemap_axis(ty: TilemapType, slot_size: Vec2, flip: TilemapAxisFlip) -> (Vec2, Vec2) {
@@ -167,4 +191,38 @@ pub fn get_tilemap_axis(ty: TilemapType, slot_size: Vec2, flip: TilemapAxisFlip)
     };
     let flip = flip.as_vec2();
     (x * flip.x, y * flip.y)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StaggerMode {
+    Odd,
+    Even,
+}
+
+pub fn staggerize_index(index: IVec2, staggered_mode: StaggerMode) -> IVec2 {
+    match staggered_mode {
+        StaggerMode::Odd => IVec2::new(index.x + (index.y + 1) / 2, index.y),
+        StaggerMode::Even => IVec2::new(index.x + index.y / 2, index.y),
+    }
+}
+
+pub fn destaggerize_index(index: IVec2, staggered_mode: StaggerMode) -> IVec2 {
+    match staggered_mode {
+        StaggerMode::Odd => IVec2::new(index.x - index.y / 2, index.y),
+        StaggerMode::Even => IVec2::new(index.x - (index.y + 1) / 2, index.y),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_calc_staggered_size() {
+        let size = UVec2::new(3, 3);
+        let slot_size = Vec2::new(32., 32.);
+        let leg = 8;
+        let size = calculate_map_size_staggered(size, slot_size, leg);
+        assert_eq!(size, Vec2::new(112., 66.));
+    }
 }

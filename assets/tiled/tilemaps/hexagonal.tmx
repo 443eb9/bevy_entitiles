@@ -1,30 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="hexagonal" renderorder="right-down" width="10" height="5" tilewidth="28" tileheight="56" infinite="0" hexsidelength="40" staggeraxis="y" staggerindex="odd" nextlayerid="3" nextobjectid="2">
+<map version="1.10" tiledversion="1.10.2" orientation="hexagonal" renderorder="right-down" width="10" height="5" tilewidth="28" tileheight="56" infinite="0" hexsidelength="40" staggeraxis="y" staggerindex="odd" nextlayerid="4" nextobjectid="2">
  <tileset firstgid="1" source="../tilesets/Hexagonal.tsx"/>
+ <imagelayer id="3" name="Background" offsetx="48.8334" offsety="48.6666" repeatx="1" repeaty="1">
+  <image source="../background.png" width="256" height="256"/>
+ </imagelayer>
  <layer id="1" name="Tile Layer 1" width="10" height="5">
   <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,
-0,0,0,1,2,0,0,0,0,0,
-0,0,0,1,2,2,0,0,0,0,
-0,0,0,2,1,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0
+1,2,2,2,2,2,2,0,0,0,
+1,0,0,1,2,0,0,0,0,0,
+1,0,0,1,2,2,0,0,0,0,
+1,0,0,2,1,0,0,0,0,0,
+1,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
  <objectgroup id="2" name="Object Layer 1">
-  <object id="1" x="74.5052" y="71.0928">
-   <properties>
-    <property name="Component" type="class" propertytype="AnotherSquare">
-     <properties>
-      <property name="Descrption" value="Test"/>
-      <property name="hp" type="float" value="50"/>
-      <property name="level" type="int" value="2"/>
-      <property name="rigid_body" type="bool" value="true"/>
-      <property name="target" type="object" value="7"/>
-      <property name="texture" type="file" value="../test_square.png"/>
-      <property name="tint" type="color" value="#1e6e44d8"/>
-     </properties>
-    </property>
-   </properties>
-  </object>
+  <object id="1" x="74.5052" y="71.0928"/>
  </objectgroup>
 </map>
