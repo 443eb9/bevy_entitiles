@@ -1,14 +1,9 @@
 use bevy::{
-    app::{App, PluginGroup, Startup, Update},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
+    app::{App, PluginGroup, Startup, Update}, core_pipeline::core_2d::Camera2dBundle, ecs::{
         bundle::Bundle,
         component::Component,
         system::{Commands, Res, ResMut},
-    },
-    input::{keyboard::KeyCode, Input},
-    render::{color::Color, texture::ImagePlugin},
-    DefaultPlugins,
+    }, input::{keyboard::KeyCode, Input}, reflect::Reflect, render::{color::Color, texture::ImagePlugin}, DefaultPlugins
 };
 use bevy_entitiles::{
     tiled::{
@@ -17,6 +12,7 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
+use bevy_entitiles_derive::{TiledClass, TiledEnum, TiledObject};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -41,6 +37,8 @@ fn main() {
         })
         .register_tiled_object::<BlockBundle>("Block")
         .register_tiled_object::<PlainBlockBundle>("PlainBlock")
+        .register_tiled_object::<PlayerBundle>("Player")
+        .register_type::<Block>()
         .run();
 }
 
@@ -61,100 +59,42 @@ fn switching(
     mut manager: ResMut<TiledTilemapManger>,
     input: Res<Input<KeyCode>>,
 ) {
-    map_switching!(Key1, "hexagonal", input, manager, commands); 
+    map_switching!(Key1, "hexagonal", input, manager, commands);
     map_switching!(Key2, "infinite", input, manager, commands);
     map_switching!(Key3, "orthogonal", input, manager, commands);
     map_switching!(Key4, "isometric", input, manager, commands);
 }
 
-#[derive(Bundle)]
+#[derive(TiledObject, Bundle)]
+#[spawn_sprite]
 pub struct PlainBlockBundle {
     pub block: PlainBlock,
 }
 
-impl bevy_entitiles::tiled::traits::TiledObject for PlainBlockBundle {
-    fn initialize(
-        commands: &mut bevy::ecs::system::EntityCommands,
-        object_instance: &bevy_entitiles::tiled::xml::layer::TiledObjectInstance,
-        components: &bevy::utils::HashMap<
-            String,
-            bevy_entitiles::tiled::xml::property::ClassInstance,
-        >,
-        asset_server: &bevy::prelude::AssetServer,
-        tiled_assets: &bevy_entitiles::tiled::resources::TiledAssets,
-        tiled_map: String,
-    ) {
-        if object_instance.visible {
-            let (mesh, z) = tiled_assets.clone_object_mesh_handle(&tiled_map, object_instance.id);
-            commands.insert(bevy::sprite::MaterialMesh2dBundle {
-                material: tiled_assets.clone_object_material_handle(&tiled_map, object_instance.id),
-                mesh: bevy::sprite::Mesh2dHandle(mesh),
-                transform: bevy::transform::components::Transform::from_xyz(
-                    object_instance.x,
-                    -object_instance.y,
-                    z,
-                ),
-                ..Default::default()
-            });
-        }
-
-        commands.insert(PlainBlock);
-    }
-}
-
-#[derive(Component)]
+#[derive(TiledClass, Component)]
 pub struct PlainBlock;
 
-#[derive(Bundle)]
+#[derive(TiledObject, Bundle)]
+#[spawn_sprite]
 pub struct BlockBundle {
     pub block: Block,
 }
 
-#[derive(Component)]
+#[derive(TiledClass, Component, Reflect)]
 pub struct Block {
+    #[tiled_name = "Collision"]
     pub collision: bool,
+    #[tiled_name = "Hardness"]
     pub hardness: f32,
+    #[tiled_name = "Name"]
     pub name: String,
+    #[tiled_name = "Tint"]
     pub tint: Color,
+    #[tiled_name = "Shape"]
     pub shape: ShapeType,
 }
 
-impl bevy_entitiles::tiled::traits::TiledObject for BlockBundle {
-    fn initialize(
-        commands: &mut bevy::ecs::system::EntityCommands,
-        object_instance: &bevy_entitiles::tiled::xml::layer::TiledObjectInstance,
-        components: &bevy::utils::HashMap<
-            String,
-            bevy_entitiles::tiled::xml::property::ClassInstance,
-        >,
-        asset_server: &bevy::prelude::AssetServer,
-        tiled_assets: &bevy_entitiles::tiled::resources::TiledAssets,
-        tiled_map: String,
-    ) {
-        if object_instance.visible {
-            let (mesh, z) = tiled_assets.clone_object_mesh_handle(&tiled_map, object_instance.id);
-            commands.insert(bevy::sprite::MaterialMesh2dBundle {
-                material: tiled_assets.clone_object_material_handle(&tiled_map, object_instance.id),
-                mesh: bevy::sprite::Mesh2dHandle(mesh),
-                transform: bevy::transform::components::Transform::from_xyz(
-                    object_instance.x,
-                    -object_instance.y,
-                    z,
-                ),
-                ..Default::default()
-            });
-        }
-
-        commands.insert(Block {
-            collision: components["Block"].properties["Collision"].clone().into(),
-            hardness: components["Block"].properties["Hardness"].clone().into(),
-            name: components["Block"].properties["Name"].clone().into(),
-            tint: components["Block"].properties["Tint"].clone().into(),
-            shape: components["Block"].properties["Shape"].clone().into(),
-        });
-    }
-}
-
+#[derive(TiledEnum, Reflect)]
 pub enum ShapeType {
     Square,
     Isometry,
@@ -163,26 +103,24 @@ pub enum ShapeType {
     Eclipse,
 }
 
-impl bevy_entitiles::tiled::traits::TiledEnum for ShapeType {
-    fn get_identifier(ident: &str) -> Self {
-        match ident {
-            "Square" => ShapeType::Square,
-            "Isometry" => ShapeType::Isometry,
-            "Hexagon" => ShapeType::Hexagon,
-            "Polygon" => ShapeType::Polygon,
-            "Eclipse" => ShapeType::Eclipse,
-            _ => panic!("Unknown enum variant: {}", ident),
-        }
-    }
+#[derive(TiledObject, Bundle)]
+#[spawn_sprite]
+#[global_object]
+pub struct PlayerBundle {
+    pub player: Player,
+    pub moveable: MoveableObject,
 }
 
-impl Into<ShapeType> for bevy_entitiles::tiled::xml::property::PropertyInstance {
-    fn into(self) -> ShapeType {
-        match self.value {
-            bevy_entitiles::tiled::xml::property::PropertyValue::Enum(_, x) => {
-                <ShapeType as bevy_entitiles::tiled::traits::TiledEnum>::get_identifier(&x)
-            }
-            _ => panic!("Expected Enum value!"),
-        }
-    }
+#[derive(TiledClass, Component, Default)]
+pub struct Player {
+    #[tiled_name = "Hp"]
+    pub hp: f32,
+    #[tiled_default]
+    pub level: i32,
+}
+
+#[derive(TiledClass, Component)]
+pub struct MoveableObject {
+    #[tiled_name = "Speed"]
+    pub speed: f32,
 }

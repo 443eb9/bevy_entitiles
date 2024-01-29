@@ -6,7 +6,7 @@ Try to be the most **comprehensive**, **performant**, and **up-to-date** 2d tile
 
 This repo is under maintenance as long as this message exists!!
 
-It's **NOT** recommended to use the code in `dev` branch! There's full of incomplete code and even errors! But `master` branch would be ok if you can't wait to try out new features.
+It's **NOT** recommended to use the code in `dev` branch! There're full of incomplete code and even errors! But the `master` branch would be ok if you can't wait to try out new features.
 
 This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap)(Rendering) and [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk)(LDtk entity spawning)
 
@@ -14,7 +14,7 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 - [简体中文](./docs/wiki/zh_cn/welcome.md)
 - [English](./docs/wiki/en_us/welcome.md)
 
-**For English speakers: The English verion is translated by ChatGPT so its accuracy is not granted.**
+**For English speakers: The English version is translated by ChatGPT so its accuracy is not granted.**
 
 If you want to submit the wiki in your language, a pr is welcomed. But please notice that only the wiki in zh_cn and en_us will be maintained officially.
 
@@ -64,11 +64,11 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 
 Platform: 10600KF
 
-**Notice: Due to the performance overhead caused by the recorder, the fps value maybe inaccurate!**
+**Notice: Due to the performance overhead caused by the recorder, the fps value may be inaccurate!**
 
 ### LDtk
 
-The gif on the right is the map generated with wave function collapse. And the orange boxes in the left image is procedural generated colliders.
+The gif on the right is the map generated with wave function collapse, and the orange boxes in the left image are procedurally generated colliders.
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/ldtk.png" width="250px">
@@ -89,7 +89,7 @@ I know you are confused about these weird boxes, so please check the [`chunk_unl
 
 ### Pathfinding
 
-Notice this tests are done with **synchronized pathfinding**. Which means whole algorithm will figure the path out in one frame. But since `0.2.1`, the asynchronized one in implemented. So the algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
+Notice this tests are done with **synchronized pathfinding**. This means the whole algorithm will figure the path out in one frame. But since `0.2.1`, the asynchronized one has been implemented. So the algorithm can complete a part of the pathfinding and continue it in the next frame. This will make it even smoother.
 
 **Notice: The synchronized pathfinding was removed in 0.3.0.**
 
@@ -110,7 +110,7 @@ Notice this tests are done with **synchronized pathfinding**. Which means whole 
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
 
-**Notice: The funtionality of visualizing the process of wfc was removed in 0.2.6**
+**Notice: The functionality of visualizing the process of wfc was removed in 0.2.6**
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/wfc.png" width="500px">
@@ -132,7 +132,7 @@ In the following case, each tile has at least one corresponding color gap with i
 
 - Supports up to 4 rendered layers* in one tilemap.
 
-*\* Rendered layer means the layer that will be **rendered**. You can insert as much layers as you want, but only the 4 top layers will be rendered.*
+*\* Rendered layer means the layer that will be **rendered**. You can insert as many layers as you want, but only the 4 top layers will be rendered.*
 
 ## References
 

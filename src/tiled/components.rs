@@ -33,3 +33,6 @@ impl TiledLoadedTilemap {
         });
     }
 }
+
+#[derive(Component, Debug, Clone)]
+pub struct TiledGlobalObject;

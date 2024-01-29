@@ -80,6 +80,7 @@ fn expand_enum_variant_rename(
         syn::Meta::NameValue(value) => &value.value,
         _ => panic!("LdtkEnum attribute must be a name value!"),
     };
+    
     quote::quote!(
         #name => Self::#variant_name,
     )

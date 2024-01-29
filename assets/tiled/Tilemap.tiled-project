@@ -57,6 +57,61 @@
             ]
         },
         {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 8,
+            "members": [
+                {
+                    "name": "Speed",
+                    "type": "float",
+                    "value": 0
+                }
+            ],
+            "name": "MoveableObject",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 7,
+            "members": [
+                {
+                    "name": "Hp",
+                    "type": "float",
+                    "value": 0
+                },
+                {
+                    "name": "Level",
+                    "type": "int",
+                    "value": 0
+                }
+            ],
+            "name": "Player",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
             "id": 5,
             "name": "ShapeType",
             "storageType": "string",

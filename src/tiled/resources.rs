@@ -570,56 +570,57 @@ impl TiledAssets {
 
         objects.sort_by(|(_, _, lhs), (_, _, rhs)| lhs.y.partial_cmp(&rhs.y).unwrap());
 
-        *self.object_mesh.entry(map.name.clone()).or_default() = objects
+        let mesh_ext = objects
             .iter()
             .enumerate()
             .map(|(obj_z, (layer_z, total_count, object))| {
                 let flipping = object.gid.unwrap_or_default() >> 30;
-                (
-                    object.id,
-                    (
-                        mesh_assets.add(
-                            Mesh::new(PrimitiveTopology::TriangleList)
-                                .with_inserted_attribute(
-                                    Mesh::ATTRIBUTE_POSITION,
-                                    vec![
-                                        Vec2::new(0., object.height),
-                                        Vec2::new(object.width, object.height),
-                                        Vec2::new(object.width, 0.),
-                                        Vec2::ZERO,
-                                    ]
-                                    .into_iter()
-                                    .map(|v| {
-                                        Vec2::from_angle(-object.rotation / 180. * PI)
-                                            .rotate(v)
-                                            .extend(0.)
-                                    })
-                                    .collect::<Vec<_>>(),
-                                )
-                                .with_inserted_attribute(
-                                    Mesh::ATTRIBUTE_UV_0,
-                                    vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y]
-                                        .into_iter()
-                                        .map(|mut v| {
-                                            if flipping & (1 << 1) != 0 {
-                                                v.x = 1. - v.x;
-                                            }
-                                            if flipping & (1 << 0) != 0 {
-                                                v.y = 1. - v.y;
-                                            }
-                                            v
-                                        })
-                                        .collect::<Vec<_>>(),
-                                )
-                                .with_indices(Some(Indices::U16(vec![2, 0, 1, 3, 0, 2]))),
-                        ),
-                        obj_z as f32 / total_count + layer_z,
-                    ),
-                )
-            })
-            .collect();
+                let mesh = Mesh::new(PrimitiveTopology::TriangleList)
+                    .with_inserted_attribute(
+                        Mesh::ATTRIBUTE_POSITION,
+                        vec![
+                            Vec2::new(0., object.height),
+                            Vec2::new(object.width, object.height),
+                            Vec2::new(object.width, 0.),
+                            Vec2::ZERO,
+                        ]
+                        .into_iter()
+                        .map(|v| {
+                            Vec2::from_angle(-object.rotation / 180. * PI)
+                                .rotate(v)
+                                .extend(0.)
+                        })
+                        .collect::<Vec<_>>(),
+                    )
+                    .with_inserted_attribute(
+                        Mesh::ATTRIBUTE_UV_0,
+                        vec![Vec2::ZERO, Vec2::X, Vec2::ONE, Vec2::Y]
+                            .into_iter()
+                            .map(|mut v| {
+                                if flipping & (1 << 1) != 0 {
+                                    v.x = 1. - v.x;
+                                }
+                                if flipping & (1 << 0) != 0 {
+                                    v.y = 1. - v.y;
+                                }
+                                v
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                    .with_indices(Some(Indices::U16(vec![2, 0, 1, 3, 0, 2])));
 
-        *self.object_materials.entry(map.name.clone()).or_default() = objects
+                let obj_z = obj_z as f32 / total_count + layer_z;
+
+                (object.id, (mesh_assets.add(mesh), obj_z))
+            })
+            .collect::<Vec<_>>();
+
+        self.object_mesh
+            .entry(map.name.clone())
+            .or_default()
+            .extend(mesh_ext);
+
+        let mat_ext = objects
             .iter()
             .map(|(_, _, object)| {
                 let gid = object.gid.unwrap() & 0x3FFF_FFFF;
@@ -632,6 +633,11 @@ impl TiledAssets {
                     }),
                 )
             })
-            .collect();
+            .collect::<Vec<_>>();
+
+        self.object_materials
+            .entry(map.name.clone())
+            .or_default()
+            .extend(mat_ext);
     }
 }

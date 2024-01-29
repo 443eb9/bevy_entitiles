@@ -11,6 +11,15 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     let spawn_sprite_attr = attrs
         .iter()
         .find(|attr| attr.path().get_ident().unwrap() == SPAWN_SPRITE_ATTR);
+
+    let global_entity_attr = attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == GLOBAL_ENTITY_ATTR);
+
+    let callback_attr = attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
+
     let spawn_sprite = {
         if spawn_sprite_attr.is_some() {
             quote::quote!(
@@ -21,9 +30,6 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
         }
     };
 
-    let global_entity_attr = attrs
-        .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == GLOBAL_ENTITY_ATTR);
     let global_entity = {
         if global_entity_attr.is_some() {
             quote::quote!(
@@ -34,9 +40,6 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
         }
     };
 
-    let callback_attr = attrs
-        .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
     let callback = {
         if let Some(attr) = callback_attr {
             match &attr.meta {
@@ -68,40 +71,34 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
 
         for field in fields.iter() {
             let field_name = field.ident.as_ref().unwrap();
-            let field_type = &field.ty;
 
-            let attr = field
+            let default = field
                 .attrs
                 .iter()
                 .find(|attr| attr.path().get_ident().unwrap() == LDTK_DEFAULT_ATTR);
-            if attr.is_some() {
+            if default.is_some() {
                 continue;
             }
 
-            let attr = field
+            let name = field
                 .attrs
                 .iter()
                 .find(|attr| attr.path().get_ident().unwrap() == LDTK_NAME_ATTR);
-            if let Some(attr) = attr {
-                fields_cton.push(expand_entity_fields_rename(
-                    field_name, field_type, &attr.meta,
-                ));
+            if let Some(attr) = name {
+                fields_cton.push(expand_entity_fields_rename(field_name, &attr.meta));
                 continue;
             }
 
-            fields_cton.push(expand_entity_fields(field_name, field_type));
+            fields_cton.push(expand_entity_fields(field_name));
         }
 
-        let default = if fields_cton.len() < fields.len() {
-            quote::quote!(..Default::default())
-        } else {
-            quote::quote!()
-        };
+        if fields_cton.len() < fields.len() {
+            fields_cton.push(quote::quote!(..Default::default()));
+        }
 
         quote::quote!(
             Self {
                 #(#fields_cton)*
-                #default
             }
         )
     } else {
@@ -128,23 +125,14 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     .into()
 }
 
-pub fn expand_entity_fields(
-    field_name: &syn::Ident,
-    field_type: &syn::Type,
-) -> proc_macro2::TokenStream {
-    match field_type {
-        syn::Type::Path(_) => {
-            quote::quote!(
-                #field_name: fields[&stringify!(#field_name).to_string()].clone().into(),
-            )
-        }
-        _ => panic!("LdtkEntity attribute must be a path!"),
-    }
+pub fn expand_entity_fields(field_name: &syn::Ident) -> proc_macro2::TokenStream {
+    quote::quote!(
+        #field_name: fields[&stringify!(#field_name).to_string()].clone().into(),
+    )
 }
 
 pub fn expand_entity_fields_rename(
     field_name: &syn::Ident,
-    field_type: &syn::Type,
     ldtk_name: &syn::Meta,
 ) -> proc_macro2::TokenStream {
     let name = match ldtk_name {
@@ -152,12 +140,7 @@ pub fn expand_entity_fields_rename(
         _ => panic!("LdtkEnum attribute must be a name value!"),
     };
 
-    match field_type {
-        syn::Type::Path(_) => {
-            quote::quote!(
-                #field_name: fields[#name].clone().into(),
-            )
-        }
-        _ => panic!("LdtkEntity attribute must be a path!"),
-    }
+    quote::quote!(
+        #field_name: fields[#name].clone().into(),
+    )
 }

@@ -129,11 +129,11 @@
             "expandedObjectLayers": [
                 2
             ],
-            "scale": 1.5,
-            "selectedLayer": 2,
+            "scale": 2,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 182,
-                "y": 114.33333333333331
+                "x": 93.5,
+                "y": 121.75
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -248,7 +248,7 @@
         "tilemaps/infinite.tmx"
     ],
     "project": "Tilemap.tiled-project",
-    "property.type": "PlainBlock",
+    "property.type": "MoveableObject",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
         "tilesets/Squares.tsx",

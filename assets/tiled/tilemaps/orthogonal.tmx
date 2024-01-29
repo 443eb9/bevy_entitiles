@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="7" nextobjectid="9">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="8" nextobjectid="11">
  <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
  <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
  <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
@@ -23,13 +23,29 @@
 0,217,0,0,0,40,41,41,41,2147483688,0,0,0,0,0,0,37,98,38,2147483685,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,98,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,217,0,0,55,0,0,0,0,0,0,0,0,0,109,110,111,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,217,0,0,0,0,0,0,0,0,0,0,0,0,109,110,111,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,121,122,123,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,55,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup id="7" name="Player">
+  <object id="10" name="Player" type="Player" gid="55" x="108" y="50.5455" width="8" height="8">
+   <properties>
+    <property name="Moveable" type="class" propertytype="MoveableObject">
+     <properties>
+      <property name="Speed" type="float" value="5"/>
+     </properties>
+    </property>
+    <property name="Player" type="class" propertytype="Player">
+     <properties>
+      <property name="Hp" type="float" value="100"/>
+     </properties>
+    </property>
+   </properties>
+  </object>
+ </objectgroup>
  <group id="3" name="Objects">
   <objectgroup id="4" name="Region">
    <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13" visible="0"/>

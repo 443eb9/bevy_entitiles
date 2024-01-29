@@ -69,6 +69,10 @@ impl<T: TiledObject + Bundle> PhantomTiledObjectTrait for PhantomTiledObject<T> 
     }
 }
 
+pub trait TiledClass {
+    fn create(classes: &HashMap<String, ClassInstance>) -> Self;
+}
+
 pub trait TiledEnum {
     fn get_identifier(ident: &str) -> Self;
 }
