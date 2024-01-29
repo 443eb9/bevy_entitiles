@@ -52,7 +52,7 @@ If you want to submit the wiki in your language, a pr is welcomed. But please no
 
 ## Coordinate Systems
 
-The x and y axes in the tilemaps are the index axes. And those x and y on a single tile means the actual mesh size. Which you can control using `tile_render_size`.
+The x and y axes in the tilemaps are the index axes. And those x and y on a single tile mean the actual mesh size. Which you can control using `tile_render_size`.
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/coordinate_systems.jpg" width="500px">

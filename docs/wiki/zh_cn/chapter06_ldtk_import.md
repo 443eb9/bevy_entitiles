@@ -4,7 +4,7 @@
 
 ## [`ldtk.rs`](https://github.com/443eb9/bevy_entitiles/blob/0.4.0/examples/ldtk.rs)
 
-点进这个示例，首先你会看到 `App` 后面跟着的一顿东西。
+点进这个示例，首先你会看到 `App` 后面跟着的一堆东西。
 
 首先看到 [`68` 行](https://github.com/443eb9/bevy_entitiles/blob/0.4.0/examples/ldtk.rs#L68) 的 [`LdtkLoadConfig`](https://github.com/443eb9/bevy_entitiles/blob/0.4.0/src/ldtk/resources.rs#L304) 。
 
