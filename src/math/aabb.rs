@@ -263,15 +263,9 @@ impl Aabb2d {
                     let flip_offset = Vec2 {
                         x: ((flipped.x - flipped.y / 2.) * (chunk_size - 1.)) * a,
                         y: (b + c) / 2. * flipped.y * (chunk_size - 1.),
-                    };
+                    } - (1. - axis) / 2. * slot_size;
 
-                    let center = (min + max) / 2. - pivot_offset + flip_offset;
-                    let half_chunk_render_size = (max - min) / 2.;
-
-                    Aabb2d {
-                        min: center - half_chunk_render_size,
-                        max: center + half_chunk_render_size,
-                    }
+                    Aabb2d { min, max } - pivot_offset + flip_offset
                 }
             }
             .justified(),
