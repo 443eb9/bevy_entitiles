@@ -3,12 +3,12 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "tilemaps/isometric.tmx",
+    "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
+        "tilemaps",
         "tilesets",
-        ".",
         "world_test",
-        "tilemaps"
+        "."
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -132,8 +132,8 @@
             "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 93.5,
-                "y": 121.75
+                "x": 147,
+                "y": 124.25
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -146,10 +146,10 @@
         },
         "tilemaps/infinite.tmx": {
             "scale": 3,
-            "selectedLayer": 1,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 80.66666666666666,
-                "y": -5.5
+                "x": 99.66666666666666,
+                "y": 15.166666666666657
             }
         },
         "tilemaps/isometric.tmx": {
@@ -159,8 +159,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 105,
-                "y": 93.16666666666666
+                "x": 207.33333333333334,
+                "y": 187.5
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -176,15 +176,15 @@
                 3
             ],
             "expandedObjectLayers": [
+                5,
                 4,
-                3,
-                5
+                3
             ],
-            "scale": 3,
-            "selectedLayer": 1,
+            "scale": 5.5,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 116.66666666666666,
-                "y": 76.83333333333333
+                "x": 111.0909090909091,
+                "y": 54.27272727272728
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -241,20 +241,19 @@
     "map.tileWidth": 8,
     "map.width": 10,
     "openFiles": [
-        "tilemaps/hexagonal.tmx",
         "tilemaps/orthogonal.tmx",
         "tilemaps/isometric.tmx",
-        "tilesets/Squares.tsx",
-        "tilemaps/infinite.tmx"
+        "tilemaps/infinite.tmx",
+        "tilemaps/hexagonal.tmx"
     ],
     "project": "Tilemap.tiled-project",
     "property.type": "MoveableObject",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
-        "tilesets/Squares.tsx",
-        "tilemaps/orthogonal.tmx",
         "tilemaps/infinite.tmx",
         "tilemaps/isometric.tmx",
+        "tilemaps/orthogonal.tmx",
+        "tilesets/Squares.tsx",
         "tilesets/Hexagonal.tsx",
         "tilemaps/orthogonal.tmj",
         "tilesets/Isometric.tsx",

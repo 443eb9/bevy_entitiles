@@ -150,10 +150,11 @@ impl DataPhysicsTilemap {
 
     #[inline]
     pub fn get_or_air(&self, index: UVec2) -> i32 {
-        self.data
-            .get((index.x + index.y * self.size.x) as usize)
-            .cloned()
-            .unwrap_or(self.air)
+        if index.x >= self.size.x || index.y >= self.size.y {
+            self.air
+        } else {
+            self.data[(index.x + index.y * self.size.x) as usize]
+        }
     }
 
     #[inline]
