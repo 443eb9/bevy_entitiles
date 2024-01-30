@@ -10,7 +10,7 @@ use bevy::{
         system::{Commands, Resource},
     },
     log::{error, warn},
-    math::{UVec2, Vec2},
+    math::{UVec2, Vec2, Vec4},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
@@ -30,7 +30,7 @@ use crate::{
 
 use super::{
     components::{TiledLoader, TiledUnloader},
-    sprite::TiledSpriteMaterial,
+    sprite::{SpriteUniform, TiledSpriteMaterial},
     xml::{
         layer::TiledLayer,
         tileset::{TiledTile, TiledTileset},
@@ -399,9 +399,17 @@ impl TiledAssets {
                         layer.id,
                         material_assets.add(TiledSpriteMaterial {
                             image: image.clone(),
-                            atlas: Aabb2d {
-                                min: Vec2::ZERO,
-                                max: Vec2::ONE,
+                            data: SpriteUniform {
+                                atlas: Aabb2d {
+                                    min: Vec2::ZERO,
+                                    max: Vec2::ONE,
+                                },
+                                tint: Vec4::new(
+                                    layer.tint.r,
+                                    layer.tint.g,
+                                    layer.tint.b,
+                                    layer.tint.a * layer.opacity,
+                                ),
                             },
                         }),
                     );
@@ -562,18 +570,25 @@ impl TiledAssets {
                 }
             })
             .flat_map(|(z, layer)| {
+                let tint = Vec4::new(
+                    layer.tint.r,
+                    layer.tint.g,
+                    layer.tint.b,
+                    layer.tint.a * layer.opacity,
+                );
                 layer.objects.iter().filter_map(move |obj| {
-                    obj.gid.map(|_| (z as f32, layer.objects.len() as f32, obj))
+                    obj.gid
+                        .map(|_| (z as f32, layer.objects.len() as f32, obj, tint))
                 })
             })
             .collect::<Vec<_>>();
 
-        objects.sort_by(|(_, _, lhs), (_, _, rhs)| lhs.y.partial_cmp(&rhs.y).unwrap());
+        objects.sort_by(|(_, _, lhs, _), (_, _, rhs, _)| lhs.y.partial_cmp(&rhs.y).unwrap());
 
         let mesh_ext = objects
             .iter()
             .enumerate()
-            .map(|(obj_z, (layer_z, total_count, object))| {
+            .map(|(obj_z, (layer_z, total_count, object, _))| {
                 let flipping = object.gid.unwrap_or_default() >> 30;
                 let mesh = Mesh::new(PrimitiveTopology::TriangleList)
                     .with_inserted_attribute(
@@ -622,14 +637,17 @@ impl TiledAssets {
 
         let mat_ext = objects
             .iter()
-            .map(|(_, _, object)| {
+            .map(|(_, _, object, tint)| {
                 let gid = object.gid.unwrap() & 0x3FFF_FFFF;
                 let (tileset, first_gid) = &self.get_tileset(gid, &map.name);
                 (
                     object.id,
                     material_assets.add(TiledSpriteMaterial {
                         image: tileset.texture.texture.clone(),
-                        atlas: tileset.texture.get_atlas_rect(gid - first_gid),
+                        data: SpriteUniform {
+                            atlas: tileset.texture.get_atlas_rect(gid - first_gid),
+                            tint: (*tint).into(),
+                        },
                     }),
                 )
             })

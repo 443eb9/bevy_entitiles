@@ -1,7 +1,7 @@
 use std::fmt::Formatter;
 
 use bevy::{
-    math::{IVec2, Vec2},
+    math::{IVec2, Vec2, Vec4},
     reflect::Reflect,
 };
 use serde::{de::Visitor, Deserialize, Serialize};
@@ -271,6 +271,7 @@ impl Tiles {
         tiled_assets: &'a TiledAssets,
         layer_tilemap: &'a mut TilemapBundle,
         tiled_data: &'a PackedTiledTilemap,
+        tint: Vec4,
     ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
         let mut tileset = None;
         let mut first_gid = 0;
@@ -337,7 +338,7 @@ impl Tiles {
                     }
                 }
 
-                Some((index, builder))
+                Some((index, builder.with_color(tint)))
             })
     }
 }

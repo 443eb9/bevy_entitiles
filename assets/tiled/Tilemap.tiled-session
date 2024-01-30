@@ -181,10 +181,10 @@
                 3
             ],
             "scale": 5.5,
-            "selectedLayer": 2,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 111.0909090909091,
-                "y": 54.27272727272728
+                "x": 135.8181818181818,
+                "y": 87.72727272727273
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {

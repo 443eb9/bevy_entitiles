@@ -1,6 +1,7 @@
 use bevy::{app::Update, prelude::Plugin};
 use math::EntiTilesMathPlugin;
 use render::{texture, EntiTilesRendererPlugin};
+use shaders::EntiTilesShaderPlugin;
 use tilemap::EntiTilesTilemapPlugin;
 
 #[cfg(feature = "algorithm")]
@@ -13,6 +14,7 @@ pub mod math;
 pub mod render;
 #[cfg(feature = "serializing")]
 pub mod serializing;
+pub mod shaders;
 #[cfg(feature = "tiled")]
 pub mod tiled;
 pub mod tilemap;
@@ -64,6 +66,7 @@ impl Plugin for EntiTilesPlugin {
             EntiTilesTilemapPlugin,
             EntiTilesRendererPlugin,
             EntiTilesMathPlugin,
+            EntiTilesShaderPlugin,
             #[cfg(feature = "debug")]
             debug::EntiTilesDebugPlugin,
             #[cfg(feature = "algorithm")]

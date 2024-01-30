@@ -30,22 +30,6 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="7" name="Player">
-  <object id="10" name="Player" type="Player" gid="55" x="108" y="50.5455" width="8" height="8">
-   <properties>
-    <property name="Moveable" type="class" propertytype="MoveableObject">
-     <properties>
-      <property name="Speed" type="float" value="5"/>
-     </properties>
-    </property>
-    <property name="Player" type="class" propertytype="Player">
-     <properties>
-      <property name="Hp" type="float" value="100"/>
-     </properties>
-    </property>
-   </properties>
-  </object>
- </objectgroup>
  <group id="3" name="Objects">
   <objectgroup id="4" name="Region">
    <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13" visible="0"/>
@@ -56,7 +40,7 @@
     <polygon points="0,0 0,32 -8,32 -8,48 16,48 16,32 8,32 8,0"/>
    </object>
   </objectgroup>
-  <objectgroup id="5" name="Tiles">
+  <objectgroup id="5" name="Tiles" opacity="0.66" tintcolor="#aaaaff">
    <object id="7" name="StackingA" type="PlainBlock" gid="389" x="59.6825" y="44.3392" width="32" height="16" rotation="73.12"/>
    <object id="5" name="BlockTest" type="PlainBlock" gid="2147484033" x="64" y="80" width="16" height="16"/>
    <object id="6" name="BlockProps" type="Block" gid="386" x="136" y="72" width="16" height="16">
@@ -75,4 +59,20 @@
    <object id="8" name="StackingB" type="PlainBlock" gid="390" x="69.125" y="85.5" width="32" height="16"/>
   </objectgroup>
  </group>
+ <objectgroup id="7" name="Player">
+  <object id="10" name="Player" type="Player" gid="55" x="108" y="50.5455" width="8" height="8">
+   <properties>
+    <property name="Moveable" type="class" propertytype="MoveableObject">
+     <properties>
+      <property name="Speed" type="float" value="5"/>
+     </properties>
+    </property>
+    <property name="Player" type="class" propertytype="Player">
+     <properties>
+      <property name="Hp" type="float" value="100"/>
+     </properties>
+    </property>
+   </properties>
+  </object>
+ </objectgroup>
 </map>

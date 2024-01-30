@@ -1,8 +1,9 @@
 #import bevy_sprite::{mesh2d_vertex_output::VertexOutput}
+#import bevy_entitiles::math::Aabb2d
 
-struct AtlasRect {
-    min: vec2<f32>,
-    max: vec2<f32>,
+struct SpriteUniform {
+    atlas: Aabb2d,
+    tint: vec4<f32>,
 }
 
 @group(1) @binding(0)
@@ -12,9 +13,10 @@ var texture: texture_2d<f32>;
 var texture_sampler: sampler;
 
 @group(1) @binding(2)
-var<uniform> atlas_rects: AtlasRect;
+var<uniform> data: SpriteUniform;
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(texture, texture_sampler, in.uv * (atlas_rects.max - atlas_rects.min) + atlas_rects.min);
+    return textureSample(texture, texture_sampler, in.uv * (data.atlas.max - data.atlas.min) + data.atlas.min)
+           * vec4<f32>(pow(data.tint.rgb, vec3<f32>(2.2)), data.tint.a);
 }

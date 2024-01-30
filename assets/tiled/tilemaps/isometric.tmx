@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="10" height="5" tilewidth="32" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="2">
  <tileset firstgid="1" source="../tilesets/Isometric.tsx"/>
- <imagelayer id="3" name="Background" offsetx="158.333" offsety="118.667">
+ <imagelayer id="3" name="Background" opacity="0.58" tintcolor="#0000ff" offsetx="15.6663" offsety="21.667">
   <image source="../background.png" width="256" height="256"/>
  </imagelayer>
- <layer id="1" name="Tile Layer 1" width="10" height="5">
+ <layer id="1" name="Tile Layer 1" width="10" height="5" opacity="0.43" tintcolor="#aa55ff">
   <data encoding="csv">
 1,1,1,1,1,1,1,1,1,1,
 1,0,0,1,1,0,0,0,0,0,

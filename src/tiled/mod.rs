@@ -6,7 +6,7 @@ use bevy::{
         query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
     },
-    math::{IVec2, Vec2},
+    math::{IVec2, Vec2, Vec4},
     render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
     transform::components::Transform,
@@ -276,11 +276,17 @@ fn load_layer(
 
             let mut buffer = TileBuilderBuffer::new();
 
+            let tint = Vec4::new(
+                layer.tint.r,
+                layer.tint.g,
+                layer.tint.b,
+                layer.tint.a * layer.opacity,
+            );
             match &layer.data {
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
-                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data)
+                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data, tint)
                         .for_each(|(index, builder)| {
                             buffer.set(index, builder);
                         });
@@ -292,7 +298,7 @@ fn load_layer(
 
                         chunk
                             .tiles
-                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data)
+                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data, tint)
                             .for_each(|(index, builder)| {
                                 buffer.set(index + offset, builder);
                             });
