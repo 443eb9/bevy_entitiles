@@ -165,8 +165,9 @@ pub struct TiledAssets {
     pub(crate) image_layer_materials: HashMap<String, HashMap<u32, Handle<TiledSpriteMaterial>>>,
     /// (mesh_handle, z)
     #[reflect(ignore)]
-    pub(crate) object_mesh: HashMap<String, HashMap<u32, (Handle<Mesh>, f32)>>,
+    pub(crate) object_mesh: HashMap<String, HashMap<u32, Handle<Mesh>>>,
     pub(crate) object_materials: HashMap<String, HashMap<u32, Handle<TiledSpriteMaterial>>>,
+    pub(crate) object_z_order: HashMap<String, HashMap<u32, f32>>,
 }
 
 impl TiledAssets {
@@ -200,10 +201,18 @@ impl TiledAssets {
             .unwrap()
     }
 
-    pub fn clone_object_mesh_handle(&self, map: &str, object: u32) -> (Handle<Mesh>, f32) {
+    pub fn clone_object_mesh_handle(&self, map: &str, object: u32) -> Handle<Mesh> {
         self.object_mesh
             .get(map)
             .and_then(|meshes| meshes.get(&object))
+            .cloned()
+            .unwrap()
+    }
+
+    pub fn get_object_z_order(&self, map: &str, object: u32) -> f32 {
+        self.object_z_order
+            .get(map)
+            .and_then(|z_orders| z_orders.get(&object))
             .cloned()
             .unwrap()
     }
@@ -576,19 +585,31 @@ impl TiledAssets {
                     layer.tint.b,
                     layer.tint.a * layer.opacity,
                 );
-                layer.objects.iter().filter_map(move |obj| {
-                    obj.gid
-                        .map(|_| (z as f32, layer.objects.len() as f32, obj, tint))
-                })
+
+                layer
+                    .objects
+                    .iter()
+                    .enumerate()
+                    .for_each(|(obj_z, object)| {
+                        let obj_z = obj_z as f32 / layer.objects.len() as f32 + z as f32;
+                        self.object_z_order
+                            .entry(map.name.clone())
+                            .or_default()
+                            .insert(object.id, obj_z);
+                    });
+                    
+                layer
+                    .objects
+                    .iter()
+                    .filter_map(move |obj| obj.gid.map(|_| (obj, tint)))
             })
             .collect::<Vec<_>>();
 
-        objects.sort_by(|(_, _, lhs, _), (_, _, rhs, _)| lhs.y.partial_cmp(&rhs.y).unwrap());
+        objects.sort_by(|(lhs, _), (rhs, _)| lhs.y.partial_cmp(&rhs.y).unwrap());
 
         let mesh_ext = objects
             .iter()
-            .enumerate()
-            .map(|(obj_z, (layer_z, total_count, object, _))| {
+            .map(|(object, _)| {
                 let flipping = object.gid.unwrap_or_default() >> 30;
                 let mesh = Mesh::new(PrimitiveTopology::TriangleList)
                     .with_inserted_attribute(
@@ -624,9 +645,7 @@ impl TiledAssets {
                     )
                     .with_indices(Some(Indices::U16(vec![2, 0, 1, 3, 0, 2])));
 
-                let obj_z = obj_z as f32 / total_count + layer_z;
-
-                (object.id, (mesh_assets.add(mesh), obj_z))
+                (object.id, mesh_assets.add(mesh))
             })
             .collect::<Vec<_>>();
 
@@ -637,7 +656,7 @@ impl TiledAssets {
 
         let mat_ext = objects
             .iter()
-            .map(|(_, _, object, tint)| {
+            .map(|(object, tint)| {
                 let gid = object.gid.unwrap() & 0x3FFF_FFFF;
                 let (tileset, first_gid) = &self.get_tileset(gid, &map.name);
                 (

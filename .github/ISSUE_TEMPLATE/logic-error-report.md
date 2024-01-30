@@ -1,7 +1,7 @@
 ---
 name: Logic Error Report
 about: Some code isn't working correctly.
-title: 'Bug:'
+title: 'Bug: '
 labels: bug
 assignees: ''
 

@@ -1,7 +1,7 @@
 ---
 name: Rendering Bug Report
 about: Something isn't rendered as expected.
-title: 'Bug:'
+title: 'Bug: '
 labels: bug, graphics
 assignees: ''
 

@@ -1,10 +1,17 @@
-use std::fmt::Formatter;
+use std::{f32::consts::PI, fmt::Formatter};
 
 use bevy::{
+    ecs::system::EntityCommands,
     math::{IVec2, Vec2, Vec4},
     reflect::Reflect,
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    transform::components::Transform,
 };
-use serde::{de::Visitor, Deserialize, Serialize};
+use bevy_xpbd_2d::components::{Collider, Friction, RigidBody};
+use serde::{
+    de::{IgnoredAny, Visitor},
+    Deserialize, Serialize,
+};
 
 use crate::{
     tiled::resources::{PackedTiledTilemap, TiledAssets},
@@ -438,7 +445,7 @@ pub struct ObjectLayer {
     pub objects: Vec<TiledObjectInstance>,
 }
 
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+#[derive(Debug, Clone, Reflect, Serialize)]
 pub struct TiledObjectInstance {
     /// Unique ID of the object (defaults to 0,
     /// with valid IDs being at least 1). Each
@@ -446,75 +453,186 @@ pub struct TiledObjectInstance {
     /// unique id. Even if an object was deleted,
     /// no object gets the same ID. Can not be
     /// changed in Tiled. (since Tiled 0.11)
-    #[serde(rename = "@id")]
     pub id: u32,
 
     /// The name of the object. An arbitrary
     /// string. (defaults to “”)
-    #[serde(rename = "@name")]
-    #[serde(default)]
     pub name: String,
 
     /// The class of the object. An arbitrary
     /// string. (defaults to “”, was saved as
     /// class in 1.9)
-    #[serde(rename = "@type")]
-    #[serde(default)]
     pub ty: String,
 
     /// The x coordinate of the object in pixels.
     /// (defaults to 0)
-    #[serde(rename = "@x")]
     pub x: f32,
 
     /// The y coordinate of the object in pixels.
     /// (defaults to 0)
-    #[serde(rename = "@y")]
     pub y: f32,
 
     /// The width of the object in pixels.
     /// (defaults to 0)
-    #[serde(rename = "@width")]
-    #[serde(default)]
     pub width: f32,
 
     /// The height of the object in pixels.
     /// (defaults to 0)
-    #[serde(rename = "@height")]
-    #[serde(default)]
     pub height: f32,
 
     /// The rotation of the object in degrees
     /// clockwise around (x, y). (defaults to 0)
-    #[serde(rename = "@rotation")]
-    #[serde(default)]
     pub rotation: f32,
 
     /// A reference to a tile. (optional)
-    #[serde(rename = "@gid")]
     pub gid: Option<u32>,
 
     /// Whether the object is shown (1) or hidden
     /// (0). (defaults to 1)
-    #[serde(rename = "@visible")]
-    #[serde(default = "default_true")]
     pub visible: bool,
 
-    #[serde(default)]
     pub properties: Components,
 
-    #[serde(default)]
     pub shape: ObjectShape,
+}
+
+impl<'de> Deserialize<'de> for TiledObjectInstance {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct TiledObjectInstanceVisitor;
+        impl<'de> Visitor<'de> for TiledObjectInstanceVisitor {
+            type Value = TiledObjectInstance;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a string or a sequence")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut id = None;
+                let mut name = None;
+                let mut ty = None;
+                let mut x = None;
+                let mut y = None;
+                let mut width = None;
+                let mut height = None;
+                let mut rotation = None;
+                let mut gid = None;
+                let mut visible = None;
+                let mut properties = None;
+                let mut shape = None;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "@id" => id = Some(map.next_value::<u32>()?),
+                        "@name" => name = Some(map.next_value::<String>()?),
+                        "@type" => ty = Some(map.next_value::<String>()?),
+                        "@x" => x = Some(map.next_value::<f32>()?),
+                        "@y" => y = Some(map.next_value::<f32>()?),
+                        "@width" => width = Some(map.next_value::<f32>()?),
+                        "@height" => height = Some(map.next_value::<f32>()?),
+                        "@rotation" => rotation = Some(map.next_value::<f32>()?),
+                        "@gid" => gid = Some(map.next_value::<u32>()?),
+                        "@visible" => visible = Some(map.next_value::<bool>()?),
+                        "properties" => properties = Some(map.next_value::<Components>()?),
+                        "ellipse" => {
+                            map.next_value::<IgnoredAny>()?;
+                            shape = Some(ObjectShape::Ellipse);
+                        }
+                        "polygon" => shape = Some(ObjectShape::Polygon(map.next_value()?)),
+                        _ => panic!("Unknown key for TiledObjectInstance: {}", key),
+                    }
+                }
+
+                Ok(TiledObjectInstance {
+                    id: id.unwrap(),
+                    name: name.unwrap_or_default(),
+                    ty: ty.unwrap_or_default(),
+                    x: x.unwrap_or_default(),
+                    y: y.unwrap_or_default(),
+                    width: width.unwrap_or_default(),
+                    height: height.unwrap_or_default(),
+                    rotation: rotation.unwrap_or_default(),
+                    gid,
+                    visible: visible.unwrap_or(true),
+                    properties: properties.unwrap_or_default(),
+                    shape: shape.unwrap_or_default(),
+                })
+            }
+        }
+
+        deserializer.deserialize_map(TiledObjectInstanceVisitor)
+    }
+}
+
+impl TiledObjectInstance {
+    pub fn spawn_sprite(
+        &self,
+        commands: &mut EntityCommands,
+        tiled_assets: &TiledAssets,
+        tiled_map: &str,
+    ) {
+        if self.visible {
+            commands.insert(MaterialMesh2dBundle {
+                material: tiled_assets.clone_object_material_handle(&tiled_map, self.id),
+                mesh: Mesh2dHandle(tiled_assets.clone_object_mesh_handle(&tiled_map, self.id)),
+                transform: Transform::from_xyz(
+                    self.x,
+                    -self.y,
+                    tiled_assets.get_object_z_order(&tiled_map, self.id),
+                ),
+                ..Default::default()
+            });
+        }
+    }
+
+    pub fn shape_as_collider(&self, commands: &mut EntityCommands) {
+        commands.insert((
+            match &self.shape {
+                ObjectShape::Ellipse => {
+                    panic!("Eclipse colliders are not yet supported by `bevy_xpbd`!")
+                }
+                ObjectShape::Polygon(polygon) => Collider::polyline(
+                    polygon
+                        .points
+                        .clone()
+                        .into_iter()
+                        .map(|v| {
+                            Vec2::from_angle(-self.rotation / 180. * PI)
+                                .rotate(Vec2::new(v.x, -v.y))
+                        })
+                        .collect(),
+                    None,
+                ),
+                ObjectShape::Rect => Collider::convex_hull(
+                    [
+                        Vec2::ZERO,
+                        Vec2::new(self.width, 0.),
+                        Vec2::new(self.width, -self.height),
+                        Vec2::new(0., -self.height),
+                    ]
+                    .into_iter()
+                    .map(|v| Vec2::from_angle(-self.rotation / 180. * PI).rotate(v))
+                    .collect(),
+                )
+                .unwrap(),
+            },
+            bevy_xpbd_2d::components::Position::from_xy(self.x, -self.y),
+        ));
+    }
 }
 
 #[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ObjectShape {
-    Eclipse,
+    Ellipse,
     Polygon(Polygon),
-    #[serde(other)]
     #[default]
-    Default,
+    Rect,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize)]
@@ -532,15 +650,25 @@ impl<'de> Deserialize<'de> for Polygon {
             type Value = Polygon;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a string")
+                formatter.write_str("a string in format `x1,y1 x2,y2 x3,y3 ...`")
             }
 
-            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
             where
-                E: serde::de::Error,
+                A: serde::de::MapAccess<'de>,
             {
+                let mut points = None;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "@points" => points = Some(map.next_value::<String>()?),
+                        _ => panic!("Unknown key for Polygon: {}", key),
+                    }
+                }
+
                 Ok(Polygon {
-                    points: v
+                    points: points
+                        .unwrap()
                         .split(' ')
                         .into_iter()
                         .map(|p| {
@@ -553,7 +681,7 @@ impl<'de> Deserialize<'de> for Polygon {
             }
         }
 
-        deserializer.deserialize_str(PolygonVisitor)
+        deserializer.deserialize_map(PolygonVisitor)
     }
 }
 
@@ -658,4 +786,26 @@ pub struct Image {
     /// The image height in pixels (optional)
     #[serde(rename = "@height")]
     pub height: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_polygon() {
+        let polygon = r#"
+            <polygon points="0,0 0,32 -8,32 -8,48 16,48 16,32 8,32 8,0"/>
+        "#;
+        let polygon: Polygon = quick_xml::de::from_str(polygon).unwrap();
+        assert_eq!(
+            polygon.points,
+            vec![
+                Vec2::new(0., 0.),
+                Vec2::new(0., 1.),
+                Vec2::new(1., 1.),
+                Vec2::new(1., 0.)
+            ]
+        );
+    }
 }

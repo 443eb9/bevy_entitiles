@@ -1,11 +1,16 @@
 static TILED_DEFAULT_ATTR: &str = "tiled_default";
+static SHAPE_AS_COLLIDER_ATTR: &str = "shape_as_collider";
 static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
 static GLOBAL_OBJECT_ATTR: &str = "global_object";
 static CALLBACK_ATTR: &str = "callback";
 
-pub fn expand_tiled_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
+pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
     let attrs = &input.attrs;
+
+    let shape_as_collider_attr = attrs
+        .iter()
+        .find(|attr| attr.path().get_ident().unwrap() == SHAPE_AS_COLLIDER_ATTR);
 
     let spawn_sprite_attr = attrs
         .iter()
@@ -19,24 +24,20 @@ pub fn expand_tiled_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenS
         .iter()
         .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
 
+    let shape_as_collider = {
+        if shape_as_collider_attr.is_some() {
+            quote::quote!(
+                object_instance.shape_as_collider(commands);
+            )
+        } else {
+            quote::quote!()
+        }
+    };
+
     let spawn_sprite = {
         if spawn_sprite_attr.is_some() {
             quote::quote!(
-                if object_instance.visible {
-                    let (mesh, z) =
-                        tiled_assets.clone_object_mesh_handle(&tiled_map, object_instance.id);
-                    commands.insert(bevy::sprite::MaterialMesh2dBundle {
-                        material: tiled_assets
-                            .clone_object_material_handle(&tiled_map, object_instance.id),
-                        mesh: bevy::sprite::Mesh2dHandle(mesh),
-                        transform: bevy::transform::components::Transform::from_xyz(
-                            object_instance.x,
-                            -object_instance.y,
-                            z,
-                        ),
-                        ..Default::default()
-                    });
-                }
+                object_instance.spawn_sprite(commands, tiled_assets, &tiled_map);
             )
         } else {
             quote::quote!()
@@ -126,6 +127,7 @@ pub fn expand_tiled_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenS
             ) {
                 #callback
                 #spawn_sprite
+                #shape_as_collider
                 #global_object
 
                 commands.insert(#ctor);

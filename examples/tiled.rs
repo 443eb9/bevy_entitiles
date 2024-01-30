@@ -1,9 +1,15 @@
 use bevy::{
-    app::{App, PluginGroup, Startup, Update}, core_pipeline::core_2d::Camera2dBundle, ecs::{
+    app::{App, PluginGroup, Startup, Update},
+    core_pipeline::core_2d::Camera2dBundle,
+    ecs::{
         bundle::Bundle,
         component::Component,
         system::{Commands, Res, ResMut},
-    }, input::{keyboard::KeyCode, Input}, reflect::Reflect, render::{color::Color, texture::ImagePlugin}, DefaultPlugins
+    },
+    input::{keyboard::KeyCode, Input},
+    reflect::Reflect,
+    render::{color::Color, texture::ImagePlugin},
+    DefaultPlugins,
 };
 use bevy_entitiles::{
     tiled::{
@@ -13,6 +19,7 @@ use bevy_entitiles::{
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{TiledClass, TiledEnum, TiledObject};
+use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -23,6 +30,8 @@ fn main() {
             DefaultPlugins.set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesHelpersPlugin::default(),
+            PhysicsPlugins::default(),
+            PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, switching)
@@ -38,6 +47,7 @@ fn main() {
         .register_tiled_object::<BlockBundle>("Block")
         .register_tiled_object::<PlainBlockBundle>("PlainBlock")
         .register_tiled_object::<PlayerBundle>("Player")
+        .register_tiled_object::<DetectAreaBundle>("DetectArea")
         .register_type::<Block>()
         .run();
 }
@@ -124,3 +134,12 @@ pub struct MoveableObject {
     #[tiled_name = "Speed"]
     pub speed: f32,
 }
+
+#[derive(TiledObject, Bundle)]
+#[shape_as_collider]
+pub struct DetectAreaBundle {
+    pub detect_area: DetectArea,
+}
+
+#[derive(TiledClass, Component)]
+pub struct DetectArea;

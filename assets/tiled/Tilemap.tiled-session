@@ -6,9 +6,9 @@
     "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
         "tilemaps",
-        "tilesets",
         "world_test",
-        "."
+        ".",
+        "tilesets"
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -159,8 +159,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 207.33333333333334,
-                "y": 187.5
+                "x": 136,
+                "y": 139.16666666666666
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -176,15 +176,15 @@
                 3
             ],
             "expandedObjectLayers": [
-                5,
+                3,
                 4,
-                3
+                5
             ],
             "scale": 5.5,
-            "selectedLayer": 3,
+            "selectedLayer": 2,
             "viewCenter": {
-                "x": 135.8181818181818,
-                "y": 87.72727272727273
+                "x": 120,
+                "y": 79.9090909090909
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -247,14 +247,14 @@
         "tilemaps/hexagonal.tmx"
     ],
     "project": "Tilemap.tiled-project",
-    "property.type": "MoveableObject",
+    "property.type": "DetectArea",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
         "tilemaps/infinite.tmx",
         "tilemaps/isometric.tmx",
         "tilemaps/orthogonal.tmx",
-        "tilesets/Squares.tsx",
         "tilesets/Hexagonal.tsx",
+        "tilesets/Squares.tsx",
         "tilemaps/orthogonal.tmj",
         "tilesets/Isometric.tsx",
         "tilemaps/hexagonal..tmj",

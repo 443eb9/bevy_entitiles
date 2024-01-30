@@ -1,6 +1,8 @@
 # What's New:
 
 - Further support for [Tiled](https://www.mapeditor.org/).
+  - Layer tint and opacities supported.
+  - Added `shape_as_collider` macro attribute for `TiledObject`.
 - Added helper functions to make staggered tilemaps easier to create.
 
 # What's Fixed:

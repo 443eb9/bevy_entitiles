@@ -25,10 +25,16 @@ pub fn derive_ldtk_entity_tags(input: proc_macro::TokenStream) -> proc_macro::To
 
 #[proc_macro_derive(
     TiledObject,
-    attributes(tiled_default, tiled_name, spawn_sprite, global_object, callback)
+    attributes(
+        tiled_default,
+        shape_as_collider,
+        spawn_sprite,
+        global_object,
+        callback
+    )
 )]
-pub fn derive_tiled_entities(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    tiled_object::expand_tiled_entity_derive(syn::parse(input).unwrap())
+pub fn derive_tiled_objects(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    tiled_object::expand_tiled_objects_derive(syn::parse(input).unwrap())
 }
 
 #[proc_macro_derive(TiledClass, attributes(tiled_default, tiled_name))]

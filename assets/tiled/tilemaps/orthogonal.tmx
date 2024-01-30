@@ -32,11 +32,21 @@
  </layer>
  <group id="3" name="Objects">
   <objectgroup id="4" name="Region">
-   <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13" visible="0"/>
-   <object id="3" name="Torch" type="DetectArea" x="43.3636" y="62" visible="0">
+   <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13">
+    <properties>
+     <property name="Area" type="class" propertytype="DetectArea"/>
+    </properties>
+   </object>
+   <object id="3" name="Torch" x="32" y="48" width="25" height="25">
+    <properties>
+     <property name="Area" type="class" propertytype="DetectArea"/>
+    </properties>
     <ellipse/>
    </object>
-   <object id="4" name="WaterFall" type="DetectArea" x="136" y="88" visible="0">
+   <object id="4" name="WaterFall" type="DetectArea" x="136" y="88">
+    <properties>
+     <property name="Area" type="class" propertytype="DetectArea"/>
+    </properties>
     <polygon points="0,0 0,32 -8,32 -8,48 16,48 16,32 8,32 8,0"/>
    </object>
   </objectgroup>

@@ -1,7 +1,7 @@
 ---
 name: Importer Bug Report
 about: 'The importer isn''t working correctly. '
-title: ''
+title: 'LDtk/Tiled Importer: Please choose the one your issue related to'
 labels: bug
 assignees: ''
 
