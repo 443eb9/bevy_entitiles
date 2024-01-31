@@ -220,10 +220,12 @@ impl<'a> LdtkLayers<'a> {
                     tiles: HashMap::new(),
                 },
                 #[cfg(feature = "physics")]
-                physics_tiles: TileBuffer {
-                    aabb,
-                    tiles: HashMap::new(),
-                },
+                physics_tiles: crate::tilemap::physics::SerializablePhysicsSource::Buffer(
+                    TileBuffer {
+                        aabb,
+                        tiles: HashMap::new(),
+                    },
+                ),
             },
             tileset,
             LayerIid(layer.iid.clone()),

@@ -35,6 +35,13 @@ impl Plugin for EntiTilesPhysicsTilemapPlugin {
     }
 }
 
+#[cfg(feature = "serializing")]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Reflect)]
+pub enum SerializablePhysicsSource {
+    Data(DataPhysicsTilemap),
+    Buffer(super::buffers::PackedPhysicsTileBuffer),
+}
+
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PackedPhysicsTile {
@@ -88,6 +95,7 @@ impl Default for PhysicsTile {
 impl Tiles for PhysicsTile {}
 
 #[derive(Component, Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct DataPhysicsTilemap {
     pub(crate) origin: IVec2,
     pub(crate) data: Vec<i32>,

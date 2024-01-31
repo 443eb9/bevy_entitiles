@@ -29,6 +29,9 @@ use crate::{
     DEFAULT_CHUNK_SIZE,
 };
 
+#[cfg(feature = "physics")]
+use crate::tilemap::physics::SerializablePhysicsSource;
+
 const DIR: [&'static str; 4] = ["up", "right", "left", "down"];
 const HEX_DIR: [&'static str; 6] = [
     "up_right",
@@ -694,15 +697,23 @@ pub fn wfc_applier(
 
                         #[cfg(feature = "physics")]
                         if let Ok(mut tilemap) = physics_tilemaps_query.get_mut(entity) {
-                            p.physics_tiles.tiles.iter().for_each(|(index, tile)| {
-                                let mut tile = tile.clone();
-                                tile.collider.iter_mut().for_each(|v| {
-                                    *v = *v + origin.as_vec2() * tile_render_size.unwrap().0;
-                                });
-                                tilemap.data.set_elem(*index + origin, tile.clone());
-                                let entity = tile.spawn(&mut commands, *ty.unwrap());
-                                tilemap.storage.set_elem(*index + origin, entity);
-                            });
+                            match &p.physics_tiles {
+                                SerializablePhysicsSource::Data(data) => {
+                                    commands.entity(entity).insert(data.clone());
+                                }
+                                SerializablePhysicsSource::Buffer(buffer) => {
+                                    buffer.tiles.iter().for_each(|(index, tile)| {
+                                        let mut tile = tile.clone();
+                                        tile.collider.iter_mut().for_each(|v| {
+                                            *v =
+                                                *v + origin.as_vec2() * tile_render_size.unwrap().0;
+                                        });
+                                        tilemap.data.set_elem(*index + origin, tile.clone());
+                                        let entity = tile.spawn(&mut commands, *ty.unwrap());
+                                        tilemap.storage.set_elem(*index + origin, entity);
+                                    });
+                                }
+                            }
                         }
                     });
                 }

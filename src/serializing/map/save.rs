@@ -12,12 +12,14 @@ use bevy::{
 use crate::{
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
+        buffers::PackedPhysicsTileBuffer,
         chunking::storage::ChunkedStorage,
         despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
         },
+        physics::SerializablePhysicsSource,
         tile::{Tile, TileBuilder},
     },
 };
@@ -167,7 +169,8 @@ pub fn save(
                         save_object(&map_path, PHYSICS_TILES, &physics_tilemap.data)
                     }
                     TilemapSaverMode::MapPattern => {
-                        pattern.physics_tiles.tiles = physics_tilemap
+                        let mut buffer = PackedPhysicsTileBuffer::new();
+                        buffer.tiles = physics_tilemap
                             .data
                             .clone()
                             .into_mapper()
@@ -179,7 +182,8 @@ pub fn save(
                                 (index, tile)
                             })
                             .collect();
-                        pattern.physics_tiles.recalculate_aabb();
+                        buffer.recalculate_aabb();
+                        pattern.physics_tiles = SerializablePhysicsSource::Buffer(buffer);
                     }
                 }
             }

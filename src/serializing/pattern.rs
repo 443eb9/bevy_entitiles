@@ -1,35 +1,36 @@
+use crate::{prelude::TilemapAnimations, tilemap::buffers::TileBuffer};
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
-use crate::prelude::TilemapAnimations;
 
 use crate::tilemap::buffers::TileBuilderBuffer;
 
 #[cfg(feature = "algorithm")]
 use crate::tilemap::buffers::PathTileBuffer;
+
 #[cfg(feature = "physics")]
-use crate::tilemap::buffers::PackedPhysicsTileBuffer;
+use crate::tilemap::physics::SerializablePhysicsSource;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct TilemapPattern {
-    pub(crate) label: Option<String>,
-    pub(crate) tiles: TileBuilderBuffer,
-    pub(crate) animations: TilemapAnimations,
+    pub label: Option<String>,
+    pub tiles: TileBuilderBuffer,
+    pub animations: TilemapAnimations,
     #[cfg(feature = "algorithm")]
-    pub(crate) path_tiles: PathTileBuffer,
+    pub path_tiles: PathTileBuffer,
     #[cfg(feature = "physics")]
-    pub(crate) physics_tiles: PackedPhysicsTileBuffer,
+    pub physics_tiles: SerializablePhysicsSource,
 }
 
 impl TilemapPattern {
     pub fn new(label: Option<String>) -> Self {
-        Self {
+        TilemapPattern {
             label,
-            tiles: TileBuilderBuffer::new(),
-            animations: Default::default(),
+            tiles: TileBuffer::new(),
+            animations: TilemapAnimations::default(),
             #[cfg(feature = "algorithm")]
-            path_tiles: PathTileBuffer::new(),
+            path_tiles: TileBuffer::new(),
             #[cfg(feature = "physics")]
-            physics_tiles: PackedPhysicsTileBuffer::new(),
+            physics_tiles: SerializablePhysicsSource::Buffer(TileBuffer::new()),
         }
     }
 }
