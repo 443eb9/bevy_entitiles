@@ -7,7 +7,7 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     transform::components::Transform,
 };
-use bevy_xpbd_2d::components::{Collider, Friction, RigidBody};
+use bevy_xpbd_2d::components::Collider;
 use serde::{
     de::{IgnoredAny, Visitor},
     Deserialize, Serialize,
@@ -596,29 +596,40 @@ impl TiledObjectInstance {
                 ObjectShape::Ellipse => {
                     panic!("Eclipse colliders are not yet supported by `bevy_xpbd`!")
                 }
-                ObjectShape::Polygon(polygon) => Collider::polyline(
-                    polygon
-                        .points
-                        .clone()
+                ObjectShape::Polygon(polygon) => {
+                    let mut points = polygon.points.clone();
+                    points.push(polygon.points[0]);
+                    Collider::polyline(
+                        points
+                            .into_iter()
+                            .map(|v| {
+                                Vec2::from_angle(-self.rotation / 180. * PI)
+                                    .rotate(Vec2::new(v.x, -v.y))
+                            })
+                            .collect(),
+                        None,
+                    )
+                }
+                ObjectShape::Rect => Collider::convex_hull({
+                    if self.gid.is_some() {
+                        vec![
+                            Vec2::ZERO,
+                            Vec2::new(self.width, 0.),
+                            Vec2::new(self.width, self.height),
+                            Vec2::new(0., self.height),
+                        ]
+                    } else {
+                        [
+                            Vec2::ZERO,
+                            Vec2::new(self.width, 0.),
+                            Vec2::new(self.width, -self.height),
+                            Vec2::new(0., -self.height),
+                        ]
                         .into_iter()
-                        .map(|v| {
-                            Vec2::from_angle(-self.rotation / 180. * PI)
-                                .rotate(Vec2::new(v.x, -v.y))
-                        })
-                        .collect(),
-                    None,
-                ),
-                ObjectShape::Rect => Collider::convex_hull(
-                    [
-                        Vec2::ZERO,
-                        Vec2::new(self.width, 0.),
-                        Vec2::new(self.width, -self.height),
-                        Vec2::new(0., -self.height),
-                    ]
-                    .into_iter()
-                    .map(|v| Vec2::from_angle(-self.rotation / 180. * PI).rotate(v))
-                    .collect(),
-                )
+                        .map(|v| Vec2::from_angle(-self.rotation / 180. * PI).rotate(v))
+                        .collect()
+                    }
+                })
                 .unwrap(),
             },
             bevy_xpbd_2d::components::Position::from_xy(self.x, -self.y),

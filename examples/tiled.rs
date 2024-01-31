@@ -116,6 +116,7 @@ pub enum ShapeType {
 #[derive(TiledObject, Bundle)]
 #[spawn_sprite]
 #[global_object]
+#[shape_as_collider]
 pub struct PlayerBundle {
     pub player: Player,
     pub moveable: MoveableObject,
