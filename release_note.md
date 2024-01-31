@@ -1,9 +1,10 @@
 # What's New:
 
 - Further support for [Tiled](https://www.mapeditor.org/).
-  - Layer tint and opacities supported.
+  - Layer tint and opacities.
   - Derive macros.
 - Added helper functions to make staggered tilemaps easier to create.
+- `wfc_pattern` generates the wrong pattern which leads to the wrong result of WFC.
 
 # What's Fixed:
 

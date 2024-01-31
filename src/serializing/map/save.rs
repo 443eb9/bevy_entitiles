@@ -22,10 +22,12 @@ use crate::{
     },
 };
 
-use super::{SerializedTilemap, TilemapLayer, PHYSICS_TILES, TILEMAP_META, TILES};
+use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
+#[cfg(feature = "physics")]
+use super::PHYSICS_TILES;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum TilemapSaverMode {

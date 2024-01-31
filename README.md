@@ -6,7 +6,7 @@ Try to be the most **comprehensive**, **performant**, and **up-to-date** 2d tile
 
 This repo is under maintenance as long as this message exists!!
 
-It's **NOT** recommended to use the code in `dev` branch! There're full of incomplete code and even errors! But the `master` branch would be ok if you can't wait to try out new features.
+It's **NOT** recommended to use the code in the `dev` branch! There's full of incomplete code and even errors in it! But the `master` branch would be ok if you can't wait to try out new features.
 
 This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap)(Rendering) and [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk)(LDtk entity spawning)
 
@@ -16,7 +16,7 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 
 **For English speakers: The English version is translated by ChatGPT so its accuracy is not granted.**
 
-If you want to submit the wiki in your language, a pr is welcomed. But please notice that only the wiki in zh_cn and en_us will be maintained officially.
+If you want to submit the wiki in your language, a PR is welcome. But please notice that only the wiki in zh_cn and en_us will be maintained officially.
 
 ## Future Goals
 
@@ -110,7 +110,7 @@ Notice this tests are done with **synchronized pathfinding**. This means the who
 
 In the following case, each tile has at least one corresponding color gap with its neighboring tiles.
 
-**Notice: The functionality of visualizing the process of wfc was removed in 0.2.6**
+**Notice: The functionality of visualizing the process of WFC was removed in 0.2.6**
 
 <div>
 	<img src="https://raw.githubusercontent.com/443eb9/bevy_entitiles/master/docs/imgs/wfc.png" width="500px">

@@ -57,7 +57,7 @@ fn setup(mut commands: Commands) {
         for col in 0..COLS {
             let entity = commands.spawn_empty().id();
             let mut tilemap = PureColorTilemapBundle {
-                name: TilemapName(format!("{}{}", PREFIX, col * ROWS + row)),
+                name: TilemapName(format!("{}{}", PREFIX, col + row * COLS)),
                 tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
                 slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
                 ty: TilemapType::Square,
@@ -76,7 +76,7 @@ fn setup(mut commands: Commands) {
                         &mut commands,
                         IVec2 {
                             x: x as i32,
-                            y: -(y as i32),
+                            y: (PATTERN_SIZE - 1 - y) as i32,
                         },
                         TileBuilder::new()
                             .with_layer(0, TileLayer::new().with_texture_index(0))
@@ -120,8 +120,7 @@ fn setup(mut commands: Commands) {
             rules,
             TileArea::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
             Some(0),
-        )
-        .with_retrace_settings(Some(8), Some(1000000)),
+        ),
         PureColorTilemapBundle {
             name: TilemapName("wfc_map".to_string()),
             tile_render_size: TileRenderSize(Vec2::new(8., 8.)),

@@ -330,6 +330,25 @@ impl WfcData {
         .as_ivec2()
             - self.area.origin
     }
+
+    #[allow(dead_code)]
+    pub(crate) fn formatted_print(&self, flip: bool) {
+        if flip {
+            for y in (0..self.area.extent.y).rev() {
+                for x in 0..self.area.extent.x {
+                    print!("{:3} ", self.get(UVec2 { x, y }).unwrap());
+                }
+                println!();
+            }
+        } else {
+            for y in 0..self.area.extent.y {
+                for x in 0..self.area.extent.x {
+                    print!("{:3} ", self.get(UVec2 { x, y }).unwrap());
+                }
+                println!();
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
