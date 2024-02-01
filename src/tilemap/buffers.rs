@@ -18,6 +18,7 @@ pub type PhysicsTileBuffer = TileBuffer<super::physics::PhysicsTile>;
 #[cfg(feature = "physics")]
 pub type PackedPhysicsTileBuffer = TileBuffer<super::physics::PackedPhysicsTile>;
 
+/// A buffer of tiles.
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuffer<T: Tiles> {
@@ -33,6 +34,7 @@ impl<T: Tiles> TileBuffer<T> {
         }
     }
 
+    /// Set the tile at the given index. Overwrites the previous tile.
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: T) {
         self.tiles.insert(index, tile);
@@ -55,6 +57,9 @@ impl<T: Tiles> TileBuffer<T> {
         self.tiles.get_mut(&index)
     }
 
+    /// Recalculate the aabb of this tile buffer.
+    /// 
+    /// This method can be expensive when the tile buffer is large.
     pub fn recalculate_aabb(&mut self) {
         self.aabb = IAabb2d::default();
         for (index, _) in self.tiles.iter() {

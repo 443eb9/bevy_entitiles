@@ -10,12 +10,15 @@ use bevy::{
 
 use super::{map::TilemapStorage, tile::Tile};
 
+/// Marks an tilemap/tile/physics_tilemap to be despawned.
 #[derive(Component)]
 pub struct DespawnMe;
 
+/// Announced that a tilemap has been despawned for rendering.
 #[derive(Component, Clone)]
 pub struct DespawnedTilemap(pub Entity);
 
+/// Announced that a tile has been despawned for rendering.
 #[derive(Component, Clone)]
 pub struct DespawnedTile {
     pub tilemap: Entity,

@@ -8,6 +8,7 @@ use crate::{
     },
 };
 
+/// A tile for path-finding.
 #[derive(Component, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTile {
@@ -16,6 +17,7 @@ pub struct PathTile {
 
 impl Tiles for PathTile {}
 
+/// A tilemap for path-finding.
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTilemap {
@@ -23,12 +25,16 @@ pub struct PathTilemap {
 }
 
 impl PathTilemap {
+    /// Create a new path tilemap with default chunk size.
+    /// 
+    /// Use `new_with_chunk_size` to create a path tilemap with custom chunk size.
     pub fn new() -> Self {
         Self {
             storage: ChunkedStorage::default(),
         }
     }
 
+    /// Create a new path tilemap with custom chunk size.
     pub fn new_with_chunk_size(chunk_size: u32) -> Self {
         Self {
             storage: ChunkedStorage::new(chunk_size),
@@ -67,7 +73,7 @@ impl PathTilemap {
         }
     }
 
-    /// Fill path-finding data using `PathTile`.
+    /// Fill path-finding data using the same `PathTile`.
     pub fn fill_path_rect(&mut self, area: TileArea, path_tile: PathTile) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
@@ -76,6 +82,7 @@ impl PathTilemap {
         }
     }
 
+    /// Fill path-finding data using a buffer.
     pub fn fill_with_buffer(&mut self, origin: IVec2, buffer: PathTileBuffer) {
         buffer.tiles.into_iter().for_each(|(index, tile)| {
             self.set(index + origin, tile);

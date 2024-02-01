@@ -8,6 +8,9 @@ use bevy::{
 
 use super::{buffers::Tiles, map::TilemapStorage};
 
+/// A tile layer. This is the logical representation of a tile layer.
+/// Not all the layers you added to a tile will be taken into consideration
+/// when rendering. Only the top 4 layers will be rendered.
 #[derive(Debug, Default, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileLayer {
@@ -40,6 +43,7 @@ impl TileLayer {
     }
 }
 
+/// The position of a tile layer.
 #[derive(Debug, Clone, Copy, Reflect)]
 pub enum TileLayerPosition {
     Top,
@@ -53,12 +57,15 @@ pub struct LayerUpdater {
     pub layer: TileLayer,
 }
 
+/// A tile layer updater. This is is useful when you want to change some properties
+/// while not changing the whole tile.
 #[derive(Default, Component, Clone, Reflect)]
 pub struct TileUpdater {
     pub layer: Option<LayerUpdater>,
     pub color: Option<Vec4>,
 }
 
+/// The flip of a tile. This is actually bit flags.
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, Reflect)]
 pub enum TileFlip {
@@ -80,6 +87,7 @@ impl From<u32> for TileFlip {
     }
 }
 
+/// A tile builder. This is used to create a tile.
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuilder {
@@ -98,11 +106,18 @@ impl TileBuilder {
         }
     }
 
+    /// Set the color of the entire tile. Default is white.
     pub fn with_color(mut self, color: Vec4) -> Self {
         self.color = color;
         self
     }
 
+    /// Set the specific layer of the tile.
+    /// 
+    /// You don't need to worry about the index of the layer. If the index is greater than the current
+    /// layer count, the layer vector will be automatically resized.
+    /// 
+    /// Notice that you can only add one animation to a tile or multiple static layers.
     pub fn with_layer(mut self, index: usize, layer: TileLayer) -> Self {
         if let TileTexture::Static(ref mut tex) = self.texture {
             if tex.len() <= index {
@@ -113,6 +128,9 @@ impl TileBuilder {
         self
     }
 
+    /// Set the animation of the tile.
+    /// 
+    /// Notice that you can only add one animation to a tile or multiple static layers.
     pub fn with_animation(mut self, animation: TileAnimation) -> Self {
         self.texture = TileTexture::Animated(animation);
         self
@@ -136,6 +154,8 @@ impl TileBuilder {
     }
 }
 
+/// A tile animation. This is actually information about the position of the animation
+/// in the tilemap animation buffer. So it's cheap to clone.
 #[derive(ShaderType, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileAnimation {
@@ -144,12 +164,14 @@ pub struct TileAnimation {
     pub(crate) fps: u32,
 }
 
+/// A raw tile animation. This is contains the full information of a tile animation.
 #[derive(Debug, Clone, Reflect)]
 pub struct RawTileAnimation {
     pub sequence: Vec<u32>,
     pub fps: u32,
 }
 
+/// A tile texture. This is either a static texture or an animation.
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TileTexture {
@@ -157,6 +179,7 @@ pub enum TileTexture {
     Animated(TileAnimation),
 }
 
+/// The component of a tile.
 #[derive(Component, Clone, Debug, Reflect)]
 pub struct Tile {
     pub tilemap_id: Entity,

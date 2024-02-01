@@ -63,6 +63,11 @@ impl PathFindingQueue {
     pub fn get_cache(&self) -> Arc<PathTilemap> {
         self.cache.clone()
     }
+
+    #[inline]
+    pub fn get_cache_mut(&mut self) -> &mut PathTilemap {
+        Arc::get_mut(&mut self.cache).unwrap()
+    }
 }
 
 #[derive(Component, Clone, Reflect)]

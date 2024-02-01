@@ -15,12 +15,14 @@ use bevy::{
 
 use crate::{math::CameraAabb2d, tilemap::map::TilemapStorage};
 
+/// An event that is sent when a chunk is entered or left.
 #[derive(Event, Debug, Clone, Copy, Reflect)]
 pub enum CameraChunkUpdation {
     Entered(Entity, IVec2),
     Left(Entity, IVec2),
 }
 
+/// A component that is used to monitor the camera behavior.
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct CameraChunkUpdater {
     pub(crate) detect_scale: f32,

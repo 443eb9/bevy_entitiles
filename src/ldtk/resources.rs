@@ -30,6 +30,7 @@ use super::{
     LdtkLoader, LdtkLoaderMode, LdtkUnloader,
 };
 
+/// All the patterns loaded from the LDtk file.
 #[derive(Resource, Reflect, Default, Clone)]
 pub struct LdtkPatterns {
     pub pattern_size: UVec2,
@@ -87,6 +88,7 @@ impl LdtkPatterns {
         layer[pattern_index] = Some(pattern);
     }
 
+    /// Pack the patterns into a `PackedPatternLayers` for wfc.
     pub fn pack(&self) -> PackedPatternLayers {
         PackedPatternLayers::new(
             self.pattern_size,
@@ -112,6 +114,9 @@ impl LdtkPatterns {
     }
 }
 
+/// All the tilemaps loaded from the LDtk file.
+/// 
+/// This includes tilesets, entity meshes/materials etc.
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkAssets {
     pub(crate) associated_file: String,
@@ -280,6 +285,9 @@ impl LdtkAssets {
     }
 }
 
+/// The wfc result of the LDtk file.
+/// 
+/// Use this to load your wfc result in the MultiMaps way.
 #[cfg(feature = "algorithm")]
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkWfcManager {
@@ -290,11 +298,13 @@ pub struct LdtkWfcManager {
 
 #[cfg(feature = "algorithm")]
 impl LdtkWfcManager {
+    /// Get the level identifier at the given level index.
     pub fn get_ident(&self, level_index: UVec2) -> Option<String> {
         let idx = self.wfc_data.as_ref()?.get(level_index)?;
         Some(self.idents[idx as usize].clone())
     }
 
+    /// Calculate the translation of the given level index.
     pub fn get_translation(&self, level_index: IVec2, slot_size: Vec2) -> Vec2 {
         (level_index.as_vec2() + Vec2::Y) * self.pattern_size.as_vec2() * slot_size
     }
@@ -313,6 +323,10 @@ impl LdtkTocs {
     }
 }
 
+/// The additional layers of the LDtk file.
+/// 
+/// This includes path layer and physics layer. Entitiles will generate these layers
+/// acoording to the LDtk file.
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkAdditionalLayers {
     #[cfg(feature = "algorithm")]
@@ -321,6 +335,7 @@ pub struct LdtkAdditionalLayers {
     pub physics_layer: Option<super::layer::physics::LdtkPhysicsLayer>,
 }
 
+/// Configuration for loading the LDtk file.
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkLoadConfig {
     pub file_path: String,
@@ -341,10 +356,10 @@ pub struct LdtkLevelManager {
 }
 
 impl LdtkLevelManager {
-    /// Reloads the ldtk file and refresh the level cache.
+    /// Reloads the LDtk file and refresh the level cache.
     pub fn reload_json(&mut self, config: &LdtkLoadConfig) {
         if config.file_path.is_empty() {
-            error!("No specified ldtk level file path!");
+            error!("No specified LDtk level file path!");
             return;
         }
 

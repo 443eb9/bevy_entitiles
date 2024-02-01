@@ -2,7 +2,7 @@ use bevy::math::{IVec2, UVec2, Vec2};
 
 use super::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
-/// Get the world position of the center of a slot.
+/// Get the world position of the pivot of a slot.
 pub fn index_to_world(
     index: IVec2,
     ty: TilemapType,
@@ -30,6 +30,7 @@ pub fn index_to_world(
     })
 }
 
+/// Get the relative position of the pivot of a slot to the tilemap.
 pub fn index_to_rel(
     index: IVec2,
     ty: TilemapType,
@@ -40,6 +41,7 @@ pub fn index_to_rel(
     index_to_world(index, ty, transform, pivot, slot_size) - transform.translation
 }
 
+/// Get the tile collider in local space.
 pub fn get_tile_collider(
     ty: TilemapType,
     slot_size: Vec2,
@@ -129,6 +131,7 @@ pub fn get_tile_collider(
     }
 }
 
+/// Get the tile collider in world space.
 pub fn get_tile_collider_world(
     origin: IVec2,
     ty: TilemapType,
@@ -144,6 +147,7 @@ pub fn get_tile_collider_world(
         .collect()
 }
 
+/// Calculate the size of the tilemap in world space.
 pub fn calculate_map_size(size: UVec2, slot_size: Vec2, ty: TilemapType) -> Vec2 {
     let sizef = size.as_vec2();
     match ty {
@@ -162,6 +166,7 @@ pub fn calculate_map_size(size: UVec2, slot_size: Vec2, ty: TilemapType) -> Vec2
     }
 }
 
+/// Calculate the size of the staggered tilemap in world space.
 pub fn calculate_map_size_staggered(size: UVec2, slot_size: Vec2, leg: u32) -> Vec2 {
     let leg = leg as f32;
     let sizef = size.as_vec2();
@@ -177,6 +182,7 @@ pub fn calculate_map_size_staggered(size: UVec2, slot_size: Vec2, leg: u32) -> V
     Vec2::new((sizef.x + 0.5) * slot_size.x, b + sizef.y * a)
 }
 
+/// Get the tilemap axis vectors.
 pub fn get_tilemap_axis(ty: TilemapType, slot_size: Vec2, flip: TilemapAxisFlip) -> (Vec2, Vec2) {
     let (x, y) = match ty {
         TilemapType::Square => (Vec2::X, Vec2::Y),
@@ -193,12 +199,14 @@ pub fn get_tilemap_axis(ty: TilemapType, slot_size: Vec2, flip: TilemapAxisFlip)
     (x * flip.x, y * flip.y)
 }
 
+/// Stagger mode for staggered tilemaps.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StaggerMode {
     Odd,
     Even,
 }
 
+/// Convert the diamond index to the staggered index.
 pub fn staggerize_index(index: IVec2, staggered_mode: StaggerMode) -> IVec2 {
     match staggered_mode {
         StaggerMode::Odd => IVec2::new(index.x + (index.y + 1) / 2, index.y),
@@ -206,6 +214,7 @@ pub fn staggerize_index(index: IVec2, staggered_mode: StaggerMode) -> IVec2 {
     }
 }
 
+/// Convert the staggered index to the diamond index.
 pub fn destaggerize_index(index: IVec2, staggered_mode: StaggerMode) -> IVec2 {
     match staggered_mode {
         StaggerMode::Odd => IVec2::new(index.x - index.y / 2, index.y),

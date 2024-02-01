@@ -34,6 +34,7 @@ impl Plugin for EntiTilesPhysicsTilemapPlugin {
     }
 }
 
+/// Possible representations of a serialized physics tilemap.
 #[cfg(feature = "serializing")]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Reflect)]
 pub enum SerializablePhysicsSource {
@@ -41,6 +42,7 @@ pub enum SerializablePhysicsSource {
     Buffer(super::buffers::PackedPhysicsTileBuffer),
 }
 
+/// All the vertices of a physics collider.
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum PhysicsCollider {
@@ -114,6 +116,10 @@ impl Default for PhysicsTile {
 
 impl Tiles for PhysicsTile {}
 
+/// This can used to spawn a optimized physics tilemap.
+/// 
+/// Once the component is added, the crate will figure out the least amount of colliders
+/// needed to represent the tilemap and spawn them.
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct DataPhysicsTilemap {
@@ -125,6 +131,10 @@ pub struct DataPhysicsTilemap {
 }
 
 impl DataPhysicsTilemap {
+    /// Create a new physics tilemap from a data array.
+    /// 
+    /// As the y axis in array and bevy is flipped, this method will flip the array.
+    /// If your data is already flipped, use `new_flipped` instead.
     pub fn new(
         origin: IVec2,
         data: Vec<i32>,
@@ -154,6 +164,7 @@ impl DataPhysicsTilemap {
         }
     }
 
+    /// Create a new physics tilemap from a data array. Without flipping the array.
     pub fn new_flipped(
         origin: IVec2,
         flipped_data: Vec<i32>,
@@ -176,6 +187,9 @@ impl DataPhysicsTilemap {
         }
     }
 
+    /// Try to get the tile at the given index.
+    /// 
+    /// This will return the air tile if the index is out of bounds.
     #[inline]
     pub fn get_or_air(&self, index: UVec2) -> i32 {
         if index.x >= self.size.x || index.y >= self.size.y {
@@ -185,6 +199,7 @@ impl DataPhysicsTilemap {
         }
     }
 
+    /// Map the tile id to a physics tile.
     #[inline]
     pub fn get_tile(&self, value: i32) -> Option<PhysicsTile> {
         self.tiles.get(&value).cloned()
@@ -196,6 +211,7 @@ impl DataPhysicsTilemap {
     }
 }
 
+/// A tilemap with physics tiles.
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
     pub(crate) storage: EntityChunkedStorage,
@@ -204,6 +220,9 @@ pub struct PhysicsTilemap {
 }
 
 impl PhysicsTilemap {
+    /// Create a new physics tilemap with default chunk size.
+    /// 
+    /// Use `new_with_chunk_size` to specify a custom chunk size.
     pub fn new() -> Self {
         PhysicsTilemap {
             storage: ChunkedStorage::default(),
@@ -212,6 +231,7 @@ impl PhysicsTilemap {
         }
     }
 
+    /// Create a new physics tilemap with a custom chunk size.
     pub fn new_with_chunk_size(chunk_size: u32) -> Self {
         PhysicsTilemap {
             storage: ChunkedStorage::new(chunk_size),
@@ -232,6 +252,7 @@ impl PhysicsTilemap {
         self.spawn_queue.push((IAabb2d::splat(index), tile));
     }
 
+    /// Remove a tile.
     #[inline]
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.storage.remove_elem(index) {
@@ -239,6 +260,7 @@ impl PhysicsTilemap {
         }
     }
 
+    /// Remove a chunk.
     #[inline]
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
@@ -248,6 +270,7 @@ impl PhysicsTilemap {
         }
     }
 
+    /// Remove all tiles.
     #[inline]
     pub fn remove_all(&mut self, commands: &mut Commands) {
         for entity in self.storage.iter_some() {
@@ -257,7 +280,8 @@ impl PhysicsTilemap {
     }
 
     /// Fill a rectangle area with the same tile.
-    /// This won't concat the adjacent tiles.
+    /// 
+    /// Set `concat` to true if you want to concat the adjacent tiles.
     pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
         if concat {
             self.spawn_queue.push((area.into(), tile));

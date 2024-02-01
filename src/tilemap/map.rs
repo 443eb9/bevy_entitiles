@@ -36,6 +36,7 @@ pub enum TilemapType {
     Hexagonal(u32),
 }
 
+/// Actually four directions.
 #[derive(Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TilemapRotation {
@@ -46,6 +47,7 @@ pub enum TilemapRotation {
     Cw270 = 270,
 }
 
+/// A tilemap transform. Using the `Transform` component is meaningless.
 #[derive(Component, Debug, Clone, Copy, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapTransform {
@@ -55,6 +57,7 @@ pub struct TilemapTransform {
 }
 
 impl TilemapTransform {
+    /// The transform with no translation and rotation.
     pub const IDENTITY: Self = Self {
         translation: Vec2::ZERO,
         z_index: 0,
@@ -150,6 +153,7 @@ impl Into<Transform> for TilemapTransform {
 }
 
 bitflags::bitflags! {
+    /// Flip the tilemap along the x or y axis.
     #[derive(Component, Debug, Clone, Copy)]
     pub struct TilemapAxisFlip: u32 {
         const NONE = 0b00;
@@ -165,6 +169,7 @@ impl Default for TilemapAxisFlip {
 }
 
 impl TilemapAxisFlip {
+    /// Get the flip as a `Vec2` where `1` means no flip and `-1` means flip.
     pub fn as_vec2(self) -> Vec2 {
         let mut v = Vec2::ONE;
         if self.contains(Self::X) {
@@ -177,6 +182,7 @@ impl TilemapAxisFlip {
     }
 }
 
+/// A tilemap texture. It's similar to `TextureAtlas`.
 #[derive(Component, Clone, Default, Debug, Reflect)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
@@ -220,6 +226,7 @@ impl TilemapTexture {
         )
     }
 
+    /// Get the atlas rect  of a tile in uv coordinates.
     pub fn get_atlas_rect(&self, index: u32) -> Aabb2d {
         let tile_count = self.desc.size / self.desc.tile_size;
         let tile_index = Vec2::new((index % tile_count.x) as f32, (index / tile_count.x) as f32);
@@ -251,6 +258,7 @@ impl TilemapTexture {
     }
 }
 
+/// A descriptor for a tilemap texture.
 #[derive(Clone, Default, Debug, PartialEq, Reflect)]
 pub struct TilemapTextureDescriptor {
     pub(crate) size: UVec2,
@@ -279,18 +287,55 @@ impl TilemapTextureDescriptor {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapName(pub String);
 
+/// The actual rendered size of each tile mesh in pixels.
+///
+/// Every tile is acutally a square mesh like this:
+/// ```text
+/// +----+
+/// |    | ← y
+/// |    |
+/// +----+
+///  ↑x
+/// ````
+/// and the texture atlas will be rendered on it.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileRenderSize(pub Vec2);
 
+/// The gap between each tile mesh in pixels.
+///
+/// The tilemap mesh actually looks like this:
+/// ```text
+/// +----+----+----+
+/// |    |    |    |
+/// |    |    |    |
+/// +----+----+----+
+/// |    |    |    |
+/// |    |    |    | ← y
+/// +----+----+----+
+///             ↑x
+/// ```
+/// You can use this to make margins or paddings between tiles.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapSlotSize(pub Vec2);
 
+/// The pivot of each tile mesh.
+///
+/// Every tile is acutally a square mesh like this:
+/// ```text
+///                 +----+
+///                 |    |
+///                 |    |
+/// default pivot → +----+
+/// (0., 0.)
+/// ````
+/// Changing this will affect the tile's scale ratio and it's position.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilePivot(pub Vec2);
 
+/// The opacity of each tile layer.
 #[derive(Component, Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapLayerOpacities(pub Vec4);
@@ -301,12 +346,26 @@ impl Default for TilemapLayerOpacities {
     }
 }
 
+/// The tilemap's aabb.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 pub struct TilemapAabbs {
     pub(crate) chunk_aabb: IAabb2d,
     pub(crate) world_aabb: Aabb2d,
 }
 
+impl TilemapAabbs {
+    /// The aabb of the whole tilemap in chunk coordinates.
+    pub fn chunk_aabb(&self) -> IAabb2d {
+        self.chunk_aabb
+    }
+
+    /// The aabb of the whole tilemap in world coordinates.
+    pub fn world_aabb(&self) -> Aabb2d {
+        self.world_aabb
+    }
+}
+
+/// The tilemap's storage. It stores all the tiles in entity form.
 #[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapStorage {
@@ -431,6 +490,7 @@ impl TilemapStorage {
     }
 
     /// Declare that a chunk is existent.
+    ///
     /// Use `reserve_with_aabb` if you can provide the aabb.
     /// Or `reserve_many` to reserve multiple chunks.
     #[inline]
@@ -438,11 +498,13 @@ impl TilemapStorage {
         self.queue_aabb(index);
     }
 
+    /// `reserve()` the chunk at `index` with the known `aabb`.
     #[inline]
     pub fn reserve_with_aabb(&mut self, index: IVec2, aabb: Aabb2d) {
         self.reserved.insert(index, aabb);
     }
 
+    /// `reserve()` all the chunks in the iterator.
     #[inline]
     pub fn reserve_many(&mut self, indices: impl Iterator<Item = IVec2>) {
         indices.for_each(|i| {
@@ -450,6 +512,7 @@ impl TilemapStorage {
         });
     }
 
+    /// `reserve_with_aabb()` all the chunks in the iterator with the known aabbs.
     #[inline]
     pub fn reserve_many_with_aabbs(&mut self, indices: impl Iterator<Item = (IVec2, Aabb2d)>) {
         self.reserved.extend(indices);
@@ -616,6 +679,9 @@ impl TilemapStorage {
     }
 }
 
+/// The tilemap's animation buffer.
+///
+/// Its format is `[fps, seq_elem_1, ..., seq_elem_n, fps, seq_elem_1, ..., seq_elem_n, ...]`.
 #[derive(Component, Default, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapAnimations(pub(crate) Vec<i32>);

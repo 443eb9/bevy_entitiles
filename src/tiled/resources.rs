@@ -38,6 +38,7 @@ use super::{
     },
 };
 
+/// Configuration for loading tiled tilemaps.
 #[derive(Resource, Default, Reflect)]
 pub struct TiledLoadConfig {
     pub map_path: Vec<String>,
@@ -59,6 +60,9 @@ pub struct PackedTiledTileset {
     pub texture: TilemapTexture,
 }
 
+/// A resource that manages tiled tilemaps.
+/// 
+/// You can load/unload tiled tilemaps using this resource.
 #[derive(Resource, Default, Reflect)]
 pub struct TiledTilemapManger {
     pub(crate) version: u32,
@@ -153,6 +157,9 @@ impl TiledTilemapManger {
     }
 }
 
+/// All the resources that are loaded from tiled tilemaps.
+/// 
+/// This includes tilesets, image meshes/materials, object meshes/materials, etc.
 #[derive(Resource, Default, Reflect)]
 pub struct TiledAssets {
     pub(crate) version: u32,

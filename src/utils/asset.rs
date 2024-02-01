@@ -16,6 +16,12 @@ impl AssetPath for PathBuf {
     }
 }
 
+/// Converts a path to an asset path.
+/// 
+/// # Example
+/// ```rust
+/// assert_eq!(to_asset_path("C:\\Project\\assets\\project\\../test_image.png", "test_image.png"));
+/// ```
 pub fn to_asset_path(path: impl AsRef<Path>) -> PathBuf {
     let path = path.as_ref();
 

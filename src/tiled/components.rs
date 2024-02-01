@@ -34,5 +34,9 @@ impl TiledLoadedTilemap {
     }
 }
 
+/// A component that is used to mark a tilemap as a global object.
+/// 
+/// Global objects means objects that are not attached to any tilemap.
+/// So they won't be unloaded when the tilemap is unloaded.
 #[derive(Component, Debug, Clone)]
 pub struct TiledGlobalObject;

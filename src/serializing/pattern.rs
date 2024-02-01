@@ -13,6 +13,9 @@ use crate::tilemap::buffers::PathTileBuffer;
 #[cfg(feature = "physics")]
 use crate::tilemap::physics::SerializablePhysicsSource;
 
+/// A pattern of tiles.
+/// 
+/// This includes the tiles, animations, and other data.
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct TilemapPattern {
     pub label: Option<String>,
@@ -38,6 +41,7 @@ impl TilemapPattern {
     }
 }
 
+/// A layer of patterns. This can be used when performing wfc.
 #[derive(Clone, Reflect)]
 pub struct PatternsLayer {
     pub(crate) pattern_size: UVec2,
@@ -81,13 +85,6 @@ impl PatternsLayer {
     pub fn iter(&self) -> impl Iterator<Item = &TilemapPattern> {
         self.patterns.iter()
     }
-}
-
-pub struct PatternLayerSlice<'a> {
-    pub index: usize,
-    pub pattern_size: UVec2,
-    pub label: &'a Option<String>,
-    pub layer: (Vec<&'a TilemapPattern>, &'a Option<TilemapTexture>),
 }
 
 pub struct PatternElementSlice<'a> {
