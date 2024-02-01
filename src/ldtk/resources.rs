@@ -13,18 +13,18 @@ use bevy::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
     },
-    sprite::{Mesh2dHandle, SpriteBundle, TextureAtlas},
+    sprite::{Mesh2dHandle, TextureAtlas},
     utils::HashMap,
 };
 
-use crate::tilemap::tile::RawTileAnimation;
+use crate::{serializing::pattern::PatternsLayer, tilemap::tile::RawTileAnimation};
 use crate::{
-    serializing::pattern::TilemapPattern,
+    serializing::pattern::{PackedPatternLayers, TilemapPattern},
     tilemap::map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
 };
 
 use super::{
-    components::EntityIid,
+    components::{EntityIid, LayerIid},
     json::{definitions::EntityDef, EntityRef, LdtkJson, TocInstance},
     sprite::{AtlasRect, LdtkEntityMaterial},
     LdtkLoader, LdtkLoaderMode, LdtkUnloader,
@@ -32,57 +32,78 @@ use super::{
 
 #[derive(Resource, Reflect, Default, Clone)]
 pub struct LdtkPatterns {
+    pub pattern_size: UVec2,
     #[reflect(ignore)]
-    pub patterns: HashMap<String, (Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle)>,
-    #[cfg(feature = "physics")]
-    pub physics_patterns: HashMap<String, crate::tilemap::physics::DataPhysicsTilemap>,
+    pub patterns: Vec<(
+        Vec<Option<TilemapPattern>>,
+        Option<TilemapTexture>,
+        Option<LayerIid>,
+    )>,
     #[cfg(feature = "physics")]
     pub physics_parent: String,
-    pub idents: HashMap<u8, String>,
+    pub idents: Vec<String>,
+    pub idents_to_index: HashMap<String, usize>,
 }
 
 impl LdtkPatterns {
     #[inline]
-    pub fn new(idents: HashMap<u8, String>) -> Self {
+    pub fn new(idents: Vec<String>, pattern_size: UVec2) -> Self {
         Self {
+            idents_to_index: idents
+                .iter()
+                .enumerate()
+                .map(|(i, s)| (s.clone(), i))
+                .collect(),
             idents,
+            pattern_size,
             ..Default::default()
         }
     }
 
-    #[inline]
-    pub fn get_with_ident(
-        &self,
-        identifier: String,
-    ) -> &(Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle) {
-        self.patterns.get(&identifier).unwrap()
-    }
-
-    #[inline]
-    pub fn get_with_index(
-        &self,
-        index: u8,
-    ) -> &(Vec<(TilemapPattern, TilemapTexture)>, SpriteBundle) {
-        self.patterns.get(&self.idents[&index]).unwrap()
-    }
-
-    #[inline]
-    pub fn insert(
+    pub fn add_pattern(
         &mut self,
+        layer_index: usize,
+        layer_iid: &LayerIid,
+        pattern: TilemapPattern,
+        texture: &Option<TilemapTexture>,
         identifier: String,
-        patterns: Vec<(TilemapPattern, TilemapTexture)>,
-        background: SpriteBundle,
     ) {
-        self.patterns
-            .insert(identifier.to_string(), (patterns, background));
+        if layer_index >= self.patterns.len() {
+            self.patterns.resize(layer_index + 1, (vec![], None, None));
+        }
+        let (layer, layer_texture, iid) = self.patterns.get_mut(layer_index).unwrap();
+        let pattern_index = self.idents_to_index[&identifier];
+
+        if layer_texture.is_none() {
+            *layer_texture = texture.clone();
+        }
+        if iid.is_none() {
+            *iid = Some(layer_iid.clone());
+        }
+
+        if pattern_index >= layer.len() {
+            layer.resize(pattern_index + 1, None);
+        }
+        layer[pattern_index] = Some(pattern);
     }
 
-    #[inline]
-    pub fn get_physics_with_index(
-        &self,
-        index: u8,
-    ) -> Option<&crate::tilemap::physics::DataPhysicsTilemap> {
-        self.physics_patterns.get(&self.idents[&index])
+    pub fn pack(&self) -> PackedPatternLayers {
+        PackedPatternLayers::new(
+            self.pattern_size,
+            self.patterns
+                .iter()
+                .filter_map(|(layer, texture, iid)| {
+                    iid.clone().map(|iid| {
+                        PatternsLayer::new(
+                            Some(iid.0),
+                            self.pattern_size,
+                            layer.iter().map(|p| p.clone().unwrap()).collect(),
+                            texture.clone(),
+                        )
+                    })
+                })
+                .collect(),
+        )
     }
 
     #[inline]
@@ -263,19 +284,19 @@ impl LdtkAssets {
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkWfcManager {
     pub(crate) wfc_data: Option<crate::algorithm::wfc::WfcData>,
-    pub(crate) idents: HashMap<u8, String>,
-    pub(crate) pattern_size: Vec2,
+    pub(crate) idents: Vec<String>,
+    pub(crate) pattern_size: UVec2,
 }
 
 #[cfg(feature = "algorithm")]
 impl LdtkWfcManager {
     pub fn get_ident(&self, level_index: UVec2) -> Option<String> {
         let idx = self.wfc_data.as_ref()?.get(level_index)?;
-        Some(self.idents[&idx].clone())
+        Some(self.idents[idx as usize].clone())
     }
 
-    pub fn get_translation(&self, level_index: IVec2) -> Vec2 {
-        (level_index.as_vec2() + Vec2::Y) * self.pattern_size
+    pub fn get_translation(&self, level_index: IVec2, slot_size: Vec2) -> Vec2 {
+        (level_index.as_vec2() + Vec2::Y) * self.pattern_size.as_vec2() * slot_size
     }
 }
 

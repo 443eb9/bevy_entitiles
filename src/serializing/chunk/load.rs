@@ -32,7 +32,7 @@ use crate::{
 #[cfg(feature = "physics")]
 use crate::{
     serializing::chunk::PHYSICS_TILE_CHUNKS_FOLDER,
-    tilemap::{buffers::PackedPhysicsTileBuffer, map::TilemapType, physics::PhysicsTilemap},
+    tilemap::{buffers::PackedPhysicsTileBuffer, physics::PhysicsTilemap},
 };
 
 #[derive(Component)]
@@ -196,13 +196,13 @@ pub fn load_path_layer(
 pub fn load_physics_layer(
     mut commands: Commands,
     mut tilemaps_query: Query<
-        (Entity, &TilemapName, &TilemapType, &mut PhysicsTilemap),
+        (Entity, &TilemapName, &mut PhysicsTilemap),
         With<ScheduledLoadChunks>,
     >,
     config: Res<ChunkLoadConfig>,
     mut cache: ResMut<ChunkLoadCache>,
 ) {
-    tilemaps_query.for_each_mut(|(entity, name, ty, mut physics_tilemap)| {
+    tilemaps_query.for_each_mut(|(entity, name, mut physics_tilemap)| {
         let chunk_size = physics_tilemap.storage.chunk_size as i32;
         (0..config.chunks_per_frame).into_iter().for_each(|_| {
             let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PHYSICS) else {
@@ -233,7 +233,7 @@ pub fn load_physics_layer(
             let mut new_chunk = vec![None; (chunk_size * chunk_size) as usize];
             chunk.tiles.into_iter().for_each(|(in_chunk_index, tile)| {
                 new_chunk[(in_chunk_index.y * chunk_size + in_chunk_index.x) as usize] =
-                    Some(tile.spawn(&mut commands, *ty));
+                    Some(tile.spawn(&mut commands));
             });
             physics_tilemap.storage.set_chunk(chunk_index, new_chunk);
         });

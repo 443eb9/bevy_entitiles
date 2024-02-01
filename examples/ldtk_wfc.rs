@@ -6,7 +6,6 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query, Res, ResMut},
     },
-    hierarchy::DespawnRecursiveExt,
     input::{keyboard::KeyCode, Input},
     math::{IVec2, UVec2, Vec2, Vec3Swizzles},
     reflect::Reflect,
@@ -25,7 +24,11 @@ use bevy_entitiles::{
         },
     },
     math::TileArea,
-    tilemap::{map::TilemapType, physics::PhysicsTile},
+    tilemap::{
+        bundles::DataTilemapBundle,
+        map::{TileRenderSize, TilemapSlotSize, TilemapType},
+        physics::PhysicsTile,
+    },
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
@@ -45,8 +48,9 @@ fn main() {
         .insert_resource(LdtkPatterns::new(
             (0..=5)
                 .into_iter()
-                .map(|i| (i, format!("World_Level_{}", i)))
+                .map(|i| format!("World_Level_{}", i))
                 .collect(),
+            UVec2::splat(16),
         ))
         .insert_resource(LdtkLoadConfig {
             file_path: "assets/ldtk/wfc_source.ldtk".to_string(),
@@ -98,6 +102,11 @@ fn setup(mut commands: Commands) {
 
     let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TilemapType::Square);
     commands.spawn((
+        DataTilemapBundle {
+            tile_render_size: TileRenderSize(Vec2::splat(16.)),
+            slot_size: TilemapSlotSize(Vec2::splat(16.)),
+            ..Default::default()
+        },
         WfcRunner::new(
             TilemapType::Square,
             rules,
@@ -106,7 +115,7 @@ fn setup(mut commands: Commands) {
         ),
         // you can also switch this to SingleMap mode
         // which will apply the result on a single tilemap
-        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
+        WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
     ));
 
     commands.spawn((
@@ -167,9 +176,9 @@ fn load_level(
             level_manager.switch_to(
                 &mut commands,
                 ident,
-                Some(wfc_manager.get_translation(l.0.as_ivec2())),
+                Some(wfc_manager.get_translation(l.0.as_ivec2(), Vec2::splat(8.))),
             );
         }
-        commands.entity(e).despawn_recursive();
+        commands.entity(e).despawn();
     });
 }

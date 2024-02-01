@@ -12,14 +12,12 @@ use bevy::{
 use crate::{
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
-        buffers::PackedPhysicsTileBuffer,
         chunking::storage::ChunkedStorage,
         despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
         },
-        physics::SerializablePhysicsSource,
         tile::{Tile, TileBuilder},
     },
 };
@@ -29,7 +27,10 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 #[cfg(feature = "algorithm")]
 use super::PATH_TILES;
 #[cfg(feature = "physics")]
-use super::PHYSICS_TILES;
+use crate::{
+    serializing::map::PHYSICS_TILES,
+    tilemap::{buffers::PackedPhysicsTileBuffer, physics::SerializablePhysicsSource},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum TilemapSaverMode {
@@ -176,7 +177,7 @@ pub fn save(
                             .into_mapper()
                             .into_iter()
                             .map(|(index, mut tile)| {
-                                tile.collider.iter_mut().for_each(|v| {
+                                tile.collider.as_verts_mut().iter_mut().for_each(|v| {
                                     *v = *v - transform.translation;
                                 });
                                 (index, tile)

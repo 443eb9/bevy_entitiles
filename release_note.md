@@ -5,6 +5,8 @@
   - Derive macros.
 - Added helper functions to make staggered tilemaps easier to create.
 - `wfc_pattern` generates the wrong pattern which leads to the wrong result of WFC.
+- Layered WFC rework. Code quality ++
+- LDtk WFC rework. Code quality ++++
 
 # What's Fixed:
 

@@ -5,6 +5,13 @@ use super::map::{
     TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
 };
 
+#[derive(Debug, Clone)]
+pub enum TilemapBundles {
+    Data(DataTilemapBundle),
+    PureColor(PureColorTilemapBundle),
+    Texture(TilemapBundle),
+}
+
 /// The bundle of the tilemap with no actual tiles.
 #[derive(Bundle, Default, Debug, Clone)]
 pub struct DataTilemapBundle {
@@ -125,4 +132,26 @@ pub struct PureColorTilemapBundle {
     pub transform: TilemapTransform,
     /// The axes for the tilemap.
     pub axis_flip: TilemapAxisFlip,
+}
+
+impl PureColorTilemapBundle {
+    pub fn convert_to_texture_bundle(
+        self,
+        texture: TilemapTexture,
+        animations: TilemapAnimations,
+    ) -> TilemapBundle {
+        TilemapBundle {
+            name: self.name,
+            tile_render_size: self.tile_render_size,
+            slot_size: self.slot_size,
+            ty: self.ty,
+            tile_pivot: self.tile_pivot,
+            layer_opacities: self.layer_opacities,
+            storage: self.storage,
+            transform: self.transform,
+            axis_flip: self.axis_flip,
+            texture,
+            animations,
+        }
+    }
 }

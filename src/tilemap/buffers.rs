@@ -33,6 +33,7 @@ impl<T: Tiles> TileBuffer<T> {
         }
     }
 
+    #[inline]
     pub fn set(&mut self, index: IVec2, tile: T) {
         self.tiles.insert(index, tile);
         self.aabb.expand_to_contain(index);
@@ -44,10 +45,12 @@ impl<T: Tiles> TileBuffer<T> {
         self.recalculate_aabb();
     }
 
+    #[inline]
     pub fn get(&self, index: IVec2) -> Option<&T> {
         self.tiles.get(&index)
     }
 
+    #[inline]
     pub fn get_mut(&mut self, index: IVec2) -> Option<&mut T> {
         self.tiles.get_mut(&index)
     }
@@ -57,6 +60,11 @@ impl<T: Tiles> TileBuffer<T> {
         for (index, _) in self.tiles.iter() {
             self.aabb.expand_to_contain(*index);
         }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.tiles.is_empty()
     }
 
     #[inline]

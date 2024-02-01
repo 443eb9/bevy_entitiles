@@ -27,6 +27,8 @@ impl Plugin for EntiTilesAlgorithmPlugin {
                 wfc::wave_function_collapse,
                 wfc::wfc_data_assigner,
                 wfc::wfc_applier,
+                #[cfg(feature = "ldtk")]
+                wfc::ldtk_wfc_helper,
             ),
         );
     }

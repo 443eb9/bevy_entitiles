@@ -114,7 +114,7 @@ fn setup(mut commands: Commands) {
     let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
 
     commands.entity(entity).insert((
-        WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules),
+        WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules, None),
         WfcRunner::new(
             TilemapType::Square,
             rules,

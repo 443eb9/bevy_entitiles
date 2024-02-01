@@ -1,8 +1,9 @@
 /// Direction order: up, right, left, down
-use std::{collections::VecDeque, path::Path, vec};
+use std::{collections::VecDeque, path::Path};
 
 use bevy::{
     ecs::{entity::Entity, query::Without},
+    log::warn,
     math::IVec2,
     prelude::{Commands, Component, Query, UVec2},
     reflect::Reflect,
@@ -17,20 +18,23 @@ use rand::{
 
 use crate::{
     math::{extension::TileIndex, TileArea},
-    serializing::pattern::TilemapPattern,
+    serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
-        bundles::{PureColorTilemapBundle, TilemapBundle},
+        bundles::PureColorTilemapBundle,
         map::{
-            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTransform, TilemapType,
+            TileRenderSize, TilemapAnimations, TilemapName, TilemapSlotSize, TilemapStorage,
+            TilemapTexture, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
     DEFAULT_CHUNK_SIZE,
 };
 
+#[cfg(feature = "algorithm")]
+use crate::tilemap::algorithm::path::PathTilemap;
+
 #[cfg(feature = "physics")]
-use crate::tilemap::physics::SerializablePhysicsSource;
+use crate::tilemap::physics::{PhysicsTilemap, SerializablePhysicsSource};
 
 const DIR: [&'static str; 4] = ["up", "right", "left", "down"];
 const HEX_DIR: [&'static str; 6] = [
@@ -145,8 +149,8 @@ pub enum LdtkWfcMode {
 #[derive(Component, Clone, Reflect)]
 pub enum WfcSource {
     SingleTile(Vec<TileBuilder>),
-    MapPattern(Vec<TilemapPattern>),
-    MultiLayerMapPattern(UVec2, Vec<(Vec<TilemapPattern>, Option<TilemapTexture>)>),
+    MapPattern(PatternsLayer),
+    MultiLayerMapPattern(PackedPatternLayers),
     #[cfg(feature = "ldtk")]
     LdtkMapPattern(LdtkWfcMode),
 }
@@ -176,12 +180,17 @@ impl WfcSource {
     ///     ..
     /// ```
     /// So the `directory`= `C:\\wfc_patterns`, `prefix` = `wfc_pattern_`.
-    pub fn from_pattern_path(directory: String, prefix: String, conn_rules: &WfcRules) -> Self {
+    pub fn from_pattern_path(
+        directory: String,
+        prefix: String,
+        conn_rules: &WfcRules,
+        texture: Option<TilemapTexture>,
+    ) -> Self {
         let n = conn_rules.0.len();
         let mut patterns = Vec::with_capacity(n);
 
         for idx in 0..n {
-            let serialized_pattern: TilemapPattern = ron::from_str(
+            let ser_pattern: TilemapPattern = ron::from_str(
                 std::fs::read_to_string(
                     Path::new(&directory).join(format!("{}{}.ron", prefix, idx)),
                 )
@@ -189,10 +198,30 @@ impl WfcSource {
                 .as_str(),
             )
             .unwrap();
-            patterns.push(serialized_pattern);
+
+            let size = ser_pattern.tiles.aabb.size();
+            let label = ser_pattern.label.clone().unwrap_or("No label".to_string());
+
+            patterns.push(ser_pattern);
+
+            assert_eq!(
+                size,
+                patterns[0].tiles.aabb.size(),
+                "Failed to load patterns! Pattern No.{}[label = {:?}]'s size is {}, \
+                but the pattern_size is {}",
+                idx,
+                label,
+                size,
+                patterns[0].tiles.aabb.size()
+            );
         }
 
-        Self::MapPattern(patterns)
+        Self::MapPattern(PatternsLayer {
+            pattern_size: patterns[0].tiles.aabb.size().as_uvec2(),
+            patterns,
+            texture,
+            label: Some(prefix),
+        })
     }
 }
 
@@ -641,20 +670,7 @@ pub fn wfc_data_assigner(mut commands: Commands, mut tasks_query: Query<(Entity,
 
 pub fn wfc_applier(
     mut commands: Commands,
-    mut tilemaps_query: Query<(
-        Entity,
-        Option<&TilemapType>,
-        Option<&TileRenderSize>,
-        Option<&mut TilemapStorage>,
-        &WfcData,
-        &WfcSource,
-    )>,
-    #[cfg(feature = "ldtk")] ldtk_patterns: Option<
-        bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>,
-    >,
-    #[cfg(feature = "ldtk")] mut ldtk_manager: bevy::ecs::system::ResMut<
-        crate::ldtk::resources::LdtkLevelManager,
-    >,
+    mut tilemaps_query: Query<(Entity, Option<&mut TilemapStorage>, &WfcData, &WfcSource)>,
     #[cfg(feature = "algorithm")] mut path_tilemaps_query: Query<
         &mut crate::tilemap::algorithm::path::PathTilemap,
     >,
@@ -663,231 +679,176 @@ pub fn wfc_applier(
     >,
 ) {
     tilemaps_query.for_each_mut(
-        |(entity, ty, tile_render_size, mut tilemap_storage, wfc_data, source)| {
-            match source {
-                WfcSource::SingleTile(tiles) => {
-                    let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
-                        panic!("SingleTile source requires a tilemap on the entity!")
-                    });
+        |(entity, mut tilemap_storage, wfc_data, source)| match source {
+            WfcSource::SingleTile(tiles) => {
+                let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
+                    panic!("SingleTile source requires a tilemap on the entity!")
+                });
 
-                    for (i, e) in wfc_data.data.iter().enumerate() {
-                        let ser_tile = tiles.get(*e as usize).unwrap();
-                        tilemap.set(
-                            &mut commands,
-                            wfc_data.elem_idx_to_grid(i),
-                            ser_tile.clone().into(),
-                        );
-                    }
+                for (i, e) in wfc_data.data.iter().enumerate() {
+                    let ser_tile = tiles.get(*e as usize).unwrap();
+                    tilemap.set(
+                        &mut commands,
+                        wfc_data.elem_idx_to_grid(i),
+                        ser_tile.clone().into(),
+                    );
                 }
-                WfcSource::MapPattern(patterns) => {
-                    let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
-                        panic!("MapPattern source requires a tilemap on the entity!")
-                    });
 
-                    wfc_data.data.iter().enumerate().for_each(|(i, e)| {
-                        let p = &patterns[*e as usize];
-                        let origin = (wfc_data.elem_idx_to_grid(i) + wfc_data.area.origin)
-                            * p.tiles.aabb.size();
-                        tilemap.fill_with_buffer(&mut commands, origin, p.tiles.clone());
+                commands
+                    .entity(entity)
+                    .remove::<WfcData>()
+                    .remove::<WfcSource>();
+            }
+            WfcSource::MapPattern(patterns) => {
+                let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
+                    panic!("MapPattern source requires a tilemap on the entity!")
+                });
+
+                wfc_data.data.iter().enumerate().for_each(|(i, e)| {
+                    let p = &patterns.get(*e as usize);
+                    let origin =
+                        (wfc_data.elem_idx_to_grid(i) + wfc_data.area.origin) * p.tiles.aabb.size();
+                    tilemap.fill_with_buffer(&mut commands, origin, p.tiles.clone());
+
+                    #[cfg(feature = "algorithm")]
+                    if let Ok(mut tilemap) = path_tilemaps_query.get_mut(entity) {
+                        tilemap.fill_with_buffer(origin, p.path_tiles.clone());
+                    } else {
+                        warn!("Skipping algorithm layers as the tilemap does not have a PathTilemap component!");
+                    }
+
+                    #[cfg(feature = "physics")]
+                    if let Ok(mut tilemap) = physics_tilemaps_query.get_mut(entity) {
+                        match &p.physics_tiles {
+                            SerializablePhysicsSource::Data(data) => {
+                                commands.entity(entity).insert(data.clone());
+                            }
+                            SerializablePhysicsSource::Buffer(buffer) => {
+                                tilemap.fill_with_buffer_packed(origin, buffer.clone());
+                            }
+                        }
+                    } else {
+                        warn!("Skipping physics layers as the tilemap does not have a PhysicsTilemap component!");
+                    }
+                });
+
+                commands
+                    .entity(entity)
+                    .remove::<WfcData>()
+                    .remove::<WfcSource>();
+            }
+            WfcSource::MultiLayerMapPattern(layered_patterns) => {
+                if tilemap_storage.is_some() {
+                    warn!("MultiLayerMapPattern source does not require a tilemap on the entity!")
+                }
+
+                wfc_data.data.iter().enumerate().for_each(|(i, e)| {
+                    let slice = layered_patterns.get_element(*e as usize);
+
+                    slice.element.iter().for_each(|(layer, texture)| {
+                        let size = slice.pattern_size.as_ivec2();
+                        let layer_entity = commands.spawn_empty().id();
+
+                        let mut bundle = PureColorTilemapBundle {
+                            name: TilemapName(layer.label.clone().unwrap()),
+                            ty: TilemapType::Square,
+                            tile_render_size: TileRenderSize(size.as_vec2()),
+                            slot_size: TilemapSlotSize(size.as_vec2()),
+                            transform: TilemapTransform {
+                                translation: (wfc_data.elem_idx_to_grid(i) * size * size)
+                                    .as_vec2(),
+                                ..Default::default()
+                            },
+                            storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, layer_entity),
+                            ..Default::default()
+                        };
+
+                        if let Some(texture) = texture {
+                            let mut bundle = bundle.convert_to_texture_bundle(
+                                texture.clone(),
+                                TilemapAnimations::default()
+                            );
+                            bundle.storage.fill_with_buffer(
+                                &mut commands,
+                                IVec2::ZERO,
+                                layer.tiles.clone(),
+                            );
+                            commands.entity(layer_entity).insert(bundle);
+                        } else {
+                            bundle.storage.fill_with_buffer(
+                                &mut commands,
+                                IVec2::ZERO,
+                                layer.tiles.clone(),
+                            );
+                            commands.entity(layer_entity).insert(bundle);
+                        }
 
                         #[cfg(feature = "algorithm")]
-                        if let Ok(mut tilemap) = path_tilemaps_query.get_mut(entity) {
-                            tilemap.fill_with_buffer(origin, p.path_tiles.clone());
+                        if !layer.path_tiles.is_empty() {
+                            let mut path_tilemap = PathTilemap::new();
+                            path_tilemap.fill_with_buffer(IVec2::ZERO, layer.path_tiles.clone());
+                            commands.entity(layer_entity).insert(path_tilemap);
                         }
 
                         #[cfg(feature = "physics")]
-                        if let Ok(mut tilemap) = physics_tilemaps_query.get_mut(entity) {
-                            match &p.physics_tiles {
-                                SerializablePhysicsSource::Data(data) => {
-                                    commands.entity(entity).insert(data.clone());
+                        match &layer.physics_tiles {
+                            SerializablePhysicsSource::Data(data) => {
+                                if !data.data.is_empty() {
+                                    commands.entity(layer_entity).insert(data.clone());
                                 }
-                                SerializablePhysicsSource::Buffer(buffer) => {
-                                    buffer.tiles.iter().for_each(|(index, tile)| {
-                                        let mut tile = tile.clone();
-                                        tile.collider.iter_mut().for_each(|v| {
-                                            *v =
-                                                *v + origin.as_vec2() * tile_render_size.unwrap().0;
-                                        });
-                                        tilemap.data.set_elem(*index + origin, tile.clone());
-                                        let entity = tile.spawn(&mut commands, *ty.unwrap());
-                                        tilemap.storage.set_elem(*index + origin, entity);
-                                    });
+                            }
+                            SerializablePhysicsSource::Buffer(buffer) => {
+                                if !buffer.is_empty() {
+                                    let mut physics_tilemap = PhysicsTilemap::new();
+                                    physics_tilemap
+                                        .fill_with_buffer_packed(IVec2::ZERO, buffer.clone());
+                                    commands.entity(layer_entity).insert(physics_tilemap);
                                 }
                             }
                         }
                     });
-                }
-                WfcSource::MultiLayerMapPattern(size, patterns) => {
-                    wfc_data.data.iter().enumerate().for_each(|(i, e)| {
-                        let (p, tex) = &patterns[*e as usize];
-                        let size = size.as_ivec2();
+                });
 
-                        p.iter().for_each(|layer| {
-                            if let Some(texture) = tex {
-                                let mut bundle = TilemapBundle {
-                                    name: TilemapName(layer.label.clone().unwrap()),
-                                    ty: TilemapType::Square,
-                                    tile_render_size: TileRenderSize(size.as_vec2()),
-                                    slot_size: TilemapSlotSize(size.as_vec2()),
-                                    texture: texture.clone(),
-                                    storage: TilemapStorage::new(
-                                        DEFAULT_CHUNK_SIZE,
-                                        commands.spawn_empty().id(),
-                                    ),
-                                    transform: TilemapTransform {
-                                        translation: (wfc_data.elem_idx_to_grid(i) * size * size)
-                                            .as_vec2(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                };
-                                bundle.storage.fill_with_buffer(
-                                    &mut commands,
-                                    IVec2::ZERO,
-                                    layer.tiles.clone(),
-                                );
-                                commands.entity(bundle.storage.tilemap).insert(bundle);
-                            } else {
-                                let mut bundle = PureColorTilemapBundle {
-                                    name: TilemapName(layer.label.clone().unwrap()),
-                                    ty: TilemapType::Square,
-                                    tile_render_size: TileRenderSize(size.as_vec2()),
-                                    slot_size: TilemapSlotSize(size.as_vec2()),
-                                    transform: TilemapTransform {
-                                        translation: (wfc_data.elem_idx_to_grid(i) * size * size)
-                                            .as_vec2(),
-                                        ..Default::default()
-                                    },
-                                    ..Default::default()
-                                };
-                                bundle.storage.fill_with_buffer(
-                                    &mut commands,
-                                    IVec2::ZERO,
-                                    layer.tiles.clone(),
-                                );
-                                commands.spawn(bundle);
-                            }
-                        });
-                    });
-                }
-                #[cfg(feature = "ldtk")]
-                WfcSource::LdtkMapPattern(mode) => {
-                    use crate::ldtk::resources::LdtkWfcManager;
-                    use bevy::{hierarchy::DespawnRecursiveExt, log::warn};
-
-                    let Some(patterns) = &ldtk_patterns else {
-                        return;
-                    };
-                    if !patterns.is_ready() && ldtk_manager.is_initialized() {
-                        ldtk_manager.load_all_patterns(&mut commands);
-                        return;
-                    }
-                    if tilemap_storage.is_some() {
-                        warn!("LdtkMapPattern source does NOT require tilemap on the entity!");
-                    }
-
-                    match mode {
-                        LdtkWfcMode::SingleMap => {
-                            let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
-
-                            let mut layers = (0..layer_sample.len())
-                                .map(|layer_idx| {
-                                    let tile_size = layer_sample[layer_idx].1.desc.tile_size;
-                                    let entity = commands.spawn_empty().id();
-                                    (
-                                        entity,
-                                        TilemapBundle {
-                                            name: TilemapName(
-                                                layer_sample[layer_idx].0.label.clone().unwrap(),
-                                            ),
-                                            ty: TilemapType::Square,
-                                            tile_render_size: TileRenderSize(tile_size.as_vec2()),
-                                            slot_size: TilemapSlotSize(tile_size.as_vec2()),
-                                            texture: layer_sample[layer_idx].1.clone(),
-                                            storage: TilemapStorage::new(
-                                                DEFAULT_CHUNK_SIZE,
-                                                entity,
-                                            ),
-                                            animations: layer_sample[layer_idx]
-                                                .0
-                                                .animations
-                                                .clone(),
-                                            ..Default::default()
-                                        },
-                                    )
-                                })
-                                .collect::<Vec<_>>();
-
-                            wfc_data.data.iter().enumerate().for_each(|(i, e)| {
-                                let (p, bg) = patterns.get_with_index(*e);
-                                let ptn_idx = wfc_data.elem_idx_to_grid(i);
-
-                                let mut bg = bg.clone();
-                                let ptn_render_size = bg.sprite.custom_size.unwrap();
-                                let z = bg.transform.translation.z;
-                                bg.transform.translation = ((ptn_render_size / 2.)
-                                    + ptn_idx.as_vec2() * ptn_render_size)
-                                    .extend(z);
-                                commands.spawn(bg);
-
-                                p.iter().enumerate().for_each(|(layer_index, layer)| {
-                                    let (_, target) = &mut layers[layer_index];
-                                    target.storage.fill_with_buffer(
-                                        &mut commands,
-                                        (ptn_idx + IVec2::Y) * layer.0.tiles.aabb.size(),
-                                        layer.0.tiles.clone(),
-                                    );
-
-                                    #[cfg(feature = "physics")]
-                                    if layer.0.label.clone().unwrap() == patterns.physics_parent {
-                                        if let Some(physics_tilemap) =
-                                            patterns.get_physics_with_index(*e)
-                                        {
-                                            let mut physics_tilemap = physics_tilemap.clone();
-                                            physics_tilemap.origin =
-                                                ptn_idx * layer.0.tiles.aabb.size();
-                                            commands.spawn((
-                                                crate::tilemap::bundles::DataTilemapBundle {
-                                                    ty: TilemapType::Square,
-                                                    tile_render_size: TileRenderSize(
-                                                        layer.1.desc.tile_size.as_vec2(),
-                                                    ),
-                                                    slot_size: TilemapSlotSize(
-                                                        layer.1.desc.tile_size.as_vec2(),
-                                                    ),
-                                                    ..Default::default()
-                                                },
-                                                physics_tilemap,
-                                            ));
-                                        }
-                                    }
-                                });
-                            });
-
-                            layers.into_iter().for_each(|(tilemap, bundle)| {
-                                commands.entity(tilemap).insert(bundle);
-                            });
-                        }
-                        LdtkWfcMode::MultiMaps => {
-                            let layer_sample = &patterns.patterns.iter().next().unwrap().1 .0;
-                            commands.insert_resource(LdtkWfcManager {
-                                wfc_data: Some(wfc_data.clone()),
-                                idents: ldtk_patterns.as_ref().unwrap().idents.clone(),
-                                pattern_size: layer_sample[0].0.tiles.aabb.size().as_vec2()
-                                    * layer_sample[0].1.desc.tile_size.as_vec2(),
-                            });
-                            commands.entity(entity).despawn_recursive();
-                            return;
-                        }
-                    };
-                }
+                commands.entity(entity).despawn();
             }
-
-            commands
-                .entity(entity)
-                .remove::<WfcData>()
-                .remove::<WfcSource>()
-                .remove::<WfcRunner>();
+            _ => {}
         },
     );
+}
+
+#[cfg(feature = "ldtk")]
+pub fn ldtk_wfc_helper(
+    mut commands: Commands,
+    mut tilemaps_query: Query<(Entity, &WfcData, &WfcSource)>,
+    ldtk_patterns: Option<bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>>,
+    mut ldtk_manager: bevy::ecs::system::ResMut<crate::ldtk::resources::LdtkLevelManager>,
+) {
+    tilemaps_query.for_each_mut(|(entity, data, source)| match source {
+        WfcSource::LdtkMapPattern(mode) => {
+            let Some(patterns) = &ldtk_patterns else {
+                return;
+            };
+            if !patterns.is_ready() && ldtk_manager.is_initialized() {
+                ldtk_manager.load_all_patterns(&mut commands);
+                return;
+            }
+
+            match mode {
+                LdtkWfcMode::SingleMap => {
+                    commands
+                        .entity(entity)
+                        .insert(WfcSource::MultiLayerMapPattern(patterns.pack()));
+                }
+                LdtkWfcMode::MultiMaps => {
+                    commands.insert_resource(crate::ldtk::resources::LdtkWfcManager {
+                        wfc_data: Some(data.clone()),
+                        idents: patterns.idents.clone(),
+                        pattern_size: patterns.pattern_size,
+                    });
+                    commands.entity(entity).despawn();
+                }
+            };
+        }
+        _ => {}
+    });
 }

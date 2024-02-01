@@ -10,9 +10,8 @@ use bevy_xpbd_2d::components::{Collider, Friction, RigidBody};
 use crate::math::{aabb::IAabb2d, TileArea};
 
 use super::{
-    buffers::{PhysicsTileBuffer, Tiles},
+    buffers::{PackedPhysicsTileBuffer, PhysicsTileBuffer, Tiles},
     chunking::storage::{ChunkedStorage, EntityChunkedStorage, PackedPhysicsTileChunkedStorage},
-    map::TilemapType,
 };
 
 pub mod systems;
@@ -44,9 +43,32 @@ pub enum SerializablePhysicsSource {
 
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+pub enum PhysicsCollider {
+    Convex(Vec<Vec2>),
+    Polyline(Vec<Vec2>),
+}
+
+impl PhysicsCollider {
+    pub fn as_verts(&self) -> &Vec<Vec2> {
+        match self {
+            PhysicsCollider::Convex(verts) => verts,
+            PhysicsCollider::Polyline(verts) => verts,
+        }
+    }
+
+    pub fn as_verts_mut(&mut self) -> &mut Vec<Vec2> {
+        match self {
+            PhysicsCollider::Convex(verts) => verts,
+            PhysicsCollider::Polyline(verts) => verts,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PackedPhysicsTile {
     pub parent: IVec2,
-    pub collider: Vec<Vec2>,
+    pub collider: PhysicsCollider,
     pub physics_tile: PhysicsTile,
 }
 
@@ -59,12 +81,10 @@ impl Into<PhysicsTile> for PackedPhysicsTile {
 impl Tiles for PackedPhysicsTile {}
 
 impl PackedPhysicsTile {
-    pub fn spawn(&self, commands: &mut Commands, ty: TilemapType) -> Entity {
-        let mut entity = commands.spawn(match ty {
-            TilemapType::Square | TilemapType::Isometric => {
-                Collider::convex_hull(self.collider.clone()).unwrap()
-            }
-            TilemapType::Hexagonal(_) => Collider::polyline(self.collider.clone(), None),
+    pub fn spawn(&self, commands: &mut Commands) -> Entity {
+        let mut entity = commands.spawn(match self.collider.clone() {
+            PhysicsCollider::Convex(verts) => Collider::convex_hull(verts).unwrap(),
+            PhysicsCollider::Polyline(verts) => Collider::polyline(verts, None),
         });
         if self.physics_tile.rigid_body {
             entity.insert(RigidBody::Static);
@@ -282,6 +302,15 @@ impl PhysicsTilemap {
                 .tiles
                 .into_iter()
                 .map(|(index, tile)| (IAabb2d::splat(index + origin), tile)),
+        );
+    }
+
+    pub fn fill_with_buffer_packed(&mut self, origin: IVec2, buffer: PackedPhysicsTileBuffer) {
+        self.spawn_queue.extend(
+            buffer
+                .tiles
+                .into_iter()
+                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile.into())),
         );
     }
 }

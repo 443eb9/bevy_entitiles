@@ -15,7 +15,7 @@ use crate::{
     },
 };
 
-use super::{DataPhysicsTilemap, PackedPhysicsTile, PhysicsTilemap};
+use super::{DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTilemap};
 
 pub fn spawn_colliders(
     commands: ParallelCommands,
@@ -43,13 +43,20 @@ pub fn spawn_colliders(
 
                     let packed_tile = PackedPhysicsTile {
                         parent: aabb.min,
-                        collider: vertices.clone(),
+                        collider: match ty {
+                            TilemapType::Square | TilemapType::Isometric => {
+                                PhysicsCollider::Convex(vertices.clone())
+                            }
+                            TilemapType::Hexagonal(_) => {
+                                PhysicsCollider::Polyline(vertices.clone())
+                            }
+                        },
                         physics_tile,
                     };
 
                     physics_tilemap
                         .storage
-                        .set_elem(aabb.min, packed_tile.spawn(&mut c, *ty));
+                        .set_elem(aabb.min, packed_tile.spawn(&mut c));
                     physics_tilemap.data.set_elem(aabb.min, packed_tile);
                 });
             });

@@ -38,6 +38,12 @@ use super::{
 };
 
 #[cfg(feature = "algorithm")]
+use crate::tilemap::{algorithm::path::PathTilemap, chunking::storage::ChunkedStorage};
+
+#[cfg(feature = "physics")]
+use crate::tilemap::physics::{DataPhysicsTilemap, SerializablePhysicsSource};
+
+#[cfg(feature = "algorithm")]
 pub mod path;
 #[cfg(feature = "physics")]
 pub mod physics;
@@ -149,6 +155,8 @@ impl<'a> LdtkLayers<'a> {
         layer: &LayerInstance,
         tile: &TileInstance,
         config: &LdtkLoadConfig,
+        patterns: &LdtkPatterns,
+        mode: &LdtkLoaderMode,
     ) {
         self.try_create_new_layer(layer_index, layer);
 
@@ -156,7 +164,12 @@ impl<'a> LdtkLayers<'a> {
         let tile_size = texture.desc.tile_size;
         let tile_index = IVec2 {
             x: tile.px[0] / tile_size.x as i32,
-            y: -tile.px[1] / tile_size.y as i32 - 1,
+            y: match mode {
+                LdtkLoaderMode::Tilemap => -tile.px[1] / tile_size.y as i32 - 1,
+                LdtkLoaderMode::MapPattern => {
+                    patterns.pattern_size.y as i32 - tile.px[1] / tile_size.y as i32 - 1
+                }
+            },
         };
         let texture_index = tile.tile_id as u32;
 
@@ -220,12 +233,10 @@ impl<'a> LdtkLayers<'a> {
                     tiles: HashMap::new(),
                 },
                 #[cfg(feature = "physics")]
-                physics_tiles: crate::tilemap::physics::SerializablePhysicsSource::Buffer(
-                    TileBuffer {
-                        aabb,
-                        tiles: HashMap::new(),
-                    },
-                ),
+                physics_tiles: SerializablePhysicsSource::Buffer(TileBuffer {
+                    aabb,
+                    tiles: HashMap::new(),
+                }),
             },
             tileset,
             LayerIid(layer.iid.clone()),
@@ -266,13 +277,7 @@ impl<'a> LdtkLayers<'a> {
                 self.layers
                     .drain(..)
                     .enumerate()
-                    .filter_map(|(i, e)| {
-                        if let Some(e) = e {
-                            Some((i, e))
-                        } else {
-                            None
-                        }
-                    })
+                    .filter_map(|(i, e)| if let Some(e) = e { Some((i, e)) } else { None })
                     .for_each(|(index, (pattern, texture, iid, opacity))| {
                         let tilemap_entity = commands.spawn_empty().id();
                         let mut tilemap = TilemapBundle {
@@ -299,32 +304,33 @@ impl<'a> LdtkLayers<'a> {
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
                             if path_layer.parent == tilemap.name.0 {
-                                commands.entity(tilemap_entity).insert(
-                                    crate::tilemap::algorithm::path::PathTilemap {
-                                        storage:
-                                        crate::tilemap::chunking::storage::ChunkedStorage::from_mapper(
-                                            path_tilemap.clone(),
-                                            None,
-                                        ),
-                                    },
-                                );
+                                commands.entity(tilemap_entity).insert(PathTilemap {
+                                    storage: ChunkedStorage::from_mapper(
+                                        path_tilemap.clone(),
+                                        None,
+                                    ),
+                                });
                             }
                         }
 
                         #[cfg(feature = "physics")]
                         if let Some((physics_layer, physics_data, size)) = &self.physics_layer {
                             if pattern.label.clone().unwrap() == physics_layer.parent {
-                                commands.entity(tilemap_entity).insert(crate::tilemap::physics::DataPhysicsTilemap::new(
-                                    IVec2::new(0, -(size.y as i32)),
-                                    physics_data.clone(),
-                                    *size,
-                                    physics_layer.air,
-                                    physics_layer.tiles.clone().unwrap_or_default(),
-                                ));
+                                commands
+                                    .entity(tilemap_entity)
+                                    .insert(DataPhysicsTilemap::new(
+                                        IVec2::new(0, -(size.y as i32)),
+                                        physics_data.clone(),
+                                        *size,
+                                        physics_layer.air,
+                                        physics_layer.tiles.clone().unwrap_or_default(),
+                                    ));
                             }
                         }
 
-                        commands.entity(tilemap_entity).insert((tilemap, iid.clone()));
+                        commands
+                            .entity(tilemap_entity)
+                            .insert((tilemap, iid.clone()));
                         layers.insert(iid, tilemap_entity);
                     });
 
@@ -345,46 +351,47 @@ impl<'a> LdtkLayers<'a> {
                 ));
             }
             LdtkLoaderMode::MapPattern => {
-                let level_pack = self
-                    .layers
+                self.layers
                     .drain(..)
-                    .filter_map(|p| {
+                    .enumerate()
+                    .for_each(|(layer_index, p)| {
                         #[allow(unused_mut)]
-                        if let Some(mut p) = p {
-                            #[cfg(feature = "algorithm")]
-                            if let Some((path_layer, path_tiles)) = &self.path_layer {
-                                if path_layer.parent == p.0.label.clone().unwrap() {
-                                    p.0.path_tiles.tiles = path_tiles.clone();
-                                }
+                        let Some((mut pattern, texture, iid, _)) = p
+                        else {
+                            return;
+                        };
+
+                        #[cfg(feature = "algorithm")]
+                        if let Some((path_layer, path_tiles)) = &self.path_layer {
+                            if path_layer.parent == pattern.label.clone().unwrap() {
+                                pattern.path_tiles.tiles = path_tiles.clone();
                             }
-
-                            Some((p.0, p.1))
-                        } else {
-                            None
                         }
-                    })
-                    .collect::<Vec<_>>();
 
-                #[cfg(feature = "physics")]
-                if let Some((physics_layer, physics_data, size)) = self.physics_layer.as_ref() {
-                    ldtk_patterns.physics_parent = physics_layer.parent.clone();
-                    ldtk_patterns.physics_patterns.insert(
-                        level.identifier.clone(),
-                        crate::tilemap::physics::DataPhysicsTilemap::new(
-                            IVec2::ZERO,
-                            physics_data.clone(),
-                            *size,
-                            physics_layer.air,
-                            physics_layer.tiles.clone().unwrap_or_default(),
-                        ),
-                    );
-                }
+                        #[cfg(feature = "physics")]
+                        if let Some((physics_layer, physics_data, size)) =
+                            self.physics_layer.as_ref()
+                        {
+                            ldtk_patterns.physics_parent = physics_layer.parent.clone();
+                            pattern.physics_tiles =
+                                SerializablePhysicsSource::Data(DataPhysicsTilemap::new(
+                                    IVec2::ZERO,
+                                    physics_data.clone(),
+                                    *size,
+                                    physics_layer.air,
+                                    physics_layer.tiles.clone().unwrap_or_default(),
+                                ));
+                        }
 
-                ldtk_patterns.insert(
-                    level.identifier.clone(),
-                    level_pack,
-                    self.background.clone(),
-                );
+                        ldtk_patterns.add_pattern(
+                            layer_index,
+                            &iid,
+                            pattern,
+                            &Some(texture),
+                            level.identifier.clone(),
+                        );
+                    });
+
                 commands.entity(self.level_entity).despawn();
             }
         }

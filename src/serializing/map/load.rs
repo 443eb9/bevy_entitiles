@@ -161,7 +161,7 @@ pub fn load(
                     physics_storage.set_elem_precise(
                         chunk_index,
                         in_chunk_index,
-                        tile.spawn(&mut commands, ser_tilemap.ty),
+                        tile.spawn(&mut commands),
                     );
                 });
 
