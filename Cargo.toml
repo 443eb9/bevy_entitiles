@@ -29,7 +29,7 @@ bevy = { version = "0.12", default-features = false, features = [
     "x11",
     "wayland",
 ] }
-bevy_entitiles_derive = { version = "0.3.0", optional = true, path = "macros" }
+bevy_entitiles_derive = { version = "0.4", optional = true, path = "macros" }
 bevy_xpbd_2d = { version = "0.3.3", optional = true }
 bitflags = "2"
 futures-lite = { version = "2", optional = true }
