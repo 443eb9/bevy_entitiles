@@ -270,6 +270,7 @@ pub enum ItemType {
 }
 
 #[derive(Component, LdtkEntity, Default, Reflect)]
+// this means the entity will be spawned with a sprite
 #[spawn_sprite]
 // this means the entity will not disappear when the level is unloaded
 #[global_entity]
@@ -279,6 +280,12 @@ pub struct Player {
     // when you derive LdtkEnum for your custom enums.
     // There are also another two wrappers:
     // ItemTypeOption and Item TypeOptionVec
+
+    // As impl a foreign trait for a foreign type is not allowed in rust,
+    // we have to define these two wrappers.
+    
+    // You can impl the LdtkEntity trait yourself so these wrappers
+    // can be avoided.
     pub inventory: ItemTypeVec,
     #[ldtk_name = "HP"]
     pub hp: i32,
@@ -310,6 +317,8 @@ pub struct Teleport {
     pub destination: EntityRef,
 }
 
+// Entity tags are the tags in PROJECT ENTITIES -> ENTITY SETTINGS
+// -> Tags in LDtk
 #[derive(Component, LdtkEntityTag)]
 pub struct Actor;
 

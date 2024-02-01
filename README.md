@@ -10,14 +10,6 @@ It's **NOT** recommended to use the code in the `dev` branch! There's full of in
 
 This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap)(Rendering) and [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk)(LDtk entity spawning)
 
-## Wiki
-- [简体中文](./docs/wiki/zh_cn/welcome.md)
-- [English](./docs/wiki/en_us/welcome.md)
-
-**For English speakers: The English version is translated by ChatGPT so its accuracy is not granted.**
-
-If you want to submit the wiki in your language, a PR is welcome. But please notice that only the wiki in zh_cn and en_us will be maintained officially.
-
 ## Future Goals
 
 *The higher the priority, the more towards the front in the following list.*

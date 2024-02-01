@@ -75,9 +75,16 @@ fn switching(
     map_switching!(Key4, "isometric", input, manager, commands);
 }
 
+/*
+ * Here many macro attributes are the same as LDtk's.
+ * So if you want to know what they do, you can go to examples/ldtk.rs.
+ */
+
 #[derive(TiledObject, Bundle)]
 #[spawn_sprite]
 pub struct PlainBlockBundle {
+    // You have to use `TiledClass`es for objects.
+    // Individual properties are not allowed and will cause panic.
     pub block: PlainBlock,
 }
 
@@ -116,6 +123,8 @@ pub enum ShapeType {
 #[derive(TiledObject, Bundle)]
 #[spawn_sprite]
 #[global_object]
+// Generate the collider according to the shape.
+// The won't spawn with rigidbody or friction.
 #[shape_as_collider]
 pub struct PlayerBundle {
     pub player: Player,

@@ -43,6 +43,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
+    // You can go to each component's definition to see what they do.
     let mut tilemap = TilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),

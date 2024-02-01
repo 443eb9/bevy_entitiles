@@ -1,8 +1,3 @@
-/*
- * Notice that the green circle is drew on the origin of the tile,
- * but not the center of the tile.
- */
-
 use std::time::Duration;
 
 use bevy::{
