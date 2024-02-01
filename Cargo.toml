@@ -23,9 +23,6 @@ bevy = { version = "0.12", default-features = false, features = [
     "bevy_sprite",
     "multi-threaded",
     "bevy_gizmos",
-    "bevy_text",
-    "bevy_ui",
-    "default_font",
     "x11",
     "wayland",
 ] }
@@ -45,20 +42,9 @@ serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
 bevy = { version = "0.12.1", default-features = false, features = [
-    "bevy_core_pipeline",
-    "bevy_render",
-    "bevy_asset",
-    "bevy_gizmos",
     "bevy_ui",
-    "png",
-    "bevy_winit",
-    "bevy_text",
-    "bevy_sprite",
     "default_font",
     "trace_tracy",
-    "multi-threaded",
-    "x11",
-    "wayland",
 ] }
 bevy-inspector-egui = "0.22.0"
 bevy_mod_debugdump = "0.9.0"
