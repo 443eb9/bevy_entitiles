@@ -1,14 +1,8 @@
 # What's New:
 
-- Further support for [Tiled](https://www.mapeditor.org/).
-  - Layer tint and opacities.
-  - Derive macros.
-- Added helper functions to make staggered tilemaps easier to create.
-- `wfc_pattern` generates the wrong pattern which leads to the wrong result of WFC.
-- Layered WFC rework. Code quality ++
-- LDtk WFC rework. Code quality ++++
+- 
 
 # What's Fixed:
 
-- Hexagonal tilemaps won't have the extra displacement when flipping.
-- LDtk collider generation has issues with corners in left down and right down. #12 (Wrong colliders size from LDTk level)
+- LDtk wfc ignores the background.
+- Multi layer pattern wfc uses the wrong data for `tile_render_size` and `tile_slot_size`.

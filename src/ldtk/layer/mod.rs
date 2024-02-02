@@ -372,7 +372,6 @@ impl<'a> LdtkLayers<'a> {
                         if let Some((physics_layer, physics_data, size)) =
                             self.physics_layer.as_ref()
                         {
-                            ldtk_patterns.physics_parent = physics_layer.parent.clone();
                             pattern.physics_tiles =
                                 SerializablePhysicsSource::Data(DataPhysicsTilemap::new(
                                     IVec2::ZERO,
@@ -388,8 +387,10 @@ impl<'a> LdtkLayers<'a> {
                             &iid,
                             pattern,
                             &Some(texture),
-                            level.identifier.clone(),
+                            &level.identifier,
                         );
+
+                        ldtk_patterns.add_background(&level.identifier, self.background.clone());
                     });
 
                 commands.entity(self.level_entity).despawn();

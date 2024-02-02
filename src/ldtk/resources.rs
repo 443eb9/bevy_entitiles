@@ -13,7 +13,7 @@ use bevy::{
         mesh::{Indices, Mesh},
         render_resource::{FilterMode, PrimitiveTopology},
     },
-    sprite::{Mesh2dHandle, TextureAtlas},
+    sprite::{Mesh2dHandle, SpriteBundle, TextureAtlas},
     utils::HashMap,
 };
 
@@ -40,8 +40,8 @@ pub struct LdtkPatterns {
         Option<TilemapTexture>,
         Option<LayerIid>,
     )>,
-    #[cfg(feature = "physics")]
-    pub physics_parent: String,
+    #[reflect(ignore)]
+    pub backgrounds: Vec<Option<SpriteBundle>>,
     pub idents: Vec<String>,
     pub idents_to_index: HashMap<String, usize>,
 }
@@ -67,13 +67,13 @@ impl LdtkPatterns {
         layer_iid: &LayerIid,
         pattern: TilemapPattern,
         texture: &Option<TilemapTexture>,
-        identifier: String,
+        identifier: &str,
     ) {
         if layer_index >= self.patterns.len() {
             self.patterns.resize(layer_index + 1, (vec![], None, None));
         }
         let (layer, layer_texture, iid) = self.patterns.get_mut(layer_index).unwrap();
-        let pattern_index = self.idents_to_index[&identifier];
+        let pattern_index = self.idents_to_index[identifier];
 
         if layer_texture.is_none() {
             *layer_texture = texture.clone();
@@ -86,6 +86,15 @@ impl LdtkPatterns {
             layer.resize(pattern_index + 1, None);
         }
         layer[pattern_index] = Some(pattern);
+    }
+
+    pub fn add_background(&mut self, identifier: &str, background: SpriteBundle) {
+        let pattern_index = self.idents_to_index[identifier];
+        if pattern_index >= self.backgrounds.len() {
+            self.backgrounds.resize(pattern_index + 1, None);
+        }
+
+        self.backgrounds[pattern_index] = Some(background);
     }
 
     /// Pack the patterns into a `PackedPatternLayers` for wfc.
@@ -115,7 +124,7 @@ impl LdtkPatterns {
 }
 
 /// All the tilemaps loaded from the LDtk file.
-/// 
+///
 /// This includes tilesets, entity meshes/materials etc.
 #[derive(Resource, Default, Reflect)]
 pub struct LdtkAssets {
@@ -286,7 +295,7 @@ impl LdtkAssets {
 }
 
 /// The wfc result of the LDtk file.
-/// 
+///
 /// Use this to load your wfc result in the MultiMaps way.
 #[cfg(feature = "algorithm")]
 #[derive(Resource, Default, Reflect)]
@@ -324,7 +333,7 @@ impl LdtkTocs {
 }
 
 /// The additional layers of the LDtk file.
-/// 
+///
 /// This includes path layer and physics layer. Entitiles will generate these layers
 /// acoording to the LDtk file.
 #[derive(Resource, Default, Reflect)]

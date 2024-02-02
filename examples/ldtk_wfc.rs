@@ -24,11 +24,7 @@ use bevy_entitiles::{
         },
     },
     math::TileArea,
-    tilemap::{
-        bundles::DataTilemapBundle,
-        map::{TileRenderSize, TilemapSlotSize, TilemapType},
-        physics::PhysicsTile,
-    },
+    tilemap::{map::TilemapType, physics::PhysicsTile},
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
@@ -102,11 +98,6 @@ fn setup(mut commands: Commands) {
 
     let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TilemapType::Square);
     commands.spawn((
-        DataTilemapBundle {
-            tile_render_size: TileRenderSize(Vec2::splat(16.)),
-            slot_size: TilemapSlotSize(Vec2::splat(16.)),
-            ..Default::default()
-        },
         WfcRunner::new(
             TilemapType::Square,
             rules,

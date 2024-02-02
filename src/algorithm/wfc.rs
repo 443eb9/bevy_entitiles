@@ -670,7 +670,14 @@ pub fn wfc_data_assigner(mut commands: Commands, mut tasks_query: Query<(Entity,
 
 pub fn wfc_applier(
     mut commands: Commands,
-    mut tilemaps_query: Query<(Entity, Option<&mut TilemapStorage>, &WfcData, &WfcSource)>,
+    mut tilemaps_query: Query<(
+        Entity,
+        Option<&TilemapSlotSize>,
+        Option<&TileRenderSize>,
+        Option<&mut TilemapStorage>,
+        &WfcData,
+        &WfcSource,
+    )>,
     #[cfg(feature = "algorithm")] mut path_tilemaps_query: Query<
         &mut crate::tilemap::algorithm::path::PathTilemap,
     >,
@@ -679,7 +686,7 @@ pub fn wfc_applier(
     >,
 ) {
     tilemaps_query.for_each_mut(
-        |(entity, mut tilemap_storage, wfc_data, source)| match source {
+        |(entity, slot_size, tile_render_size,mut tilemap_storage, wfc_data, source)| match source {
             WfcSource::SingleTile(tiles) => {
                 let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
                     panic!("SingleTile source requires a tilemap on the entity!")
@@ -739,26 +746,19 @@ pub fn wfc_applier(
             }
             WfcSource::MultiLayerMapPattern(layered_patterns) => {
                 if tilemap_storage.is_some() {
-                    warn!("MultiLayerMapPattern source does not require a tilemap on the entity!")
+                    warn!("MultiLayerMapPattern source does not require a tilemap storage on the entity!")
                 }
 
                 wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                     let slice = layered_patterns.get_element(*e as usize);
 
                     slice.element.iter().for_each(|(layer, texture)| {
-                        let size = slice.pattern_size.as_ivec2();
+                        let pattern_size = slice.pattern_size.as_vec2();
                         let layer_entity = commands.spawn_empty().id();
 
                         let mut bundle = PureColorTilemapBundle {
                             name: TilemapName(layer.label.clone().unwrap()),
                             ty: TilemapType::Square,
-                            tile_render_size: TileRenderSize(size.as_vec2()),
-                            slot_size: TilemapSlotSize(size.as_vec2()),
-                            transform: TilemapTransform {
-                                translation: (wfc_data.elem_idx_to_grid(i) * size * size)
-                                    .as_vec2(),
-                                ..Default::default()
-                            },
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, layer_entity),
                             ..Default::default()
                         };
@@ -768,6 +768,12 @@ pub fn wfc_applier(
                                 texture.clone(),
                                 TilemapAnimations::default()
                             );
+                            let tile_size = texture.desc.tile_size.as_vec2();
+                            bundle.tile_render_size = TileRenderSize(tile_size);
+                            bundle.slot_size = TilemapSlotSize(tile_size);
+                            bundle.transform = TilemapTransform::from_translation(
+                                wfc_data.elem_idx_to_grid(i).as_vec2() * tile_size * pattern_size
+                            );
                             bundle.storage.fill_with_buffer(
                                 &mut commands,
                                 IVec2::ZERO,
@@ -775,6 +781,15 @@ pub fn wfc_applier(
                             );
                             commands.entity(layer_entity).insert(bundle);
                         } else {
+                            bundle.tile_render_size = *tile_render_size.unwrap_or_else(|| {
+                                panic!("MultiLayerMapPattern source for a pure color tilemap requires a TileRenderSize!")
+                            });
+                            bundle.slot_size = *slot_size.unwrap_or_else(|| {
+                                panic!("MultiLayerMapPattern source for a pure color tilemap requires a TilemapSlotSize!")
+                            });
+                            bundle.transform = TilemapTransform::from_translation(
+                                wfc_data.elem_idx_to_grid(i).as_vec2() * bundle.slot_size.0 * pattern_size
+                            );
                             bundle.storage.fill_with_buffer(
                                 &mut commands,
                                 IVec2::ZERO,
@@ -835,6 +850,17 @@ pub fn ldtk_wfc_helper(
 
             match mode {
                 LdtkWfcMode::SingleMap => {
+                    data.data.iter().enumerate().for_each(|(i, e)| {
+                        let mut bg = patterns.backgrounds[*e as usize].clone().unwrap();
+                        let ptn_idx = data.elem_idx_to_grid(i);
+                        let ptn_render_size = bg.sprite.custom_size.unwrap();
+                        let z = bg.transform.translation.z;
+                        bg.transform.translation = ((ptn_render_size / 2.)
+                            + ptn_idx.as_vec2() * ptn_render_size)
+                            .extend(z);
+                        commands.spawn(bg);
+                    });
+
                     commands
                         .entity(entity)
                         .insert(WfcSource::MultiLayerMapPattern(patterns.pack()));
