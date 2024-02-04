@@ -1,31 +1,13 @@
 use bevy::{
+    asset::AssetId,
     ecs::{entity::Entity, system::Resource},
     utils::EntityHashMap,
 };
 
-use super::extract::ExtractedTilemap;
+use super::{extract::ExtractedTilemap, material::TilemapMaterial};
 
 #[derive(Resource, Default)]
-pub struct TilemapInstances(EntityHashMap<Entity, ExtractedTilemap>);
+pub struct TilemapInstances(pub EntityHashMap<Entity, ExtractedTilemap>);
 
-impl TilemapInstances {
-    #[inline]
-    pub fn insert(&mut self, entity: Entity, tilemap: ExtractedTilemap) {
-        self.0.insert(entity, tilemap);
-    }
-
-    #[inline]
-    pub fn get(&self, entity: Entity) -> Option<&ExtractedTilemap> {
-        self.0.get(&entity)
-    }
-
-    #[inline]
-    pub fn get_unwrap(&self, entity: Entity) -> &ExtractedTilemap {
-        self.0.get(&entity).unwrap()
-    }
-
-    #[inline]
-    pub fn remove(&mut self, entity: Entity) {
-        self.0.remove(&entity);
-    }
-}
+#[derive(Resource, Default)]
+pub struct TilemapMaterialInstances<M: TilemapMaterial>(pub EntityHashMap<Entity, AssetId<M>>);

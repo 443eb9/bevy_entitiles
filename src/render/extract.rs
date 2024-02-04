@@ -101,7 +101,7 @@ pub fn extract_changed_tilemaps(
             texture,
             animations,
         )| {
-            instances.insert(
+            instances.0.insert(
                 entity,
                 ExtractedTilemap {
                     id: entity,
@@ -117,7 +117,7 @@ pub fn extract_changed_tilemaps(
                     animations: animations.cloned(),
                     chunk_size: storage.storage.chunk_size,
                 },
-            )
+            );
         },
     );
 }

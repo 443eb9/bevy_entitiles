@@ -66,7 +66,7 @@ pub fn queue(
 
         let mut tilemaps = tilemaps_query
             .iter()
-            .filter_map(|t| tilemap_instances.get(t))
+            .filter_map(|t| tilemap_instances.0.get(&t))
             .collect::<Vec<_>>();
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 

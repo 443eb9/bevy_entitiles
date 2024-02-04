@@ -39,7 +39,7 @@ pub fn prepare_tilemaps(
 
     extracted_tilemaps
         .iter()
-        .filter_map(|tilemap| tilemap_instances.get(tilemap))
+        .filter_map(|tilemap| tilemap_instances.0.get(&tilemap))
         .for_each(|tilemap| {
             commands
                 .entity(tilemap.id)
@@ -73,7 +73,7 @@ pub fn prepare_tiles(
     tilemap_instances: Res<TilemapInstances>,
 ) {
     extracted_tiles.for_each(|tile| {
-        let Some(tilemap) = tilemap_instances.get(tile.tilemap_id) else {
+        let Some(tilemap) = tilemap_instances.0.get(&tile.tilemap_id) else {
             return;
         };
 
@@ -107,7 +107,7 @@ pub fn prepare_despawned_tilemaps(
     tilemaps_query.for_each(|map| {
         render_chunks.remove_tilemap(map.0);
         storage_buffers.remove(map.0);
-        tilemap_instaces.remove(map.0);
+        tilemap_instaces.0.remove(&map.0);
     });
 }
 

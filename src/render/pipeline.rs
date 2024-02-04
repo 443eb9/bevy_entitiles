@@ -1,11 +1,13 @@
 use bevy::{
+    asset::AssetServer,
+    ecs::world::World,
     prelude::{FromWorld, Resource},
     render::{
         render_resource::{
             BindGroupLayout, BlendState, ColorTargetState, ColorWrites, Face, FragmentState,
             FrontFace, MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, ShaderDefVal, SpecializedRenderPipeline, TextureFormat,
-            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+            RenderPipelineDescriptor, ShaderDefVal, ShaderRef, SpecializedRenderPipeline,
+            TextureFormat, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
         texture::BevyDefault,
     },
@@ -21,6 +23,9 @@ pub struct EntiTilesPipeline {
     pub uniform_buffers_layout: BindGroupLayout,
     pub storage_buffers_layout: BindGroupLayout,
     pub color_texture_layout: BindGroupLayout,
+    pub vertex_shader_ovrd: Option<ShaderRef>,
+    pub fragment_shader_ovrd: Option<ShaderRef>,
+    pub custom_layout: Option<BindGroupLayout>,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -31,13 +36,18 @@ pub struct EntiTilesPipelineKey {
 }
 
 impl FromWorld for EntiTilesPipeline {
-    fn from_world(world: &mut bevy::prelude::World) -> Self {
+    fn from_world(world: &mut World) -> Self {
         let layouts = world.resource::<TilemapBindGroupLayouts>();
+        let asset_server = world.resource::<AssetServer>();
+
         Self {
             view_layout: layouts.view_layout.clone(),
             uniform_buffers_layout: layouts.tilemap_uniforms_layout.clone(),
             storage_buffers_layout: layouts.tilemap_storage_layout.clone(),
             color_texture_layout: layouts.color_texture_layout.clone(),
+            vertex_shader_ovrd: None,
+            fragment_shader_ovrd: None,
+            custom_layout: None,
         }
     }
 }
@@ -93,6 +103,10 @@ impl SpecializedRenderPipeline for EntiTilesPipeline {
             layout.push(self.color_texture_layout.clone());
             // group(3)
             layout.push(self.storage_buffers_layout.clone());
+        }
+
+        if let Some(custom_layout) = &self.custom_layout {
+            layout.push(custom_layout.clone());
         }
 
         RenderPipelineDescriptor {

@@ -166,7 +166,9 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBind
     ) -> RenderCommandResult {
         if let Some(bind_group) = &bind_groups.into_inner().colored_textures.get(
             instances
-                .get_unwrap(item.entity)
+                .0
+                .get(&item.entity)
+                .unwrap()
                 .texture
                 .as_ref()
                 .unwrap()
