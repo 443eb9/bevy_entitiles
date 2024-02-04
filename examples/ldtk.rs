@@ -69,7 +69,7 @@ fn main() {
             // replace the filename with grid_vania.ldtk before running
             // this file uses finalbossblues-icons_full_16 and it only exists
             // in my local disk.
-            file_path: "assets/ldtk/ignore grid_vania.ldtk".to_string(),
+            file_path: "assets/ldtk/grid_vania.ldtk".to_string(),
             asset_path_prefix: "ldtk/".to_string(),
             filter_mode: FilterMode::Nearest,
             ignore_unregistered_entities: true,

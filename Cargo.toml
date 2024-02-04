@@ -111,11 +111,6 @@ path = "examples/chunk_unloading.rs"
 required-features = ["debug", "algorithm", "serializing", "physics"]
 
 [[example]]
-name = "stress_test"
-path = "examples/stress_test.rs"
-required-features = []
-
-[[example]]
 name = "tiled"
 path = "examples/tiled.rs"
 required-features = ["tiled", "physics"]

@@ -1,8 +1,6 @@
 # Bevy EntiTiles 🗺️
 
-A 2d tilemap library for bevy. With many useful algorithms/tools built in.
-
-Try to be the most **comprehensive**, **performant**, and **up-to-date** 2d tilemap crate for bevy.
+A 2d tilemap library for bevy. With many useful algorithms/tools built in. Try to be the most **comprehensive**, **performant**, and **up-to-date** 2d tilemap crate for bevy.
 
 This repo is under maintenance as long as this message exists!!
 
@@ -14,9 +12,9 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 
 *The higher the priority, the more towards the front in the following list.*
 
-- [Tiled](https://www.mapeditor.org/) Support
-- Runtime Mesh & Texture Baking
 - Custom Material
+- [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff)
+- Runtime Mesh & Texture Baking
 - Volumetric Clouds / Fog
 - SSAO
 - Realtime Lighting

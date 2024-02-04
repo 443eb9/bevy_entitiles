@@ -104,9 +104,9 @@ fn setup(mut commands: Commands) {
             TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
-        // you can also switch this to SingleMap mode
+        // you can also switch this to MultiMap mode
         // which will apply the result on a single tilemap
-        WfcSource::LdtkMapPattern(LdtkWfcMode::MultiMaps),
+        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
     ));
 
     commands.spawn((
@@ -124,6 +124,9 @@ fn setup(mut commands: Commands) {
 
     commands.spawn(LevelChange(UVec2::ZERO));
 }
+
+// The rest of the code is used to control the player and load the level.
+// It will only function if you are using MultiMap mode.
 
 fn player_control(
     mut commands: Commands,
