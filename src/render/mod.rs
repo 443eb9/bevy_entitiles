@@ -18,6 +18,7 @@ use crate::render::{
     culling::FrustumCulling,
     draw::{DrawTilemap, DrawTilemapPureColor},
     pipeline::EntiTilesPipeline,
+    resources::TilemapInstances,
     texture::TilemapTexturesStorage,
 };
 
@@ -27,16 +28,18 @@ pub mod chunk;
 pub mod culling;
 pub mod draw;
 pub mod extract;
+pub mod material;
 pub mod pipeline;
 pub mod prepare;
 pub mod queue;
+pub mod resources;
 pub mod texture;
 
-const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
-const ISOMETRIC: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
-const HEXAGONAL: Handle<Shader> = Handle::weak_from_u128(341658413214563135);
-const COMMON: Handle<Shader> = Handle::weak_from_u128(1321023135616351);
-const TILEMAP_SHADER: Handle<Shader> = Handle::weak_from_u128(89646584153215);
+pub const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
+pub const ISOMETRIC: Handle<Shader> = Handle::weak_from_u128(45522415151365135);
+pub const HEXAGONAL: Handle<Shader> = Handle::weak_from_u128(341658413214563135);
+pub const COMMON: Handle<Shader> = Handle::weak_from_u128(1321023135616351);
+pub const TILEMAP_SHADER: Handle<Shader> = Handle::weak_from_u128(89646584153215);
 
 pub const TILEMAP_MESH_ATTR_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Sint32x4);
@@ -77,6 +80,7 @@ impl Plugin for EntiTilesRendererPlugin {
                 ExtractSchedule,
                 (
                     extract::extract_tilemaps,
+                    extract::extract_changed_tilemaps,
                     extract::extract_tiles,
                     extract::extract_view,
                     extract::extract_unloaded_chunks,
@@ -104,7 +108,8 @@ impl Plugin for EntiTilesRendererPlugin {
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapUniformBuffer>()
             .init_resource::<TilemapStorageBuffers>()
-            .init_resource::<TilemapBindGroups>();
+            .init_resource::<TilemapBindGroups>()
+            .init_resource::<TilemapInstances>();
 
         render_app
             .add_render_command::<Transparent2d, DrawTilemap>()

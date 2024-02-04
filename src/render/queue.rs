@@ -1,5 +1,6 @@
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
+    ecs::query::With,
     prelude::{Commands, Entity, Msaa, Query, Res, ResMut},
     render::{
         render_asset::RenderAssets,
@@ -15,8 +16,9 @@ use bevy::{
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
     draw::{DrawTilemap, DrawTilemapPureColor},
-    extract::ExtractedTilemap,
+    extract::TilemapInstance,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
+    resources::TilemapInstances,
     texture::TilemapTexturesStorage,
 };
 
@@ -26,7 +28,7 @@ use bevy::render::renderer::RenderQueue;
 pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
-    tilemaps_query: Query<&ExtractedTilemap>,
+    tilemaps_query: Query<Entity, With<TilemapInstance>>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
@@ -36,6 +38,7 @@ pub fn queue(
     mut bind_groups: ResMut<TilemapBindGroups>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
+    tilemap_instances: Res<TilemapInstances>,
     #[cfg(not(feature = "atlas"))] render_queue: Res<RenderQueue>,
     #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<Image>>,
     #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<Image>>,
@@ -61,7 +64,10 @@ pub fn queue(
             ),
         });
 
-        let mut tilemaps = tilemaps_query.iter().collect::<Vec<_>>();
+        let mut tilemaps = tilemaps_query
+            .iter()
+            .filter_map(|t| tilemap_instances.get(t))
+            .collect::<Vec<_>>();
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
         for tilemap in tilemaps.iter() {

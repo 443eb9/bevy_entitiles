@@ -20,7 +20,7 @@ use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
     buffer::{DynamicOffsetComponent, TilemapUniform},
     chunk::RenderChunkStorage,
-    extract::ExtractedTilemap,
+    resources::TilemapInstances,
 };
 
 pub type DrawTilemap = (
@@ -124,20 +124,20 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapStorageBufferBin
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = Read<ExtractedTilemap>;
+    type ItemWorldQuery = ();
 
     #[inline]
     fn render<'w>(
-        _item: &Transparent2d,
+        item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        tilemap: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let Some(bind_group) = bind_groups
             .into_inner()
             .tilemap_storage_buffers
-            .get(&tilemap.id)
+            .get(&item.entity)
         {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
@@ -150,25 +150,28 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapStorageBufferBin
 
 pub struct SetTilemapColorTextureBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBindGroup<I> {
-    type Param = SRes<TilemapBindGroups>;
+    type Param = (SRes<TilemapBindGroups>, SRes<TilemapInstances>);
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = Read<ExtractedTilemap>;
+    type ItemWorldQuery = ();
 
     #[inline]
     fn render<'w>(
-        _item: &Transparent2d,
+        item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        tilemap: ROQueryItem<'w, Self::ItemWorldQuery>,
-        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(bind_group) = &bind_groups
-            .into_inner()
-            .colored_textures
-            .get(tilemap.texture.as_ref().unwrap().handle())
-        {
+        if let Some(bind_group) = &bind_groups.into_inner().colored_textures.get(
+            instances
+                .get_unwrap(item.entity)
+                .texture
+                .as_ref()
+                .unwrap()
+                .handle(),
+        ) {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
@@ -184,17 +187,17 @@ impl RenderCommand<Transparent2d> for DrawTileMesh {
 
     type ViewWorldQuery = ();
 
-    type ItemWorldQuery = Read<ExtractedTilemap>;
+    type ItemWorldQuery = ();
 
     #[inline]
     fn render<'w>(
-        _item: &Transparent2d,
+        item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        tilemap: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
         render_chunks: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(chunks) = render_chunks.into_inner().get_chunks(tilemap.id) {
+        if let Some(chunks) = render_chunks.into_inner().get_chunks(item.entity) {
             for chunk in chunks.values() {
                 if !chunk.visible {
                     continue;

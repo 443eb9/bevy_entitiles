@@ -114,3 +114,13 @@ required-features = ["debug", "algorithm", "serializing", "physics"]
 name = "tiled"
 path = "examples/tiled.rs"
 required-features = ["tiled", "physics"]
+
+[[example]]
+name = "custom_material"
+path = "examples/custom_material.rs"
+required-features = []
+
+[[example]]
+name = "stress_test"
+path = "examples/stress_test.rs"
+required-features = []

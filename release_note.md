@@ -1,6 +1,9 @@
 # What's New:
 
-- 
+- Added README for examples.
+- Custom materials for tilemaps.
+- Migrated to bevy 0.13.
+- Use cached tilemap data instead of extracting every frame for rendering. FPS++ -> 215fps (10600KF + 3070 + `stress_test` example)
 
 # What's Fixed:
 

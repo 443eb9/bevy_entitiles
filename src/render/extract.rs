@@ -1,8 +1,11 @@
 use bevy::{
-    ecs::{event::EventReader, query::Without, system::Res},
+    ecs::{
+        event::EventReader,
+        query::{Or, With, Without},
+        system::{Res, ResMut},
+    },
     prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
     render::Extract,
-    time::Time,
     utils::EntityHashMap,
 };
 
@@ -11,9 +14,9 @@ use crate::{
     tilemap::{
         despawn::{DespawnedTile, DespawnedTilemap},
         map::{
-            TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip,
-            TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTransform, TilemapType,
+            TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
+            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform,
+            TilemapType,
         },
         tile::Tile,
     },
@@ -22,7 +25,11 @@ use crate::{
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
     culling::{FrustumCulling, InvisibleTilemap},
+    resources::TilemapInstances,
 };
+
+#[derive(Component, Debug)]
+pub struct TilemapInstance;
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {
@@ -38,15 +45,13 @@ pub struct ExtractedTilemap {
     pub texture: Option<TilemapTexture>,
     pub animations: Option<TilemapAnimations>,
     pub chunk_size: u32,
-    pub time: f32,
 }
 
 pub type ExtractedTile = Tile;
 
 pub type ExtractedView = CameraAabb2d;
 
-pub fn extract_tilemaps(
-    mut commands: Commands,
+pub fn extract_changed_tilemaps(
     tilemaps_query: Extract<
         Query<
             (
@@ -63,49 +68,68 @@ pub fn extract_tilemaps(
                 Option<&TilemapTexture>,
                 Option<&TilemapAnimations>,
             ),
-            Without<InvisibleTilemap>,
+            (
+                Without<InvisibleTilemap>,
+                Or<(
+                    Changed<TileRenderSize>,
+                    Changed<TilemapSlotSize>,
+                    Changed<TilemapType>,
+                    Changed<TilePivot>,
+                    Changed<TilemapLayerOpacities>,
+                    Changed<TilemapTransform>,
+                    Changed<TilemapAxisFlip>,
+                    Changed<TilemapTexture>,
+                    Changed<TilemapAnimations>,
+                )>,
+            ),
         >,
     >,
-    time: Extract<Res<Time>>,
+    mut instances: ResMut<TilemapInstances>,
+) {
+    tilemaps_query.iter().for_each(
+        |(
+            entity,
+            name,
+            tile_render_size,
+            slot_size,
+            ty,
+            tile_pivot,
+            layer_opacities,
+            transform,
+            axis_flip,
+            storage,
+            texture,
+            animations,
+        )| {
+            instances.insert(
+                entity,
+                ExtractedTilemap {
+                    id: entity,
+                    name: name.0.clone(),
+                    tile_render_size: tile_render_size.0,
+                    slot_size: slot_size.0,
+                    ty: *ty,
+                    tile_pivot: tile_pivot.0,
+                    layer_opacities: layer_opacities.0,
+                    transform: *transform,
+                    axis_flip: *axis_flip,
+                    texture: texture.cloned(),
+                    animations: animations.cloned(),
+                    chunk_size: storage.storage.chunk_size,
+                },
+            )
+        },
+    );
+}
+
+pub fn extract_tilemaps(
+    mut commands: Commands,
+    tilemaps_query: Extract<Query<Entity, With<TilemapStorage>>>,
 ) {
     commands.insert_or_spawn_batch(
         tilemaps_query
             .iter()
-            .map(
-                |(
-                    entity,
-                    name,
-                    tile_render_size,
-                    slot_size,
-                    ty,
-                    tile_pivot,
-                    layer_opacities,
-                    transform,
-                    axis_flip,
-                    storage,
-                    texture,
-                    animations,
-                )| {
-                    (
-                        entity,
-                        ExtractedTilemap {
-                            id: entity,
-                            name: name.0.clone(),
-                            tile_render_size: tile_render_size.0,
-                            slot_size: slot_size.0,
-                            ty: *ty,
-                            tile_pivot: tile_pivot.0,
-                            layer_opacities: layer_opacities.0,
-                            transform: *transform,
-                            axis_flip: *axis_flip,
-                            texture: texture.cloned(),
-                            animations: animations.cloned(),
-                            chunk_size: storage.storage.chunk_size,
-                            time: time.elapsed_seconds(),
-                        },
-                    )
-                },
-            )
+            .map(|entity| (entity, TilemapInstance))
             .collect::<Vec<_>>(),
     );
 }

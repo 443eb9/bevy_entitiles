@@ -112,11 +112,15 @@ pub struct TilemapUniform {
 #[derive(Resource, Default)]
 pub struct TilemapUniformBuffer(DynamicUniformBuffer<TilemapUniform>);
 
-impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
+impl UniformBuffer<(&ExtractedTilemap, f32), TilemapUniform> for TilemapUniformBuffer {
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
-    #[inline]
-    fn insert(&mut self, extracted: &ExtractedTilemap) -> DynamicOffsetComponent<TilemapUniform> {
+    fn insert(
+        &mut self,
+        extracted: &(&ExtractedTilemap, f32),
+    ) -> DynamicOffsetComponent<TilemapUniform> {
+        let (extracted, time) = (&extracted.0, extracted.1);
+
         let uv_rotation = {
             if let Some(tex) = extracted.texture.as_ref() {
                 tex.rotation as u32 / 90
@@ -150,7 +154,7 @@ impl UniformBuffer<ExtractedTilemap, TilemapUniform> for TilemapUniformBuffer {
                 TilemapType::Hexagonal(legs) => legs as f32,
                 _ => 0.,
             },
-            time: extracted.time,
+            time,
             #[cfg(feature = "atlas")]
             texture_tiled_size,
             #[cfg(feature = "atlas")]
