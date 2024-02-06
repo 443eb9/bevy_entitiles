@@ -16,7 +16,7 @@ use crate::{
     serializing::pattern::TilemapPattern,
     tilemap::{
         buffers::TileBuffer,
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTransform, TilemapType,
@@ -280,7 +280,7 @@ impl<'a> LdtkLayers<'a> {
                     .filter_map(|(i, e)| if let Some(e) = e { Some((i, e)) } else { None })
                     .for_each(|(index, (pattern, texture, iid, opacity))| {
                         let tilemap_entity = commands.spawn_empty().id();
-                        let mut tilemap = TilemapBundle {
+                        let mut tilemap = StandardTilemapBundle {
                             name: TilemapName(pattern.label.clone().unwrap()),
                             ty: TilemapType::Square,
                             tile_render_size: TileRenderSize(texture.desc.tile_size.as_vec2()),

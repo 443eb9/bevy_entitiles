@@ -1,4 +1,5 @@
 use bevy::{
+    asset::{AssetEvent, Assets, Handle},
     ecs::{
         event::EventReader,
         query::{Or, With, Without},
@@ -25,14 +26,15 @@ use crate::{
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
     culling::{FrustumCulling, InvisibleTilemap},
-    resources::TilemapInstances,
+    material::TilemapMaterial,
+    resources::{ExtractedTilemapMaterials, TilemapInstances},
 };
 
 #[derive(Component, Debug)]
 pub struct TilemapInstance;
 
 #[derive(Component, Debug)]
-pub struct ExtractedTilemap {
+pub struct ExtractedTilemap<M: TilemapMaterial> {
     pub id: Entity,
     pub name: String,
     pub tile_render_size: Vec2,
@@ -42,6 +44,7 @@ pub struct ExtractedTilemap {
     pub layer_opacities: Vec4,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
+    pub material: Handle<M>,
     pub texture: Option<TilemapTexture>,
     pub animations: Option<TilemapAnimations>,
     pub chunk_size: u32,
@@ -51,7 +54,7 @@ pub type ExtractedTile = Tile;
 
 pub type ExtractedView = CameraAabb2d;
 
-pub fn extract_changed_tilemaps(
+pub fn extract_changed_tilemaps<M: TilemapMaterial>(
     tilemaps_query: Extract<
         Query<
             (
@@ -65,6 +68,7 @@ pub fn extract_changed_tilemaps(
                 &TilemapTransform,
                 &TilemapAxisFlip,
                 &TilemapStorage,
+                &Handle<M>,
                 Option<&TilemapTexture>,
                 Option<&TilemapAnimations>,
             ),
@@ -84,7 +88,7 @@ pub fn extract_changed_tilemaps(
             ),
         >,
     >,
-    mut instances: ResMut<TilemapInstances>,
+    mut instances: ResMut<TilemapInstances<M>>,
 ) {
     tilemaps_query.iter().for_each(
         |(
@@ -98,6 +102,7 @@ pub fn extract_changed_tilemaps(
             transform,
             axis_flip,
             storage,
+            material,
             texture,
             animations,
         )| {
@@ -114,6 +119,7 @@ pub fn extract_changed_tilemaps(
                     transform: *transform,
                     axis_flip: *axis_flip,
                     texture: texture.cloned(),
+                    material: material.clone(),
                     animations: animations.cloned(),
                     chunk_size: storage.storage.chunk_size,
                 },
@@ -156,6 +162,31 @@ pub fn extract_tiles(
             })
             .collect::<Vec<_>>(),
     );
+}
+
+pub fn extract_materials<M: TilemapMaterial>(
+    mut commands: Commands,
+    mut events: Extract<EventReader<AssetEvent<M>>>,
+    assets: Extract<Res<Assets<M>>>,
+) {
+    let mats = events
+        .read()
+        .fold(ExtractedTilemapMaterials::default(), |mut acc, ev| {
+            match ev {
+                AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+                    if let Some(mat) = assets.get(*id) {
+                        acc.changed.push((id.clone(), mat.clone()));
+                    }
+                }
+                AssetEvent::Removed { id } => {
+                    acc.removed.push(*id);
+                }
+                AssetEvent::LoadedWithDependencies { .. } => {}
+            };
+            acc
+        });
+
+    commands.insert_resource(mats);
 }
 
 pub fn extract_view(

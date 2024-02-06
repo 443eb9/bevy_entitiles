@@ -1,5 +1,5 @@
 #import bevy_entitiles::common::{
-    VertexInput, VertexOutput, tilemap, atlas_uvs, anim_seqs
+    TilemapVertexInput, TilemapVertexOutput, tilemap, atlas_uvs, anim_seqs
 }
 #import bevy_sprite::mesh2d_view_bindings::view
 
@@ -16,8 +16,8 @@
 #endif
 
 @vertex
-fn tilemap_vertex(input: VertexInput) -> VertexOutput {
-    var output: VertexOutput;
+fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
+    var output: TilemapVertexOutput;
     var mesh_origin = get_mesh_origin(input);
     
     var translations = array<vec2<f32>, 4>(
@@ -72,7 +72,7 @@ fn tilemap_vertex(input: VertexInput) -> VertexOutput {
 }
 
 @fragment
-fn tilemap_fragment(input: VertexOutput) -> @location(0) vec4<f32> {
+fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
     return input.color;
 #else

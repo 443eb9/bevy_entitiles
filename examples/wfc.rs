@@ -10,7 +10,7 @@ use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
     tilemap::{
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTextureDescriptor, TilemapType,
@@ -51,7 +51,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         // use weights OR custom_sampler
         // .with_weights("examples/wfc_weights.ron".to_string())
         .with_retrace_settings(Some(8), Some(1000000)),
-        TilemapBundle {
+        StandardTilemapBundle {
             tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
             slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
             ty: TilemapType::Square,

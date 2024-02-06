@@ -27,7 +27,7 @@ use bevy_entitiles::{
     },
     tilemap::{
         buffers::TileBuilderBuffer,
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
@@ -90,7 +90,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((Camera2dBundle::default(), CameraChunkUpdater::new(1.3, 2.2)));
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         name: TilemapName("laggy_map".to_string()),
         tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),

@@ -1,14 +1,15 @@
 use bevy::{
-    asset::Handle,
+    asset::{AssetId, Handle},
     ecs::{component::Component, entity::Entity, system::Resource, world::FromWorld},
     render::{
+        render_asset::RenderAssets,
         render_resource::{
             BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
             BindGroupLayoutEntry, BindingResource, BindingType, BufferBindingType,
             SamplerBindingType, ShaderStages, ShaderType, TextureSampleType, TextureViewDimension,
         },
         renderer::RenderDevice,
-        texture::Image,
+        texture::{FallbackImage, Image},
         view::ViewUniform,
     },
     utils::{EntityHashMap, HashMap},
@@ -20,7 +21,9 @@ use super::{
         UniformBuffer,
     },
     extract::ExtractedTilemap,
+    material::TilemapMaterial,
     pipeline::EntiTilesPipeline,
+    resources::ExtractedTilemapMaterials,
     texture::TilemapTexturesStorage,
 };
 
@@ -29,19 +32,31 @@ pub struct TilemapViewBindGroup {
     pub value: BindGroup,
 }
 
-#[derive(Resource, Default)]
-pub struct TilemapBindGroups {
+#[derive(Resource)]
+pub struct TilemapBindGroups<M: TilemapMaterial> {
     pub tilemap_uniform_buffer: Option<BindGroup>,
     pub tilemap_storage_buffers: EntityHashMap<Entity, BindGroup>,
     pub colored_textures: HashMap<Handle<Image>, BindGroup>,
+    pub material_bind_groups: HashMap<AssetId<M>, BindGroup>,
 }
 
-impl TilemapBindGroups {
+impl<M: TilemapMaterial> Default for TilemapBindGroups<M> {
+    fn default() -> Self {
+        Self {
+            tilemap_uniform_buffer: Default::default(),
+            tilemap_storage_buffers: Default::default(),
+            colored_textures: Default::default(),
+            material_bind_groups: Default::default(),
+        }
+    }
+}
+
+impl<M: TilemapMaterial> TilemapBindGroups<M> {
     pub fn bind_uniform_buffers(
         &mut self,
         render_device: &RenderDevice,
-        uniform_buffers: &mut TilemapUniformBuffer,
-        entitiles_pipeline: &EntiTilesPipeline,
+        uniform_buffers: &mut TilemapUniformBuffer<M>,
+        entitiles_pipeline: &EntiTilesPipeline<M>,
     ) {
         let Some(uniform_buffer) = uniform_buffers.binding() else {
             return;
@@ -61,7 +76,7 @@ impl TilemapBindGroups {
         &mut self,
         render_device: &RenderDevice,
         storage_buffers: &mut TilemapStorageBuffers,
-        entitiles_pipeline: &EntiTilesPipeline,
+        entitiles_pipeline: &EntiTilesPipeline<M>,
     ) {
         storage_buffers
             .bindings()
@@ -81,13 +96,34 @@ impl TilemapBindGroups {
             });
     }
 
+    pub fn prepare_material_bind_groups(
+        &mut self,
+        layout: &BindGroupLayout,
+        render_device: &RenderDevice,
+        images: &RenderAssets<Image>,
+        fallback_image: &FallbackImage,
+        extracted_materials: &ExtractedTilemapMaterials<M>,
+    ) {
+        extracted_materials
+            .changed
+            .iter()
+            .for_each(|(id, material)| {
+                dbg!(id);
+                if let Ok(bind_group) =
+                    material.as_bind_group(layout, render_device, images, fallback_image)
+                {
+                    self.material_bind_groups.insert(*id, bind_group.bind_group);
+                }
+            });
+    }
+
     /// Returns is_pure_color
     pub fn queue_textures(
         &mut self,
-        tilemap: &ExtractedTilemap,
+        tilemap: &ExtractedTilemap<M>,
         render_device: &RenderDevice,
         textures_storage: &TilemapTexturesStorage,
-        entitile_pipeline: &EntiTilesPipeline,
+        entitile_pipeline: &EntiTilesPipeline<M>,
     ) -> bool {
         let Some(tilemap_texture) = &tilemap.texture else {
             return true;
@@ -199,7 +235,7 @@ impl FromWorld for TilemapBindGroupLayouts {
                     },
                 ],
             });
-        
+
         #[cfg(feature = "atlas")]
         let color_texture_layout =
             render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {

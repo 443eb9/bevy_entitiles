@@ -7,7 +7,7 @@ use bevy::{
 use serde::{Deserialize, Serialize};
 
 use crate::tilemap::{
-    bundles::{PureColorTilemapBundle, TilemapBundle},
+    bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
     chunking::storage::ChunkedStorage,
     map::{
         TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -91,8 +91,8 @@ impl SerializedTilemap {
         }
     }
 
-    pub fn into_tilemap(&self, tilemap: Entity, texture: TilemapTexture) -> TilemapBundle {
-        TilemapBundle {
+    pub fn into_tilemap(&self, tilemap: Entity, texture: TilemapTexture) -> StandardTilemapBundle {
+        StandardTilemapBundle {
             name: self.name.clone(),
             ty: self.ty,
             tile_render_size: self.tile_render_size,
@@ -111,8 +111,8 @@ impl SerializedTilemap {
         }
     }
 
-    pub fn into_pure_color_tilemap(&self, tilemap: Entity) -> PureColorTilemapBundle {
-        PureColorTilemapBundle {
+    pub fn into_pure_color_tilemap(&self, tilemap: Entity) -> StandardPureColorTilemapBundle {
+        StandardPureColorTilemapBundle {
             name: self.name.clone(),
             ty: self.ty,
             tile_render_size: self.tile_render_size,

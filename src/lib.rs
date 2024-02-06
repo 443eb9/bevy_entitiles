@@ -1,6 +1,6 @@
-use bevy::{app::Update, prelude::Plugin};
+use bevy::prelude::Plugin;
 use math::EntiTilesMathPlugin;
-use render::{texture, EntiTilesRendererPlugin};
+use render::{material::StandardTilemapMaterial, EntiTilesRendererPlugin};
 use shaders::EntiTilesShaderPlugin;
 use tilemap::EntiTilesTilemapPlugin;
 
@@ -45,7 +45,7 @@ pub mod prelude {
     #[cfg(feature = "physics")]
     pub use crate::tilemap::physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap};
     pub use crate::tilemap::{
-        bundles::{PureColorTilemapBundle, TilemapBundle},
+        bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -60,11 +60,9 @@ pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(Update, texture::set_texture_usage);
-
         app.add_plugins((
             EntiTilesTilemapPlugin,
-            EntiTilesRendererPlugin,
+            EntiTilesRendererPlugin::<StandardTilemapMaterial>::default(),
             EntiTilesMathPlugin,
             EntiTilesShaderPlugin,
             #[cfg(feature = "debug")]

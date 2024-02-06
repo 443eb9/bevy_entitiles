@@ -27,7 +27,9 @@ pub fn camera_control(
     time: Res<Time>,
     mut control: ResMut<CameraControl>,
 ) {
-    let (mut transform, mut projection) = query.get_single_mut().unwrap();
+    let Ok((mut transform, mut projection)) = query.get_single_mut() else {
+        return;
+    };
 
     if input_mouse.pressed(MouseButton::Left) {
         for ev in event_move.read() {

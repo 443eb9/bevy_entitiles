@@ -16,7 +16,7 @@ use bevy::{
 
 use crate::tilemap::map::TilemapType;
 
-use super::extract::ExtractedTilemap;
+use super::{extract::ExtractedTilemap, material::TilemapMaterial};
 
 pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static> {
     fn insert(&mut self, extracted: &E) -> DynamicOffsetComponent<U>;
@@ -109,15 +109,29 @@ pub struct TilemapUniform {
     pub tile_uv_size: Vec2,
 }
 
-#[derive(Resource, Default)]
-pub struct TilemapUniformBuffer(DynamicUniformBuffer<TilemapUniform>);
+#[derive(Resource)]
+pub struct TilemapUniformBuffer<M: TilemapMaterial> {
+    buffer: DynamicUniformBuffer<TilemapUniform>,
+    _marker: PhantomData<M>,
+}
 
-impl UniformBuffer<(&ExtractedTilemap, f32), TilemapUniform> for TilemapUniformBuffer {
+impl<M: TilemapMaterial> Default for TilemapUniformBuffer<M> {
+    fn default() -> Self {
+        Self {
+            buffer: DynamicUniformBuffer::default(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUniform>
+    for TilemapUniformBuffer<M>
+{
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
     fn insert(
         &mut self,
-        extracted: &(&ExtractedTilemap, f32),
+        extracted: &(&ExtractedTilemap<M>, f32),
     ) -> DynamicOffsetComponent<TilemapUniform> {
         let (extracted, time) = (&extracted.0, extracted.1);
 
@@ -164,7 +178,7 @@ impl UniformBuffer<(&ExtractedTilemap, f32), TilemapUniform> for TilemapUniformB
 
     #[inline]
     fn buffer(&mut self) -> &mut DynamicUniformBuffer<TilemapUniform> {
-        &mut self.0
+        &mut self.buffer
     }
 }
 

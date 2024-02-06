@@ -15,8 +15,9 @@ use bevy::{
 
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
-    draw::{DrawTilemap, DrawTilemapPureColor},
+    draw::DrawTilemap,
     extract::TilemapInstance,
+    material::TilemapMaterial,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     resources::TilemapInstances,
     texture::TilemapTexturesStorage,
@@ -25,20 +26,20 @@ use super::{
 #[cfg(not(feature = "atlas"))]
 use bevy::render::renderer::RenderQueue;
 
-pub fn queue(
+pub fn queue<M: TilemapMaterial>(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
     tilemaps_query: Query<Entity, With<TilemapInstance>>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
-    entitiles_pipeline: Res<EntiTilesPipeline>,
+    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline<M>>>,
+    entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
-    mut bind_groups: ResMut<TilemapBindGroups>,
+    mut bind_groups: ResMut<TilemapBindGroups<M>>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    tilemap_instances: Res<TilemapInstances>,
+    tilemap_instances: Res<TilemapInstances<M>>,
     #[cfg(not(feature = "atlas"))] render_queue: Res<RenderQueue>,
     #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<Image>>,
     #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<Image>>,
@@ -88,22 +89,11 @@ pub fn queue(
                 },
             );
 
-            let draw_function = {
-                if is_pure_color {
-                    draw_functions
-                        .read()
-                        .get_id::<DrawTilemapPureColor>()
-                        .unwrap()
-                } else {
-                    draw_functions.read().get_id::<DrawTilemap>().unwrap()
-                }
-            };
-
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.transform.z_index as f32),
                 entity: tilemap.id,
                 pipeline,
-                draw_function,
+                draw_function: draw_functions.read().get_id::<DrawTilemap<M>>().unwrap(),
                 batch_range: 0..1,
                 dynamic_offset: None,
             });

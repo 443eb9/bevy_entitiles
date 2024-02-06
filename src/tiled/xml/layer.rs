@@ -16,7 +16,7 @@ use serde::{
 use crate::{
     tiled::resources::{PackedTiledTilemap, TiledAssets},
     tilemap::{
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         coordinates,
         tile::{RawTileAnimation, TileBuilder, TileLayer},
     },
@@ -276,7 +276,7 @@ impl Tiles {
         &'a self,
         size: IVec2,
         tiled_assets: &'a TiledAssets,
-        layer_tilemap: &'a mut TilemapBundle,
+        layer_tilemap: &'a mut StandardTilemapBundle,
         tiled_data: &'a PackedTiledTilemap,
         tint: Vec4,
     ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {

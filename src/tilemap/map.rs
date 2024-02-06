@@ -4,9 +4,9 @@ use bevy::{
     asset::Handle,
     ecs::{component::Component, query::Changed, system::Query},
     math::{Mat2, Quat, Vec4},
-    prelude::{Assets, Commands, Entity, IVec2, Image, ResMut, UVec2, Vec2},
+    prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
     reflect::Reflect,
-    render::render_resource::{FilterMode, TextureUsages},
+    render::render_resource::FilterMode,
     sprite::TextureAtlas,
     transform::components::Transform,
     utils::{HashMap, HashSet},
@@ -236,27 +236,10 @@ impl TilemapTexture {
             max: (tile_index + Vec2::ONE) * tile_size,
         }
     }
-
-    /// Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
-    pub(crate) fn set_usage(&mut self, image_assets: &mut ResMut<Assets<Image>>) {
-        let Some(image) = image_assets.get(&self.clone_weak()) else {
-            return;
-        };
-
-        if !image
-            .texture_descriptor
-            .usage
-            .contains(TextureUsages::COPY_SRC)
-        {
-            image_assets
-                .get_mut(&self.clone_weak())
-                .unwrap()
-                .texture_descriptor
-                .usage
-                .set(TextureUsages::COPY_SRC, true);
-        }
-    }
 }
+
+#[derive(Component, Debug, Default, Clone)]
+pub struct WaitForTextureUsageChange;
 
 /// A descriptor for a tilemap texture.
 #[derive(Clone, Default, Debug, PartialEq, Reflect)]
@@ -552,15 +535,12 @@ impl TilemapStorage {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 let index = IVec2 { x, y };
-                self.remove(commands, index);
                 let tile = tile_builder.build_component(index, &self, self.tilemap);
-                let entity = if let Some(e) = self.get(index) {
-                    e
-                } else {
+                let entity = self.get(index).unwrap_or_else(|| {
                     let e = commands.spawn_empty().id();
                     self.set_entity(index, Some(e));
                     e
-                };
+                });
                 tile_batch.push((entity, tile));
             }
         }
@@ -593,15 +573,12 @@ impl TilemapStorage {
                     continue;
                 };
 
-                self.remove(commands, index);
                 let tile = builder.build_component(index, &self, self.tilemap);
-                let entity = if let Some(e) = self.get(index) {
-                    e
-                } else {
+                let entity = self.get(index).unwrap_or_else(|| {
                     let e = commands.spawn_empty().id();
                     self.set_entity(index, Some(e));
                     e
-                };
+                });
                 tile_batch.push((entity, tile));
             }
         }

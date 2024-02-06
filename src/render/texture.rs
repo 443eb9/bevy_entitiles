@@ -1,13 +1,14 @@
 use bevy::{
     asset::{Assets, Handle},
     ecs::{
-        query::Added,
-        system::{Query, ResMut, Resource},
+        entity::Entity,
+        query::With,
+        system::{Commands, Query, ResMut, Resource},
     },
     prelude::Image,
     render::{
         render_asset::RenderAssets,
-        render_resource::{AddressMode, SamplerDescriptor},
+        render_resource::{AddressMode, SamplerDescriptor, TextureUsages},
         renderer::RenderDevice,
         texture::GpuImage,
     },
@@ -20,14 +21,13 @@ use bevy::{
     render::{
         render_resource::{
             Extent3d, ImageCopyTexture, Origin3d, TextureAspect, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureUsages, TextureViewDescriptor,
-            TextureViewDimension,
+            TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
         },
         renderer::RenderQueue,
     },
 };
 
-use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor};
+use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor, WaitForTextureUsageChange};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -238,10 +238,31 @@ impl TilemapTexturesStorage {
 }
 
 pub fn set_texture_usage(
-    mut tilemaps_query: Query<&mut TilemapTexture, Added<TilemapTexture>>,
+    mut commands: Commands,
+    tilemaps_query: Query<(Entity, &TilemapTexture), With<WaitForTextureUsageChange>>,
     mut image_assets: ResMut<Assets<Image>>,
 ) {
-    tilemaps_query
-        .iter_mut()
-        .for_each(|mut tex| tex.set_usage(&mut image_assets));
+    // Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
+    tilemaps_query.for_each(|(entity, tex)| {
+        let Some(image) = image_assets.get(&tex.clone_weak()) else {
+            return;
+        };
+
+        if !image
+            .texture_descriptor
+            .usage
+            .contains(TextureUsages::COPY_SRC)
+        {
+            image_assets
+                .get_mut(&tex.clone_weak())
+                .unwrap()
+                .texture_descriptor
+                .usage
+                .set(TextureUsages::COPY_SRC, true);
+        }
+
+        commands
+            .entity(entity)
+            .remove::<WaitForTextureUsageChange>();
+    });
 }

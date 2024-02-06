@@ -16,7 +16,7 @@ use bevy_entitiles::{
     },
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TilePivot, TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize,
             TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapType,
@@ -49,7 +49,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2::new(32., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),

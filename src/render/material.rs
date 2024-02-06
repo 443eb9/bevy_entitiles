@@ -1,93 +1,62 @@
-use std::marker::PhantomData;
-
 use bevy::{
-    app::{App, Plugin},
-    asset::{Asset, Handle},
+    asset::{Asset, Assets, Handle},
     ecs::{
+        component::Component,
         entity::Entity,
-        query::Changed,
-        system::{Query, ResMut},
+        query::With,
+        system::{Commands, Query, ResMut, Resource},
     },
-    reflect::Reflect,
-    render::{
-        render_resource::{AsBindGroup, ShaderRef},
-        Extract,
-    },
+    reflect::TypePath,
+    render::render_resource::{AsBindGroup, ShaderRef},
 };
 
-use crate::tilemap::map::{TilemapAnimations, TilemapTexture};
+pub trait TilemapMaterial: Default + Asset + AsBindGroup + TypePath + Clone {
+    fn vertex_shader() -> ShaderRef {
+        super::TILEMAP_SHADER.into()
+    }
 
-use super::resources::TilemapMaterialInstances;
-
-pub struct TilemapMaterialPlugin<M: TilemapMaterial>(PhantomData<M>);
-
-impl<M: TilemapMaterial> Plugin for TilemapMaterialPlugin<M> {
-    fn build(&self, _app: &mut App) {}
-}
-
-impl<M: TilemapMaterial> Default for TilemapMaterialPlugin<M> {
-    fn default() -> Self {
-        Self(PhantomData)
+    fn fragment_shader() -> ShaderRef {
+        super::TILEMAP_SHADER.into()
     }
 }
 
-/// Trait for tilemap materials. Implement this for your custom tilemap materials
-/// and add them to your tilemap.
-pub trait TilemapMaterial: Asset + AsBindGroup {
-    fn vertex_shader_ovrd() -> Option<ShaderRef> {
-        None
-    }
+#[derive(Component, Default, Debug, Clone)]
+pub struct WaitForStandardMaterialRepacement;
 
-    fn fragment_shader_ovrd() -> Option<ShaderRef> {
-        None
-    }
+#[derive(Resource, Default)]
+pub struct StandardTilemapMaterialSingleton(pub Option<Handle<StandardTilemapMaterial>>);
 
-    fn texture(&self) -> Option<&TilemapTexture> {
-        None
-    }
-
-    fn animations(&self) -> Option<&TilemapAnimations> {
-        None
-    }
-}
-
-#[derive(Asset, AsBindGroup, Clone, Reflect)]
-pub struct StandardTilemapMaterial {
-    pub texture: TilemapTexture,
-    pub animations: TilemapAnimations,
-}
+#[derive(Default, Asset, AsBindGroup, TypePath, Clone)]
+pub struct StandardTilemapMaterial {}
 
 impl TilemapMaterial for StandardTilemapMaterial {
-    fn texture(&self) -> Option<&TilemapTexture> {
-        Some(&self.texture)
+    fn vertex_shader() -> ShaderRef {
+        super::TILEMAP_SHADER.into()
     }
 
-    fn animations(&self) -> Option<&TilemapAnimations> {
-        Some(&self.animations)
-    }
-}
-
-#[derive(Asset, AsBindGroup, Clone, Reflect)]
-pub struct TextureOnlyTilemapMaterial {
-    pub texture: TilemapTexture,
-}
-
-impl TilemapMaterial for TextureOnlyTilemapMaterial {
-    fn texture(&self) -> Option<&TilemapTexture> {
-        Some(&self.texture)
+    fn fragment_shader() -> ShaderRef {
+        super::TILEMAP_SHADER.into()
     }
 }
 
-#[derive(Asset, AsBindGroup, Clone, Reflect)]
-pub struct PureColorTilemapMaterial {}
-
-impl TilemapMaterial for PureColorTilemapMaterial {}
-
-pub fn extract<M: TilemapMaterial>(
-    tilemaps_query: Extract<Query<(Entity, &Handle<M>), Changed<Handle<M>>>>,
-    mut material_instances: ResMut<TilemapMaterialInstances<M>>,
+pub fn standard_material_register(
+    mut commands: Commands,
+    mut tilemaps_query: Query<
+        (Entity, &mut Handle<StandardTilemapMaterial>),
+        With<WaitForStandardMaterialRepacement>,
+    >,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut material_singleton: ResMut<StandardTilemapMaterialSingleton>,
 ) {
-    tilemaps_query.for_each(|(entity, handle)| {
-        material_instances.0.insert(entity, handle.id());
-    });
+    if material_singleton.0.is_none() {
+        let material = materials.add(StandardTilemapMaterial::default());
+        material_singleton.0 = Some(material);
+    }
+
+    for (entity, mut material) in tilemaps_query.iter_mut() {
+        *material = material_singleton.0.clone().unwrap();
+        commands
+            .entity(entity)
+            .remove::<WaitForStandardMaterialRepacement>();
+    }
 }

@@ -1,14 +1,14 @@
 ---
 name: Feature Request
-about: I have some good ideas.
+about: I have a good idea.
 title: 'FeatureRequest: '
 labels: enhancement
 assignees: ''
 
 ---
 
-**Current Situation**
+**Current Problem**
 
 
-**Your Solotion**
+**Your Solution**
 

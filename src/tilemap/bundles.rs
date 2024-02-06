@@ -1,16 +1,19 @@
-use bevy::ecs::bundle::Bundle;
+use bevy::{asset::Handle, ecs::bundle::Bundle, sprite::Material2d};
+
+use crate::render::material::{StandardTilemapMaterial, WaitForStandardMaterialRepacement};
 
 use super::map::{
     TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
     TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+    WaitForTextureUsageChange,
 };
 
 /// All the possible bundles of the tilemap.
 #[derive(Debug, Clone)]
 pub enum TilemapBundles {
     Data(DataTilemapBundle),
-    PureColor(PureColorTilemapBundle),
-    Texture(TilemapBundle),
+    PureColor(StandardPureColorTilemapBundle),
+    Texture(StandardTilemapBundle),
 }
 
 /// The bundle of the tilemap with no actual tiles.
@@ -24,9 +27,9 @@ pub struct DataTilemapBundle {
     pub axis_direction: TilemapAxisFlip,
 }
 
-impl Into<TilemapBundle> for DataTilemapBundle {
-    fn into(self) -> TilemapBundle {
-        TilemapBundle {
+impl Into<StandardTilemapBundle> for DataTilemapBundle {
+    fn into(self) -> StandardTilemapBundle {
+        StandardTilemapBundle {
             name: self.name,
             tile_render_size: self.tile_render_size,
             slot_size: self.slot_size,
@@ -37,9 +40,9 @@ impl Into<TilemapBundle> for DataTilemapBundle {
     }
 }
 
-/// The bundle of the tilemap with a texture.
+/// The bundle of the tilemap with a texture and custom material.
 #[derive(Bundle, Default, Debug, Clone)]
-pub struct TilemapBundle {
+pub struct MaterialTilemapBundle<M: Material2d> {
     pub name: TilemapName,
     pub tile_render_size: TileRenderSize,
     pub slot_size: TilemapSlotSize,
@@ -49,11 +52,32 @@ pub struct TilemapBundle {
     pub storage: TilemapStorage,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
+    pub material: Handle<M>,
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
+    pub marker: WaitForTextureUsageChange,
 }
 
-impl Into<DataTilemapBundle> for TilemapBundle {
+/// The bundle of the tilemap with a texture and standard material.
+#[derive(Bundle, Default, Debug, Clone)]
+pub struct StandardTilemapBundle {
+    pub name: TilemapName,
+    pub tile_render_size: TileRenderSize,
+    pub slot_size: TilemapSlotSize,
+    pub ty: TilemapType,
+    pub tile_pivot: TilePivot,
+    pub layer_opacities: TilemapLayerOpacities,
+    pub storage: TilemapStorage,
+    pub transform: TilemapTransform,
+    pub axis_flip: TilemapAxisFlip,
+    pub material: Handle<StandardTilemapMaterial>,
+    pub texture: TilemapTexture,
+    pub animations: TilemapAnimations,
+    pub texture_marker: WaitForTextureUsageChange,
+    pub material_marker: WaitForStandardMaterialRepacement,
+}
+
+impl Into<DataTilemapBundle> for StandardTilemapBundle {
     fn into(self) -> DataTilemapBundle {
         DataTilemapBundle {
             name: self.name,
@@ -66,9 +90,9 @@ impl Into<DataTilemapBundle> for TilemapBundle {
     }
 }
 
-impl Into<PureColorTilemapBundle> for TilemapBundle {
-    fn into(self) -> PureColorTilemapBundle {
-        PureColorTilemapBundle {
+impl Into<StandardPureColorTilemapBundle> for StandardTilemapBundle {
+    fn into(self) -> StandardPureColorTilemapBundle {
+        StandardPureColorTilemapBundle {
             name: self.name,
             tile_render_size: self.tile_render_size,
             slot_size: self.slot_size,
@@ -78,11 +102,14 @@ impl Into<PureColorTilemapBundle> for TilemapBundle {
             storage: self.storage,
             transform: self.transform,
             axis_flip: self.axis_flip,
+            material: self.material,
+            material_marker: self.material_marker,
         }
     }
 }
 
-/// The bundle of the tilemap without a texture. This can be cheaper.
+/// The bundle of the tilemap without a texture and with a custom material.
+/// This can be cheaper.
 #[derive(Bundle, Default, Debug, Clone)]
 pub struct PureColorTilemapBundle {
     pub name: TilemapName,
@@ -96,13 +123,30 @@ pub struct PureColorTilemapBundle {
     pub axis_flip: TilemapAxisFlip,
 }
 
-impl PureColorTilemapBundle {
+/// The bundle of the tilemap without a texture and with a standard material.
+/// This can be cheaper.
+#[derive(Bundle, Default, Debug, Clone)]
+pub struct StandardPureColorTilemapBundle {
+    pub name: TilemapName,
+    pub tile_render_size: TileRenderSize,
+    pub slot_size: TilemapSlotSize,
+    pub ty: TilemapType,
+    pub tile_pivot: TilePivot,
+    pub layer_opacities: TilemapLayerOpacities,
+    pub storage: TilemapStorage,
+    pub transform: TilemapTransform,
+    pub axis_flip: TilemapAxisFlip,
+    pub material: Handle<StandardTilemapMaterial>,
+    pub material_marker: WaitForStandardMaterialRepacement,
+}
+
+impl StandardPureColorTilemapBundle {
     pub fn convert_to_texture_bundle(
         self,
         texture: TilemapTexture,
         animations: TilemapAnimations,
-    ) -> TilemapBundle {
-        TilemapBundle {
+    ) -> StandardTilemapBundle {
+        StandardTilemapBundle {
             name: self.name,
             tile_render_size: self.tile_render_size,
             slot_size: self.slot_size,
@@ -112,8 +156,11 @@ impl PureColorTilemapBundle {
             storage: self.storage,
             transform: self.transform,
             axis_flip: self.axis_flip,
+            material: self.material,
             texture,
             animations,
+            texture_marker: Default::default(),
+            material_marker: self.material_marker,
         }
     }
 }

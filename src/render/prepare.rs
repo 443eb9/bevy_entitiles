@@ -1,7 +1,11 @@
 use bevy::{
     ecs::{entity::Entity, query::With},
     prelude::{Commands, Query, Res, ResMut},
-    render::renderer::{RenderDevice, RenderQueue},
+    render::{
+        render_asset::RenderAssets,
+        renderer::{RenderDevice, RenderQueue},
+        texture::{FallbackImage, Image},
+    },
     time::Time,
 };
 
@@ -14,25 +18,29 @@ use super::{
     },
     chunk::{TilemapRenderChunk, UnloadRenderChunk},
     extract::{ExtractedTile, TilemapInstance},
+    material::TilemapMaterial,
     pipeline::EntiTilesPipeline,
-    resources::TilemapInstances,
+    resources::{ExtractedTilemapMaterials, TilemapInstances},
     texture::TilemapTexturesStorage,
     RenderChunkStorage,
 };
 
-pub fn prepare_tilemaps(
+pub fn prepare_tilemaps<M: TilemapMaterial>(
     mut commands: Commands,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     extracted_tilemaps: Query<Entity, With<TilemapInstance>>,
-    mut render_chunks: ResMut<RenderChunkStorage>,
-    mut uniform_buffers: ResMut<TilemapUniformBuffer>,
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
+    mut uniform_buffers: ResMut<TilemapUniformBuffer<M>>,
     mut storage_buffers: ResMut<TilemapStorageBuffers>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
-    entitiles_pipeline: Res<EntiTilesPipeline>,
-    mut bind_groups: ResMut<TilemapBindGroups>,
+    entitiles_pipeline: Res<EntiTilesPipeline<M>>,
+    mut bind_groups: ResMut<TilemapBindGroups<M>>,
     time: Res<Time>,
-    tilemap_instances: Res<TilemapInstances>,
+    tilemap_instances: Res<TilemapInstances<M>>,
+    images: Res<RenderAssets<Image>>,
+    fallback_image: Res<FallbackImage>,
+    extracted_materials: Res<ExtractedTilemapMaterials<M>>,
 ) {
     uniform_buffers.clear();
     storage_buffers.clear();
@@ -65,12 +73,19 @@ pub fn prepare_tilemaps(
 
     bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
     bind_groups.bind_storage_buffers(&render_device, &mut storage_buffers, &entitiles_pipeline);
+    bind_groups.prepare_material_bind_groups(
+        &entitiles_pipeline.material_layout,
+        &render_device,
+        &images,
+        &fallback_image,
+        &extracted_materials,
+    );
 }
 
-pub fn prepare_tiles(
+pub fn prepare_tiles<M: TilemapMaterial>(
     extracted_tiles: Query<&mut ExtractedTile>,
-    mut render_chunks: ResMut<RenderChunkStorage>,
-    tilemap_instances: Res<TilemapInstances>,
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
+    tilemap_instances: Res<TilemapInstances<M>>,
 ) {
     extracted_tiles.for_each(|tile| {
         let Some(tilemap) = tilemap_instances.0.get(&tile.tilemap_id) else {
@@ -87,8 +102,8 @@ pub fn prepare_tiles(
     });
 }
 
-pub fn prepare_unloaded_chunks(
-    mut render_chunks: ResMut<RenderChunkStorage>,
+pub fn prepare_unloaded_chunks<M: TilemapMaterial>(
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
     extracted_tilemaps: Query<(Entity, &UnloadRenderChunk)>,
 ) {
     extracted_tilemaps.for_each(|(entity, unloaded)| {
@@ -98,10 +113,10 @@ pub fn prepare_unloaded_chunks(
     });
 }
 
-pub fn prepare_despawned_tilemaps(
-    mut render_chunks: ResMut<RenderChunkStorage>,
+pub fn prepare_despawned_tilemaps<M: TilemapMaterial>(
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
     mut storage_buffers: ResMut<TilemapStorageBuffers>,
-    mut tilemap_instaces: ResMut<TilemapInstances>,
+    mut tilemap_instaces: ResMut<TilemapInstances<M>>,
     tilemaps_query: Query<&DespawnedTilemap>,
 ) {
     tilemaps_query.for_each(|map| {
@@ -111,8 +126,8 @@ pub fn prepare_despawned_tilemaps(
     });
 }
 
-pub fn prepare_despawned_tiles(
-    mut render_chunks: ResMut<RenderChunkStorage>,
+pub fn prepare_despawned_tiles<M: TilemapMaterial>(
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
     tiles_query: Query<&DespawnedTile>,
 ) {
     tiles_query.for_each(|tile| {

@@ -1,4 +1,4 @@
-#import bevy_sprite::{mesh2d_vertex_output::VertexOutput}
+#import bevy_sprite::{mesh2d_vertex_output::TilemapVertexOutput}
 #import bevy_entitiles::math::Aabb2d
 
 struct SpriteUniform {
@@ -16,7 +16,7 @@ var texture_sampler: sampler;
 var<uniform> data: SpriteUniform;
 
 @fragment
-fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
+fn fragment(in: TilemapVertexOutput) -> @location(0) vec4<f32> {
     return textureSample(texture, texture_sampler, in.uv * (data.atlas.max - data.atlas.min) + data.atlas.min)
            * vec4<f32>(pow(data.tint.rgb, vec3<f32>(2.2)), data.tint.a);
 }

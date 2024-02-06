@@ -13,7 +13,7 @@ use bevy_entitiles::{
         TilemapLayer,
     },
     tilemap::{
-        bundles::PureColorTilemapBundle,
+        bundles::StandardPureColorTilemapBundle,
         map::{
             TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTransform,
             TilemapType,
@@ -56,7 +56,7 @@ fn setup(mut commands: Commands) {
     for row in 0..ROWS {
         for col in 0..COLS {
             let entity = commands.spawn_empty().id();
-            let mut tilemap = PureColorTilemapBundle {
+            let mut tilemap = StandardPureColorTilemapBundle {
                 name: TilemapName(format!("{}{}", PREFIX, col + row * COLS)),
                 tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
                 slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
@@ -121,7 +121,7 @@ fn setup(mut commands: Commands) {
             TileArea::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
             Some(0),
         ),
-        PureColorTilemapBundle {
+        StandardPureColorTilemapBundle {
             name: TilemapName("wfc_map".to_string()),
             tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
             slot_size: TilemapSlotSize(Vec2::new(8., 8.)),

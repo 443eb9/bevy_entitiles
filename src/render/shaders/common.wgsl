@@ -1,6 +1,6 @@
 #define_import_path bevy_entitiles::common
 
-struct VertexInput {
+struct TilemapVertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec3<f32>,
     // When the third and forth component of index are not -1,
@@ -14,7 +14,7 @@ struct VertexInput {
 #endif
 }
 
-struct VertexOutput {
+struct TilemapVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
 #ifndef PURE_COLOR
@@ -49,16 +49,16 @@ var<uniform> tilemap: Tilemap;
 
 #ifndef PURE_COLOR
 #ifdef ATLAS
-@group(2) @binding(0)
+@group(3) @binding(0)
 var color_texture: texture_2d<f32>;
 #else
-@group(2) @binding(0)
+@group(3) @binding(0)
 var color_texture: texture_2d_array<f32>;
 #endif
 
-@group(2) @binding(1)
+@group(3) @binding(1)
 var color_texture_sampler: sampler;
 
-@group(3) @binding(0)
+@group(4) @binding(0)
 var<storage> anim_seqs: array<i32>;
 #endif

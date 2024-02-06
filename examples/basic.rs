@@ -9,7 +9,7 @@ use bevy::{
 use bevy_entitiles::{
     math::TileArea,
     tilemap::{
-        bundles::{PureColorTilemapBundle, TilemapBundle},
+        bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
@@ -44,7 +44,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
     let entity = commands.spawn_empty().id();
     // You can go to each component's definition to see what they do.
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
@@ -132,7 +132,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.entity(entity).insert(tilemap);
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 32., y: 16. }),
         slot_size: TilemapSlotSize(Vec2 { x: 32., y: 16. }),
@@ -163,7 +163,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.entity(entity).insert(tilemap);
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = PureColorTilemapBundle {
+    let mut tilemap = StandardPureColorTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),

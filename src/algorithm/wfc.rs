@@ -20,7 +20,7 @@ use crate::{
     math::{extension::TileIndex, TileArea},
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
-        bundles::PureColorTilemapBundle,
+        bundles::StandardPureColorTilemapBundle,
         map::{
             TileRenderSize, TilemapAnimations, TilemapName, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTransform, TilemapType,
@@ -756,7 +756,7 @@ pub fn wfc_applier(
                         let pattern_size = slice.pattern_size.as_vec2();
                         let layer_entity = commands.spawn_empty().id();
 
-                        let mut bundle = PureColorTilemapBundle {
+                        let mut bundle = StandardPureColorTilemapBundle {
                             name: TilemapName(layer.label.clone().unwrap()),
                             ty: TilemapType::Square,
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, layer_entity),

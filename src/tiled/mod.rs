@@ -17,7 +17,7 @@ use crate::{
     tiled::traits::TiledObjectRegistry,
     tilemap::{
         buffers::TileBuilderBuffer,
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TilePivot, TileRenderSize, TilemapAxisFlip, TilemapName, TilemapSlotSize,
             TilemapStorage, TilemapTransform, TilemapType,
@@ -241,7 +241,7 @@ fn load_layer(
             let layer_size = IVec2::new(layer.width as i32, layer.height as i32);
             let entity = commands.spawn_empty().id();
 
-            let mut tilemap = TilemapBundle {
+            let mut tilemap = StandardTilemapBundle {
                 name: TilemapName(layer.name.clone()),
                 tile_render_size: TileRenderSize(tile_size),
                 slot_size: TilemapSlotSize(tile_size),

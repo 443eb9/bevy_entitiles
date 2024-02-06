@@ -10,7 +10,7 @@ use bevy::{
 use bevy_entitiles::{
     math::TileArea,
     tilemap::{
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTextureDescriptor, TilemapType,
@@ -38,7 +38,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,

@@ -22,7 +22,7 @@ use bevy::{
 use bevy_entitiles::{
     math::TileArea,
     tilemap::{
-        bundles::TilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
@@ -82,7 +82,7 @@ fn setup(
     );
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2::new(32., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
@@ -112,7 +112,7 @@ fn setup(
         .insert((tilemap, physics_tilemap.clone()));
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = TilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2::new(16., 16.)),
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
