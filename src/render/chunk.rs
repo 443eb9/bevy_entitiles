@@ -91,7 +91,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
     }
 
     /// Update the raw mesh for GPU processing.
-    pub fn update_mesh(&mut self, render_device: &RenderDevice) {
+    pub fn try_update_mesh(&mut self, render_device: &RenderDevice) {
         if !self.dirty_mesh {
             return;
         }
@@ -248,7 +248,7 @@ impl<M: TilemapMaterial> RenderChunkStorage<M> {
         if let Some(chunks) = self.value.get_mut(&tilemap.id) {
             chunks
                 .values_mut()
-                .for_each(|c| c.update_mesh(render_device));
+                .for_each(|c| c.try_update_mesh(render_device));
         }
     }
 

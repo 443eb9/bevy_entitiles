@@ -1,31 +1,20 @@
-use std::marker::PhantomData;
-
 use bevy::{
-    app::Update,
-    asset::{load_internal_asset, AssetApp},
-    core_pipeline::core_2d::Transparent2d,
-    prelude::{Handle, IntoSystemConfigs, Plugin, Shader},
+    app::{App, Update},
+    asset::load_internal_asset,
+    prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute,
-        render_phase::AddRenderCommand,
-        render_resource::{SpecializedRenderPipelines, VertexFormat},
-        ExtractSchedule, Render, RenderApp, RenderSet,
+        mesh::MeshVertexAttribute, render_resource::VertexFormat, ExtractSchedule, RenderApp,
     },
 };
 
 use crate::render::{
-    binding::{TilemapBindGroupLayouts, TilemapBindGroups},
-    buffer::{TilemapStorageBuffers, TilemapUniformBuffer},
+    binding::TilemapBindGroupLayouts,
+    buffer::TilemapStorageBuffers,
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
     culling::FrustumCulling,
-    draw::DrawTilemap,
     material::StandardTilemapMaterialSingleton,
-    pipeline::EntiTilesPipeline,
-    resources::TilemapInstances,
     texture::TilemapTexturesStorage,
 };
-
-use self::material::TilemapMaterial;
 
 pub mod binding;
 pub mod buffer;
@@ -56,10 +45,10 @@ pub const TILEMAP_MESH_ATTR_FLIP: MeshVertexAttribute =
     MeshVertexAttribute::new("Flip", 7365156123161, VertexFormat::Uint32x4);
 
 #[derive(Default)]
-pub struct EntiTilesRendererPlugin<M: TilemapMaterial>(PhantomData<M>);
+pub struct EntiTilesRendererPlugin;
 
-impl<M: TilemapMaterial> Plugin for EntiTilesRendererPlugin<M> {
-    fn build(&self, app: &mut bevy::prelude::App) {
+impl Plugin for EntiTilesRendererPlugin {
+    fn build(&self, app: &mut App) {
         load_internal_asset!(app, SQUARE, "shaders/square.wgsl", Shader::from_wgsl);
         load_internal_asset!(app, ISOMETRIC, "shaders/isometric.wgsl", Shader::from_wgsl);
         load_internal_asset!(app, HEXAGONAL, "shaders/hexagonal.wgsl", Shader::from_wgsl);
@@ -83,59 +72,33 @@ impl<M: TilemapMaterial> Plugin for EntiTilesRendererPlugin<M> {
 
         app.init_resource::<FrustumCulling>()
             .init_resource::<StandardTilemapMaterialSingleton>();
-        app.init_asset::<M>();
 
         app.register_type::<UnloadRenderChunk>();
         app.add_event::<ChunkUnload>();
 
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 
-        render_app
-            .add_systems(
-                ExtractSchedule,
-                (
-                    extract::extract_tilemaps,
-                    extract::extract_changed_tilemaps::<M>,
-                    extract::extract_tiles,
-                    extract::extract_view,
-                    extract::extract_materials::<M>,
-                    extract::extract_unloaded_chunks,
-                    extract::extract_resources,
-                    extract::extract_despawned_tilemaps,
-                    extract::extract_despawned_tiles,
-                ),
-            )
-            .add_systems(
-                Render,
-                (
-                    prepare::prepare_tilemaps::<M>,
-                    prepare::prepare_tiles::<M>,
-                    prepare::prepare_unloaded_chunks::<M>,
-                    prepare::prepare_despawned_tilemaps::<M>,
-                    prepare::prepare_despawned_tiles::<M>,
-                    culling::cull_chunks::<M>,
-                )
-                    .in_set(RenderSet::Prepare),
-            )
-            .add_systems(Render, queue::queue::<M>.in_set(RenderSet::Queue));
+        render_app.add_systems(
+            ExtractSchedule,
+            (
+                extract::extract_tilemaps,
+                extract::extract_tiles,
+                extract::extract_view,
+                extract::extract_unloaded_chunks,
+                extract::extract_resources,
+                extract::extract_despawned_tilemaps,
+                extract::extract_despawned_tiles,
+            ),
+        );
 
         render_app
-            .init_resource::<RenderChunkStorage<M>>()
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapUniformBuffer<M>>()
-            .init_resource::<TilemapStorageBuffers>()
-            .init_resource::<TilemapBindGroups<M>>()
-            .init_resource::<TilemapInstances<M>>();
-
-        render_app.add_render_command::<Transparent2d, DrawTilemap<M>>();
+            .init_resource::<TilemapStorageBuffers>();
     }
 
-    fn finish(&self, app: &mut bevy::prelude::App) {
+    fn finish(&self, app: &mut App) {
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 
-        render_app
-            .init_resource::<TilemapBindGroupLayouts>()
-            .init_resource::<EntiTilesPipeline<M>>()
-            .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline<M>>>();
+        render_app.init_resource::<TilemapBindGroupLayouts>();
     }
 }

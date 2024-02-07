@@ -106,6 +106,13 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
             texture,
             animations,
         )| {
+            assert_ne!(
+                storage.tilemap,
+                Entity::PLACEHOLDER,
+                "You are trying to spawn a tilemap that has a invalid storage! \
+                Did you use the default storage? If so, you have to assign the valid \
+                entity for the storage when creating."
+            );
             instances.0.insert(
                 entity,
                 ExtractedTilemap {

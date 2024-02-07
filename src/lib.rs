@@ -1,6 +1,9 @@
 use bevy::prelude::Plugin;
 use math::EntiTilesMathPlugin;
-use render::{material::StandardTilemapMaterial, EntiTilesRendererPlugin};
+use render::{
+    material::{EntiTilesMaterialPlugin, StandardTilemapMaterial},
+    EntiTilesRendererPlugin,
+};
 use shaders::EntiTilesShaderPlugin;
 use tilemap::EntiTilesTilemapPlugin;
 
@@ -62,7 +65,8 @@ impl Plugin for EntiTilesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugins((
             EntiTilesTilemapPlugin,
-            EntiTilesRendererPlugin::<StandardTilemapMaterial>::default(),
+            EntiTilesRendererPlugin,
+            EntiTilesMaterialPlugin::<StandardTilemapMaterial>::default(),
             EntiTilesMathPlugin,
             EntiTilesShaderPlugin,
             #[cfg(feature = "debug")]

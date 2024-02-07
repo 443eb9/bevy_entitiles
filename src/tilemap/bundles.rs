@@ -1,6 +1,8 @@
-use bevy::{asset::Handle, ecs::bundle::Bundle, sprite::Material2d};
+use bevy::{asset::Handle, ecs::bundle::Bundle};
 
-use crate::render::material::{StandardTilemapMaterial, WaitForStandardMaterialRepacement};
+use crate::render::material::{
+    StandardTilemapMaterial, TilemapMaterial, WaitForStandardMaterialRepacement,
+};
 
 use super::map::{
     TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
@@ -42,7 +44,7 @@ impl Into<StandardTilemapBundle> for DataTilemapBundle {
 
 /// The bundle of the tilemap with a texture and custom material.
 #[derive(Bundle, Default, Debug, Clone)]
-pub struct MaterialTilemapBundle<M: Material2d> {
+pub struct MaterialTilemapBundle<M: TilemapMaterial> {
     pub name: TilemapName,
     pub tile_render_size: TileRenderSize,
     pub slot_size: TilemapSlotSize,
@@ -111,7 +113,7 @@ impl Into<StandardPureColorTilemapBundle> for StandardTilemapBundle {
 /// The bundle of the tilemap without a texture and with a custom material.
 /// This can be cheaper.
 #[derive(Bundle, Default, Debug, Clone)]
-pub struct PureColorTilemapBundle {
+pub struct PureColorTilemapBundle<M: TilemapMaterial> {
     pub name: TilemapName,
     pub tile_render_size: TileRenderSize,
     pub slot_size: TilemapSlotSize,
@@ -121,6 +123,7 @@ pub struct PureColorTilemapBundle {
     pub storage: TilemapStorage,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
+    pub material: Handle<M>,
 }
 
 /// The bundle of the tilemap without a texture and with a standard material.

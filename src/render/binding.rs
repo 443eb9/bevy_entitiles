@@ -108,7 +108,6 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
             .changed
             .iter()
             .for_each(|(id, material)| {
-                dbg!(id);
                 if let Ok(bind_group) =
                     material.as_bind_group(layout, render_device, images, fallback_image)
                 {
