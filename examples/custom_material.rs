@@ -31,6 +31,7 @@ fn main() {
             DefaultPlugins,
             EntiTilesPlugin,
             EntiTilesHelpersPlugin::default(),
+            // Don't forget to add the material plugin!
             EntiTilesMaterialPlugin::<MyMaterial>::default(),
         ))
         .add_systems(Startup, setup)

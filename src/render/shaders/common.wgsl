@@ -4,8 +4,8 @@ struct TilemapVertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec3<f32>,
     // When the third and forth component of index are not -1,
-    // it means this tile is a animated tile
-    // So the zw components are the start index and the length of the animation sequence
+    // it means this tile is a animated tile.
+    // So the zw components are the start index and the length of the animation sequence.
     @location(1) index: vec4<i32>,
     @location(2) color: vec4<f32>,
 #ifndef PURE_COLOR
@@ -21,6 +21,7 @@ struct TilemapVertexOutput {
     @location(1) uv: vec2<f32>,
     @location(2) flip: vec4<u32>,
     @location(3) texture_indices: vec4<i32>,
+    // Indicates whether the tile is animated.
     @location(4) anim_flag: i32,
 #endif
 }
