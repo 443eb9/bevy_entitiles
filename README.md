@@ -12,9 +12,8 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Custom Material
 - [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff)
-- Runtime Mesh & Texture Baking
+- Tilemap Serializing (Custom Binary Format)
 - Volumetric Clouds / Fog
 - SSAO
 - Realtime Lighting
@@ -26,7 +25,7 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 - ~~[LDtk](https://ldtk.io/) Support~~
 - ~~Infinite Tilemap~~
 - ~~Chunk Unloading~~
-- ~~Tilemap Serializing~~
+- ~~Custom Material~~
 
 ## Feature Flags
 

@@ -124,3 +124,8 @@ required-features = []
 name = "stress_test"
 path = "examples/stress_test.rs"
 required-features = []
+
+[[example]]
+name = "baking"
+path = "examples/baking.rs"
+required-features = ["serializing"]
