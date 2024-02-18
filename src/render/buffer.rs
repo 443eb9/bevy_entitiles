@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy::{
-    ecs::entity::Entity,
+    ecs::entity::{Entity, EntityHashMap},
     math::{Mat2, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
@@ -11,7 +11,6 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
     },
-    utils::EntityHashMap,
 };
 
 use crate::tilemap::map::TilemapType;
@@ -64,7 +63,7 @@ pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'sta
         &mut self.get_mapper().entry(tilemap).or_default().1
     }
 
-    fn bindings(&mut self) -> EntityHashMap<Entity, BindingResource> {
+    fn bindings(&mut self) -> EntityHashMap<BindingResource> {
         self.get_mapper()
             .iter()
             .filter_map(|(tilemap, (buffer, _))| buffer.binding().map(|res| (*tilemap, res)))
@@ -88,7 +87,7 @@ pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'sta
         }
     }
 
-    fn get_mapper(&mut self) -> &mut EntityHashMap<Entity, (StorageBuffer<Vec<U>>, Vec<U>)>;
+    fn get_mapper(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
 }
 
 #[derive(ShaderType, Clone, Copy)]
@@ -155,7 +154,7 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
             }
         };
 
-        DynamicOffsetComponent::new(self.buffer().push(TilemapUniform {
+        DynamicOffsetComponent::new(self.buffer().push(&TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
             uv_rotation,
@@ -183,10 +182,10 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
 }
 
 #[derive(Resource, Default)]
-pub struct TilemapStorageBuffers(EntityHashMap<Entity, (StorageBuffer<Vec<i32>>, Vec<i32>)>);
+pub struct TilemapStorageBuffers(EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)>);
 
 impl PerTilemapBuffersStorage<i32> for TilemapStorageBuffers {
-    fn get_mapper(&mut self) -> &mut EntityHashMap<Entity, (StorageBuffer<Vec<i32>>, Vec<i32>)> {
+    fn get_mapper(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)> {
         &mut self.0
     }
 }

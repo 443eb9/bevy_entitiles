@@ -85,7 +85,7 @@ fn unload_tiled_tilemap(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &TiledLoadedTilemap), With<TiledUnloader>>,
 ) {
-    tilemaps_query.for_each(|(entity, tilemap)| {
+    tilemaps_query.iter().for_each(|(entity, tilemap)| {
         tilemap.unload(&mut commands);
         commands.entity(entity).despawn();
     });
@@ -95,7 +95,7 @@ fn unload_tiled_layer(
     mut commands: Commands,
     mut layers_query: Query<(Entity, Option<&mut TilemapStorage>), With<TiledUnloadLayer>>,
 ) {
-    layers_query.for_each_mut(|(entity, storage)| {
+    layers_query.iter_mut().for_each(|(entity, storage)| {
         if let Some(mut st) = storage {
             st.despawn(&mut commands);
         } else {

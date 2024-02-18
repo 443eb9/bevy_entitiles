@@ -34,7 +34,7 @@ impl Plugin for EntiTilesMathPlugin {
 pub struct CameraAabb2d(pub Aabb2d);
 
 pub fn camera_aabb_adder(mut commands: Commands, cameras_query: Query<Entity, Added<Camera>>) {
-    cameras_query.for_each(|e| {
+    cameras_query.iter().for_each(|e| {
         commands.entity(e).insert(CameraAabb2d::default());
     });
 }
@@ -53,7 +53,7 @@ pub fn camera_aabb_updater(
         crate::debug::CameraAabbScale,
     >,
 ) {
-    cameras_query.for_each_mut(|(entity, proj, trans)| {
+    cameras_query.iter_mut().for_each(|(entity, proj, trans)| {
         #[cfg(feature = "debug")]
         commands.entity(entity).insert(CameraAabb2d(
             Aabb2d {

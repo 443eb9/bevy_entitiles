@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
 description = "A 2d tilemap library for bevy. With many useful algorithms/tools built in."
-exclude = ["assets/", "docs/imgs/"]
+exclude = ["assets/", "docs/imgs/", "examples/ood*"]
 
 [profile.dev]
 opt-level = 1
@@ -14,7 +14,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
-bevy = { version = "0.12", default-features = false, features = [
+bevy = { version = "0.13", default-features = false, features = [
     "bevy_core_pipeline",
     "bevy_render",
     "bevy_asset",
@@ -27,7 +27,7 @@ bevy = { version = "0.12", default-features = false, features = [
     "wayland",
 ] }
 bevy_entitiles_derive = { version = "0.4", optional = true, path = "macros" }
-bevy_xpbd_2d = { version = "0.3.3", optional = true }
+# bevy_xpbd_2d = { version = "0.3.3", optional = true }
 bitflags = "2"
 futures-lite = { version = "2", optional = true }
 quick-xml = { version = "0.31", optional = true, features = [
@@ -41,7 +41,7 @@ serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
-bevy = { version = "0.12.1", default-features = false, features = [
+bevy = { version = "0.13", default-features = false, features = [
     "bevy_ui",
     "default_font",
     "trace_tracy",
@@ -55,7 +55,7 @@ default = []
 algorithm = ["dep:rand", "serializing", "dep:futures-lite"]
 atlas = []
 debug = []
-physics = ["dep:bevy_xpbd_2d"]
+# physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 tiled = ["dep:serde", "dep:quick-xml", "dep:bevy_entitiles_derive"]
@@ -80,40 +80,40 @@ name = "wfc"
 path = "examples/wfc.rs"
 required-features = ["algorithm"]
 
-[[example]]
-name = "physics"
-path = "examples/physics.rs"
-required-features = ["physics"]
+# [[example]]
+# name = "physics"
+# path = "examples/physics.rs"
+# required-features = ["physics"]
 
-[[example]]
-name = "save_and_load"
-path = "examples/save_and_load.rs"
-required-features = ["algorithm", "physics"]
+# [[example]]
+# name = "save_and_load"
+# path = "examples/save_and_load.rs"
+# required-features = ["algorithm", "physics"]
 
-[[example]]
-name = "ldtk"
-path = "examples/ldtk.rs"
-required-features = ["debug", "ldtk", "physics"]
+# [[example]]
+# name = "ldtk"
+# path = "examples/ldtk.rs"
+# required-features = ["debug", "ldtk", "physics"]
 
 [[example]]
 name = "wfc_pattern"
 path = "examples/wfc_pattern.rs"
 required-features = ["algorithm"]
 
-[[example]]
-name = "ldtk_wfc"
-path = "examples/ldtk_wfc.rs"
-required-features = ["algorithm", "ldtk", "physics"]
+# [[example]]
+# name = "ldtk_wfc"
+# path = "examples/ldtk_wfc.rs"
+# required-features = ["algorithm", "ldtk", "physics"]
 
-[[example]]
-name = "chunk_unloading"
-path = "examples/chunk_unloading.rs"
-required-features = ["debug", "algorithm", "serializing", "physics"]
+# [[example]]
+# name = "chunk_unloading"
+# path = "examples/chunk_unloading.rs"
+# required-features = ["debug", "algorithm", "serializing", "physics"]
 
-[[example]]
-name = "tiled"
-path = "examples/tiled.rs"
-required-features = ["tiled", "physics"]
+# [[example]]
+# name = "tiled"
+# path = "examples/tiled.rs"
+# required-features = ["tiled", "physics"]
 
 [[example]]
 name = "custom_material"

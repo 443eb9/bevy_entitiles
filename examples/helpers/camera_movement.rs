@@ -20,8 +20,8 @@ impl Default for CameraControl {
 
 pub fn camera_control(
     mut query: Query<(&mut Transform, &mut OrthographicProjection)>,
-    input_keyboard: Res<Input<KeyCode>>,
-    input_mouse: Res<Input<MouseButton>>,
+    input_keyboard: Res<ButtonInput<KeyCode>>,
+    input_mouse: Res<ButtonInput<MouseButton>>,
     mut event_wheel: EventReader<MouseWheel>,
     mut event_move: EventReader<MouseMotion>,
     time: Res<Time>,
@@ -42,19 +42,19 @@ pub fn camera_control(
         }
 
         let mut x = 0;
-        if input_keyboard.pressed(KeyCode::D) {
+        if input_keyboard.pressed(KeyCode::KeyD) {
             x += 1;
         }
-        if input_keyboard.pressed(KeyCode::A) {
+        if input_keyboard.pressed(KeyCode::KeyA) {
             x -= 1;
         }
         control.target_pos += Vec2::new(x as f32 * step, 0.);
 
         let mut y = 0;
-        if input_keyboard.pressed(KeyCode::W) {
+        if input_keyboard.pressed(KeyCode::KeyW) {
             y += 1;
         }
-        if input_keyboard.pressed(KeyCode::S) {
+        if input_keyboard.pressed(KeyCode::KeyS) {
             y -= 1;
         }
         control.target_pos += y as f32 * step * Vec2::Y;

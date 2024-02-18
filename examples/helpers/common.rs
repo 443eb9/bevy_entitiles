@@ -12,8 +12,8 @@ pub fn debug_info_display(
     diag: Res<DiagnosticsStore>,
 ) {
     if let (Some(fps), Some(frame_time)) = (
-        diag.get(FrameTimeDiagnosticsPlugin::FPS),
-        diag.get(FrameTimeDiagnosticsPlugin::FRAME_TIME),
+        diag.get(&FrameTimeDiagnosticsPlugin::FPS),
+        diag.get(&FrameTimeDiagnosticsPlugin::FRAME_TIME),
     ) {
         if let (Some(fps_value), Some(frame_time_value)) = (fps.smoothed(), frame_time.smoothed()) {
             let mut text = query.get_single_mut().unwrap();

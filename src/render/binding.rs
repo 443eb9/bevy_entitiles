@@ -1,18 +1,18 @@
 use bevy::{
     asset::{AssetId, Handle},
-    ecs::{component::Component, entity::Entity, system::Resource, world::FromWorld},
+    ecs::{component::Component, entity::EntityHashMap, system::Resource, world::FromWorld},
     render::{
         render_asset::RenderAssets,
         render_resource::{
-            BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-            BindGroupLayoutEntry, BindingResource, BindingType, BufferBindingType,
-            SamplerBindingType, ShaderStages, ShaderType, TextureSampleType, TextureViewDimension,
+            BindGroup, BindGroupEntry, BindGroupLayout, BindGroupLayoutEntry, BindingResource,
+            BindingType, BufferBindingType, SamplerBindingType, ShaderStages, ShaderType,
+            TextureSampleType, TextureViewDimension,
         },
         renderer::RenderDevice,
         texture::{FallbackImage, Image},
         view::ViewUniform,
     },
-    utils::{EntityHashMap, HashMap},
+    utils::HashMap,
 };
 
 use super::{
@@ -35,7 +35,7 @@ pub struct TilemapViewBindGroup {
 #[derive(Resource)]
 pub struct TilemapBindGroups<M: TilemapMaterial> {
     pub tilemap_uniform_buffer: Option<BindGroup>,
-    pub tilemap_storage_buffers: EntityHashMap<Entity, BindGroup>,
+    pub tilemap_storage_buffers: EntityHashMap<BindGroup>,
     pub colored_textures: HashMap<Handle<Image>, BindGroup>,
     pub material_bind_groups: HashMap<AssetId<M>, BindGroup>,
 }
@@ -167,9 +167,9 @@ pub struct TilemapBindGroupLayouts {
 impl FromWorld for TilemapBindGroupLayouts {
     fn from_world(world: &mut bevy::prelude::World) -> Self {
         let render_device = world.resource::<RenderDevice>();
-        let view_layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("tilemap_view_layout"),
-            entries: &[BindGroupLayoutEntry {
+        let view_layout = render_device.create_bind_group_layout(
+            "tilemap_view_layout",
+            &[BindGroupLayoutEntry {
                 binding: 0,
                 visibility: ShaderStages::VERTEX_FRAGMENT,
                 ty: BindingType::Buffer {
@@ -179,85 +179,81 @@ impl FromWorld for TilemapBindGroupLayouts {
                 },
                 count: None,
             }],
-        });
+        );
 
-        let tilemap_uniforms_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("tilemap_uniforms_layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX_FRAGMENT,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: Some(TilemapUniform::min_size()),
-                    },
-                    count: None,
-                }],
-            });
+        let tilemap_uniforms_layout = render_device.create_bind_group_layout(
+            "tilemap_uniforms_layout",
+            &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX_FRAGMENT,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Uniform,
+                    has_dynamic_offset: true,
+                    min_binding_size: Some(TilemapUniform::min_size()),
+                },
+                count: None,
+            }],
+        );
 
-        let tilemap_storage_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("tilemap_storage_layout"),
-                entries: &[BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: ShaderStages::VERTEX,
-                    ty: BindingType::Buffer {
-                        ty: BufferBindingType::Storage { read_only: true },
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(i32::min_size()),
-                    },
-                    count: None,
-                }],
-            });
+        let tilemap_storage_layout = render_device.create_bind_group_layout(
+            "tilemap_storage_layout",
+            &[BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::VERTEX,
+                ty: BindingType::Buffer {
+                    ty: BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: Some(i32::min_size()),
+                },
+                count: None,
+            }],
+        );
 
         #[cfg(not(feature = "atlas"))]
-        let color_texture_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("color_texture_layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Texture {
-                            sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2Array,
-                            multisampled: false,
-                        },
-                        count: None,
+        let color_texture_layout = render_device.create_bind_group_layout(
+            "color_texture_layout",
+            &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Texture {
+                        sample_type: TextureSampleType::Float { filterable: true },
+                        view_dimension: TextureViewDimension::D2Array,
+                        multisampled: false,
                     },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
+                    count: None,
+                },
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        );
 
         #[cfg(feature = "atlas")]
-        let color_texture_layout =
-            render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-                label: Some("color_texture_layout"),
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Texture {
-                            sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2,
-                            multisampled: false,
-                        },
-                        count: None,
+        let color_texture_layout = render_device.create_bind_group_layout(
+            "color_texture_layout",
+            &[
+                BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Texture {
+                        sample_type: TextureSampleType::Float { filterable: true },
+                        view_dimension: TextureViewDimension::D2,
+                        multisampled: false,
                     },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStages::FRAGMENT,
-                        ty: BindingType::Sampler(SamplerBindingType::Filtering),
-                        count: None,
-                    },
-                ],
-            });
+                    count: None,
+                },
+                BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: ShaderStages::FRAGMENT,
+                    ty: BindingType::Sampler(SamplerBindingType::Filtering),
+                    count: None,
+                },
+            ],
+        );
 
         Self {
             view_layout,

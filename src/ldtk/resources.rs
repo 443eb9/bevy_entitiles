@@ -11,9 +11,10 @@ use bevy::{
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
+        render_asset::RenderAssetUsages,
         render_resource::{FilterMode, PrimitiveTopology},
     },
-    sprite::{Mesh2dHandle, SpriteBundle, TextureAtlas},
+    sprite::{Mesh2dHandle, SpriteBundle, TextureAtlasLayout},
     utils::HashMap,
 };
 
@@ -132,7 +133,7 @@ pub struct LdtkAssets {
     /// tileset iid to texture
     pub(crate) tilesets: HashMap<i32, TilemapTexture>,
     /// tileset iid to texture atlas handle
-    pub(crate) atlas_handles: HashMap<i32, Handle<TextureAtlas>>,
+    pub(crate) atlas_handles: HashMap<i32, Handle<TextureAtlasLayout>>,
     /// entity identifier to entity definition
     pub(crate) entity_defs: HashMap<String, EntityDef>,
     /// entity iid to mesh handle
@@ -146,7 +147,7 @@ impl LdtkAssets {
         self.tilesets.get(&tileset_uid).unwrap()
     }
 
-    pub fn clone_atlas_handle(&self, tileset_uid: i32) -> Handle<TextureAtlas> {
+    pub fn clone_atlas_handle(&self, tileset_uid: i32) -> Handle<TextureAtlasLayout> {
         self.atlas_handles.get(&tileset_uid).unwrap().clone()
     }
 
@@ -171,12 +172,12 @@ impl LdtkAssets {
         config: &LdtkLoadConfig,
         manager: &LdtkLevelManager,
         asset_server: &AssetServer,
-        atlas_assets: &mut Assets<TextureAtlas>,
+        atlas_layouts: &mut Assets<TextureAtlasLayout>,
         material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
     ) {
         self.associated_file = config.file_path.clone();
-        self.load_texture(config, manager, asset_server, atlas_assets);
+        self.load_texture(config, manager, asset_server, atlas_layouts);
         self.load_entities(config, manager, material_assets, mesh_assets);
     }
 
@@ -185,7 +186,7 @@ impl LdtkAssets {
         config: &LdtkLoadConfig,
         manager: &LdtkLevelManager,
         asset_server: &AssetServer,
-        atlas_assets: &mut Assets<TextureAtlas>,
+        atlas_layouts: &mut Assets<TextureAtlasLayout>,
     ) {
         let ldtk_data = manager.get_cached_data();
         ldtk_data.defs.tilesets.iter().for_each(|tileset| {
@@ -213,7 +214,7 @@ impl LdtkAssets {
 
             self.tilesets.insert(tileset.uid, texture.clone());
             self.atlas_handles
-                .insert(tileset.uid, atlas_assets.add(texture.as_texture_atlas()));
+                .insert(tileset.uid, atlas_layouts.add(texture.as_atlas_layout()));
         });
     }
 
@@ -277,7 +278,7 @@ impl LdtkAssets {
                     })
                     .collect::<HashMap<String, f32>>();
 
-                let mesh = Mesh::new(PrimitiveTopology::TriangleList)
+                let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
                     .with_inserted_attribute(
                         Mesh::ATTRIBUTE_POSITION,
                         sprite_mesh
@@ -287,7 +288,7 @@ impl LdtkAssets {
                             .collect::<Vec<_>>(),
                     )
                     .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, sprite_mesh.uvs)
-                    .with_indices(Some(Indices::U16(sprite_mesh.indices)));
+                    .with_inserted_indices(Indices::U16(sprite_mesh.indices));
                 self.meshes
                     .insert(entity_instance.iid.clone(), mesh_assets.add(mesh).into());
             });

@@ -1,13 +1,12 @@
 use bevy::{
     asset::AssetId,
-    ecs::{entity::Entity, system::Resource},
-    utils::EntityHashMap,
+    ecs::{entity::EntityHashMap, system::Resource},
 };
 
 use super::{extract::ExtractedTilemap, material::TilemapMaterial};
 
 #[derive(Resource)]
-pub struct TilemapInstances<M: TilemapMaterial>(pub EntityHashMap<Entity, ExtractedTilemap<M>>);
+pub struct TilemapInstances<M: TilemapMaterial>(pub EntityHashMap<ExtractedTilemap<M>>);
 
 impl<M: TilemapMaterial> Default for TilemapInstances<M> {
     fn default() -> Self {

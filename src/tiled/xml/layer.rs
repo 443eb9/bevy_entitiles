@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, fmt::Formatter};
+use std::fmt::Formatter;
 
 use bevy::{
     ecs::system::EntityCommands,
@@ -7,7 +7,6 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     transform::components::Transform,
 };
-use bevy_xpbd_2d::components::Collider;
 use serde::{
     de::{IgnoredAny, Visitor},
     Deserialize, Serialize,
@@ -23,6 +22,11 @@ use crate::{
 };
 
 use super::{default::*, property::Components, MapOrientation, TiledColor};
+
+#[cfg(feature = "physics")]
+use bevy_xpbd_2d::components::Collider;
+#[cfg(feature = "physics")]
+use std::f32::consts::PI;
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 pub enum TiledLayer {
@@ -590,6 +594,7 @@ impl TiledObjectInstance {
         }
     }
 
+    #[cfg(feature = "physics")]
     pub fn shape_as_collider(&self, commands: &mut EntityCommands) {
         commands.insert((
             match &self.shape {

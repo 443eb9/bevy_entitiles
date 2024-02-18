@@ -60,8 +60,8 @@ pub fn cull_chunks<M: TilemapMaterial>(
         return;
     }
 
-    cameras.for_each(|cam_aabb| {
-        tilemaps.for_each(|tilemap| {
+    cameras.iter().for_each(|cam_aabb| {
+        tilemaps.iter().for_each(|tilemap| {
             let Some(chunks) = render_chunk_storage.get_chunks_mut(tilemap.id) else {
                 return;
             };

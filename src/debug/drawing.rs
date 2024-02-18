@@ -44,7 +44,7 @@ pub fn draw_chunk_aabb(
 }
 
 pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&TilemapAabbs>) {
-    tilemaps.for_each(|aabb| {
+    tilemaps.iter().for_each(|aabb| {
         gizmos.rect_2d(
             aabb.world_aabb.center(),
             0.,
@@ -90,7 +90,7 @@ pub fn draw_axis(mut gizmos: Gizmos) {
 }
 
 pub fn draw_camera_aabb(mut gizmos: Gizmos, camera_aabb: Query<&CameraAabb2d>) {
-    camera_aabb.for_each(|aabb| {
+    camera_aabb.iter().for_each(|aabb| {
         gizmos.rect_2d(
             aabb.0.center(),
             0.,
@@ -108,7 +108,7 @@ pub fn draw_updater_aabbs(
         &crate::tilemap::chunking::camera::CameraChunkUpdater,
     )>,
 ) {
-    cameras_query.for_each(|(cam_aabb, cam_updater)| {
+    cameras_query.iter().for_each(|(cam_aabb, cam_updater)| {
         let detect_aabb = cam_aabb
             .0
             .with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));

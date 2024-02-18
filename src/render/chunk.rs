@@ -1,16 +1,17 @@
 use std::marker::PhantomData;
 
 use bevy::{
-    ecs::{component::Component, event::Event},
+    ecs::{component::Component, entity::EntityHashMap, event::Event},
     math::{IVec2, IVec4, UVec4},
     prelude::{Entity, Mesh, Resource, Vec3, Vec4},
     reflect::Reflect,
     render::{
         mesh::{GpuBufferInfo, GpuMesh, Indices},
+        render_asset::RenderAssetUsages,
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
     },
-    utils::{EntityHashMap, HashMap},
+    utils::HashMap,
 };
 
 use crate::{
@@ -74,7 +75,10 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             ty: tilemap.ty,
             texture: tilemap.texture.clone(),
             tiles: vec![None; (tilemap.chunk_size * tilemap.chunk_size) as usize],
-            mesh: Mesh::new(PrimitiveTopology::TriangleList),
+            mesh: Mesh::new(
+                PrimitiveTopology::TriangleList,
+                RenderAssetUsages::RENDER_WORLD,
+            ),
             gpu_mesh: None,
             dirty_mesh: true,
             aabb: Aabb2d::from_tilemap(
@@ -148,7 +152,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
                 .insert_attribute(TILEMAP_MESH_ATTR_TEX_INDICES, texture_indices);
             self.mesh.insert_attribute(TILEMAP_MESH_ATTR_FLIP, flip)
         }
-        self.mesh.set_indices(Some(Indices::U32(vertex_indices)));
+        self.mesh.insert_indices(Indices::U32(vertex_indices));
 
         let mesh_vert_count = self.mesh.count_vertices() as u32;
         let mesh_indices_count = self.mesh.indices().unwrap().len() as u32;
@@ -231,7 +235,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
 
 #[derive(Resource)]
 pub struct RenderChunkStorage<M: TilemapMaterial> {
-    pub(crate) value: EntityHashMap<Entity, HashMap<IVec2, TilemapRenderChunk<M>>>,
+    pub(crate) value: EntityHashMap<HashMap<IVec2, TilemapRenderChunk<M>>>,
 }
 
 impl<M: TilemapMaterial> Default for RenderChunkStorage<M> {

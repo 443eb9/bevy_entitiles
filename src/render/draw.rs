@@ -40,15 +40,15 @@ pub struct SetPipeline;
 impl RenderCommand<Transparent2d> for SetPipeline {
     type Param = SRes<PipelineCache>;
 
-    type ViewWorldQuery = ();
+    type ViewQuery = ();
 
-    type ItemWorldQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         pipeline_cache: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -57,10 +57,11 @@ impl RenderCommand<Transparent2d> for SetPipeline {
             pass.set_render_pipeline(pipeline);
             RenderCommandResult::Success
         } else {
-            panic!(
+            error!(
                 "Failed to get render pipeline!\n{:?}",
                 pipeline_cache.get_render_pipeline_state(item.pipeline)
             );
+            RenderCommandResult::Failure
         }
     }
 }
@@ -69,15 +70,15 @@ pub struct SetTilemapViewBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I> {
     type Param = ();
 
-    type ViewWorldQuery = (Read<ViewUniformOffset>, Read<TilemapViewBindGroup>);
+    type ViewQuery = (Read<ViewUniformOffset>, Read<TilemapViewBindGroup>);
 
-    type ItemWorldQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         _item: &Transparent2d,
-        (view_uniform_offset, view_bind_group): ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        (view_uniform_offset, view_bind_group): ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         _param: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -94,21 +95,22 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 {
     type Param = SRes<TilemapBindGroups<M>>;
 
-    type ViewWorldQuery = ();
+    type ViewQuery = ();
 
-    type ItemWorldQuery = Read<DynamicOffsetComponent<TilemapUniform>>;
+    type ItemQuery = Read<DynamicOffsetComponent<TilemapUniform>>;
 
     #[inline]
     fn render<'w>(
         _item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        uniform_data: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        uniform_data: Option<ROQueryItem<'w, Self::ItemQuery>>,
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(tilemap_uniform_bind_group) =
-            bind_groups.into_inner().tilemap_uniform_buffer.as_ref()
-        {
+        if let (Some(tilemap_uniform_bind_group), Some(uniform_data)) = (
+            bind_groups.into_inner().tilemap_uniform_buffer.as_ref(),
+            uniform_data,
+        ) {
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index()]);
             RenderCommandResult::Success
         } else {
@@ -125,15 +127,15 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 {
     type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapInstances<M>>);
 
-    type ViewWorldQuery = ();
+    type ViewQuery = ();
 
-    type ItemWorldQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -155,15 +157,15 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 {
     type Param = SRes<TilemapBindGroups<M>>;
 
-    type ViewWorldQuery = ();
+    type ViewQuery = ();
 
-    type ItemWorldQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -186,15 +188,15 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 {
     type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapInstances<M>>);
 
-    type ViewWorldQuery = ();
+    type ViewQuery = ();
 
-    type ItemWorldQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
@@ -221,15 +223,15 @@ pub struct DrawTileMesh<M: TilemapMaterial>(PhantomData<M>);
 impl<M: TilemapMaterial> RenderCommand<Transparent2d> for DrawTileMesh<M> {
     type Param = SRes<RenderChunkStorage<M>>;
 
-    type ViewWorldQuery = ();
+    type ViewQuery = ();
 
-    type ItemWorldQuery = ();
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewWorldQuery>,
-        _entity: ROQueryItem<'w, Self::ItemWorldQuery>,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         render_chunks: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {

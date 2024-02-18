@@ -14,6 +14,7 @@ use bevy::{
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
+        render_asset::RenderAssetUsages,
         render_resource::{FilterMode, PrimitiveTopology},
     },
     utils::{hashbrown::hash_map::Entry, HashMap},
@@ -61,7 +62,7 @@ pub struct PackedTiledTileset {
 }
 
 /// A resource that manages tiled tilemaps.
-/// 
+///
 /// You can load/unload tiled tilemaps using this resource.
 #[derive(Resource, Default, Reflect)]
 pub struct TiledTilemapManger {
@@ -158,7 +159,7 @@ impl TiledTilemapManger {
 }
 
 /// All the resources that are loaded from tiled tilemaps.
-/// 
+///
 /// This includes tilesets, image meshes/materials, object meshes/materials, etc.
 #[derive(Resource, Default, Reflect)]
 pub struct TiledAssets {
@@ -539,7 +540,7 @@ impl TiledAssets {
                 }
 
                 let mesh = mesh_assets.add(
-                    Mesh::new(PrimitiveTopology::TriangleList)
+                    Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
                         .with_inserted_attribute(
                             Mesh::ATTRIBUTE_POSITION,
                             vertices
@@ -553,12 +554,12 @@ impl TiledAssets {
                                 .flat_map(|image| image.into_iter())
                                 .collect::<Vec<_>>(),
                         )
-                        .with_indices(Some(Indices::U16(
+                        .with_inserted_indices(Indices::U16(
                             indices
                                 .into_iter()
                                 .flat_map(|image| image.into_iter())
                                 .collect::<Vec<_>>(),
-                        ))),
+                        )),
                 );
 
                 self.image_layer_mesh
@@ -604,7 +605,7 @@ impl TiledAssets {
                             .or_default()
                             .insert(object.id, obj_z);
                     });
-                    
+
                 layer
                     .objects
                     .iter()
@@ -618,7 +619,7 @@ impl TiledAssets {
             .iter()
             .map(|(object, _)| {
                 let flipping = object.gid.unwrap_or_default() >> 30;
-                let mesh = Mesh::new(PrimitiveTopology::TriangleList)
+                let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
                     .with_inserted_attribute(
                         Mesh::ATTRIBUTE_POSITION,
                         vec![
@@ -650,7 +651,7 @@ impl TiledAssets {
                             })
                             .collect::<Vec<_>>(),
                     )
-                    .with_indices(Some(Indices::U16(vec![2, 0, 1, 3, 0, 2])));
+                    .with_inserted_indices(Indices::U16(vec![2, 0, 1, 3, 0, 2]));
 
                 (object.id, mesh_assets.add(mesh))
             })

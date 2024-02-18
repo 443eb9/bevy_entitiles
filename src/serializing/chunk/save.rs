@@ -3,14 +3,14 @@ use std::{collections::VecDeque, path::Path};
 use bevy::{
     ecs::{
         component::Component,
-        entity::Entity,
+        entity::{Entity, EntityHashMap},
         event::EventWriter,
         query::With,
         system::{Commands, Query, Res, ResMut, Resource},
     },
     math::IVec2,
     reflect::Reflect,
-    utils::{EntityHashMap, HashMap},
+    utils::HashMap,
 };
 
 use crate::{
@@ -47,9 +47,7 @@ pub struct ChunkSaveConfig {
 }
 
 #[derive(Resource, Default)]
-pub struct ChunkSaveCache(
-    pub(crate) EntityHashMap<Entity, HashMap<TilemapLayer, VecDeque<(IVec2, bool)>>>,
-);
+pub struct ChunkSaveCache(pub(crate) EntityHashMap<HashMap<TilemapLayer, VecDeque<(IVec2, bool)>>>);
 
 impl ChunkSaveCache {
     #[inline]
@@ -122,67 +120,69 @@ pub fn save_color_layer(
     config: Res<ChunkSaveConfig>,
     mut cache: ResMut<ChunkSaveCache>,
 ) {
-    tilemaps_query.for_each_mut(|(entity, name, mut storage)| {
-        let map_path = Path::new(&config.path).join(&name.0);
+    tilemaps_query
+        .iter_mut()
+        .for_each(|(entity, name, mut storage)| {
+            let map_path = Path::new(&config.path).join(&name.0);
 
-        (0..config.chunks_per_frame).into_iter().for_each(|_| {
-            let Some((chunk_index, remove_after_save)) =
-                cache.pop_chunk(entity, TilemapLayer::COLOR)
-            else {
-                cache
-                    .0
-                    .get_mut(&entity)
-                    .unwrap()
-                    .remove(&TilemapLayer::COLOR);
-                return;
-            };
+            (0..config.chunks_per_frame).into_iter().for_each(|_| {
+                let Some((chunk_index, remove_after_save)) =
+                    cache.pop_chunk(entity, TilemapLayer::COLOR)
+                else {
+                    cache
+                        .0
+                        .get_mut(&entity)
+                        .unwrap()
+                        .remove(&TilemapLayer::COLOR);
+                    return;
+                };
 
-            let Some(chunk) = storage.get_chunk(chunk_index) else {
-                return;
-            };
+                let Some(chunk) = storage.get_chunk(chunk_index) else {
+                    return;
+                };
 
-            let tiles = chunk
-                .iter()
-                .enumerate()
-                .filter_map(|(index, t)| {
-                    t.map(|t| {
-                        (
-                            IVec2 {
-                                x: (index as u32 % storage.storage.chunk_size) as i32,
-                                y: (index as u32 / storage.storage.chunk_size) as i32,
-                            },
-                            tiles_query
-                                .get(t)
-                                .ok()
-                                .cloned()
-                                .map(|tile| tile.into())
-                                .unwrap(),
-                        )
+                let tiles = chunk
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, t)| {
+                        t.map(|t| {
+                            (
+                                IVec2 {
+                                    x: (index as u32 % storage.storage.chunk_size) as i32,
+                                    y: (index as u32 / storage.storage.chunk_size) as i32,
+                                },
+                                tiles_query
+                                    .get(t)
+                                    .ok()
+                                    .cloned()
+                                    .map(|tile| tile.into())
+                                    .unwrap(),
+                            )
+                        })
                     })
-                })
-                .collect();
+                    .collect();
 
-            save_object(
-                &map_path.join(TILE_CHUNKS_FOLDER),
-                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                &TileBuilderBuffer {
-                    tiles,
-                    aabb: IAabb2d {
-                        min: IVec2::ZERO,
-                        max: IVec2::splat(storage.storage.chunk_size as i32 - 1),
+                save_object(
+                    &map_path.join(TILE_CHUNKS_FOLDER),
+                    format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
+                    &TileBuilderBuffer {
+                        tiles,
+                        aabb: IAabb2d {
+                            min: IVec2::ZERO,
+                            max: IVec2::splat(storage.storage.chunk_size as i32 - 1),
+                        },
                     },
-                },
-            );
+                );
 
-            if remove_after_save {
-                storage.remove_chunk(&mut commands, chunk_index);
-                chunk_unload.send(ChunkUnload {
-                    tilemap: entity,
-                    index: chunk_index,
-                });
-            }
+                if remove_after_save {
+                    storage.remove_chunk(&mut commands, chunk_index);
+                    chunk_unload.send(ChunkUnload {
+                        tilemap: entity,
+                        index: chunk_index,
+                    });
+                }
+            });
         });
-    });
 }
 
 #[cfg(feature = "algorithm")]
@@ -191,58 +191,60 @@ pub fn save_path_layer(
     config: Res<ChunkSaveConfig>,
     mut cache: ResMut<ChunkSaveCache>,
 ) {
-    tilemaps_query.for_each_mut(|(entity, name, mut path_tilemap)| {
-        let map_path = Path::new(&config.path).join(&name.0);
+    tilemaps_query
+        .iter_mut()
+        .for_each(|(entity, name, mut path_tilemap)| {
+            let map_path = Path::new(&config.path).join(&name.0);
 
-        (0..config.chunks_per_frame).into_iter().for_each(|_| {
-            let Some((chunk_index, remove_after_save)) =
-                cache.pop_chunk(entity, TilemapLayer::PATH)
-            else {
-                cache
-                    .0
-                    .get_mut(&entity)
-                    .unwrap()
-                    .remove(&TilemapLayer::PATH);
-                return;
-            };
+            (0..config.chunks_per_frame).into_iter().for_each(|_| {
+                let Some((chunk_index, remove_after_save)) =
+                    cache.pop_chunk(entity, TilemapLayer::PATH)
+                else {
+                    cache
+                        .0
+                        .get_mut(&entity)
+                        .unwrap()
+                        .remove(&TilemapLayer::PATH);
+                    return;
+                };
 
-            let Some(chunk) = path_tilemap.storage.get_chunk(chunk_index) else {
-                return;
-            };
+                let Some(chunk) = path_tilemap.storage.get_chunk(chunk_index) else {
+                    return;
+                };
 
-            let tiles = chunk
-                .iter()
-                .enumerate()
-                .filter_map(|(index, tile)| {
-                    tile.map(|t| {
-                        (
-                            IVec2 {
-                                x: (index as u32 % path_tilemap.storage.chunk_size) as i32,
-                                y: (index as u32 / path_tilemap.storage.chunk_size) as i32,
-                            },
-                            t,
-                        )
+                let tiles = chunk
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, tile)| {
+                        tile.map(|t| {
+                            (
+                                IVec2 {
+                                    x: (index as u32 % path_tilemap.storage.chunk_size) as i32,
+                                    y: (index as u32 / path_tilemap.storage.chunk_size) as i32,
+                                },
+                                t,
+                            )
+                        })
                     })
-                })
-                .collect();
+                    .collect();
 
-            save_object(
-                &map_path.join(PATH_TILE_CHUNKS_FOLDER),
-                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                &PathTileBuffer {
-                    tiles,
-                    aabb: IAabb2d {
-                        min: IVec2::ZERO,
-                        max: IVec2::splat(path_tilemap.storage.chunk_size as i32 - 1),
+                save_object(
+                    &map_path.join(PATH_TILE_CHUNKS_FOLDER),
+                    format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
+                    &PathTileBuffer {
+                        tiles,
+                        aabb: IAabb2d {
+                            min: IVec2::ZERO,
+                            max: IVec2::splat(path_tilemap.storage.chunk_size as i32 - 1),
+                        },
                     },
-                },
-            );
+                );
 
-            if remove_after_save {
-                path_tilemap.storage.remove_chunk(chunk_index);
-            }
+                if remove_after_save {
+                    path_tilemap.storage.remove_chunk(chunk_index);
+                }
+            });
         });
-    });
 }
 
 #[cfg(feature = "physics")]
@@ -255,56 +257,58 @@ pub fn save_physics_layer(
     config: Res<ChunkSaveConfig>,
     mut cache: ResMut<ChunkSaveCache>,
 ) {
-    tilemaps_query.for_each_mut(|(entity, name, mut physics_tilemap)| {
-        let map_path = Path::new(&config.path).join(&name.0);
+    tilemaps_query
+        .iter_mut()
+        .for_each(|(entity, name, mut physics_tilemap)| {
+            let map_path = Path::new(&config.path).join(&name.0);
 
-        (0..config.chunks_per_frame).into_iter().for_each(|_| {
-            let Some((chunk_index, remove_after_save)) =
-                cache.pop_chunk(entity, TilemapLayer::PHYSICS)
-            else {
-                cache
-                    .0
-                    .get_mut(&entity)
-                    .unwrap()
-                    .remove(&TilemapLayer::PHYSICS);
-                return;
-            };
+            (0..config.chunks_per_frame).into_iter().for_each(|_| {
+                let Some((chunk_index, remove_after_save)) =
+                    cache.pop_chunk(entity, TilemapLayer::PHYSICS)
+                else {
+                    cache
+                        .0
+                        .get_mut(&entity)
+                        .unwrap()
+                        .remove(&TilemapLayer::PHYSICS);
+                    return;
+                };
 
-            let Some(chunk) = physics_tilemap.data.get_chunk(chunk_index) else {
-                return;
-            };
+                let Some(chunk) = physics_tilemap.data.get_chunk(chunk_index) else {
+                    return;
+                };
 
-            let tiles = chunk
-                .iter()
-                .enumerate()
-                .filter_map(|(index, tile)| {
-                    tile.clone().map(|t| {
-                        (
-                            IVec2 {
-                                x: (index as u32 % physics_tilemap.storage.chunk_size) as i32,
-                                y: (index as u32 / physics_tilemap.storage.chunk_size) as i32,
-                            },
-                            t,
-                        )
+                let tiles = chunk
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, tile)| {
+                        tile.clone().map(|t| {
+                            (
+                                IVec2 {
+                                    x: (index as u32 % physics_tilemap.storage.chunk_size) as i32,
+                                    y: (index as u32 / physics_tilemap.storage.chunk_size) as i32,
+                                },
+                                t,
+                            )
+                        })
                     })
-                })
-                .collect();
+                    .collect();
 
-            save_object(
-                &map_path.join(PHYSICS_TILE_CHUNKS_FOLDER),
-                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                &PackedPhysicsTileBuffer {
-                    tiles,
-                    aabb: IAabb2d {
-                        min: IVec2::ZERO,
-                        max: IVec2::splat(physics_tilemap.storage.chunk_size as i32 - 1),
+                save_object(
+                    &map_path.join(PHYSICS_TILE_CHUNKS_FOLDER),
+                    format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
+                    &PackedPhysicsTileBuffer {
+                        tiles,
+                        aabb: IAabb2d {
+                            min: IVec2::ZERO,
+                            max: IVec2::splat(physics_tilemap.storage.chunk_size as i32 - 1),
+                        },
                     },
-                },
-            );
+                );
 
-            if remove_after_save {
-                physics_tilemap.remove_chunk(&mut commands, chunk_index);
-            }
+                if remove_after_save {
+                    physics_tilemap.remove_chunk(&mut commands, chunk_index);
+                }
+            });
         });
-    });
 }

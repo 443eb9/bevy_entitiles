@@ -99,7 +99,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 }
 
 fn detect(queues_query: Query<&PathFindingQueue>) {
-    queues_query.for_each(|q| {
+    queues_query.iter().for_each(|q| {
         if q.is_empty() {
             println!("Pathfinding tasks done!");
         }

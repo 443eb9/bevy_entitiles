@@ -59,52 +59,54 @@ pub fn camera_chunk_update(
     mut tilemaps_query: Query<(Entity, &TilemapStorage)>,
     mut updation_event: EventWriter<CameraChunkUpdation>,
 ) {
-    camera_query.for_each_mut(|(cam_aabb, mut cam_updater)| {
-        tilemaps_query.for_each_mut(|(entity, storage)| {
-            // When the detect aabb is intersected with a invisible chunk,
-            // all the chunks that are intercected with the update aabb must be visible.
+    camera_query
+        .iter_mut()
+        .for_each(|(cam_aabb, mut cam_updater)| {
+            tilemaps_query.iter_mut().for_each(|(entity, storage)| {
+                // When the detect aabb is intersected with a invisible chunk,
+                // all the chunks that are intercected with the update aabb must be visible.
 
-            // Which means we need to first detect the chunks that are intersected with the detect aabb,
-            // and if every one is visible, then do nothing else load/generate chunks that are intersected with the update aabb.
+                // Which means we need to first detect the chunks that are intersected with the detect aabb,
+                // and if every one is visible, then do nothing else load/generate chunks that are intersected with the update aabb.
 
-            let detect_aabb = cam_aabb
-                .0
-                .with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));
+                let detect_aabb = cam_aabb
+                    .0
+                    .with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));
 
-            let detected = storage
-                .reserved
-                .iter()
-                .filter_map(|(chunk_index, aabb)| {
-                    if detect_aabb.is_intersected(*aabb) {
-                        Some(*chunk_index)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<HashSet<_>>();
+                let detected = storage
+                    .reserved
+                    .iter()
+                    .filter_map(|(chunk_index, aabb)| {
+                        if detect_aabb.is_intersected(*aabb) {
+                            Some(*chunk_index)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<HashSet<_>>();
 
-            if detected.is_subset(&cam_updater.last_updation) {
-                return;
-            }
-
-            let update_aabb = cam_aabb
-                .0
-                .with_scale(Vec2::splat(cam_updater.update_scale), Vec2::splat(0.5));
-
-            let mut cur_visible = HashSet::with_capacity(cam_updater.last_updation.len());
-
-            storage.reserved.iter().for_each(|(chunk_index, aabb)| {
-                if update_aabb.is_intersected(*aabb) {
-                    if !cam_updater.last_updation.contains(chunk_index) {
-                        updation_event.send(CameraChunkUpdation::Entered(entity, *chunk_index));
-                    }
-                    cur_visible.insert(*chunk_index);
-                } else if cam_updater.last_updation.contains(chunk_index) {
-                    updation_event.send(CameraChunkUpdation::Left(entity, *chunk_index));
+                if detected.is_subset(&cam_updater.last_updation) {
+                    return;
                 }
-            });
 
-            cam_updater.last_updation = cur_visible;
+                let update_aabb = cam_aabb
+                    .0
+                    .with_scale(Vec2::splat(cam_updater.update_scale), Vec2::splat(0.5));
+
+                let mut cur_visible = HashSet::with_capacity(cam_updater.last_updation.len());
+
+                storage.reserved.iter().for_each(|(chunk_index, aabb)| {
+                    if update_aabb.is_intersected(*aabb) {
+                        if !cam_updater.last_updation.contains(chunk_index) {
+                            updation_event.send(CameraChunkUpdation::Entered(entity, *chunk_index));
+                        }
+                        cur_visible.insert(*chunk_index);
+                    } else if cam_updater.last_updation.contains(chunk_index) {
+                        updation_event.send(CameraChunkUpdation::Left(entity, *chunk_index));
+                    }
+                });
+
+                cam_updater.last_updation = cur_visible;
+            });
         });
-    });
 }

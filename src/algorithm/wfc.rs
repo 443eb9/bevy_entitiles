@@ -657,7 +657,7 @@ pub fn wave_function_collapse(
 }
 
 pub fn wfc_data_assigner(mut commands: Commands, mut tasks_query: Query<(Entity, &mut WfcTask)>) {
-    tasks_query.for_each_mut(|(entity, mut task)| {
+    tasks_query.iter_mut().for_each(|(entity, mut task)| {
         if let Some(data) = bevy::tasks::block_on(futures_lite::future::poll_once(&mut task.0)) {
             let mut entity = commands.entity(entity);
             entity.remove::<WfcTask>();
@@ -685,7 +685,7 @@ pub fn wfc_applier(
         &mut crate::tilemap::physics::PhysicsTilemap,
     >,
 ) {
-    tilemaps_query.for_each_mut(
+    tilemaps_query.iter_mut().for_each(
         |(entity, slot_size, tile_render_size,mut tilemap_storage, wfc_data, source)| match source {
             WfcSource::SingleTile(tiles) => {
                 let tilemap = tilemap_storage.as_mut().unwrap_or_else(|| {
@@ -838,43 +838,45 @@ pub fn ldtk_wfc_helper(
     ldtk_patterns: Option<bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>>,
     mut ldtk_manager: bevy::ecs::system::ResMut<crate::ldtk::resources::LdtkLevelManager>,
 ) {
-    tilemaps_query.for_each_mut(|(entity, data, source)| match source {
-        WfcSource::LdtkMapPattern(mode) => {
-            let Some(patterns) = &ldtk_patterns else {
-                return;
-            };
-            if !patterns.is_ready() && ldtk_manager.is_initialized() {
-                ldtk_manager.load_all_patterns(&mut commands);
-                return;
+    tilemaps_query
+        .iter_mut()
+        .for_each(|(entity, data, source)| match source {
+            WfcSource::LdtkMapPattern(mode) => {
+                let Some(patterns) = &ldtk_patterns else {
+                    return;
+                };
+                if !patterns.is_ready() && ldtk_manager.is_initialized() {
+                    ldtk_manager.load_all_patterns(&mut commands);
+                    return;
+                }
+
+                match mode {
+                    LdtkWfcMode::SingleMap => {
+                        data.data.iter().enumerate().for_each(|(i, e)| {
+                            let mut bg = patterns.backgrounds[*e as usize].clone().unwrap();
+                            let ptn_idx = data.elem_idx_to_grid(i);
+                            let ptn_render_size = bg.sprite.custom_size.unwrap();
+                            let z = bg.transform.translation.z;
+                            bg.transform.translation = ((ptn_render_size / 2.)
+                                + ptn_idx.as_vec2() * ptn_render_size)
+                                .extend(z);
+                            commands.spawn(bg);
+                        });
+
+                        commands
+                            .entity(entity)
+                            .insert(WfcSource::MultiLayerMapPattern(patterns.pack()));
+                    }
+                    LdtkWfcMode::MultiMaps => {
+                        commands.insert_resource(crate::ldtk::resources::LdtkWfcManager {
+                            wfc_data: Some(data.clone()),
+                            idents: patterns.idents.clone(),
+                            pattern_size: patterns.pattern_size,
+                        });
+                        commands.entity(entity).despawn();
+                    }
+                };
             }
-
-            match mode {
-                LdtkWfcMode::SingleMap => {
-                    data.data.iter().enumerate().for_each(|(i, e)| {
-                        let mut bg = patterns.backgrounds[*e as usize].clone().unwrap();
-                        let ptn_idx = data.elem_idx_to_grid(i);
-                        let ptn_render_size = bg.sprite.custom_size.unwrap();
-                        let z = bg.transform.translation.z;
-                        bg.transform.translation = ((ptn_render_size / 2.)
-                            + ptn_idx.as_vec2() * ptn_render_size)
-                            .extend(z);
-                        commands.spawn(bg);
-                    });
-
-                    commands
-                        .entity(entity)
-                        .insert(WfcSource::MultiLayerMapPattern(patterns.pack()));
-                }
-                LdtkWfcMode::MultiMaps => {
-                    commands.insert_resource(crate::ldtk::resources::LdtkWfcManager {
-                        wfc_data: Some(data.clone()),
-                        idents: patterns.idents.clone(),
-                        pattern_size: patterns.pattern_size,
-                    });
-                    commands.entity(entity).despawn();
-                }
-            };
-        }
-        _ => {}
-    });
+            _ => {}
+        });
 }

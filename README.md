@@ -12,6 +12,7 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 
 *The higher the priority, the more towards the front in the following list.*
 
+- Use more new features from bevy 0.13 (9-slices etc)
 - [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff)
 - Tilemap Serializing (Custom Binary Format)
 - Volumetric Clouds / Fog

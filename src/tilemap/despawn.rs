@@ -43,7 +43,7 @@ pub fn despawn_tilemap(
 ) {
     let mut despawned_tilemaps = Vec::new();
 
-    query.for_each(|entity| {
+    query.iter().for_each(|entity| {
         despawned_tilemaps.push(DespawnedTilemap(entity));
     });
 
@@ -53,7 +53,7 @@ pub fn despawn_tilemap(
 pub fn despawn_tiles(mut commands: Commands, query: Query<&Tile, With<DespawnMe>>) {
     let mut despawned_tiles = Vec::new();
 
-    query.for_each(|tile| {
+    query.iter().for_each(|tile| {
         despawned_tiles.push(DespawnedTile {
             tilemap: tile.tilemap_id,
             chunk_index: tile.chunk_index,

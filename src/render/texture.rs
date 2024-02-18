@@ -243,7 +243,7 @@ pub fn set_texture_usage(
     mut image_assets: ResMut<Assets<Image>>,
 ) {
     // Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
-    tilemaps_query.for_each(|(entity, tex)| {
+    tilemaps_query.iter().for_each(|(entity, tex)| {
         let Some(image) = image_assets.get(&tex.clone_weak()) else {
             return;
         };

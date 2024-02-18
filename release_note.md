@@ -1,3 +1,5 @@
+**Notice: `physics` feature is temporary removed because it has not migrated to bevy 0.13 yet. It will be added back in the next minor update.**
+
 # What's New:
 
 - Added README for examples.

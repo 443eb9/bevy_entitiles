@@ -11,7 +11,7 @@ use bevy::{
     },
     math::{UVec2, Vec2},
     render::{mesh::Mesh, render_resource::Shader},
-    sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlas},
+    sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlasLayout},
     transform::components::Transform,
 };
 
@@ -153,7 +153,7 @@ fn global_entity_registerer(
     mut registry: ResMut<LdtkGlobalEntityRegistry>,
     query: Query<(Entity, &EntityIid), Added<GlobalEntity>>,
 ) {
-    query.for_each(|(entity, iid)| {
+    query.iter().for_each(|(entity, iid)| {
         registry.register(iid.clone(), entity);
     });
 }
@@ -223,7 +223,7 @@ pub fn load_ldtk_json(
     asset_server: Res<AssetServer>,
     entity_registry: Option<NonSend<LdtkEntityRegistry>>,
     entity_tag_registry: Option<NonSend<LdtkEntityTagRegistry>>,
-    mut atlas_assets: ResMut<Assets<TextureAtlas>>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut ldtk_events: EventWriter<LdtkEvent>,
     config: Res<LdtkLoadConfig>,
     mut manager: ResMut<LdtkLevelManager>,
@@ -242,7 +242,7 @@ pub fn load_ldtk_json(
             &config,
             &manager,
             &asset_server,
-            &mut atlas_assets,
+            &mut atlas_layouts,
             &mut entity_material_assets,
             &mut mesh_assets,
         );

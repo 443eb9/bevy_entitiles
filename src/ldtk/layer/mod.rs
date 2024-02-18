@@ -4,7 +4,7 @@ use bevy::{
         entity::Entity,
         system::{Commands, EntityCommands},
     },
-    math::{IVec2, UVec2, Vec2, Vec4},
+    math::{IVec2, Vec2, Vec4},
     prelude::SpatialBundle,
     sprite::SpriteBundle,
     transform::components::Transform,
@@ -42,6 +42,8 @@ use crate::tilemap::{algorithm::path::PathTilemap, chunking::storage::ChunkedSto
 
 #[cfg(feature = "physics")]
 use crate::tilemap::physics::{DataPhysicsTilemap, SerializablePhysicsSource};
+#[cfg(feature = "physics")]
+use bevy::math::UVec2;
 
 #[cfg(feature = "algorithm")]
 pub mod path;

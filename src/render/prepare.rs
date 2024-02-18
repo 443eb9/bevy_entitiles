@@ -87,7 +87,7 @@ pub fn prepare_tiles<M: TilemapMaterial>(
     mut render_chunks: ResMut<RenderChunkStorage<M>>,
     tilemap_instances: Res<TilemapInstances<M>>,
 ) {
-    extracted_tiles.for_each(|tile| {
+    extracted_tiles.iter().for_each(|tile| {
         let Some(tilemap) = tilemap_instances.0.get(&tile.tilemap_id) else {
             return;
         };
@@ -106,7 +106,7 @@ pub fn prepare_unloaded_chunks<M: TilemapMaterial>(
     mut render_chunks: ResMut<RenderChunkStorage<M>>,
     extracted_tilemaps: Query<(Entity, &UnloadRenderChunk)>,
 ) {
-    extracted_tilemaps.for_each(|(entity, unloaded)| {
+    extracted_tilemaps.iter().for_each(|(entity, unloaded)| {
         unloaded.0.iter().for_each(|c| {
             render_chunks.remove_chunk(entity, *c);
         });
@@ -119,7 +119,7 @@ pub fn prepare_despawned_tilemaps<M: TilemapMaterial>(
     mut tilemap_instaces: ResMut<TilemapInstances<M>>,
     tilemaps_query: Query<&DespawnedTilemap>,
 ) {
-    tilemaps_query.for_each(|map| {
+    tilemaps_query.iter().for_each(|map| {
         render_chunks.remove_tilemap(map.0);
         storage_buffers.remove(map.0);
         tilemap_instaces.0.remove(&map.0);
@@ -130,7 +130,7 @@ pub fn prepare_despawned_tiles<M: TilemapMaterial>(
     mut render_chunks: ResMut<RenderChunkStorage<M>>,
     tiles_query: Query<&DespawnedTile>,
 ) {
-    tiles_query.for_each(|tile| {
+    tiles_query.iter().for_each(|tile| {
         if let Some(chunk) = render_chunks
             .get_chunks_mut(tile.tilemap)
             .and_then(|chunks| chunks.get_mut(&tile.chunk_index))

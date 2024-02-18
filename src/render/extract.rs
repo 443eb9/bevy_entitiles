@@ -1,13 +1,13 @@
 use bevy::{
     asset::{AssetEvent, Assets, Handle},
     ecs::{
+        entity::EntityHashMap,
         event::EventReader,
         query::{Or, With, Without},
         system::{Res, ResMut},
     },
     prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
     render::Extract,
-    utils::EntityHashMap,
 };
 
 use crate::{
@@ -188,7 +188,7 @@ pub fn extract_materials<M: TilemapMaterial>(
                 AssetEvent::Removed { id } => {
                     acc.removed.push(*id);
                 }
-                AssetEvent::LoadedWithDependencies { .. } => {}
+                AssetEvent::LoadedWithDependencies { .. } | AssetEvent::Unused { .. } => {}
             };
             acc
         });
@@ -213,7 +213,7 @@ pub fn extract_unloaded_chunks(
     mut chunk_unload: Extract<EventReader<ChunkUnload>>,
 ) {
     commands.insert_or_spawn_batch(chunk_unload.read().fold(
-        EntityHashMap::<Entity, UnloadRenderChunk>::default(),
+        EntityHashMap::<UnloadRenderChunk>::default(),
         |mut acc, elem| {
             acc.entry(elem.tilemap).or_default().0.push(elem.index);
             acc
@@ -231,7 +231,7 @@ pub fn extract_despawned_tilemaps(
 ) {
     let mut despawned_tilemaps = Vec::new();
 
-    tilemaps_query.for_each(|(entity, map)| {
+    tilemaps_query.iter().for_each(|(entity, map)| {
         despawned_tilemaps.push((entity, map.clone()));
     });
 
@@ -244,7 +244,7 @@ pub fn extract_despawned_tiles(
 ) {
     let mut despawned_tiles = Vec::new();
 
-    tiles_query.for_each(|(entity, tile)| {
+    tiles_query.iter().for_each(|(entity, tile)| {
         despawned_tiles.push((entity, tile.clone()));
     });
 

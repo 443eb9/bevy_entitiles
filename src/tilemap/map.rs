@@ -7,7 +7,7 @@ use bevy::{
     prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
     reflect::Reflect,
     render::render_resource::FilterMode,
-    sprite::TextureAtlas,
+    sprite::TextureAtlasLayout,
     transform::components::Transform,
     utils::{HashMap, HashSet},
 };
@@ -215,9 +215,8 @@ impl TilemapTexture {
         &self.texture
     }
 
-    pub fn as_texture_atlas(&self) -> TextureAtlas {
-        TextureAtlas::from_grid(
-            self.texture.clone(),
+    pub fn as_atlas_layout(&self) -> TextureAtlasLayout {
+        TextureAtlasLayout::from_grid(
             self.desc.tile_size.as_vec2(),
             self.desc.size.x as usize,
             self.desc.size.y as usize,
@@ -681,12 +680,14 @@ impl TilemapAnimations {
 pub fn transform_syncer(
     mut tilemap_query: Query<(&TilemapTransform, &mut Transform), Changed<TilemapTransform>>,
 ) {
-    tilemap_query.for_each_mut(|(tilemap_transform, mut transform)| {
-        transform.translation = tilemap_transform
-            .translation
-            .extend(tilemap_transform.z_index as f32);
-        transform.rotation = tilemap_transform.get_rotation_quat();
-    });
+    tilemap_query
+        .iter_mut()
+        .for_each(|(tilemap_transform, mut transform)| {
+            transform.translation = tilemap_transform
+                .translation
+                .extend(tilemap_transform.z_index as f32);
+            transform.rotation = tilemap_transform.get_rotation_quat();
+        });
 }
 
 pub fn queued_chunk_aabb_calculator(

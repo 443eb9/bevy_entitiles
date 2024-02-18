@@ -1,12 +1,15 @@
 use std::{cmp::Ordering, collections::BinaryHeap, sync::Arc};
 
 use bevy::{
-    ecs::system::{Commands, Query},
+    ecs::{
+        entity::EntityHashMap,
+        system::{Commands, Query},
+    },
     math::IVec2,
     prelude::{Component, Entity},
     reflect::Reflect,
     tasks::{AsyncComputeTaskPool, Task},
-    utils::{EntityHashMap, Entry, HashMap, HashSet},
+    utils::{Entry, HashMap, HashSet},
 };
 
 use crate::{
@@ -24,8 +27,8 @@ pub struct PathFinder {
 
 #[derive(Component)]
 pub struct PathFindingQueue {
-    pub(crate) finders: EntityHashMap<Entity, PathFinder>,
-    pub(crate) tasks: EntityHashMap<Entity, Task<Path>>,
+    pub(crate) finders: EntityHashMap<PathFinder>,
+    pub(crate) tasks: EntityHashMap<Task<Path>>,
     pub(crate) cache: Arc<PathTilemap>,
 }
 
@@ -264,25 +267,27 @@ pub fn pathfinding_scheduler(
     mut queues_query: Query<(Entity, &TilemapType, &mut PathFindingQueue)>,
 ) {
     let thread_pool = AsyncComputeTaskPool::get();
-    queues_query.for_each_mut(|(tilemap, ty, mut queue)| {
-        let mut tasks = Vec::new();
-        let path_tilemap = queue.cache.clone();
-        queue.finders.drain().for_each(|(requester, finder)| {
-            let ty = *ty;
-            let path_tilemap = path_tilemap.clone();
-            let task = thread_pool.spawn(async move {
-                let mut grid = PathGrid::new(finder, requester, tilemap, path_tilemap.clone());
-                grid.find_path(ty);
-                grid.collect_path()
+    queues_query
+        .iter_mut()
+        .for_each(|(tilemap, ty, mut queue)| {
+            let mut tasks = Vec::new();
+            let path_tilemap = queue.cache.clone();
+            queue.finders.drain().for_each(|(requester, finder)| {
+                let ty = *ty;
+                let path_tilemap = path_tilemap.clone();
+                let task = thread_pool.spawn(async move {
+                    let mut grid = PathGrid::new(finder, requester, tilemap, path_tilemap.clone());
+                    grid.find_path(ty);
+                    grid.collect_path()
+                });
+                tasks.push((requester, task));
             });
-            tasks.push((requester, task));
+            queue.tasks.extend(tasks);
         });
-        queue.tasks.extend(tasks);
-    });
 }
 
 pub fn path_assigner(mut commands: Commands, mut queues_query: Query<&mut PathFindingQueue>) {
-    queues_query.for_each_mut(|mut queue| {
+    queues_query.iter_mut().for_each(|mut queue| {
         let mut completed = Vec::new();
         queue.tasks.iter_mut().for_each(|(requester, task)| {
             if let Some(path) = bevy::tasks::block_on(futures_lite::future::poll_once(task)) {

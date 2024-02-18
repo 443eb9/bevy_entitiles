@@ -81,7 +81,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         IVec2 { x: 18, y: 8 },
         TileBuilder::new()
             .with_layer(0, TileLayer::new().with_texture_index(0))
-            .with_color(Color::BLUE.into()),
+            .with_color(Color::BLUE.rgba_to_vec4()),
     );
 
     tilemap.storage.set(
