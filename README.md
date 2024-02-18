@@ -139,6 +139,7 @@ In the following case, each tile has at least one corresponding color gap with i
 
 | Bevy ver | EntiTiles ver | LDtk ver      | Tiled ver     |
 | -------- | ------------- | ------------- | ------------- |
+| 0.13.x   | 0.6.0         | 1.5.3         | 1.10.2        |
 | 0.12.x   | 0.4.0-0.5.0   | 1.5.3         | 1.10.2        |
 | 0.12.x   | 0.3.0         | 1.5.3         | Not supported |
 | 0.12.x   | 0.2.7         | 1.5.1         | Not supported |
