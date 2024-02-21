@@ -826,6 +826,7 @@ pub fn wfc_applier(
 
                 commands.entity(entity).despawn();
             }
+            #[cfg(feature = "ldtk")]
             _ => {}
         },
     );

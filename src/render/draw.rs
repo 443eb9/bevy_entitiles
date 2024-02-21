@@ -139,7 +139,12 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let id = instances.0.get(&item.entity).unwrap().material.id();
+        let Some(inst) = instances.0.get(&item.entity) else {
+            error!("Failed to get tilemap instance!");
+            return RenderCommandResult::Failure;
+        };
+
+        let id = inst.material.id();
         if let Some(bind_group) = bind_groups.into_inner().material_bind_groups.get(&id) {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success

@@ -20,9 +20,15 @@ use bevy::{
 };
 
 use super::{
-    binding::TilemapBindGroups, buffer::TilemapUniformBuffer, chunk::RenderChunkStorage, culling,
-    draw::DrawTilemap, extract, pipeline::EntiTilesPipeline, prepare, queue,
-    resources::TilemapInstances,
+    binding::TilemapBindGroups,
+    buffer::TilemapUniformBuffer,
+    chunk::RenderChunkStorage,
+    culling,
+    draw::DrawTilemap,
+    extract,
+    pipeline::EntiTilesPipeline,
+    prepare, queue,
+    resources::{ExtractedTilemapMaterials, TilemapInstances},
 };
 
 #[derive(Default)]
@@ -60,7 +66,8 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
             .init_resource::<RenderChunkStorage<M>>()
             .init_resource::<TilemapUniformBuffer<M>>()
             .init_resource::<TilemapBindGroups<M>>()
-            .init_resource::<TilemapInstances<M>>();
+            .init_resource::<TilemapInstances<M>>()
+            .init_resource::<ExtractedTilemapMaterials<M>>();
 
         render_app.add_render_command::<Transparent2d, DrawTilemap<M>>();
     }
@@ -85,7 +92,7 @@ pub trait TilemapMaterial: Default + Asset + AsBindGroup + TypePath + Clone {
 }
 
 #[derive(Component, Default, Debug, Clone)]
-pub struct WaitForStandardMaterialRepacement;
+pub struct WaitForStandardMaterialReplacement;
 
 #[derive(Resource, Default)]
 pub struct StandardTilemapMaterialSingleton(pub Option<Handle<StandardTilemapMaterial>>);
@@ -107,7 +114,7 @@ pub fn standard_material_register(
     mut commands: Commands,
     mut tilemaps_query: Query<
         (Entity, &mut Handle<StandardTilemapMaterial>),
-        With<WaitForStandardMaterialRepacement>,
+        With<WaitForStandardMaterialReplacement>,
     >,
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
     mut material_singleton: ResMut<StandardTilemapMaterialSingleton>,
@@ -121,6 +128,6 @@ pub fn standard_material_register(
         *material = material_singleton.0.clone().unwrap();
         commands
             .entity(entity)
-            .remove::<WaitForStandardMaterialRepacement>();
+            .remove::<WaitForStandardMaterialReplacement>();
     }
 }

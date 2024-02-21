@@ -16,11 +16,12 @@ use bevy::{
         query::With,
         system::{Commands, EntityCommands, Query, Res, ResMut},
     },
-    input::{keyboard::KeyCode, Input},
+    gizmos::{config::GizmoConfig, AppGizmoBuilder},
+    input::{keyboard::KeyCode, ButtonInput},
     math::Vec2,
     reflect::Reflect,
     render::{mesh::Mesh, render_resource::FilterMode, texture::ImagePlugin, view::Msaa},
-    sprite::TextureAtlas,
+    sprite::TextureAtlasLayout,
     utils::HashMap,
     DefaultPlugins,
 };
@@ -39,8 +40,8 @@ use bevy_entitiles::{
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEntityTag, LdtkEnum};
 use bevy_xpbd_2d::{
-    components::{Collider, Friction, LinearVelocity, Mass, RigidBody},
-    plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins},
+    components::{Friction, LinearVelocity, Mass, RigidBody},
+    plugins::{collision::Collider, debug::PhysicsGizmos, PhysicsDebugPlugin, PhysicsPlugins},
     resources::Gravity,
 };
 use helpers::EntiTilesHelpersPlugin;
@@ -64,12 +65,11 @@ fn main() {
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
         .insert_resource(Gravity(Vec2::new(0., -98.)))
-        .insert_resource(PhysicsDebugConfig::all())
         .insert_resource(LdtkLoadConfig {
             // replace the filename with grid_vania.ldtk before running
             // this file uses finalbossblues-icons_full_16 and it only exists
             // in my local disk.
-            file_path: "assets/ldtk/grid_vania.ldtk".to_string(),
+            file_path: "assets/ldtk/ignore grid_vania.ldtk".to_string(),
             asset_path_prefix: "ldtk/".to_string(),
             filter_mode: FilterMode::Nearest,
             ignore_unregistered_entities: true,
@@ -106,6 +106,7 @@ fn main() {
             }),
             ..Default::default()
         })
+        .insert_gizmo_group(PhysicsGizmos::all(), GizmoConfig::default())
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
         .register_ldtk_entity::<Teleport>("Teleport")
@@ -133,41 +134,45 @@ macro_rules! level_control {
     };
 }
 
-fn load(mut commands: Commands, input: Res<Input<KeyCode>>, mut manager: ResMut<LdtkLevelManager>) {
-    level_control!(Key1, "Entrance", input, manager, commands);
-    level_control!(Key2, "Cross_roads", input, manager, commands);
-    level_control!(Key3, "Water_supply", input, manager, commands);
-    level_control!(Key4, "Ossuary", input, manager, commands);
-    level_control!(Key5, "Garden", input, manager, commands);
-    level_control!(Key6, "Shop_entrance", input, manager, commands);
-    level_control!(Key7, "phantom level", input, manager, commands);
+fn load(
+    mut commands: Commands,
+    input: Res<ButtonInput<KeyCode>>,
+    mut manager: ResMut<LdtkLevelManager>,
+) {
+    level_control!(Digit1, "Entrance", input, manager, commands);
+    level_control!(Digit2, "Cross_roads", input, manager, commands);
+    level_control!(Digit3, "Water_supply", input, manager, commands);
+    level_control!(Digit4, "Ossuary", input, manager, commands);
+    level_control!(Digit5, "Garden", input, manager, commands);
+    level_control!(Digit6, "Shop_entrance", input, manager, commands);
+    level_control!(Digit7, "phantom level", input, manager, commands);
 
     if input.just_pressed(KeyCode::Space) {
         manager.unload_all(&mut commands);
     }
 
-    if input.just_pressed(KeyCode::Key8) {
+    if input.just_pressed(KeyCode::Digit8) {
         manager.load(&mut commands, "Entrance".to_string(), None);
     }
 }
 
 fn hot_reload(
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
     mut manager: ResMut<LdtkLevelManager>,
     config: Res<LdtkLoadConfig>,
     mut assets: ResMut<LdtkAssets>,
     asset_server: Res<AssetServer>,
-    mut atlas_assets: ResMut<Assets<TextureAtlas>>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
 ) {
-    if input.just_pressed(KeyCode::Return) {
+    if input.just_pressed(KeyCode::Enter) {
         manager.reload_json(&config);
         assets.initialize(
             &config,
             &manager,
             &asset_server,
-            &mut atlas_assets,
+            &mut atlas_layouts,
             &mut entity_material_assets,
             &mut mesh_assets,
         );
@@ -188,21 +193,24 @@ fn events(mut ldtk_events: EventReader<LdtkEvent>) {
     }
 }
 
-fn player_control(mut query: Query<&mut LinearVelocity, With<Player>>, input: Res<Input<KeyCode>>) {
+fn player_control(
+    mut query: Query<&mut LinearVelocity, With<Player>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
     let Ok(mut player) = query.get_single_mut() else {
         return;
     };
     // wasd is taken up by the camera controller.
-    if input.pressed(KeyCode::Left) {
+    if input.pressed(KeyCode::ArrowLeft) {
         player.x = -30.;
     }
-    if input.pressed(KeyCode::Right) {
+    if input.pressed(KeyCode::ArrowRight) {
         player.x = 30.;
     }
     // I know this is not scientifically correct
     // because the player will be able to jump infinitely
     // but I'm lazy to do the detection :p
-    if input.pressed(KeyCode::Up) {
+    if input.pressed(KeyCode::ArrowUp) {
         player.y = 100.;
     }
 }
@@ -283,7 +291,7 @@ pub struct Player {
 
     // As impl a foreign trait for a foreign type is not allowed in rust,
     // we have to define these two wrappers.
-    
+
     // You can impl the LdtkEntity trait yourself so these wrappers
     // can be avoided.
     pub inventory: ItemTypeVec,

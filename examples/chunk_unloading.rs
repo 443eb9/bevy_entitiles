@@ -9,6 +9,7 @@ use bevy::{
         query::With,
         system::{Commands, Query, Res, ResMut},
     },
+    gizmos::{config::GizmoConfig, AppGizmoBuilder},
     math::{IVec2, UVec2, Vec2},
     render::render_resource::FilterMode,
     utils::HashSet,
@@ -38,7 +39,7 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
+use bevy_xpbd_2d::plugins::{debug::PhysicsGizmos, PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -75,6 +76,7 @@ fn main() {
         .insert_resource(FrustumCulling(false))
         // Scale the camera aabb or it will be hard to see the chunk while disappearing/appearing.
         .insert_resource(CameraAabbScale(Vec2::splat(0.3)))
+        .insert_gizmo_group(PhysicsGizmos::all(), GizmoConfig::default())
         .run();
 }
 

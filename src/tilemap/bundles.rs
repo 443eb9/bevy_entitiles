@@ -1,7 +1,7 @@
 use bevy::{asset::Handle, ecs::bundle::Bundle};
 
 use crate::render::material::{
-    StandardTilemapMaterial, TilemapMaterial, WaitForStandardMaterialRepacement,
+    StandardTilemapMaterial, TilemapMaterial, WaitForStandardMaterialReplacement,
 };
 
 use super::map::{
@@ -76,7 +76,7 @@ pub struct StandardTilemapBundle {
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
     pub texture_marker: WaitForTextureUsageChange,
-    pub material_marker: WaitForStandardMaterialRepacement,
+    pub material_marker: WaitForStandardMaterialReplacement,
 }
 
 impl Into<DataTilemapBundle> for StandardTilemapBundle {
@@ -140,7 +140,7 @@ pub struct StandardPureColorTilemapBundle {
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<StandardTilemapMaterial>,
-    pub material_marker: WaitForStandardMaterialRepacement,
+    pub material_marker: WaitForStandardMaterialReplacement,
 }
 
 impl StandardPureColorTilemapBundle {

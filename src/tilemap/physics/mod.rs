@@ -5,7 +5,10 @@ use bevy::{
     reflect::Reflect,
     utils::HashMap,
 };
-use bevy_xpbd_2d::components::{Collider, Friction, RigidBody};
+use bevy_xpbd_2d::{
+    components::{Friction, RigidBody},
+    plugins::collision::Collider,
+};
 
 use crate::math::{aabb::IAabb2d, TileArea};
 
@@ -117,7 +120,7 @@ impl Default for PhysicsTile {
 impl Tiles for PhysicsTile {}
 
 /// This can used to spawn a optimized physics tilemap.
-/// 
+///
 /// Once the component is added, the crate will figure out the least amount of colliders
 /// needed to represent the tilemap and spawn them.
 #[derive(Component, Debug, Clone, Reflect)]
@@ -132,7 +135,7 @@ pub struct DataPhysicsTilemap {
 
 impl DataPhysicsTilemap {
     /// Create a new physics tilemap from a data array.
-    /// 
+    ///
     /// As the y axis in array and bevy is flipped, this method will flip the array.
     /// If your data is already flipped, use `new_flipped` instead.
     pub fn new(
@@ -188,7 +191,7 @@ impl DataPhysicsTilemap {
     }
 
     /// Try to get the tile at the given index.
-    /// 
+    ///
     /// This will return the air tile if the index is out of bounds.
     #[inline]
     pub fn get_or_air(&self, index: UVec2) -> i32 {
@@ -221,7 +224,7 @@ pub struct PhysicsTilemap {
 
 impl PhysicsTilemap {
     /// Create a new physics tilemap with default chunk size.
-    /// 
+    ///
     /// Use `new_with_chunk_size` to specify a custom chunk size.
     pub fn new() -> Self {
         PhysicsTilemap {
@@ -280,7 +283,7 @@ impl PhysicsTilemap {
     }
 
     /// Fill a rectangle area with the same tile.
-    /// 
+    ///
     /// Set `concat` to true if you want to concat the adjacent tiles.
     pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
         if concat {

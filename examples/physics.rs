@@ -6,14 +6,10 @@ use bevy::{
         query::With,
         system::{Query, ResMut},
     },
-    input::{keyboard::KeyCode, Input},
-    math::{IVec2, Vec3},
+    input::{keyboard::KeyCode, ButtonInput},
+    math::{primitives::Circle, IVec2, Vec3},
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::{
-        color::Color,
-        mesh::{shape::Circle, Mesh},
-        render_resource::FilterMode,
-    },
+    render::{color::Color, mesh::Mesh, render_resource::FilterMode},
     sprite::{ColorMaterial, ColorMesh2dBundle},
     transform::components::Transform,
     utils::HashMap,
@@ -33,8 +29,8 @@ use bevy_entitiles::{
     EntiTilesPlugin,
 };
 use bevy_xpbd_2d::{
-    components::{Collider, LinearVelocity, RigidBody},
-    plugins::{PhysicsDebugPlugin, PhysicsPlugins},
+    components::{LinearVelocity, RigidBody},
+    plugins::{collision::Collider, PhysicsDebugPlugin, PhysicsPlugins},
 };
 use helpers::EntiTilesHelpersPlugin;
 
@@ -174,12 +170,12 @@ fn setup(
     // spawn a character
     commands.spawn((
         ColorMesh2dBundle {
-            mesh: meshes.add(Circle::new(15.).into()).into(),
+            mesh: meshes.add(Circle::new(15.)).into(),
             material: materials.add(ColorMaterial::from(Color::WHITE)),
             transform: Transform::from_translation(Vec3::new(0., -50., 0.)),
             ..Default::default()
         },
-        Collider::ball(15.),
+        Collider::circle(15.),
         RigidBody::Dynamic,
         LinearVelocity::ZERO,
         Character,
@@ -190,20 +186,20 @@ fn setup(
 pub struct Character;
 
 pub fn character_move(
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut LinearVelocity, With<Character>>,
 ) {
     let mut dir = Vec2::ZERO;
-    if input.pressed(KeyCode::Up) {
+    if input.pressed(KeyCode::ArrowUp) {
         dir += Vec2::Y;
     }
-    if input.pressed(KeyCode::Down) {
+    if input.pressed(KeyCode::ArrowDown) {
         dir -= Vec2::Y;
     }
-    if input.pressed(KeyCode::Left) {
+    if input.pressed(KeyCode::ArrowLeft) {
         dir -= Vec2::X;
     }
-    if input.pressed(KeyCode::Right) {
+    if input.pressed(KeyCode::ArrowRight) {
         dir += Vec2::X;
     }
     for mut vel in query.iter_mut() {

@@ -1,7 +1,7 @@
 use bevy::{
     app::Update,
     ecs::{entity::Entity, query::With, system::Query},
-    input::{keyboard::KeyCode, Input},
+    input::{keyboard::KeyCode, ButtonInput},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
@@ -111,7 +111,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
 
 fn save_and_load(
     mut commands: Commands,
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
     tilemap: Query<Entity, With<TilemapStorage>>,
 ) {
     // save

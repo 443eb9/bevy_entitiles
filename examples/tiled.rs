@@ -6,7 +6,7 @@ use bevy::{
         component::Component,
         system::{Commands, Res, ResMut},
     },
-    input::{keyboard::KeyCode, Input},
+    input::{keyboard::KeyCode, ButtonInput},
     reflect::Reflect,
     render::{color::Color, texture::ImagePlugin},
     DefaultPlugins,
@@ -67,12 +67,12 @@ macro_rules! map_switching {
 fn switching(
     mut commands: Commands,
     mut manager: ResMut<TiledTilemapManger>,
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
 ) {
-    map_switching!(Key1, "hexagonal", input, manager, commands);
-    map_switching!(Key2, "infinite", input, manager, commands);
-    map_switching!(Key3, "orthogonal", input, manager, commands);
-    map_switching!(Key4, "isometric", input, manager, commands);
+    map_switching!(Digit1, "hexagonal", input, manager, commands);
+    map_switching!(Digit2, "infinite", input, manager, commands);
+    map_switching!(Digit3, "orthogonal", input, manager, commands);
+    map_switching!(Digit4, "isometric", input, manager, commands);
 }
 
 /*

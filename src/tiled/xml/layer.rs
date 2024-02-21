@@ -24,7 +24,8 @@ use crate::{
 use super::{default::*, property::Components, MapOrientation, TiledColor};
 
 #[cfg(feature = "physics")]
-use bevy_xpbd_2d::components::Collider;
+use bevy_xpbd_2d::plugins::collision::Collider;
+
 #[cfg(feature = "physics")]
 use std::f32::consts::PI;
 

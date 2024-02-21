@@ -6,7 +6,8 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query, Res, ResMut},
     },
-    input::{keyboard::KeyCode, Input},
+    gizmos::{config::GizmoConfig, AppGizmoBuilder},
+    input::{keyboard::KeyCode, ButtonInput},
     math::{IVec2, UVec2, Vec2, Vec3Swizzles},
     reflect::Reflect,
     render::{color::Color, render_resource::FilterMode},
@@ -27,7 +28,7 @@ use bevy_entitiles::{
     tilemap::{map::TilemapType, physics::PhysicsTile},
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::plugins::{debug::PhysicsDebugConfig, PhysicsDebugPlugin, PhysicsPlugins};
+use bevy_xpbd_2d::plugins::{debug::PhysicsGizmos, PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -78,7 +79,7 @@ fn main() {
             }),
             ..Default::default()
         })
-        .insert_resource(PhysicsDebugConfig::all())
+        .insert_gizmo_group(PhysicsGizmos::all(), GizmoConfig::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (player_control, load_level))
         .register_type::<Player>()
@@ -131,21 +132,21 @@ fn setup(mut commands: Commands) {
 fn player_control(
     mut commands: Commands,
     mut query: Query<(&mut Transform, &mut Player)>,
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
 ) {
     let Ok((mut transform, mut player)) = query.get_single_mut() else {
         return;
     };
-    if input.pressed(KeyCode::Left) {
+    if input.pressed(KeyCode::ArrowLeft) {
         transform.translation.x -= 1.;
     }
-    if input.pressed(KeyCode::Right) {
+    if input.pressed(KeyCode::ArrowRight) {
         transform.translation.x += 1.;
     }
-    if input.pressed(KeyCode::Up) {
+    if input.pressed(KeyCode::ArrowUp) {
         transform.translation.y += 1.;
     }
-    if input.pressed(KeyCode::Down) {
+    if input.pressed(KeyCode::ArrowDown) {
         transform.translation.y -= 1.;
     }
 

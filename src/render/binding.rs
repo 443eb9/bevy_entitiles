@@ -108,11 +108,10 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
             .changed
             .iter()
             .for_each(|(id, material)| {
-                if let Ok(bind_group) =
-                    material.as_bind_group(layout, render_device, images, fallback_image)
-                {
-                    self.material_bind_groups.insert(*id, bind_group.bind_group);
-                }
+                let bind_group = material
+                    .as_bind_group(layout, render_device, images, fallback_image)
+                    .unwrap();
+                self.material_bind_groups.insert(*id, bind_group.bind_group);
             });
     }
 

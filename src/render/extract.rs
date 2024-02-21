@@ -82,6 +82,7 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
                     Changed<TilemapLayerOpacities>,
                     Changed<TilemapTransform>,
                     Changed<TilemapAxisFlip>,
+                    Changed<Handle<M>>,
                     Changed<TilemapTexture>,
                     Changed<TilemapAnimations>,
                 )>,
