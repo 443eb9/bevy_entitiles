@@ -1,6 +1,6 @@
 [package]
 name = "bevy_entitiles"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
@@ -19,10 +19,8 @@ bevy = { version = "0.13", default-features = false, features = [
     "bevy_render",
     "bevy_asset",
     "png",
-    "bevy_winit",
     "bevy_sprite",
     "multi-threaded",
-    "bevy_gizmos",
 ] }
 bevy_entitiles_derive = { version = "0.4", optional = true, path = "macros" }
 bevy_xpbd_2d = { version = "0.4.1", optional = true }
@@ -41,6 +39,7 @@ serde_json = { version = "1", optional = true }
 [dev-dependencies]
 bevy = { version = "0.13", default-features = false, features = [
     "bevy_ui",
+    "bevy_winit",
     "default_font",
     "trace_tracy",
     "x11",
@@ -54,7 +53,7 @@ image = "0.24.7"
 default = []
 algorithm = ["dep:rand", "serializing", "dep:futures-lite"]
 atlas = []
-debug = []
+debug = ["bevy/bevy_gizmos"]
 physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
