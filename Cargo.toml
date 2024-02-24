@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
 description = "A 2d tilemap library for bevy. With many useful algorithms/tools built in."
-exclude = ["assets/", "docs/imgs/"]
+include = ["/src", "Cargo.toml", "README.md", "LICENSE"]
 
 [profile.dev]
 opt-level = 1
@@ -23,7 +23,7 @@ bevy = { version = "0.13", default-features = false, features = [
     "multi-threaded",
 ] }
 bevy_entitiles_derive = { version = "0.4", optional = true, path = "macros" }
-bevy_xpbd_2d = { version = "0.4.1", optional = true }
+bevy_xpbd_2d = { version = "0.4", optional = true }
 bitflags = "2"
 futures-lite = { version = "2", optional = true }
 quick-xml = { version = "0.31", optional = true, features = [
