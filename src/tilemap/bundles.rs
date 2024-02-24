@@ -1,4 +1,4 @@
-use bevy::{asset::Handle, ecs::bundle::Bundle};
+use bevy::{asset::Handle, ecs::bundle::Bundle, render::view::Visibility};
 
 use crate::render::material::{
     StandardTilemapMaterial, TilemapMaterial, WaitForStandardMaterialReplacement,
@@ -57,6 +57,7 @@ pub struct MaterialTilemapBundle<M: TilemapMaterial> {
     pub material: Handle<M>,
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
+    pub visibility: Visibility,
     pub marker: WaitForTextureUsageChange,
 }
 
@@ -75,6 +76,7 @@ pub struct StandardTilemapBundle {
     pub material: Handle<StandardTilemapMaterial>,
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
+    pub visibility: Visibility,
     pub texture_marker: WaitForTextureUsageChange,
     pub material_marker: WaitForStandardMaterialReplacement,
 }
@@ -105,6 +107,7 @@ impl Into<StandardPureColorTilemapBundle> for StandardTilemapBundle {
             transform: self.transform,
             axis_flip: self.axis_flip,
             material: self.material,
+            visibility: self.visibility,
             material_marker: self.material_marker,
         }
     }
@@ -124,6 +127,7 @@ pub struct PureColorTilemapBundle<M: TilemapMaterial> {
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<M>,
+    pub visibility: Visibility,
 }
 
 /// The bundle of the tilemap without a texture and with a standard material.
@@ -140,6 +144,7 @@ pub struct StandardPureColorTilemapBundle {
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<StandardTilemapMaterial>,
+    pub visibility: Visibility,
     pub material_marker: WaitForStandardMaterialReplacement,
 }
 
@@ -162,6 +167,7 @@ impl StandardPureColorTilemapBundle {
             material: self.material,
             texture,
             animations,
+            visibility: self.visibility,
             texture_marker: Default::default(),
             material_marker: self.material_marker,
         }

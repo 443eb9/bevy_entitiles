@@ -1,10 +1,7 @@
 # What's New:
-- Added `physics` feature back.
-- Moved linux-related dependencies to `dev-dependencies`.
+
+- Manually toggle the visibility of tilemaps.
+- update dev-dependencies to bevy 0.13-compatible versions #16 
 
 # What's Fixed:
 
-- Materials of tilemaps that are added to the scene at runtime will not be loaded correctly.
-- Entity(LDtk)/Object(Tiled) sprites are not rendered.
-- An unreachable pattern in `wfc.rs` when `ldtk` feature is disabled.
-- Switching between tilemaps from Tiled causes panic.

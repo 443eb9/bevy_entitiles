@@ -7,7 +7,7 @@ use bevy::{
         system::{Res, ResMut},
     },
     prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
-    render::Extract,
+    render::{view::Visibility, Extract},
 };
 
 use crate::{
@@ -138,12 +138,20 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
 
 pub fn extract_tilemaps(
     mut commands: Commands,
-    tilemaps_query: Extract<Query<Entity, With<TilemapStorage>>>,
+    tilemaps_query: Extract<
+        Query<(Entity, &Visibility), (With<TilemapStorage>, Without<InvisibleTilemap>)>,
+    >,
 ) {
     commands.insert_or_spawn_batch(
         tilemaps_query
             .iter()
-            .map(|entity| (entity, TilemapInstance))
+            .filter_map(|(entity, visibility)| {
+                if visibility == Visibility::Hidden {
+                    None
+                } else {
+                    Some((entity, TilemapInstance))
+                }
+            })
             .collect::<Vec<_>>(),
     );
 }

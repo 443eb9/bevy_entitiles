@@ -1,8 +1,10 @@
 use bevy::{
-    app::PluginGroup,
+    app::{PluginGroup, Update},
+    ecs::{query::With, system::Query},
+    input::{keyboard::KeyCode, ButtonInput},
     math::{IVec2, Vec4},
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::{color::Color, render_resource::FilterMode},
+    render::{color::Color, render_resource::FilterMode, view::Visibility},
     window::{PresentMode, Window, WindowPlugin},
     DefaultPlugins,
 };
@@ -36,6 +38,7 @@ fn main() {
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, toggle)
         .run();
 }
 
@@ -185,4 +188,19 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     );
 
     commands.entity(entity).insert(tilemap);
+}
+
+fn toggle(
+    mut tilemaps_query: Query<&mut Visibility, With<TilemapStorage>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    if input.just_pressed(KeyCode::Space) {
+        for mut visibility in tilemaps_query.iter_mut() {
+            *visibility = match *visibility {
+                Visibility::Inherited => Visibility::Hidden,
+                Visibility::Hidden => Visibility::Visible,
+                Visibility::Visible => Visibility::Hidden,
+            }
+        }
+    }
 }
