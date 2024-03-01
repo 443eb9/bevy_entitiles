@@ -23,6 +23,8 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 *The higher the priority, the more towards the front in the following list.*
 
 - Use more new features from bevy 0.13 (9-slices etc)
+- Pathfinding rework
+- Mesh & Texture Baking
 - [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff)
 - Pathfinding (Parallel A* Pathfinding)
 - Tilemap Serializing (Custom Binary Format)

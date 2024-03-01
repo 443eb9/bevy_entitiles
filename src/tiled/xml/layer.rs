@@ -599,9 +599,7 @@ impl TiledObjectInstance {
     pub fn shape_as_collider(&self, commands: &mut EntityCommands) {
         commands.insert((
             match &self.shape {
-                ObjectShape::Ellipse => {
-                    panic!("Eclipse colliders are not yet supported by `bevy_xpbd`!")
-                }
+                ObjectShape::Ellipse => Collider::ellipse(self.width / 2., self.height / 2.),
                 ObjectShape::Polygon(polygon) => {
                     let mut points = polygon.points.clone();
                     points.push(polygon.points[0]);

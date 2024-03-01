@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="8" nextobjectid="11">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="8" nextobjectid="12">
  <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
  <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
  <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
@@ -37,7 +37,7 @@
      <property name="Area" type="class" propertytype="DetectArea"/>
     </properties>
    </object>
-   <object id="3" name="Torch" x="32" y="48" width="25" height="25">
+   <object id="3" name="Torch" type="DetectArea" x="27.0625" y="48" width="32.875" height="25">
     <properties>
      <property name="Area" type="class" propertytype="DetectArea"/>
     </properties>
