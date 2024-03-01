@@ -43,6 +43,7 @@ use super::{
 #[derive(Resource, Default, Reflect)]
 pub struct TiledLoadConfig {
     pub map_path: Vec<String>,
+    pub z_index: f32,
     pub ignore_unregisterd_objects: bool,
 }
 
@@ -619,6 +620,14 @@ impl TiledAssets {
             .iter()
             .map(|(object, _)| {
                 let flipping = object.gid.unwrap_or_default() >> 30;
+
+                if object.rotation >= 0.001 {
+                    warn!(
+                        "Object rotation is not recommended! It will results in wrong collision shapes. \
+                        But if you just want to use this object as sort of static image it will be ok."
+                    );
+                }
+
                 let mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all())
                     .with_inserted_attribute(
                         Mesh::ATTRIBUTE_POSITION,
@@ -629,11 +638,9 @@ impl TiledAssets {
                             Vec2::ZERO,
                         ]
                         .into_iter()
-                        .map(|v| {
-                            Vec2::from_angle(-object.rotation / 180. * PI)
-                                .rotate(v)
-                                .extend(0.)
-                        })
+                        .map(|v| Vec2::from_angle(-object.rotation / 180. * PI).rotate(v))
+                        .map(|v| v - Vec2::new(object.width / 2., -object.height / 2.))
+                        .map(|v| v.extend(0.))
                         .collect::<Vec<_>>(),
                     )
                     .with_inserted_attribute(

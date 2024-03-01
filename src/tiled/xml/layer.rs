@@ -5,7 +5,6 @@ use bevy::{
     math::{IVec2, Vec2, Vec4},
     reflect::Reflect,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-    transform::components::Transform,
 };
 use serde::{
     de::{IgnoredAny, Visitor},
@@ -585,11 +584,6 @@ impl TiledObjectInstance {
             commands.insert(MaterialMesh2dBundle {
                 material: tiled_assets.clone_object_material_handle(&tiled_map, self.id),
                 mesh: Mesh2dHandle(tiled_assets.clone_object_mesh_handle(&tiled_map, self.id)),
-                transform: Transform::from_xyz(
-                    self.x,
-                    -self.y,
-                    tiled_assets.get_object_z_order(&tiled_map, self.id),
-                ),
                 ..Default::default()
             });
         }
@@ -597,47 +591,24 @@ impl TiledObjectInstance {
 
     #[cfg(feature = "physics")]
     pub fn shape_as_collider(&self, commands: &mut EntityCommands) {
-        commands.insert((
-            match &self.shape {
-                ObjectShape::Ellipse => Collider::ellipse(self.width / 2., self.height / 2.),
-                ObjectShape::Polygon(polygon) => {
-                    let mut points = polygon.points.clone();
-                    points.push(polygon.points[0]);
-                    Collider::polyline(
-                        points
-                            .into_iter()
-                            .map(|v| {
-                                Vec2::from_angle(-self.rotation / 180. * PI)
-                                    .rotate(Vec2::new(v.x, -v.y))
-                            })
-                            .collect(),
-                        None,
-                    )
-                }
-                ObjectShape::Rect => Collider::convex_hull({
-                    if self.gid.is_some() {
-                        vec![
-                            Vec2::ZERO,
-                            Vec2::new(self.width, 0.),
-                            Vec2::new(self.width, self.height),
-                            Vec2::new(0., self.height),
-                        ]
-                    } else {
-                        [
-                            Vec2::ZERO,
-                            Vec2::new(self.width, 0.),
-                            Vec2::new(self.width, -self.height),
-                            Vec2::new(0., -self.height),
-                        ]
+        commands.insert(match &self.shape {
+            ObjectShape::Ellipse => Collider::ellipse(self.width / 2., self.height / 2.),
+            ObjectShape::Polygon(polygon) => {
+                let mut points = polygon.points.clone();
+                points.push(polygon.points[0]);
+                Collider::polyline(
+                    points
                         .into_iter()
-                        .map(|v| Vec2::from_angle(-self.rotation / 180. * PI).rotate(v))
-                        .collect()
-                    }
-                })
-                .unwrap(),
-            },
-            bevy_xpbd_2d::components::Position::from_xy(self.x, -self.y),
-        ));
+                        .map(|v| {
+                            Vec2::from_angle(-self.rotation / 180. * PI)
+                                .rotate(Vec2::new(v.x, -v.y))
+                        })
+                        .collect(),
+                    None,
+                )
+            }
+            ObjectShape::Rect => Collider::rectangle(self.width, self.height),
+        });
     }
 }
 

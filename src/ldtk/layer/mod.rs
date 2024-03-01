@@ -114,7 +114,7 @@ pub struct LdtkLayers<'a> {
     pub entities: Vec<PackedLdtkEntity>,
     pub tilesets: &'a HashMap<i32, TilemapTexture>,
     pub translation: Vec2,
-    pub base_z_index: i32,
+    pub base_z_index: f32,
     pub background: SpriteBundle,
     #[cfg(feature = "algorithm")]
     pub path_layer: Option<(
@@ -131,7 +131,7 @@ impl<'a> LdtkLayers<'a> {
         total_layers: usize,
         ldtk_assets: &'a LdtkAssets,
         translation: Vec2,
-        base_z_index: i32,
+        base_z_index: f32,
         ty: LdtkLoaderMode,
         background: SpriteBundle,
     ) -> Self {
@@ -291,7 +291,7 @@ impl<'a> LdtkLayers<'a> {
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, tilemap_entity),
                             transform: TilemapTransform {
                                 translation: self.translation,
-                                z_index: self.base_z_index - index as i32 - 1,
+                                z_index: self.base_z_index - index as f32 - 1.,
                                 ..Default::default()
                             },
                             layer_opacities: TilemapLayerOpacities([opacity; 4].into()),

@@ -7,6 +7,7 @@ use bevy::{
         system::{Commands, NonSend, Query, Res, ResMut},
     },
     math::{IVec2, Vec2, Vec4},
+    prelude::SpatialBundle,
     render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
     transform::components::Transform,
@@ -155,11 +156,13 @@ fn load_tiled_tilemap(
         layers: HashMap::default(),
         objects: HashMap::default(),
     };
+    let mut z = config.z_index;
 
     tiled_data.xml.layers.iter().for_each(|layer| {
         load_layer(
             commands,
             tiled_data,
+            &mut z,
             layer,
             tiled_assets,
             asset_server,
@@ -173,6 +176,7 @@ fn load_tiled_tilemap(
         load_group(
             commands,
             tiled_data,
+            &mut z,
             group,
             tiled_assets,
             asset_server,
@@ -188,6 +192,7 @@ fn load_tiled_tilemap(
 fn load_group(
     commands: &mut Commands,
     tiled_data: &PackedTiledTilemap,
+    z: &mut f32,
     group: &TiledGroup,
     tiled_assets: &TiledAssets,
     asset_server: &AssetServer,
@@ -199,6 +204,7 @@ fn load_group(
         load_layer(
             commands,
             tiled_data,
+            z,
             content,
             tiled_assets,
             asset_server,
@@ -212,6 +218,7 @@ fn load_group(
         load_group(
             commands,
             tiled_data,
+            z,
             group,
             tiled_assets,
             asset_server,
@@ -225,6 +232,7 @@ fn load_group(
 fn load_layer(
     commands: &mut Commands,
     tiled_data: &PackedTiledTilemap,
+    z: &mut f32,
     layer: &TiledLayer,
     tiled_assets: &TiledAssets,
     asset_server: &AssetServer,
@@ -232,6 +240,8 @@ fn load_layer(
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
 ) {
+    *z += 0.1;
+
     match layer {
         TiledLayer::Tiles(layer) => {
             let tile_size = Vec2::new(
@@ -254,7 +264,7 @@ fn load_layer(
                     }
                 },
                 storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
-                transform: TilemapTransform::from_translation(
+                transform: TilemapTransform::from_translation_3d(
                     Vec2::new(layer.offset_x as f32, layer.offset_y as f32)
                         + match tiled_data.xml.orientation {
                             MapOrientation::Orthogonal | MapOrientation::Isometric => Vec2::ZERO,
@@ -262,6 +272,7 @@ fn load_layer(
                                 tiled_data.xml.stagger_index.get_offset() * tile_size
                             }
                         },
+                    *z,
                 ),
                 axis_flip: match tiled_data.xml.orientation {
                     MapOrientation::Isometric => TilemapAxisFlip::all(),
@@ -339,6 +350,15 @@ fn load_layer(
                     tiled_assets,
                     tiled_data.name.clone(),
                 );
+                entity.insert(SpatialBundle {
+                    transform: Transform::from_xyz(
+                        obj.x + obj.width / 2.,
+                        -obj.y - obj.height / 2.,
+                        *z,
+                    ),
+                    // .with_rotation(Quat::from_rotation_z(-obj.rotation / 180. * PI)),
+                    ..Default::default()
+                });
 
                 loaded_map.objects.insert(obj.id, entity.id());
             });

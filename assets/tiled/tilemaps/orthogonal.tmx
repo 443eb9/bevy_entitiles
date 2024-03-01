@@ -32,7 +32,7 @@
  </layer>
  <group id="3" name="Objects">
   <objectgroup id="4" name="Region">
-   <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875" rotation="13">
+   <object id="1" name="Bridge" type="DetectArea" x="82.8295" y="58.8352" width="47.1875" height="20.875">
     <properties>
      <property name="Area" type="class" propertytype="DetectArea"/>
     </properties>

@@ -43,6 +43,7 @@ fn main() {
                 "assets/tiled/tilemaps/isometric.tmx".to_string(),
             ],
             ignore_unregisterd_objects: true,
+            z_index: 0.,
         })
         .register_tiled_object::<BlockBundle>("Block")
         .register_tiled_object::<PlainBlockBundle>("PlainBlock")

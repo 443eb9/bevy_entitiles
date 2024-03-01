@@ -52,7 +52,7 @@ pub enum TilemapRotation {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapTransform {
     pub translation: Vec2,
-    pub z_index: i32,
+    pub z_index: f32,
     pub rotation: TilemapRotation,
 }
 
@@ -60,7 +60,7 @@ impl TilemapTransform {
     /// The transform with no translation and rotation.
     pub const IDENTITY: Self = Self {
         translation: Vec2::ZERO,
-        z_index: 0,
+        z_index: 0.,
         rotation: TilemapRotation::None,
     };
 
@@ -73,7 +73,7 @@ impl TilemapTransform {
     }
 
     #[inline]
-    pub fn from_translation_3d(translation: Vec2, z: i32) -> Self {
+    pub fn from_translation_3d(translation: Vec2, z: f32) -> Self {
         Self {
             translation,
             z_index: z,
@@ -82,7 +82,7 @@ impl TilemapTransform {
     }
 
     #[inline]
-    pub fn from_z_index(z: i32) -> Self {
+    pub fn from_z_index(z: f32) -> Self {
         Self {
             z_index: z,
             ..Default::default()

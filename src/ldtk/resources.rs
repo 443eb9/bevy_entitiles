@@ -352,7 +352,7 @@ pub struct LdtkLoadConfig {
     pub asset_path_prefix: String,
     #[reflect(ignore)]
     pub filter_mode: FilterMode,
-    pub z_index: i32,
+    pub z_index: f32,
     /// Map a certain texture index to a animation.
     pub animation_mapper: HashMap<u32, RawTileAnimation>,
     pub ignore_unregistered_entities: bool,

@@ -23,6 +23,7 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 *The higher the priority, the more towards the front in the following list.*
 
 - Use more new features from bevy 0.13 (9-slices etc)
+- Render Optimization
 - Pathfinding rework
 - Mesh & Texture Baking
 - [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff)
@@ -72,7 +73,9 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 
 ## Versions
 
-*LDtk version is the version that json api has changed. So you can also use 1.5.2 in 0.2.7.</br>See [this](https://ldtk.io/json/next/#changes) for more information.*
+*LDtk version is the version that json api has changed. So you can also use 1.5.2 in 0.2.7. See [this](https://ldtk.io/json/next/#changes) for more information.*
+
+*It doesn't mean all the features from the corresponding versions of LDtk and Tiled are supported, but this crate is using the source tilemap file generated from them!*
 
 | Bevy ver | EntiTiles ver | LDtk ver      | Tiled ver     |
 | -------- | ------------- | ------------- | ------------- |
