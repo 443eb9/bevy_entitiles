@@ -10,7 +10,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::culling::FrustumCulling,
+    render::cull::FrustumCulling,
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{

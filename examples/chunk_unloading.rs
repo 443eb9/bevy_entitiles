@@ -18,7 +18,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     debug::CameraAabbScale,
-    render::culling::FrustumCulling,
+    render::cull::FrustumCulling,
     serializing::{
         chunk::{
             load::{ChunkLoadCache, ChunkLoadConfig},

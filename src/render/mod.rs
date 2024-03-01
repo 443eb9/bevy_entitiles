@@ -11,7 +11,7 @@ use crate::render::{
     binding::TilemapBindGroupLayouts,
     buffer::TilemapStorageBuffers,
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
-    culling::FrustumCulling,
+    cull::FrustumCulling,
     material::StandardTilemapMaterialSingleton,
     texture::TilemapTexturesStorage,
 };
@@ -19,7 +19,7 @@ use crate::render::{
 pub mod binding;
 pub mod buffer;
 pub mod chunk;
-pub mod culling;
+pub mod cull;
 pub mod draw;
 pub mod extract;
 pub mod material;
@@ -64,7 +64,7 @@ impl Plugin for EntiTilesRendererPlugin {
         app.add_systems(
             Update,
             (
-                culling::cull_tilemaps,
+                cull::cull_tilemaps,
                 texture::set_texture_usage,
                 material::standard_material_register,
             ),

@@ -25,7 +25,7 @@ use crate::{
 
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
-    culling::{FrustumCulling, InvisibleTilemap},
+    cull::{FrustumCulling, InvisibleTilemap},
     material::TilemapMaterial,
     resources::{ExtractedTilemapMaterials, TilemapInstances},
 };

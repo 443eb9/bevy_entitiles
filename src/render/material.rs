@@ -23,7 +23,7 @@ use super::{
     binding::TilemapBindGroups,
     buffer::TilemapUniformBuffer,
     chunk::RenderChunkStorage,
-    culling,
+    cull,
     draw::DrawTilemap,
     extract,
     pipeline::EntiTilesPipeline,
@@ -56,7 +56,7 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                     prepare::prepare_unloaded_chunks::<M>,
                     prepare::prepare_despawned_tilemaps::<M>,
                     prepare::prepare_despawned_tiles::<M>,
-                    culling::cull_chunks::<M>,
+                    cull::cull_chunks::<M>,
                 )
                     .in_set(RenderSet::Prepare),
             )

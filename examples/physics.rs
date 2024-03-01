@@ -84,7 +84,7 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(16, entity),
-        transform: TilemapTransform::from_z_index(-1),
+        transform: TilemapTransform::from_z_index(-1.),
         texture: TilemapTexture::new(
             assets_server.load("test_isometric.png"),
             TilemapTextureDescriptor::new(

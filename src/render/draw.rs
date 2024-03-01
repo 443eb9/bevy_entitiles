@@ -12,8 +12,7 @@ use bevy::{
     log::error,
     render::{
         mesh::GpuBufferInfo,
-        render_phase::{RenderCommand, RenderCommandResult, TrackedRenderPass},
-        render_resource::PipelineCache,
+        render_phase::{RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass},
         view::ViewUniformOffset,
     },
 };
@@ -27,7 +26,7 @@ use super::{
 };
 
 pub type DrawTilemap<M> = (
-    SetPipeline,
+    SetItemPipeline,
     SetTilemapViewBindGroup<0>,
     SetTilemapUniformBufferBindGroup<1, M>,
     SetTilemapMaterialBindGroup<2, M>,
@@ -35,36 +34,6 @@ pub type DrawTilemap<M> = (
     SetTilemapStorageBufferBindGroup<4, M>,
     DrawTileMesh<M>,
 );
-
-pub struct SetPipeline;
-impl RenderCommand<Transparent2d> for SetPipeline {
-    type Param = SRes<PipelineCache>;
-
-    type ViewQuery = ();
-
-    type ItemQuery = ();
-
-    #[inline]
-    fn render<'w>(
-        item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewQuery>,
-        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        pipeline_cache: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        let pipeline_cache = pipeline_cache.into_inner();
-        if let Some(pipeline) = pipeline_cache.get_render_pipeline(item.pipeline) {
-            pass.set_render_pipeline(pipeline);
-            RenderCommandResult::Success
-        } else {
-            error!(
-                "Failed to get render pipeline!\n{:?}",
-                pipeline_cache.get_render_pipeline_state(item.pipeline)
-            );
-            RenderCommandResult::Failure
-        }
-    }
-}
 
 pub struct SetTilemapViewBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I> {
