@@ -27,7 +27,8 @@ use super::TILE_CHUNKS_FOLDER;
 #[cfg(feature = "algorithm")]
 use crate::{
     serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
-    tilemap::{algorithm::path::PathTilemap, buffers::PathTileBuffer},
+    tilemap::buffers::PathTileBuffer,
+    algorithm::pathfinding::PathTilemaps,
 };
 #[cfg(feature = "physics")]
 use crate::{
@@ -160,13 +161,15 @@ pub fn load_color_layer(
 
 #[cfg(feature = "algorithm")]
 pub fn load_path_layer(
-    tilemaps_query: Query<(Entity, &TilemapName, &PathTilemap), With<ScheduledLoadChunks>>,
+    tilemaps_query: Query<(Entity, &TilemapName), With<ScheduledLoadChunks>>,
     config: Res<ChunkLoadConfig>,
     mut cache: ResMut<ChunkLoadCache>,
+    path_tilemaps: Res<PathTilemaps>
 ) {
     tilemaps_query
         .iter()
-        .for_each(|(entity, name, path_tilemap)| {
+        .for_each(|(entity, name)| {
+            let path_tilemap = path_tilemaps.lock(entity).unwrap();
             let chunk_size = path_tilemap.storage.chunk_size as i32;
             (0..config.chunks_per_frame).into_iter().for_each(|_| {
                 let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PATH) else {

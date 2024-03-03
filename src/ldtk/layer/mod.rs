@@ -38,7 +38,10 @@ use super::{
 };
 
 #[cfg(feature = "algorithm")]
-use crate::tilemap::{algorithm::path::PathTilemap, chunking::storage::ChunkedStorage};
+use crate::{
+    algorithm::pathfinding::PathTilemaps,
+    tilemap::{algorithm::path::PathTilemap, chunking::storage::ChunkedStorage},
+};
 
 #[cfg(feature = "physics")]
 use crate::tilemap::physics::{DataPhysicsTilemap, SerializablePhysicsSource};
@@ -256,6 +259,7 @@ impl<'a> LdtkLayers<'a> {
         config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
+        #[cfg(feature = "algorithm")] path_tilemaps: &mut PathTilemaps,
     ) {
         match self.ty {
             LdtkLoaderMode::Tilemap => {
@@ -306,12 +310,15 @@ impl<'a> LdtkLayers<'a> {
                         #[cfg(feature = "algorithm")]
                         if let Some((path_layer, path_tilemap)) = &self.path_layer {
                             if path_layer.parent == tilemap.name.0 {
-                                commands.entity(tilemap_entity).insert(PathTilemap {
-                                    storage: ChunkedStorage::from_mapper(
-                                        path_tilemap.clone(),
-                                        None,
-                                    ),
-                                });
+                                path_tilemaps.insert(
+                                    tilemap_entity,
+                                    PathTilemap {
+                                        storage: ChunkedStorage::from_mapper(
+                                            path_tilemap.clone(),
+                                            None,
+                                        ),
+                                    },
+                                );
                             }
                         }
 

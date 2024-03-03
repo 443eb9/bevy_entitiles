@@ -1,7 +1,7 @@
 use bevy::prelude::{Plugin, Update};
 
 use self::{
-    pathfinding::Path,
+    pathfinding::{Path, PathTilemaps},
     wfc::{WfcData, WfcElement, WfcHistory, WfcSource},
 };
 
@@ -18,6 +18,8 @@ impl Plugin for EntiTilesAlgorithmPlugin {
             .register_type::<WfcHistory>()
             .register_type::<WfcData>()
             .register_type::<WfcSource>();
+
+        app.init_resource::<PathTilemaps>();
 
         app.add_systems(
             Update,

@@ -25,7 +25,13 @@ use crate::{
 use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
-use super::PATH_TILES;
+use crate::{
+    serializing::map::PATH_TILES,
+    algorithm::pathfinding::PathTilemaps,
+};
+#[cfg(feature = "algorithm")]
+use bevy::ecs::system::Res;
+
 #[cfg(feature = "physics")]
 use crate::{
     serializing::map::PHYSICS_TILES,
@@ -79,9 +85,7 @@ pub fn save(
         &TilemapSaver,
     )>,
     tiles_query: Query<&Tile>,
-    #[cfg(feature = "algorithm")] path_tilemaps_query: Query<
-        &crate::tilemap::algorithm::path::PathTilemap,
-    >,
+    #[cfg(feature = "algorithm")] path_tilemaps: Res<PathTilemaps>,
     #[cfg(feature = "physics")] physics_tilemaps_query: Query<
         &crate::tilemap::physics::PhysicsTilemap,
     >,
@@ -149,7 +153,7 @@ pub fn save(
         // algorithm
         #[cfg(feature = "algorithm")]
         if saver.layers.contains(TilemapLayer::PATH) {
-            if let Ok(path_tilemap) = path_tilemaps_query.get(entity) {
+            if let Some(path_tilemap) = path_tilemaps.lock(entity) {
                 match saver.mode {
                     TilemapSaverMode::Tilemap => {
                         save_object(&map_path, PATH_TILES, &path_tilemap.storage)

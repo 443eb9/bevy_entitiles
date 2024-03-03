@@ -2,7 +2,7 @@
 use std::{collections::VecDeque, path::Path};
 
 use bevy::{
-    ecs::{entity::Entity, query::Without},
+    ecs::{entity::Entity, query::Without, system::ResMut},
     log::warn,
     math::IVec2,
     prelude::{Commands, Component, Query, UVec2},
@@ -20,6 +20,7 @@ use crate::{
     math::{extension::TileIndex, TileArea},
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
+        algorithm::path::PathTilemap,
         bundles::StandardPureColorTilemapBundle,
         map::{
             TileRenderSize, TilemapAnimations, TilemapName, TilemapSlotSize, TilemapStorage,
@@ -30,11 +31,10 @@ use crate::{
     DEFAULT_CHUNK_SIZE,
 };
 
-#[cfg(feature = "algorithm")]
-use crate::tilemap::algorithm::path::PathTilemap;
-
 #[cfg(feature = "physics")]
 use crate::tilemap::physics::{PhysicsTilemap, SerializablePhysicsSource};
+
+use super::pathfinding::PathTilemaps;
 
 const DIR: [&'static str; 4] = ["up", "right", "left", "down"];
 const HEX_DIR: [&'static str; 6] = [
@@ -678,9 +678,7 @@ pub fn wfc_applier(
         &WfcData,
         &WfcSource,
     )>,
-    #[cfg(feature = "algorithm")] mut path_tilemaps_query: Query<
-        &mut crate::tilemap::algorithm::path::PathTilemap,
-    >,
+    mut path_tilemaps: ResMut<PathTilemaps>,
     #[cfg(feature = "physics")] mut physics_tilemaps_query: Query<
         &mut crate::tilemap::physics::PhysicsTilemap,
     >,
@@ -717,9 +715,8 @@ pub fn wfc_applier(
                         (wfc_data.elem_idx_to_grid(i) + wfc_data.area.origin) * p.tiles.aabb.size();
                     tilemap.fill_with_buffer(&mut commands, origin, p.tiles.clone());
 
-                    #[cfg(feature = "algorithm")]
-                    if let Ok(mut tilemap) = path_tilemaps_query.get_mut(entity) {
-                        tilemap.fill_with_buffer(origin, p.path_tiles.clone());
+                    if let Some(tilemap) = path_tilemaps.get_mut(entity) {
+                        tilemap.lock().unwrap().fill_with_buffer(origin, p.path_tiles.clone());
                     } else {
                         warn!("Skipping algorithm layers as the tilemap does not have a PathTilemap component!");
                     }
@@ -798,11 +795,10 @@ pub fn wfc_applier(
                             commands.entity(layer_entity).insert(bundle);
                         }
 
-                        #[cfg(feature = "algorithm")]
                         if !layer.path_tiles.is_empty() {
                             let mut path_tilemap = PathTilemap::new();
                             path_tilemap.fill_with_buffer(IVec2::ZERO, layer.path_tiles.clone());
-                            commands.entity(layer_entity).insert(path_tilemap);
+                            path_tilemaps.insert(layer_entity, path_tilemap);
                         }
 
                         #[cfg(feature = "physics")]

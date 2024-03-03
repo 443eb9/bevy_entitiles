@@ -1,6 +1,10 @@
 use bevy::{
     app::Update,
-    ecs::{entity::Entity, query::With, system::Query},
+    ecs::{
+        entity::Entity,
+        query::With,
+        system::{Query, ResMut},
+    },
     input::{keyboard::KeyCode, ButtonInput},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
@@ -8,6 +12,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
+    algorithm::pathfinding::PathTilemaps,
     math::TileArea,
     serializing::map::{
         load::TilemapLoader,
@@ -45,7 +50,11 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    assets_server: Res<AssetServer>,
+    mut path_tilemaps: ResMut<PathTilemaps>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -86,6 +95,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
             cost: rand::random::<u32>() % 10,
         })
     });
+    path_tilemaps.insert(entity, path_tilemap);
 
     let mut physics_tilemap = PhysicsTilemap::new();
     physics_tilemap.set(
@@ -104,9 +114,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         true,
     );
 
-    commands
-        .entity(entity)
-        .insert((tilemap, path_tilemap, physics_tilemap));
+    commands.entity(entity).insert((tilemap, physics_tilemap));
 }
 
 fn save_and_load(

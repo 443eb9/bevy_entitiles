@@ -26,8 +26,8 @@ use crate::{
 
 #[cfg(feature = "algorithm")]
 use crate::{
-    serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
-    tilemap::{algorithm::path::PathTilemap, buffers::PathTileBuffer},
+    algorithm::pathfinding::PathTilemaps, serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
+    tilemap::buffers::PathTileBuffer,
 };
 #[cfg(feature = "physics")]
 use crate::{
@@ -187,64 +187,64 @@ pub fn save_color_layer(
 
 #[cfg(feature = "algorithm")]
 pub fn save_path_layer(
-    mut tilemaps_query: Query<(Entity, &TilemapName, &mut PathTilemap), With<ScheduledSaveChunks>>,
+    mut tilemaps_query: Query<(Entity, &TilemapName), With<ScheduledSaveChunks>>,
     config: Res<ChunkSaveConfig>,
     mut cache: ResMut<ChunkSaveCache>,
+    path_tilemaps: Res<PathTilemaps>,
 ) {
-    tilemaps_query
-        .iter_mut()
-        .for_each(|(entity, name, mut path_tilemap)| {
-            let map_path = Path::new(&config.path).join(&name.0);
+    tilemaps_query.iter_mut().for_each(|(entity, name)| {
+        let mut path_tilemap = path_tilemaps.lock(entity).unwrap();
+        let map_path = Path::new(&config.path).join(&name.0);
 
-            (0..config.chunks_per_frame).into_iter().for_each(|_| {
-                let Some((chunk_index, remove_after_save)) =
-                    cache.pop_chunk(entity, TilemapLayer::PATH)
-                else {
-                    cache
-                        .0
-                        .get_mut(&entity)
-                        .unwrap()
-                        .remove(&TilemapLayer::PATH);
-                    return;
-                };
+        (0..config.chunks_per_frame).into_iter().for_each(|_| {
+            let Some((chunk_index, remove_after_save)) =
+                cache.pop_chunk(entity, TilemapLayer::PATH)
+            else {
+                cache
+                    .0
+                    .get_mut(&entity)
+                    .unwrap()
+                    .remove(&TilemapLayer::PATH);
+                return;
+            };
 
-                let Some(chunk) = path_tilemap.storage.get_chunk(chunk_index) else {
-                    return;
-                };
+            let Some(chunk) = path_tilemap.storage.get_chunk(chunk_index) else {
+                return;
+            };
 
-                let tiles = chunk
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(index, tile)| {
-                        tile.map(|t| {
-                            (
-                                IVec2 {
-                                    x: (index as u32 % path_tilemap.storage.chunk_size) as i32,
-                                    y: (index as u32 / path_tilemap.storage.chunk_size) as i32,
-                                },
-                                t,
-                            )
-                        })
+            let tiles = chunk
+                .iter()
+                .enumerate()
+                .filter_map(|(index, tile)| {
+                    tile.map(|t| {
+                        (
+                            IVec2 {
+                                x: (index as u32 % path_tilemap.storage.chunk_size) as i32,
+                                y: (index as u32 / path_tilemap.storage.chunk_size) as i32,
+                            },
+                            t,
+                        )
                     })
-                    .collect();
+                })
+                .collect();
 
-                save_object(
-                    &map_path.join(PATH_TILE_CHUNKS_FOLDER),
-                    format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                    &PathTileBuffer {
-                        tiles,
-                        aabb: IAabb2d {
-                            min: IVec2::ZERO,
-                            max: IVec2::splat(path_tilemap.storage.chunk_size as i32 - 1),
-                        },
+            save_object(
+                &map_path.join(PATH_TILE_CHUNKS_FOLDER),
+                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
+                &PathTileBuffer {
+                    tiles,
+                    aabb: IAabb2d {
+                        min: IVec2::ZERO,
+                        max: IVec2::splat(path_tilemap.storage.chunk_size as i32 - 1),
                     },
-                );
+                },
+            );
 
-                if remove_after_save {
-                    path_tilemap.storage.remove_chunk(chunk_index);
-                }
-            });
+            if remove_after_save {
+                path_tilemap.storage.remove_chunk(chunk_index);
+            }
         });
+    });
 }
 
 #[cfg(feature = "physics")]

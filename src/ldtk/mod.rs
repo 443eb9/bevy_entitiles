@@ -47,6 +47,9 @@ use self::{
     traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
 };
 
+#[cfg(feature = "algorithm")]
+use crate::algorithm::pathfinding::PathTilemaps;
+
 pub mod app_ext;
 pub mod components;
 pub mod events;
@@ -233,6 +236,7 @@ pub fn load_ldtk_json(
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut patterns: ResMut<LdtkPatterns>,
     global_entities: Res<LdtkGlobalEntityRegistry>,
+    #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, loader) in loader_query.iter() {
         let entity_registry = entity_registry.as_ref().map(|r| &**r);
@@ -261,6 +265,8 @@ pub fn load_ldtk_json(
             &mut ldtk_assets,
             &mut patterns,
             &global_entities,
+            #[cfg(feature = "algorithm")]
+            &mut path_tilemaps,
         );
 
         commands.entity(entity).remove::<LdtkLoader>();
@@ -281,6 +287,7 @@ fn load_levels(
     ldtk_assets: &mut LdtkAssets,
     patterns: &mut LdtkPatterns,
     global_entities: &LdtkGlobalEntityRegistry,
+    #[cfg(feature = "algorithm")] path_tilemaps: &mut PathTilemaps,
 ) {
     let ldtk_data = manager.get_cached_data();
 
@@ -360,6 +367,7 @@ fn load_levels(
         config,
         ldtk_assets,
         asset_server,
+        path_tilemaps,
     );
 
     ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {

@@ -26,7 +26,10 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 use crate::{
     serializing::map::PATH_TILES,
     tilemap::{algorithm::path::PathTilemap, chunking::storage::PathTileChunkedStorage},
+    algorithm::pathfinding::PathTilemaps,
 };
+#[cfg(feature = "algorithm")]
+use bevy::ecs::system::ResMut;
 
 #[cfg(feature = "physics")]
 use crate::{
@@ -55,6 +58,7 @@ pub fn load(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &TilemapLoader)>,
     asset_server: Res<AssetServer>,
+    #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
         let map_path = Path::new(&loader.path).join(&loader.map_name);
@@ -138,9 +142,7 @@ pub fn load(
                 continue;
             };
 
-            commands.entity(entity).insert(PathTilemap {
-                storage: path_storage,
-            });
+            path_tilemaps.insert(entity, PathTilemap { storage: path_storage });
         }
 
         // physics

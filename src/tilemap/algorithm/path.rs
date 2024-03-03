@@ -18,7 +18,7 @@ pub struct PathTile {
 impl Tiles for PathTile {}
 
 /// A tilemap for path-finding.
-#[derive(Component, Debug, Clone, Reflect)]
+#[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct PathTilemap {
     pub(crate) storage: PathTileChunkedStorage,

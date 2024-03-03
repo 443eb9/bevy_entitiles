@@ -1,9 +1,9 @@
-use std::{cmp::Ordering, collections::BinaryHeap, sync::Arc};
+use std::{cmp::Ordering, collections::BinaryHeap, sync::{Arc, Mutex, MutexGuard}};
 
 use bevy::{
     ecs::{
         entity::EntityHashMap,
-        system::{Commands, Query},
+        system::{Commands, Query, Res, Resource},
     },
     math::IVec2,
     prelude::{Component, Entity},
@@ -15,7 +15,39 @@ use bevy::{
 use crate::{
     math::extension::{ManhattanDistance, TileIndex},
     tilemap::{algorithm::path::PathTilemap, map::TilemapType},
-};
+}; 
+
+#[derive(Resource, Default)]
+pub struct PathTilemaps {
+    pub(crate) tilemaps: EntityHashMap<Arc<Mutex<PathTilemap>>>,
+}
+
+impl PathTilemaps {
+    #[inline]
+    pub fn get(&self, tilemap: Entity) -> Option<Arc<Mutex<PathTilemap>>> {
+        self.tilemaps.get(&tilemap).cloned()
+    }
+
+    #[inline]
+    pub fn lock(&self, tilemap: Entity) -> Option<MutexGuard<PathTilemap>> {
+        self.tilemaps.get(&tilemap).map(|t| t.lock().unwrap())
+    }
+
+    #[inline]
+    pub fn get_mut(&mut self, tilemap: Entity) -> Option<&mut Arc<Mutex<PathTilemap>>> {
+        self.tilemaps.get_mut(&tilemap)
+    }
+
+    #[inline]
+    pub fn insert(&mut self, tilemap: Entity, path_tilemap: PathTilemap) {
+        self.tilemaps.insert(tilemap, Arc::new(Mutex::new(path_tilemap)));
+    }
+
+    #[inline]
+    pub fn remove(&mut self, tilemap: Entity) {
+        self.tilemaps.remove(&tilemap);
+    }
+}
 
 #[derive(Component, Reflect)]
 pub struct PathFinder {
@@ -29,26 +61,15 @@ pub struct PathFinder {
 pub struct PathFindingQueue {
     pub(crate) finders: EntityHashMap<PathFinder>,
     pub(crate) tasks: EntityHashMap<Task<Path>>,
-    pub(crate) cache: Arc<PathTilemap>,
 }
 
 impl PathFindingQueue {
-    pub fn new(cache: PathTilemap) -> Self {
-        PathFindingQueue {
-            finders: EntityHashMap::default(),
-            tasks: EntityHashMap::default(),
-            cache: Arc::new(cache),
-        }
-    }
-
     pub fn new_with_schedules(
-        cache: PathTilemap,
         schedules: impl Iterator<Item = (Entity, PathFinder)>,
     ) -> Self {
         PathFindingQueue {
             finders: schedules.collect(),
             tasks: EntityHashMap::default(),
-            cache: Arc::new(cache),
         }
     }
 
@@ -60,16 +81,6 @@ impl PathFindingQueue {
     #[inline]
     pub fn schedule(&mut self, requester: Entity, pathfinder: PathFinder) {
         self.finders.insert(requester, pathfinder);
-    }
-
-    #[inline]
-    pub fn get_cache(&self) -> Arc<PathTilemap> {
-        self.cache.clone()
-    }
-
-    #[inline]
-    pub fn get_cache_mut(&mut self) -> &mut PathTilemap {
-        Arc::get_mut(&mut self.cache).unwrap()
     }
 }
 
@@ -160,7 +171,7 @@ pub struct PathGrid {
     pub all_nodes: HashMap<IVec2, PathNode>,
     pub steps: u32,
     pub max_steps: Option<u32>,
-    pub path_tilemap: Arc<PathTilemap>,
+    pub path_tilemap: Arc<Mutex<PathTilemap>>,
 }
 
 impl PathGrid {
@@ -168,7 +179,7 @@ impl PathGrid {
         finder: PathFinder,
         requester: Entity,
         tilemap: Entity,
-        path_tilemap: Arc<PathTilemap>,
+        path_tilemap: Arc<Mutex<PathTilemap>>,
     ) -> Self {
         PathGrid {
             requester,
@@ -189,7 +200,7 @@ impl PathGrid {
         if let Some(node) = self.all_nodes.get(&index) {
             Some(node.clone())
         } else {
-            self.path_tilemap.get(index).map(|tile| {
+            self.path_tilemap.lock().unwrap().get(index).map(|tile| {
                 let new = PathNode::new(index, u32::MAX, self.dest, tile.cost);
                 self.all_nodes.insert(index, new);
                 new
@@ -265,18 +276,19 @@ impl PathGrid {
 
 pub fn pathfinding_scheduler(
     mut queues_query: Query<(Entity, &TilemapType, &mut PathFindingQueue)>,
+    path_tilemaps: Res<PathTilemaps>,
 ) {
     let thread_pool = AsyncComputeTaskPool::get();
     queues_query
         .iter_mut()
         .for_each(|(tilemap, ty, mut queue)| {
             let mut tasks = Vec::new();
-            let path_tilemap = queue.cache.clone();
+            let path_tilemap = path_tilemaps.get(tilemap).unwrap();
             queue.finders.drain().for_each(|(requester, finder)| {
                 let ty = *ty;
                 let path_tilemap = path_tilemap.clone();
                 let task = thread_pool.spawn(async move {
-                    let mut grid = PathGrid::new(finder, requester, tilemap, path_tilemap.clone());
+                    let mut grid = PathGrid::new(finder, requester, tilemap, path_tilemap);
                     grid.find_path(ty);
                     grid.collect_path()
                 });
@@ -331,7 +343,7 @@ mod test {
             all_nodes: HashMap::new(),
             steps: 0,
             max_steps: None,
-            path_tilemap: Arc::new(path_tilemap),
+            path_tilemap: Arc::new(Mutex::new(path_tilemap)),
         };
 
         grid.find_path(TilemapType::Square);
