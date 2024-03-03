@@ -1,23 +1,20 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use bevy::{math::IVec2, prelude::Vec2, reflect::Reflect, render::render_resource::ShaderType};
+use bevy::{math::{IVec2, UVec2}, prelude::Vec2, reflect::Reflect, render::render_resource::ShaderType};
 
 use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 use super::{extension::Vec2Integerize, TileArea};
 
-#[derive(Clone, Copy, Default, Debug, Reflect, ShaderType)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct Aabb2d {
-    pub min: Vec2,
-    pub max: Vec2,
-}
-
-#[derive(Clone, Copy, Default, Debug, Reflect, ShaderType)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct IAabb2d {
-    pub min: IVec2,
-    pub max: IVec2,
+macro_rules! declare_aabb {
+    ($aabb_ty: ident, $data_ty: ty) => {
+        #[derive(Clone, Copy, Default, Debug, Reflect, ShaderType)]
+        #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+        pub struct $aabb_ty {
+            pub min: $data_ty,
+            pub max: $data_ty,
+        }
+    };
 }
 
 macro_rules! impl_aabb {
@@ -188,8 +185,13 @@ macro_rules! impl_aabb {
     };
 }
 
+declare_aabb!(Aabb2d, Vec2);
+declare_aabb!(IAabb2d, IVec2);
+declare_aabb!(UAabb2d, UVec2);
+
 impl_aabb!(Aabb2d, Vec2, f32);
 impl_aabb!(IAabb2d, IVec2, i32);
+impl_aabb!(UAabb2d, UVec2, u32);
 
 impl Aabb2d {
     pub fn from_tilemap(

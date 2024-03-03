@@ -13,7 +13,7 @@ use bevy::{
 };
 
 use crate::math::{
-    aabb::{Aabb2d, IAabb2d},
+    aabb::{Aabb2d, IAabb2d, UAabb2d},
     TileArea,
 };
 use crate::tilemap::tile::RawTileAnimation;
@@ -225,7 +225,7 @@ impl TilemapTexture {
         )
     }
 
-    /// Get the atlas rect  of a tile in uv coordinates.
+    /// Get the atlas rect of a tile in uv coordinates.
     pub fn get_atlas_rect(&self, index: u32) -> Aabb2d {
         let tile_count = self.desc.size / self.desc.tile_size;
         let tile_index = Vec2::new((index % tile_count.x) as f32, (index / tile_count.x) as f32);
@@ -233,6 +233,16 @@ impl TilemapTexture {
         Aabb2d {
             min: tile_index * tile_size,
             max: (tile_index + Vec2::ONE) * tile_size,
+        }
+    }
+
+    /// Get the atlas rect of a tile in pixel coordinates.
+    pub fn get_atlas_urect(&self, index: u32) -> UAabb2d {
+        let tile_count = self.desc.size / self.desc.tile_size;
+        let tile_index = UVec2::new(index % tile_count.x, index / tile_count.x);
+        UAabb2d {
+            min: tile_index * self.desc.tile_size,
+            max: (tile_index + 1) * self.desc.tile_size - 1,
         }
     }
 }
@@ -353,8 +363,8 @@ impl TilemapAabbs {
 pub struct TilemapStorage {
     pub(crate) tilemap: Entity,
     pub(crate) storage: EntityChunkedStorage,
-    pub reserved: HashMap<IVec2, Aabb2d>,
-    pub calc_queue: HashSet<IVec2>,
+    pub(crate) reserved: HashMap<IVec2, Aabb2d>,
+    pub(crate) calc_queue: HashSet<IVec2>,
 }
 
 impl TilemapStorage {
@@ -508,6 +518,8 @@ impl TilemapStorage {
     }
 
     /// Despawn the entire tilemap.
+    /// 
+    /// **Notice** this is the **only** and easiest way you can safely despawn the tilemap.
     #[inline]
     pub fn despawn(&mut self, commands: &mut Commands) {
         self.remove_all(commands);

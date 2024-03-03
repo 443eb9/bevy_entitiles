@@ -52,6 +52,7 @@ image = "0.24.7"
 default = []
 algorithm = ["dep:rand", "serializing", "dep:futures-lite"]
 atlas = []
+baking = []
 debug = ["bevy/bevy_gizmos"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 multi-threaded = ["bevy/multi-threaded"]
@@ -132,4 +133,4 @@ required-features = []
 [[example]]
 name = "baking"
 path = "examples/baking.rs"
-required-features = ["serializing"]
+required-features = ["baking"]

@@ -139,7 +139,7 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
                 entry_point: "tilemap_fragment".into(),
                 targets: vec![Some(ColorTargetState {
                     format: TextureFormat::bevy_default(),
-                    blend: Some(BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                    blend: Some(BlendState::ALPHA_BLENDING),
                     write_mask: ColorWrites::ALL,
                 })],
             }),

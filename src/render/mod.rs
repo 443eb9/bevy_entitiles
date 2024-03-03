@@ -8,6 +8,7 @@ use bevy::{
 };
 
 use crate::render::{
+    bake::{BakedTilemap, TilemapBaker},
     binding::TilemapBindGroupLayouts,
     buffer::TilemapStorageBuffers,
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
@@ -16,6 +17,8 @@ use crate::render::{
     texture::TilemapTexturesStorage,
 };
 
+#[cfg(feature = "baking")]
+pub mod bake;
 pub mod binding;
 pub mod buffer;
 pub mod chunk;
@@ -67,13 +70,18 @@ impl Plugin for EntiTilesRendererPlugin {
                 cull::cull_tilemaps,
                 texture::set_texture_usage,
                 material::standard_material_register,
+                #[cfg(feature = "baking")]
+                bake::tilemap_baker,
             ),
         );
 
         app.init_resource::<FrustumCulling>()
             .init_resource::<StandardTilemapMaterialSingleton>();
 
-        app.register_type::<UnloadRenderChunk>();
+        app.register_type::<UnloadRenderChunk>()
+            .register_type::<TilemapBaker>()
+            .register_type::<BakedTilemap>();
+        
         app.add_event::<ChunkUnload>();
 
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();

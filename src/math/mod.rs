@@ -93,6 +93,15 @@ impl TileArea {
     }
 
     #[inline]
+    pub fn from_min_max(min: IVec2, max: IVec2) -> Self {
+        Self {
+            origin: min,
+            extent: (max - min).as_uvec2() + 1,
+            dest: max,
+        }
+    }
+
+    #[inline]
     pub fn size(&self) -> usize {
         (self.extent.x * self.extent.y) as usize
     }
