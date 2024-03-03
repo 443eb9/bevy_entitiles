@@ -25,10 +25,7 @@ use crate::{
 use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
-use crate::{
-    serializing::map::PATH_TILES,
-    algorithm::pathfinding::PathTilemaps,
-};
+use crate::{algorithm::pathfinding::PathTilemaps, serializing::map::PATH_TILES};
 #[cfg(feature = "algorithm")]
 use bevy::ecs::system::Res;
 
@@ -153,7 +150,16 @@ pub fn save(
         // algorithm
         #[cfg(feature = "algorithm")]
         if saver.layers.contains(TilemapLayer::PATH) {
-            if let Some(path_tilemap) = path_tilemaps.lock(entity) {
+            loop {
+                #[cfg(feature = "multi-threaded")]
+                let Some(path_tilemap) = path_tilemaps.lock(entity) else {
+                    break;
+                };
+                #[cfg(not(feature = "multi-threaded"))]
+                let Some(path_tilemap) = path_tilemaps.get(entity) else {
+                    break;
+                };
+
                 match saver.mode {
                     TilemapSaverMode::Tilemap => {
                         save_object(&map_path, PATH_TILES, &path_tilemap.storage)
@@ -163,6 +169,7 @@ pub fn save(
                         pattern.path_tiles.recalculate_aabb();
                     }
                 }
+                break;
             }
         }
 

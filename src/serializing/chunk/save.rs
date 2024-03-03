@@ -190,10 +190,16 @@ pub fn save_path_layer(
     mut tilemaps_query: Query<(Entity, &TilemapName), With<ScheduledSaveChunks>>,
     config: Res<ChunkSaveConfig>,
     mut cache: ResMut<ChunkSaveCache>,
+    #[cfg(feature = "multi-threaded")]
     path_tilemaps: Res<PathTilemaps>,
+    #[cfg(not(feature = "multi-threaded"))]
+    mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     tilemaps_query.iter_mut().for_each(|(entity, name)| {
+        #[cfg(feature = "multi-threaded")]
         let mut path_tilemap = path_tilemaps.lock(entity).unwrap();
+        #[cfg(not(feature = "multi-threaded"))]
+        let path_tilemap = path_tilemaps.get_mut(entity).unwrap();
         let map_path = Path::new(&config.path).join(&name.0);
 
         (0..config.chunks_per_frame).into_iter().for_each(|_| {

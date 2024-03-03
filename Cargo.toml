@@ -20,7 +20,6 @@ bevy = { version = "0.13", default-features = false, features = [
     "bevy_asset",
     "png",
     "bevy_sprite",
-    "multi-threaded",
 ] }
 bevy_entitiles_derive = { version = "0.4", optional = true, path = "macros" }
 bevy_xpbd_2d = { version = "0.4", optional = true }
@@ -54,9 +53,10 @@ default = []
 algorithm = ["dep:rand", "serializing", "dep:futures-lite"]
 atlas = []
 debug = ["bevy/bevy_gizmos"]
+ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
+multi-threaded = ["bevy/multi-threaded"]
 physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
-ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 tiled = ["dep:serde", "dep:quick-xml", "dep:bevy_entitiles_derive"]
 
 [[example]]
@@ -72,6 +72,11 @@ required-features = []
 [[example]]
 name = "pathfinding"
 path = "examples/pathfinding.rs"
+required-features = ["algorithm", "multi-threaded"]
+
+[[example]]
+name = "pathfinding_single_threaded"
+path = "examples/pathfinding_single_threaded.rs"
 required-features = ["algorithm"]
 
 [[example]]

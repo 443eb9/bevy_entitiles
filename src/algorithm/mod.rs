@@ -25,9 +25,16 @@ impl Plugin for EntiTilesAlgorithmPlugin {
             Update,
             (
                 pathfinding::pathfinding_scheduler,
+                #[cfg(feature = "multi-threaded")]
                 pathfinding::path_assigner,
+                #[cfg(not(feature = "multi-threaded"))]
+                pathfinding::path_finding_single_threaded,
+                #[cfg(feature = "multi-threaded")]
                 wfc::wave_function_collapse,
+                #[cfg(feature = "multi-threaded")]
                 wfc::wfc_data_assigner,
+                #[cfg(not(feature = "multi-threaded"))]
+                wfc::wave_function_collapse_single_threaded,
                 wfc::wfc_applier,
                 #[cfg(feature = "ldtk")]
                 wfc::ldtk_wfc_helper,

@@ -40,15 +40,16 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 
 ## Feature Flags
 
-| Flag          | Funtionality                                                                            |
-| ------------- | --------------------------------------------------------------------------------------- |
-| `algorithm`   | Implementation of algorithms                                                            |
-| `atlas`       | Use calculated uv coordinates on a entire texture instead of using texture arrays.      |
-| `debug`       | Show some debug info including aabbs for chunks and tilemaps, path finding results etc. |
-| `ldtk`        | [LDtk](https://ldtk.io/) support.                                                       |
-| `physics`     | Physics support using [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd).              |
-| `serializing` | Save and load the tilemap from files. Also contains tools for upgrading files.          |
-| `tiled`       | [Tiled](https://www.mapeditor.org/) support.                                            |
+| Flag             | Funtionality                                                                            |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `algorithm`      | Implementation of algorithms                                                            |
+| `atlas`          | Use calculated uv coordinates on a entire texture instead of using texture arrays.      |
+| `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc. |
+| `ldtk`           | [LDtk](https://ldtk.io/) support.                                                       |
+| `multi-threaded` | Support algorithms to run asynchronously. Disable this if you are targeting wasm.       |
+| `physics`        | Physics support using [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd).              |
+| `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.          |
+| `tiled`          | [Tiled](https://www.mapeditor.org/) support.                                            |
 
 ## Coordinate Systems
 

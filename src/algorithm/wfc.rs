@@ -2,12 +2,11 @@
 use std::{collections::VecDeque, path::Path};
 
 use bevy::{
-    ecs::{entity::Entity, query::Without, system::ResMut},
+    ecs::{entity::Entity, system::ResMut},
     log::warn,
     math::IVec2,
     prelude::{Commands, Component, Query, UVec2},
     reflect::Reflect,
-    tasks::{AsyncComputeTaskPool, Task},
     utils::{HashMap, HashSet},
 };
 use rand::{
@@ -31,10 +30,16 @@ use crate::{
     DEFAULT_CHUNK_SIZE,
 };
 
+use super::pathfinding::PathTilemaps;
+
 #[cfg(feature = "physics")]
 use crate::tilemap::physics::{PhysicsTilemap, SerializablePhysicsSource};
 
-use super::pathfinding::PathTilemaps;
+#[cfg(feature = "multi-threaded")]
+use bevy::{
+    ecs::query::Without,
+    tasks::{AsyncComputeTaskPool, Task},
+};
 
 const DIR: [&'static str; 4] = ["up", "right", "left", "down"];
 const HEX_DIR: [&'static str; 6] = [
@@ -632,9 +637,11 @@ impl WfcGrid {
     }
 }
 
+#[cfg(feature = "multi-threaded")]
 #[derive(Component)]
 pub struct WfcTask(Task<Option<WfcData>>);
 
+#[cfg(feature = "multi-threaded")]
 pub fn wave_function_collapse(
     mut commands: Commands,
     mut runner_query: Query<(Entity, &mut WfcRunner), Without<WfcTask>>,
@@ -656,6 +663,27 @@ pub fn wave_function_collapse(
     });
 }
 
+#[cfg(not(feature = "multi-threaded"))]
+pub fn wave_function_collapse_single_threaded(
+    mut commands: Commands,
+    mut runner_query: Query<(Entity, &mut WfcRunner)>,
+) {
+    runner_query.iter_mut().for_each(|(entity, mut runner)| {
+        let mut wfc_grid = WfcGrid::from_runner(&mut runner);
+
+        while wfc_grid.remaining > 0 && wfc_grid.retraced_time < wfc_grid.max_retrace_time {
+            wfc_grid.collapse();
+        }
+        let data = wfc_grid.generate_data();
+
+        commands.entity(entity).remove::<WfcRunner>();
+        if let Some(data) = data {
+            commands.entity(entity).insert(data);
+        }
+    });
+}
+
+#[cfg(feature = "multi-threaded")]
 pub fn wfc_data_assigner(mut commands: Commands, mut tasks_query: Query<(Entity, &mut WfcTask)>) {
     tasks_query.iter_mut().for_each(|(entity, mut task)| {
         if let Some(data) = bevy::tasks::block_on(futures_lite::future::poll_once(&mut task.0)) {
@@ -716,7 +744,10 @@ pub fn wfc_applier(
                     tilemap.fill_with_buffer(&mut commands, origin, p.tiles.clone());
 
                     if let Some(tilemap) = path_tilemaps.get_mut(entity) {
+                        #[cfg(feature = "multi-threaded")]
                         tilemap.lock().unwrap().fill_with_buffer(origin, p.path_tiles.clone());
+                        #[cfg(not(feature = "multi-threaded"))]
+                        tilemap.fill_with_buffer(origin, p.path_tiles.clone());
                     } else {
                         warn!("Skipping algorithm layers as the tilemap does not have a PathTilemap component!");
                     }

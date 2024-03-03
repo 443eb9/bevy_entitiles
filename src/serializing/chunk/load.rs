@@ -169,7 +169,10 @@ pub fn load_path_layer(
     tilemaps_query
         .iter()
         .for_each(|(entity, name)| {
+            #[cfg(feature = "multi-threaded")]
             let path_tilemap = path_tilemaps.lock(entity).unwrap();
+            #[cfg(not(feature = "multi-threaded"))]
+            let path_tilemap = path_tilemaps.get(entity).unwrap();
             let chunk_size = path_tilemap.storage.chunk_size as i32;
             (0..config.chunks_per_frame).into_iter().for_each(|_| {
                 let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PATH) else {
