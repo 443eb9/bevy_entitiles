@@ -6,11 +6,17 @@ It's **NOT** recommended to use the code in the `dev` branch! There's full of in
 
 This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap)(Rendering) and [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk)(LDtk entity spawning)
 
-## Why `bevy_entitiles`
+## Why EntiTiles
 
 - **Up-to-date** Once the new version of bevy is released, `bevy_entitiles` will catch up *mostly* in 12 hours.
 - **Performant** Able to render 1000x1000 tilemaps at 200+fps on 10600KF + 3070.
 - **Various Built-in Stuff** Useful algorithms(pathfinding, WFC...) and tools(LDtk and Tiled importer...) are built in.
+
+## Warining!
+
+You should **NEVER** install the following versions! They contains critical bugs and are not recommended to use!
+
+**0.6.0**
 
 ## Limitations
 
