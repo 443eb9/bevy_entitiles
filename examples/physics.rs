@@ -100,7 +100,13 @@ fn setup(
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(
+            0,
+            TileLayer {
+                texture_index: 0,
+                ..Default::default()
+            },
+        ),
     );
 
     commands
@@ -130,7 +136,7 @@ fn setup(
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     let physics_data = DataPhysicsTilemap::new(

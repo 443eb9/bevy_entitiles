@@ -16,7 +16,7 @@ use crate::{
     tilemap::{
         bundles::StandardTilemapBundle,
         coordinates,
-        tile::{RawTileAnimation, TileBuilder, TileLayer},
+        tile::{RawTileAnimation, TileBuilder, TileFlip, TileLayer},
     },
 };
 
@@ -304,11 +304,18 @@ impl Tiles {
                 });
 
                 let mut builder = TileBuilder::new();
-                let mut layer = TileLayer::new();
+                let mut layer = TileLayer::default();
                 let mut tile_id = texture - first_gid;
                 if texture > i32::MAX as u32 {
                     let flip = texture >> 30;
-                    layer = layer.with_flip_raw(if flip == 3 { flip } else { flip ^ 3 });
+                    layer.flip = {
+                        if flip == 3 {
+                            TileFlip::from_bits(flip)
+                        } else {
+                            TileFlip::from_bits(flip ^ 3)
+                        }
+                        .unwrap()
+                    };
                     tile_id = (texture & 0x3FFF_FFFF) - first_gid;
                 }
 
@@ -324,7 +331,8 @@ impl Tiles {
                         },
                     ));
                 } else {
-                    builder = builder.with_layer(0, layer.with_texture_index(tile_id));
+                    layer.texture_index = tile_id as i32;
+                    builder = builder.with_layer(0, layer);
                 }
 
                 assert!(

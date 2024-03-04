@@ -24,7 +24,7 @@ use crate::{
             TileRenderSize, TilemapLayerOpacities, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapType,
         },
-        tile::{Tile, TileTexture},
+        tile::{Tile, TileLayer, TileTexture},
     },
     MAX_LAYER_COUNT,
 };
@@ -42,7 +42,7 @@ pub struct TilemapBaker {
 
 #[derive(Component, Reflect)]
 pub struct BakedTilemap {
-    pub mesh: Mesh,
+    pub size_px: UVec2,
     /// Ignore the `Option`, it's just used for taking the `Image` out without cloning.
     /// You can always unwrap this.
     pub texture: Option<Image>,
@@ -119,6 +119,7 @@ pub fn tilemap_baker(
                             None
                         }
                     })
+                    .rev()
                     .for_each(|(opacity, layer)| {
                         set_tile(
                             texture,
@@ -126,7 +127,7 @@ pub fn tilemap_baker(
                             rel_index,
                             target_size,
                             &mut bake_target,
-                            layer.texture_index as u32,
+                            layer,
                             opacity,
                         );
                     }),
@@ -137,7 +138,7 @@ pub fn tilemap_baker(
         });
 
         let baked_tilemap = BakedTilemap {
-            mesh: Rectangle::new(target_size.x as f32, target_size.y as f32).into(),
+            size_px: target_size,
             texture: Some(Image::new(
                 Extent3d {
                     width: target_size.x,
@@ -173,13 +174,14 @@ fn set_tile(
     rel_index: UVec2,
     target_size: UVec2,
     bake_target: &mut Vec<u8>,
-    texture_index: u32,
+    layer: &TileLayer,
     opacity: f32,
 ) {
-    let tile_px = texture.get_atlas_urect(texture_index);
+    let tile_px = texture.get_atlas_urect(layer.texture_index as u32);
+    let tile_size = tile_px.size();
 
-    for y in 0..texture.desc.tile_size.y {
-        for x in 0..texture.desc.tile_size.x {
+    for mut y in 0..texture.desc.tile_size.y {
+        for mut x in 0..texture.desc.tile_size.x {
             let tile_px_col = get_pixel(
                 &texture_image.data,
                 texture.desc.size,

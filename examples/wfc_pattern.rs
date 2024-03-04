@@ -79,7 +79,7 @@ fn setup(mut commands: Commands) {
                             y: (PATTERN_SIZE - 1 - y) as i32,
                         },
                         TileBuilder::new()
-                            .with_layer(0, TileLayer::new().with_texture_index(0))
+                            .with_layer(0, TileLayer::no_flip(0))
                             .with_color(Vec4::new(
                                 pixel[0] as f32 / 255.,
                                 pixel[1] as f32 / 255.,

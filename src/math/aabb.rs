@@ -316,7 +316,7 @@ impl Aabb2d {
 impl IAabb2d {
     #[inline]
     pub fn size(&self) -> IVec2 {
-        self.max - self.min + IVec2::ONE
+        self.max - self.min + 1
     }
 
     #[inline]
@@ -347,6 +347,13 @@ impl From<TileArea> for IAabb2d {
             min: value.origin,
             max: value.dest,
         }
+    }
+}
+
+impl UAabb2d {
+    #[inline]
+    pub fn size(&self) -> UVec2 {
+        self.max - self.min + 1
     }
 }
 

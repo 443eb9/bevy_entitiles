@@ -210,7 +210,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
                         .take(MAX_LAYER_COUNT)
                         .for_each(|(i, t)| {
                             texture_indices[i] = t.texture_index;
-                            flip[i] = t.flip;
+                            flip[i] = t.flip.bits();
                         });
                     IVec4::new(tile.index.x, tile.index.y, -1, -1)
                 }

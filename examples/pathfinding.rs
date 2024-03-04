@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use bevy::{
     app::Update,
-    ecs::{schedule::IntoSystemConfigs, system::{Query, ResMut}},
+    ecs::{
+        schedule::IntoSystemConfigs,
+        system::{Query, ResMut},
+    },
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
@@ -42,7 +45,11 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, assets_server: Res<AssetServer>, mut path_tilemaps: ResMut<PathTilemaps>) {
+fn setup(
+    mut commands: Commands,
+    assets_server: Res<AssetServer>,
+    mut path_tilemaps: ResMut<PathTilemaps>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -66,7 +73,13 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>, mut path_tilem
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 500, y: 500 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(
+            0,
+            TileLayer {
+                texture_index: 0,
+                ..Default::default()
+            },
+        ),
     );
 
     let mut path_tilemap = PathTilemap::new();
@@ -94,9 +107,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>, mut path_tilem
 
     let pathfinding_queue = PathFindingQueue::new_with_schedules(queue);
 
-    commands
-        .entity(entity)
-        .insert((tilemap, pathfinding_queue));
+    commands.entity(entity).insert((tilemap, pathfinding_queue));
 }
 
 fn detect(queues_query: Query<&PathFindingQueue>) {

@@ -63,7 +63,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::splat(-500), UVec2::splat(1000)),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     commands.entity(entity).insert(tilemap);

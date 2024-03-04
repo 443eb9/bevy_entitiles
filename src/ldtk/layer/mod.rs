@@ -21,7 +21,7 @@ use crate::{
             TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTransform, TilemapType,
         },
-        tile::{TileBuilder, TileLayer, TileTexture},
+        tile::{TileBuilder, TileFlip, TileLayer, TileTexture},
     },
     DEFAULT_CHUNK_SIZE,
 };
@@ -176,7 +176,7 @@ impl<'a> LdtkLayers<'a> {
                 }
             },
         };
-        let texture_index = tile.tile_id as u32;
+        let texture_index = tile.tile_id;
 
         if let Some(ser_tile) = pattern.tiles.get_mut(tile_index) {
             let TileTexture::Static(tile_layers) = &mut ser_tile.texture else {
@@ -185,19 +185,25 @@ impl<'a> LdtkLayers<'a> {
                     tile_index
                 );
             };
-            tile_layers.push(TileLayer::new().with_texture_index(texture_index));
+            tile_layers.push(TileLayer {
+                texture_index,
+                ..Default::default()
+            });
         } else {
             let mut builder = TileBuilder::new().with_color(Vec4::new(1., 1., 1., tile.alpha));
-            builder = if let Some(anim) = config.animation_mapper.get(&texture_index) {
-                let animation = pattern.animations.register(anim.clone());
-                builder.with_animation(animation)
-            } else {
-                builder.with_layer(
-                    0,
-                    TileLayer::new()
-                        .with_texture_index(texture_index)
-                        .with_flip_raw(tile.flip as u32),
-                )
+            builder = {
+                if let Some(anim) = config.animation_mapper.get(&(texture_index as u32)) {
+                    let animation = pattern.animations.register(anim.clone());
+                    builder.with_animation(animation)
+                } else {
+                    builder.with_layer(
+                        0,
+                        TileLayer {
+                            texture_index,
+                            flip: TileFlip::from_bits(tile.flip as u32).unwrap(),
+                        },
+                    )
+                }
             };
 
             pattern.tiles.tiles.insert(tile_index, builder);

@@ -16,7 +16,7 @@ use bevy_entitiles::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
         },
-        tile::{LayerUpdater, TileBuilder, TileFlip, TileLayer, TileLayerPosition, TileUpdater},
+        tile::{LayerUpdater, TileBuilder, TileLayer, TileLayerPosition, TileUpdater},
     },
     EntiTilesPlugin,
 };
@@ -68,14 +68,14 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new()
-            .with_layer(0, TileLayer::new().with_texture_index(1))
+            .with_layer(0, TileLayer::no_flip(1))
             .with_color(Vec4::new(0.8, 1., 0.8, 0.5)),
     );
 
@@ -83,41 +83,26 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &mut commands,
         IVec2 { x: 18, y: 8 },
         TileBuilder::new()
-            .with_layer(0, TileLayer::new().with_texture_index(0))
+            .with_layer(0, TileLayer::no_flip(0))
             .with_color(Color::BLUE.rgba_to_vec4()),
     );
 
     tilemap.storage.set(
         &mut commands,
         IVec2 { x: 1, y: 1 },
-        TileBuilder::new().with_layer(
-            1,
-            TileLayer::new()
-                .with_texture_index(1)
-                .with_flip(TileFlip::Horizontal),
-        ),
+        TileBuilder::new().with_layer(1, TileLayer::flip_h(1)),
     );
 
     tilemap.storage.set(
         &mut commands,
         IVec2 { x: 1, y: 2 },
-        TileBuilder::new().with_layer(
-            0,
-            TileLayer::new()
-                .with_texture_index(1)
-                .with_flip(TileFlip::Vertical),
-        ),
+        TileBuilder::new().with_layer(0, TileLayer::flip_v(1)),
     );
 
     tilemap.storage.set(
         &mut commands,
         IVec2 { x: 1, y: 3 },
-        TileBuilder::new().with_layer(
-            0,
-            TileLayer::new()
-                .with_texture_index(1)
-                .with_flip(TileFlip::Both),
-        ),
+        TileBuilder::new().with_layer(0, TileLayer::flip_both(1)),
     );
 
     tilemap.storage.update_rect(
@@ -126,7 +111,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileUpdater {
             layer: Some(LayerUpdater {
                 position: TileLayerPosition::Top,
-                layer: TileLayer::new().with_texture_index(3),
+                layer: TileLayer::no_flip(3),
             }),
             ..Default::default()
         },
@@ -160,7 +145,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     commands.entity(entity).insert(tilemap);
@@ -183,7 +168,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new()
-            .with_layer(0, TileLayer::new().with_texture_index(0))
+            .with_layer(0, TileLayer::no_flip(0))
             .with_color(Vec4::new(1., 1., 0., 1.)),
     );
 

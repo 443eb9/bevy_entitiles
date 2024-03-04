@@ -80,13 +80,13 @@ fn setup(
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     let mut path_tilemap = PathTilemap::new();

@@ -1,5 +1,6 @@
 # What's New:
 
+- Added `TilemapBaker` which allows you to bake the tilemap into a single texture at runtime.
 - Manually toggle the visibility of tilemaps.
 - update dev-dependencies to bevy 0.13-compatible versions #16 
 - Add `SpatialBundle` as default for Tiled objects even without `spawn_sprite`.
@@ -8,6 +9,8 @@
 - Some render code cleanup.
 - Tilemap z indices are now using `f32` instead of `i32`.
 - Pathfinding rework. Use `PathTilemaps` instead.
+- Transform `TileFlip` into bitflags, and make fields in `TileLayer` public.
+- Some helper functions for `TileLayer` to help create a layer neater.
 
 # What's Fixed:
 

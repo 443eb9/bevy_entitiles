@@ -68,20 +68,15 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::from_min_max(IVec2::ZERO, IVec2::splat(4)),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::from_min_max(IVec2::new(5, 0), IVec2::new(9, 4)),
         TileBuilder::new()
-            .with_layer(0, TileLayer::new().with_texture_index(0))
-            .with_layer(
-                1,
-                TileLayer::new()
-                    .with_texture_index(1)
-                    .with_flip(TileFlip::Horizontal),
-            )
+            .with_layer(0, TileLayer::no_flip(0))
+            .with_layer(1, TileLayer::flip_h(1))
             .with_color(Color::rgba_u8(68, 62, 185, 64).rgba_to_vec4()),
     );
 
@@ -89,17 +84,17 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         &mut commands,
         TileArea::new(IVec2::new(10, 0), UVec2::splat(5)),
         TileBuilder::new()
-            .with_layer(0, TileLayer::new().with_texture_index(0))
-            .with_layer(1, TileLayer::new().with_texture_index(1))
-            .with_layer(2, TileLayer::new().with_texture_index(2))
-            .with_layer(3, TileLayer::new().with_texture_index(3))
+            .with_layer(0, TileLayer::no_flip(0))
+            .with_layer(1, TileLayer::no_flip(1))
+            .with_layer(2, TileLayer::no_flip(2))
+            .with_layer(3, TileLayer::no_flip(3))
             .with_color(Color::ORANGE_RED.rgba_to_vec4()),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::new(0, 10), UVec2::splat(10)),
-        TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(2)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(2)),
     );
 
     commands.entity(entity).insert((
@@ -122,7 +117,7 @@ fn fetch_bake_result(
 
     commands.spawn(SpriteBundle {
         sprite: Sprite {
-            custom_size: Some(Vec2::splat(32.)),
+            custom_size: Some(baked.size_px.as_vec2()),
             ..Default::default()
         },
         texture: images.add(baked.texture.take().unwrap()),

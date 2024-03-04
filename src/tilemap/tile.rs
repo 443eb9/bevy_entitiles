@@ -11,35 +11,55 @@ use super::{buffers::Tiles, map::TilemapStorage};
 /// A tile layer. This is the logical representation of a tile layer.
 /// Not all the layers you added to a tile will be taken into consideration
 /// when rendering. Only the top 4 layers will be rendered.
-#[derive(Debug, Default, Clone, Copy, Reflect)]
+#[derive(Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileLayer {
-    pub(crate) texture_index: i32,
-    pub(crate) flip: u32,
+    pub texture_index: i32,
+    #[reflect(ignore)]
+    pub flip: TileFlip,
+}
+
+impl Default for TileLayer {
+    /// The default empty layer.
+    fn default() -> Self {
+        Self {
+            texture_index: -1,
+            flip: Default::default(),
+        }
+    }
 }
 
 impl TileLayer {
-    pub fn new() -> Self {
+    #[inline]
+    pub fn no_flip(texture_index: i32) -> Self {
         Self {
-            texture_index: -1,
-            flip: 0,
+            texture_index,
+            flip: TileFlip::NONE,
         }
     }
 
-    pub fn with_texture_index(mut self, texture_index: u32) -> Self {
-        self.texture_index = texture_index as i32;
-        self
+    #[inline]
+    pub fn flip_h(texture_index: i32) -> Self {
+        Self {
+            texture_index,
+            flip: TileFlip::HORIZONTAL,
+        }
     }
 
-    pub fn with_flip(mut self, flip: TileFlip) -> Self {
-        self.flip |= flip as u32;
-        self
+    #[inline]
+    pub fn flip_v(texture_index: i32) -> Self {
+        Self {
+            texture_index,
+            flip: TileFlip::VERTICAL,
+        }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn with_flip_raw(mut self, flip: u32) -> Self {
-        self.flip = flip;
-        self
+    #[inline]
+    pub fn flip_both(texture_index: i32) -> Self {
+        Self {
+            texture_index,
+            flip: TileFlip::BOTH,
+        }
     }
 }
 
@@ -65,25 +85,21 @@ pub struct TileUpdater {
     pub color: Option<Vec4>,
 }
 
-/// The flip of a tile. This is actually bit flags.
-#[repr(u32)]
-#[derive(Debug, Clone, Copy, Reflect)]
-pub enum TileFlip {
-    None = 0b00,
-    Horizontal = 0b01,
-    Vertical = 0b10,
-    Both = 0b11,
+bitflags::bitflags! {
+    /// The flip of a tile.
+    #[derive(Debug, Clone, Copy)]
+    #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
+    pub struct TileFlip: u32 {
+        const NONE = 0b00;
+        const HORIZONTAL = 0b01;
+        const VERTICAL = 0b10;
+        const BOTH = 0b11;
+    }
 }
 
-impl From<u32> for TileFlip {
-    fn from(value: u32) -> Self {
-        match value {
-            0b00 => Self::None,
-            0b01 => Self::Horizontal,
-            0b10 => Self::Vertical,
-            0b11 => Self::Both,
-            _ => panic!("Invalid flip value! {}", value),
-        }
+impl Default for TileFlip {
+    fn default() -> Self {
+        Self::NONE
     }
 }
 
@@ -113,15 +129,15 @@ impl TileBuilder {
     }
 
     /// Set the specific layer of the tile.
-    /// 
+    ///
     /// You don't need to worry about the index of the layer. If the index is greater than the current
     /// layer count, the layer vector will be automatically resized.
-    /// 
+    ///
     /// Notice that you can only add one animation to a tile or multiple static layers.
     pub fn with_layer(mut self, index: usize, layer: TileLayer) -> Self {
         if let TileTexture::Static(ref mut tex) = self.texture {
             if tex.len() <= index {
-                tex.resize(index + 1, TileLayer::new());
+                tex.resize(index + 1, TileLayer::default());
             }
             tex[index] = layer;
         }
@@ -129,7 +145,7 @@ impl TileBuilder {
     }
 
     /// Set the animation of the tile.
-    /// 
+    ///
     /// Notice that you can only add one animation to a tile or multiple static layers.
     pub fn with_animation(mut self, animation: TileAnimation) -> Self {
         self.texture = TileTexture::Animated(animation);
@@ -219,7 +235,7 @@ pub fn tile_updater(
                         }
                         TileLayerPosition::Index(i) => {
                             if i >= tex.len() {
-                                tex.resize(i + 1, TileLayer::new());
+                                tex.resize(i + 1, TileLayer::default());
                             }
                             tex[i] = layer.layer;
                         }

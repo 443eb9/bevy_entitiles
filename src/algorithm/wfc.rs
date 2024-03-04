@@ -168,7 +168,13 @@ impl WfcSource {
         let tiles = (0..conn_rules.0.len())
             .into_iter()
             .map(|r| {
-                TileBuilder::new().with_layer(0, TileLayer::new().with_texture_index(r as u32))
+                TileBuilder::new().with_layer(
+                    0,
+                    TileLayer {
+                        texture_index: r as i32,
+                        ..Default::default()
+                    },
+                )
             })
             .collect();
         Self::SingleTile(tiles)
