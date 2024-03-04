@@ -3,16 +3,14 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::With,
         system::{Commands, Query, Res},
     },
     log::warn,
-    math::{primitives::Rectangle, IVec2, UVec2, Vec3, Vec4},
+    math::{IVec2, UVec2, Vec2, Vec4, Vec4Swizzles},
     reflect::Reflect,
     render::{
-        mesh::Mesh,
         render_asset::RenderAssetUsages,
-        render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat},
+        render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::{BevyDefault, Image},
     },
 };
@@ -22,9 +20,8 @@ use crate::{
     tilemap::{
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapType,
         },
-        tile::{Tile, TileLayer, TileTexture},
+        tile::{Tile, TileFlip, TileLayer, TileTexture},
     },
     MAX_LAYER_COUNT,
 };
@@ -32,17 +29,16 @@ use crate::{
 /// A component that marks an tilemap entity to be baked into a **static** quad mesh.
 #[derive(Component, Reflect)]
 pub struct TilemapBaker {
-    /// If true, the baked tilemap will be saved as `BakedTilemap` and add back to the tilemap entity.
-    ///
-    /// If `remove_after_done` is also true, the component will be added to a new entity.
-    pub into_data: bool,
-    /// If true, the tilemap entity will be removed after the baking is done.
+    /// If true, the tilemap entity will be removed after the baking is done,
+    /// and the baked tilemap will be spawned as a new entity.
     pub remove_after_done: bool,
 }
 
 #[derive(Component, Reflect)]
 pub struct BakedTilemap {
     pub size_px: UVec2,
+    pub slot_size: Vec2,
+    pub tile_render_size: Vec2,
     /// Ignore the `Option`, it's just used for taking the `Image` out without cloning.
     /// You can always unwrap this.
     pub texture: Option<Image>,
@@ -52,8 +48,8 @@ pub fn tilemap_baker(
     mut commands: Commands,
     mut tilemaps_query: Query<(
         Entity,
+        &TileRenderSize,
         &TilemapSlotSize,
-        &TilemapType,
         &mut TilemapStorage,
         &TilemapLayerOpacities,
         &TilemapTexture,
@@ -62,7 +58,7 @@ pub fn tilemap_baker(
     tiles_query: Query<&Tile>,
     image_assets: Res<Assets<Image>>,
 ) {
-    for (tilemap_entity, slot_size, tilemap_ty, mut storage, opacities, texture, baker) in
+    for (tilemap_entity, tile_render_size, slot_size, mut storage, opacities, texture, baker) in
         &mut tilemaps_query
     {
         let chunk_size = storage.storage.chunk_size as i32;
@@ -114,12 +110,11 @@ pub fn tilemap_baker(
                     .enumerate()
                     .filter_map(|(i, l)| {
                         if l.texture_index >= 0 {
-                            Some((opacities.0[MAX_LAYER_COUNT - i - 1], l))
+                            Some((opacities.0[i], l))
                         } else {
                             None
                         }
                     })
-                    .rev()
                     .for_each(|(opacity, layer)| {
                         set_tile(
                             texture,
@@ -135,10 +130,14 @@ pub fn tilemap_baker(
                     warn!("Skipping animated tile at {:?}", tile_index);
                 }
             };
+
+            set_tile_color(texture, rel_index, target_size, &mut bake_target, tile.tint);
         });
 
         let baked_tilemap = BakedTilemap {
             size_px: target_size,
+            slot_size: slot_size.0,
+            tile_render_size: tile_render_size.0,
             texture: Some(Image::new(
                 Extent3d {
                     width: target_size.x,
@@ -154,16 +153,11 @@ pub fn tilemap_baker(
 
         commands.entity(tilemap_entity).remove::<TilemapBaker>();
 
-        if baker.into_data {
-            if baker.remove_after_done {
-                commands.spawn(baked_tilemap);
-            } else {
-                commands.entity(tilemap_entity).insert(baked_tilemap);
-            }
-        }
-
         if baker.remove_after_done {
             storage.despawn(&mut commands);
+            commands.spawn(baked_tilemap);
+        } else {
+            commands.entity(tilemap_entity).insert(baked_tilemap);
         }
     }
 }
@@ -178,10 +172,16 @@ fn set_tile(
     opacity: f32,
 ) {
     let tile_px = texture.get_atlas_urect(layer.texture_index as u32);
-    let tile_size = tile_px.size();
 
     for mut y in 0..texture.desc.tile_size.y {
         for mut x in 0..texture.desc.tile_size.x {
+            if layer.flip.contains(TileFlip::HORIZONTAL) {
+                x = texture.desc.tile_size.x - x - 1;
+            }
+            if layer.flip.contains(TileFlip::VERTICAL) {
+                y = texture.desc.tile_size.y - y - 1;
+            }
+
             let tile_px_col = get_pixel(
                 &texture_image.data,
                 texture.desc.size,
@@ -206,33 +206,57 @@ fn set_tile(
     }
 }
 
-fn set_pixel(buffer: &mut Vec<u8>, mut image_size: UVec2, pos: UVec2, value: [u8; 4]) {
-    image_size.x *= 4;
-    let index = (pos.y * image_size.x + pos.x * 4) as usize;
-    buffer[index..index + 4].copy_from_slice(&value);
+fn set_tile_color(
+    texture: &TilemapTexture,
+    rel_index: UVec2,
+    target_size: UVec2,
+    bake_target: &mut Vec<u8>,
+    color: Vec4,
+) {
+    for y in 0..texture.desc.tile_size.y {
+        for x in 0..texture.desc.tile_size.x {
+            let map_px_col = get_pixel(
+                bake_target,
+                target_size,
+                rel_index * texture.desc.tile_size + UVec2 { x, y },
+            );
+
+            set_pixel(
+                bake_target,
+                target_size,
+                rel_index * texture.desc.tile_size + UVec2 { x, y },
+                tint(map_px_col, color),
+            );
+        }
+    }
 }
 
-fn get_pixel(buffer: &Vec<u8>, mut image_size: UVec2, pos: UVec2) -> [u8; 4] {
+fn set_pixel(buffer: &mut Vec<u8>, mut image_size: UVec2, pos: UVec2, value: Vec4) {
     image_size.x *= 4;
     let index = (pos.y * image_size.x + pos.x * 4) as usize;
-    [
-        buffer[index],
-        buffer[index + 1],
-        buffer[index + 2],
-        buffer[index + 3],
-    ]
+    buffer[index] = (value[0] * 255.) as u8;
+    buffer[index + 1] = (value[1] * 255.) as u8;
+    buffer[index + 2] = (value[2] * 255.) as u8;
+    buffer[index + 3] = (value[3] * 255.) as u8;
 }
 
-fn alpha_blend(a: [u8; 4], b: [u8; 4], opacity: f32) -> [u8; 4] {
-    let a = Vec4::new(a[0] as f32, a[1] as f32, a[2] as f32, a[3] as f32) / 255.;
-    let b = Vec4::new(b[0] as f32, b[1] as f32, b[2] as f32, b[3] as f32) / 255.;
+fn get_pixel(buffer: &Vec<u8>, mut image_size: UVec2, pos: UVec2) -> Vec4 {
+    image_size.x *= 4;
+    let index = (pos.y * image_size.x + pos.x * 4) as usize;
+    Vec4::new(
+        buffer[index] as f32 / 255.,
+        buffer[index + 1] as f32 / 255.,
+        buffer[index + 2] as f32 / 255.,
+        buffer[index + 3] as f32 / 255.,
+    )
+}
 
-    let result = a.lerp(b, b.w * opacity);
+fn alpha_blend(a: Vec4, b: Vec4, opacity: f32) -> Vec4 {
+    let a = Vec4::new(a[0], a[1], a[2], a[3]);
+    let b = Vec4::new(b[0], b[1], b[2], b[3]);
+    a.lerp(b, opacity)
+}
 
-    [
-        (result.x * 255.) as u8,
-        (result.y * 255.) as u8,
-        (result.z * 255.) as u8,
-        (result.w * 255.) as u8,
-    ]
+fn tint(color: Vec4, tint_linear: Vec4) -> Vec4 {
+    color * tint_linear.xyz().powf(2.2).extend(tint_linear.w)
 }

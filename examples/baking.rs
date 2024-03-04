@@ -7,7 +7,11 @@ use bevy::{
         system::{Commands, Query, Res, ResMut},
     },
     math::{IVec2, UVec2, Vec2, Vec4},
-    render::{color::Color, render_resource::FilterMode, texture::Image},
+    render::{
+        color::Color,
+        render_resource::FilterMode,
+        texture::{Image, ImagePlugin},
+    },
     sprite::{Sprite, SpriteBundle},
     window::{PresentMode, Window, WindowPlugin},
     DefaultPlugins,
@@ -21,7 +25,7 @@ use bevy_entitiles::{
             TileRenderSize, TilemapLayerOpacities, TilemapRotation, TilemapSlotSize,
             TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapType,
         },
-        tile::{TileBuilder, TileFlip, TileLayer},
+        tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
 };
@@ -32,13 +36,15 @@ mod helpers;
 fn main() {
     App::new()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    present_mode: PresentMode::Immediate,
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        present_mode: PresentMode::Immediate,
+                        ..Default::default()
+                    }),
                     ..Default::default()
-                }),
-                ..Default::default()
-            }),
+                })
+                .set(ImagePlugin::default_nearest()),
             EntiTilesPlugin,
             EntiTilesHelpersPlugin { inspector: true },
         ))
@@ -100,7 +106,6 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
     commands.entity(entity).insert((
         tilemap,
         TilemapBaker {
-            into_data: true,
             remove_after_done: true,
         },
     ));

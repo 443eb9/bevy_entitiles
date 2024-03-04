@@ -116,7 +116,7 @@ pub fn load(
                                 .storage
                                 .inverse_transform_index(chunk_index, in_chunk_index),
                             texture: tile.texture.clone(),
-                            color: tile.color,
+                            tint: tile.color,
                         },
                     ));
                 });

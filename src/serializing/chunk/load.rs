@@ -146,7 +146,7 @@ pub fn load_color_layer(
                                 in_chunk_index: in_chunk_index_vec,
                                 index: chunk_origin + in_chunk_index,
                                 texture: tile.texture,
-                                color: tile.color,
+                                tint: tile.color,
                             },
                         ));
                         entities[in_chunk_index_vec] = Some(e);

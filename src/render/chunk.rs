@@ -226,7 +226,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         self.tiles[index] = Some(MeshTileData {
             index: tile_index,
             texture_indices,
-            color: tile.color,
+            color: tile.tint,
             flip,
         });
         self.dirty_mesh = true;

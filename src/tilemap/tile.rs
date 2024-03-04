@@ -165,7 +165,7 @@ impl TileBuilder {
             in_chunk_index: indices.1,
             index,
             texture: self.texture.clone(),
-            color: self.color,
+            tint: self.color,
         }
     }
 }
@@ -203,7 +203,7 @@ pub struct Tile {
     pub in_chunk_index: usize,
     pub index: IVec2,
     pub texture: TileTexture,
-    pub color: Vec4,
+    pub tint: Vec4,
 }
 
 impl Tiles for Tile {}
@@ -212,7 +212,7 @@ impl Into<TileBuilder> for Tile {
     fn into(self) -> TileBuilder {
         TileBuilder {
             texture: self.texture,
-            color: self.color,
+            color: self.tint,
         }
     }
 }
@@ -243,7 +243,7 @@ pub fn tile_updater(
                 }
             }
             if let Some(color) = updater.color {
-                tile.color = color;
+                tile.tint = color;
             }
             commands.command_scope(|mut c| {
                 c.entity(entity).remove::<TileUpdater>();

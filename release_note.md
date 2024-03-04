@@ -9,6 +9,7 @@
 - Some render code cleanup.
 - Tilemap z indices are now using `f32` instead of `i32`.
 - Pathfinding rework. Use `PathTilemaps` instead.
+- Single threaded algorithm implementations for special cases. Disable `multi-threaded` feature to use them.
 - Transform `TileFlip` into bitflags, and make fields in `TileLayer` public.
 - Some helper functions for `TileLayer` to help create a layer neater.
 
@@ -16,3 +17,4 @@
 
 - Tiled map loaded with the wrong z order.
 - `algorithm` module cannot be compiled on wasm (Error compiling for webassembly #17)
+- The message of tilemap pipeline error is annoying.

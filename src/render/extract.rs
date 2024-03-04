@@ -172,7 +172,7 @@ pub fn extract_tiles(
                         in_chunk_index: tile.in_chunk_index,
                         index: tile.index,
                         texture: tile.texture.clone(),
-                        color: tile.color,
+                        tint: tile.tint,
                     },
                 )
             })
