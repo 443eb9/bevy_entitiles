@@ -26,15 +26,17 @@ use super::TILE_CHUNKS_FOLDER;
 
 #[cfg(feature = "algorithm")]
 use crate::{
-    serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
+    algorithm::pathfinding::PathTilemaps, serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
     tilemap::buffers::PathTileBuffer,
-    algorithm::pathfinding::PathTilemaps,
 };
 #[cfg(feature = "physics")]
 use crate::{
     serializing::chunk::PHYSICS_TILE_CHUNKS_FOLDER,
     tilemap::{buffers::PackedPhysicsTileBuffer, physics::PhysicsTilemap},
 };
+
+#[cfg(any(feature = "algorithm", feature = "physics"))]
+use bevy::log::error;
 
 #[derive(Component)]
 pub struct ScheduledLoadChunks;
@@ -146,7 +148,7 @@ pub fn load_color_layer(
                                 in_chunk_index: in_chunk_index_vec,
                                 index: chunk_origin + in_chunk_index,
                                 texture: tile.texture,
-                                tint: tile.color,
+                                tint: tile.tint,
                             },
                         ));
                         entities[in_chunk_index_vec] = Some(e);
@@ -164,42 +166,47 @@ pub fn load_path_layer(
     tilemaps_query: Query<(Entity, &TilemapName), With<ScheduledLoadChunks>>,
     config: Res<ChunkLoadConfig>,
     mut cache: ResMut<ChunkLoadCache>,
-    path_tilemaps: Res<PathTilemaps>
+    path_tilemaps: Res<PathTilemaps>,
 ) {
-    tilemaps_query
-        .iter()
-        .for_each(|(entity, name)| {
+    tilemaps_query.iter().for_each(|(entity, name)| {
+        (0..config.chunks_per_frame).into_iter().for_each(|_| {
+            let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PATH) else {
+                cache
+                    .0
+                    .get_mut(&entity)
+                    .unwrap()
+                    .remove(&TilemapLayer::PATH);
+                return;
+            };
+
             #[cfg(feature = "multi-threaded")]
-            let path_tilemap = path_tilemaps.lock(entity).unwrap();
+            let Some(path_tilemap) = path_tilemaps.lock(entity) else {
+                error!("PathTilemap not found for entity: {:?}, skipping.", entity);
+                return;
+            };
             #[cfg(not(feature = "multi-threaded"))]
-            let path_tilemap = path_tilemaps.get(entity).unwrap();
+            let Some(path_tilemap) = path_tilemaps.get(entity) else {
+                error!("PathTilemap not found for entity: {:?}, skipping.", entity);
+                return;
+            };
+
+            let Ok(chunk) = load_object::<PathTileBuffer>(
+                &Path::new(&config.path)
+                    .join(&name.0)
+                    .join(PATH_TILE_CHUNKS_FOLDER),
+                format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
+            ) else {
+                return;
+            };
+
             let chunk_size = path_tilemap.storage.chunk_size as i32;
-            (0..config.chunks_per_frame).into_iter().for_each(|_| {
-                let Some(chunk_index) = cache.pop_chunk(entity, TilemapLayer::PATH) else {
-                    cache
-                        .0
-                        .get_mut(&entity)
-                        .unwrap()
-                        .remove(&TilemapLayer::PATH);
-                    return;
-                };
-
-                let Ok(chunk) = load_object::<PathTileBuffer>(
-                    &Path::new(&config.path)
-                        .join(&name.0)
-                        .join(PATH_TILE_CHUNKS_FOLDER),
-                    format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
-                ) else {
-                    return;
-                };
-
-                let mut c = vec![None; (chunk_size * chunk_size) as usize];
-                chunk.tiles.into_iter().for_each(|(in_chunk_index, tile)| {
-                    c[(in_chunk_index.y * chunk_size + in_chunk_index.x) as usize] = Some(tile);
-                });
-                path_tilemap.storage.get_chunk(chunk_index).replace(&c);
+            let mut c = vec![None; (chunk_size * chunk_size) as usize];
+            chunk.tiles.into_iter().for_each(|(in_chunk_index, tile)| {
+                c[(in_chunk_index.y * chunk_size + in_chunk_index.x) as usize] = Some(tile);
             });
+            path_tilemap.storage.get_chunk(chunk_index).replace(&c);
         });
+    });
 }
 
 #[cfg(feature = "physics")]

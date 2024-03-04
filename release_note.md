@@ -13,9 +13,11 @@
 - Transform `TileFlip` into bitflags, and make fields in `TileLayer` public.
 - Some helper functions for `TileLayer` to help create a layer neater.
 - Added `TilemapMaterial::specialize()` to customize the tilemap pipeline.
+- Renamed `Tile::color` to `Tile::tint`.
 
 # What's Fixed:
 
 - Tiled map loaded with the wrong z order.
 - `algorithm` module cannot be compiled on wasm (Error compiling for webassembly #17)
 - The message of tilemap pipeline error is annoying.
+- Panic when trying to save/load a tilemap, which has no path tilemap corresponding, with `PATH` layer.

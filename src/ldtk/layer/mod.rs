@@ -190,7 +190,7 @@ impl<'a> LdtkLayers<'a> {
                 ..Default::default()
             });
         } else {
-            let mut builder = TileBuilder::new().with_color(Vec4::new(1., 1., 1., tile.alpha));
+            let mut builder = TileBuilder::new().with_tint(Vec4::new(1., 1., 1., tile.alpha));
             builder = {
                 if let Some(anim) = config.animation_mapper.get(&(texture_index as u32)) {
                     let animation = pattern.animations.register(anim.clone());

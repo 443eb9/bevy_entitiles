@@ -8,7 +8,6 @@ use bevy::{
 };
 
 use crate::render::{
-    bake::{BakedTilemap, TilemapBaker},
     binding::TilemapBindGroupLayouts,
     buffer::TilemapStorageBuffers,
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
@@ -78,11 +77,17 @@ impl Plugin for EntiTilesRendererPlugin {
         app.init_resource::<FrustumCulling>()
             .init_resource::<StandardTilemapMaterialSingleton>();
 
-        app.register_type::<UnloadRenderChunk>()
-            .register_type::<TilemapBaker>()
-            .register_type::<BakedTilemap>();
-        
+        app.register_type::<UnloadRenderChunk>();
+
         app.add_event::<ChunkUnload>();
+
+        #[cfg(feature = "baking")]
+        {
+            use bake::{BakedTilemap, TilemapBaker};
+
+            app.register_type::<TilemapBaker>()
+                .register_type::<BakedTilemap>();
+        }
 
         let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 

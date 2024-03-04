@@ -48,7 +48,7 @@ fn setup(mut commands: Commands) {
     const ROWS: u32 = 2;
     const COLS: u32 = 3;
 
-    const PATTERNS_PATH: &str = "C:\\wfc_patterns";
+    const PATTERNS_PATH: &str = "generated/wfc_pattern";
     const PREFIX: &str = "wfc_pattern_";
 
     let mut tilemaps = [Entity::PLACEHOLDER; (COLS * ROWS) as usize];
@@ -80,7 +80,7 @@ fn setup(mut commands: Commands) {
                         },
                         TileBuilder::new()
                             .with_layer(0, TileLayer::no_flip(0))
-                            .with_color(Vec4::new(
+                            .with_tint(Vec4::new(
                                 pixel[0] as f32 / 255.,
                                 pixel[1] as f32 / 255.,
                                 pixel[2] as f32 / 255.,

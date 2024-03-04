@@ -357,7 +357,7 @@ impl Tiles {
                     }
                 }
 
-                Some((index, builder.with_color(tint)))
+                Some((index, builder.with_tint(tint)))
             })
     }
 }

@@ -34,7 +34,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
     var position_world = vec4<f32>((tilemap.rot_mat * position_model) + tilemap.translation, 0., 1.);
 
     output.position = view.view_proj * position_world;
-    output.color = vec4<f32>(pow(input.color.rgb, vec3<f32>(2.2)), input.color.a);
+    output.tint = vec4<f32>(pow(input.tint.rgb, vec3<f32>(2.2)), input.tint.a);
 
 #ifndef PURE_COLOR
 #ifdef ATLAS
@@ -76,7 +76,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
 @fragment
 fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
-    return input.color;
+    return input.tint;
 #else
     var color = vec4<f32>(0., 0., 0., 0.);
 
@@ -119,6 +119,6 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
         }
     }
     // Apply the color of the tile.
-    return color * input.color;
+    return color * input.tint;
 #endif
 }

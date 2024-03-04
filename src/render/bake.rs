@@ -131,7 +131,7 @@ pub fn tilemap_baker(
                 }
             };
 
-            set_tile_color(texture, rel_index, target_size, &mut bake_target, tile.tint);
+            set_tile_tint(texture, rel_index, target_size, &mut bake_target, tile.tint);
         });
 
         let baked_tilemap = BakedTilemap {
@@ -206,12 +206,12 @@ fn set_tile(
     }
 }
 
-fn set_tile_color(
+fn set_tile_tint(
     texture: &TilemapTexture,
     rel_index: UVec2,
     target_size: UVec2,
     bake_target: &mut Vec<u8>,
-    color: Vec4,
+    tint: Vec4,
 ) {
     for y in 0..texture.desc.tile_size.y {
         for x in 0..texture.desc.tile_size.x {
@@ -225,7 +225,7 @@ fn set_tile_color(
                 bake_target,
                 target_size,
                 rel_index * texture.desc.tile_size + UVec2 { x, y },
-                tint(map_px_col, color),
+                apply_tint(map_px_col, tint),
             );
         }
     }
@@ -257,6 +257,6 @@ fn alpha_blend(a: Vec4, b: Vec4, opacity: f32) -> Vec4 {
     a.lerp(b, opacity)
 }
 
-fn tint(color: Vec4, tint_linear: Vec4) -> Vec4 {
+fn apply_tint(color: Vec4, tint_linear: Vec4) -> Vec4 {
     color * tint_linear.xyz().powf(2.2).extend(tint_linear.w)
 }

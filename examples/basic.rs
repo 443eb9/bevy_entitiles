@@ -76,7 +76,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(1))
-            .with_color(Vec4::new(0.8, 1., 0.8, 0.5)),
+            .with_tint(Vec4::new(0.8, 1., 0.8, 0.5)),
     );
 
     tilemap.storage.set(
@@ -84,7 +84,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         IVec2 { x: 18, y: 8 },
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
-            .with_color(Color::BLUE.rgba_to_vec4()),
+            .with_tint(Color::BLUE.rgba_to_vec4()),
     );
 
     tilemap.storage.set(
@@ -169,7 +169,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
-            .with_color(Vec4::new(1., 1., 0., 1.)),
+            .with_tint(Vec4::new(1., 1., 0., 1.)),
     );
 
     commands.entity(entity).insert(tilemap);

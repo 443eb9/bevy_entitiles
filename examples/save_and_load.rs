@@ -126,7 +126,7 @@ fn save_and_load(
     if input.just_pressed(KeyCode::Space) {
         for t in tilemap.iter() {
             commands.entity(t).insert(TilemapSaver {
-                path: "C:\\saves".to_string(),
+                path: "generated/save_and_load".to_string(),
                 mode: TilemapSaverMode::Tilemap,
                 layers: TilemapLayer::all(),
                 texture_path: Some("test_isometric.png".to_string()),
@@ -139,7 +139,7 @@ fn save_and_load(
     // load
     if input.just_pressed(KeyCode::AltRight) {
         commands.spawn(TilemapLoader {
-            path: "C:\\saves".to_string(),
+            path: "generated/save_and_load".to_string(),
             map_name: "test_map".to_string(),
             layers: TilemapLayer::all(),
         });

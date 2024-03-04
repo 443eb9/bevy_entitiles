@@ -7,7 +7,7 @@ struct TilemapVertexInput {
     // it means this tile is a animated tile.
     // So the zw components are the start index and the length of the animation sequence.
     @location(1) index: vec4<i32>,
-    @location(2) color: vec4<f32>,
+    @location(2) tint: vec4<f32>,
 #ifndef PURE_COLOR
     @location(3) texture_indices: vec4<i32>,
     @location(4) flip: vec4<u32>,
@@ -16,7 +16,7 @@ struct TilemapVertexInput {
 
 struct TilemapVertexOutput {
     @builtin(position) position: vec4<f32>,
-    @location(0) color: vec4<f32>,
+    @location(0) tint: vec4<f32>,
 #ifndef PURE_COLOR
     @location(1) uv: vec2<f32>,
     @location(2) flip: vec4<u32>,

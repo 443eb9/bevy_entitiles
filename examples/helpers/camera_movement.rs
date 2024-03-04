@@ -33,10 +33,11 @@ pub fn camera_control(
 
     if input_mouse.pressed(MouseButton::Left) {
         for ev in event_move.read() {
-            control.target_pos += projection.scale * ev.delta * Vec2::new(-1., 1.);
+            control.target_pos +=
+                projection.scale * ev.delta * time.delta_seconds() * 200. * Vec2::new(-1., 1.);
         }
     } else {
-        let mut step = 90. * time.delta_seconds();
+        let mut step = 270. * time.delta_seconds();
         if input_keyboard.pressed(KeyCode::ShiftLeft) {
             step *= 2.;
         }

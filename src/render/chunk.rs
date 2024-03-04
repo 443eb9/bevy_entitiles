@@ -47,7 +47,7 @@ pub struct MeshTileData {
     pub index: IVec4,
     // 4 layers
     pub texture_indices: IVec4,
-    pub color: Vec4,
+    pub tint: Vec4,
     pub flip: UVec4,
 }
 
@@ -137,7 +137,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
                 v_index += 4;
 
                 grid_indices.extend_from_slice(&[tile.index, tile.index, tile.index, tile.index]);
-                color.extend_from_slice(&[tile.color, tile.color, tile.color, tile.color]);
+                color.extend_from_slice(&[tile.tint, tile.tint, tile.tint, tile.tint]);
                 flip.extend_from_slice(&[tile.flip, tile.flip, tile.flip, tile.flip]);
             }
         }
@@ -226,7 +226,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         self.tiles[index] = Some(MeshTileData {
             index: tile_index,
             texture_indices,
-            color: tile.tint,
+            tint: tile.tint,
             flip,
         });
         self.dirty_mesh = true;

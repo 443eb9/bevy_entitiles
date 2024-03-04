@@ -82,7 +82,7 @@ pub struct LayerUpdater {
 #[derive(Default, Component, Clone, Reflect)]
 pub struct TileUpdater {
     pub layer: Option<LayerUpdater>,
-    pub color: Option<Vec4>,
+    pub tint: Option<Vec4>,
 }
 
 bitflags::bitflags! {
@@ -108,7 +108,7 @@ impl Default for TileFlip {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuilder {
     pub(crate) texture: TileTexture,
-    pub(crate) color: Vec4,
+    pub(crate) tint: Vec4,
 }
 
 impl Tiles for TileBuilder {}
@@ -118,13 +118,13 @@ impl TileBuilder {
     pub fn new() -> Self {
         Self {
             texture: TileTexture::Static(Vec::new()),
-            color: Vec4::ONE,
+            tint: Vec4::ONE,
         }
     }
 
-    /// Set the color of the entire tile. Default is white.
-    pub fn with_color(mut self, color: Vec4) -> Self {
-        self.color = color;
+    /// Set the tint of the entire tile. Default is white.
+    pub fn with_tint(mut self, tint: Vec4) -> Self {
+        self.tint = tint;
         self
     }
 
@@ -165,7 +165,7 @@ impl TileBuilder {
             in_chunk_index: indices.1,
             index,
             texture: self.texture.clone(),
-            tint: self.color,
+            tint: self.tint,
         }
     }
 }
@@ -212,7 +212,7 @@ impl Into<TileBuilder> for Tile {
     fn into(self) -> TileBuilder {
         TileBuilder {
             texture: self.texture,
-            color: self.tint,
+            tint: self.tint,
         }
     }
 }
@@ -242,7 +242,7 @@ pub fn tile_updater(
                     }
                 }
             }
-            if let Some(color) = updater.color {
+            if let Some(color) = updater.tint {
                 tile.tint = color;
             }
             commands.command_scope(|mut c| {

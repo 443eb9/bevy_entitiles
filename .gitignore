@@ -4,3 +4,4 @@
 /macros/target
 /.idea
 Cargo.lock
+/generated

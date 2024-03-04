@@ -367,6 +367,7 @@ fn load_levels(
         config,
         ldtk_assets,
         asset_server,
+        #[cfg(feature = "algorithm")]
         path_tilemaps,
     );
 

@@ -113,7 +113,7 @@ required-features = ["algorithm", "ldtk", "physics"]
 [[example]]
 name = "chunk_unloading"
 path = "examples/chunk_unloading.rs"
-required-features = ["debug", "algorithm", "serializing", "physics"]
+required-features = ["debug", "serializing", "physics"]
 
 [[example]]
 name = "tiled"
