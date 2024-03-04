@@ -123,7 +123,7 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
             layout.push(self.storage_buffers_layout.clone());
         }
 
-        RenderPipelineDescriptor {
+        let mut desc=RenderPipelineDescriptor {
             label: Some("tilemap_pipeline".into()),
             layout,
             push_constant_ranges: vec![],
@@ -158,6 +158,10 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-        }
+        };
+
+        M::specialize(&mut desc);
+
+        desc
     }
 }

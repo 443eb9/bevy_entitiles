@@ -14,7 +14,9 @@ use bevy::{
     reflect::TypePath,
     render::{
         render_phase::AddRenderCommand,
-        render_resource::{AsBindGroup, ShaderRef, SpecializedRenderPipelines},
+        render_resource::{
+            AsBindGroup, RenderPipelineDescriptor, ShaderRef, SpecializedRenderPipelines,
+        },
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
 };
@@ -89,6 +91,9 @@ pub trait TilemapMaterial: Default + Asset + AsBindGroup + TypePath + Clone {
     fn fragment_shader() -> ShaderRef {
         super::TILEMAP_SHADER.into()
     }
+
+    #[allow(unused_variables)]
+    fn specialize(descriptor: &mut RenderPipelineDescriptor) {}
 }
 
 #[derive(Component, Default, Debug, Clone)]

@@ -8,10 +8,11 @@
 - Rotations to Tiled objects are no longer recommended if you want to use them more than a static object.
 - Some render code cleanup.
 - Tilemap z indices are now using `f32` instead of `i32`.
-- Pathfinding rework. Use `PathTilemaps` instead.
+- Pathfinding rework. Use `PathTilemaps` instead of adding `PathTilemap`s as components.
 - Single threaded algorithm implementations for special cases. Disable `multi-threaded` feature to use them.
 - Transform `TileFlip` into bitflags, and make fields in `TileLayer` public.
 - Some helper functions for `TileLayer` to help create a layer neater.
+- Added `TilemapMaterial::specialize()` to customize the tilemap pipeline.
 
 # What's Fixed:
 
