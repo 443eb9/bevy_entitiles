@@ -41,7 +41,7 @@ You should **NEVER** install the following versions! They contains critical bugs
 - ~~Chunk Unloading~~
 - ~~Custom Material~~
 
-*Looking for render features that have been removed? They're moved into `bevy_incandescent` (a 2d lighting crate currently wip)!*
+*Looking for render features that have been removed? They're moved into [`bevy_incandescent`](https://github.com/443eb9/bevy_incandescent) (a 2d lighting crate currently wip)!*
 
 ## Feature Flags
 
