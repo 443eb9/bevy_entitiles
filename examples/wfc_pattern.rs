@@ -2,7 +2,8 @@ use bevy::{
     app::{App, Startup},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{entity::Entity, system::Commands},
-    math::{IVec2, UVec2, Vec2, Vec4},
+    math::{IVec2, UVec2, Vec2},
+    render::color::Color,
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -80,7 +81,7 @@ fn setup(mut commands: Commands) {
                         },
                         TileBuilder::new()
                             .with_layer(0, TileLayer::no_flip(0))
-                            .with_tint(Vec4::new(
+                            .with_tint(Color::rgba_linear(
                                 pixel[0] as f32 / 255.,
                                 pixel[1] as f32 / 255.,
                                 pixel[2] as f32 / 255.,

@@ -4,6 +4,7 @@ use bevy::{
     ecs::system::EntityCommands,
     math::{IVec2, Vec2, Vec4},
     reflect::Reflect,
+    render::color::Color,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use serde::{
@@ -357,7 +358,10 @@ impl Tiles {
                     }
                 }
 
-                Some((index, builder.with_tint(tint)))
+                Some((
+                    index,
+                    builder.with_tint(Color::rgba_linear_from_array(tint.to_array())),
+                ))
             })
     }
 }

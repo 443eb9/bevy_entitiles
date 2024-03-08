@@ -4,8 +4,9 @@ use bevy::{
         entity::Entity,
         system::{Commands, EntityCommands},
     },
-    math::{IVec2, Vec2, Vec4},
+    math::{IVec2, Vec2},
     prelude::SpatialBundle,
+    render::color::Color,
     sprite::SpriteBundle,
     transform::components::Transform,
     utils::HashMap,
@@ -190,7 +191,8 @@ impl<'a> LdtkLayers<'a> {
                 ..Default::default()
             });
         } else {
-            let mut builder = TileBuilder::new().with_tint(Vec4::new(1., 1., 1., tile.alpha));
+            let mut builder =
+                TileBuilder::new().with_tint(Color::rgba_linear(1., 1., 1., tile.alpha));
             builder = {
                 if let Some(anim) = config.animation_mapper.get(&(texture_index as u32)) {
                     let animation = pattern.animations.register(anim.clone());

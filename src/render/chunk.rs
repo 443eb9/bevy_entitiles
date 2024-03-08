@@ -226,7 +226,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         self.tiles[index] = Some(MeshTileData {
             index: tile_index,
             texture_indices,
-            tint: tile.tint,
+            tint: tile.tint.rgba_linear_to_vec4(),
             flip,
         });
         self.dirty_mesh = true;

@@ -9,6 +9,7 @@ use bevy::{
     math::{IVec2, UVec2, Vec2, Vec4, Vec4Swizzles},
     reflect::Reflect,
     render::{
+        color::Color,
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::{BevyDefault, Image},
@@ -211,8 +212,10 @@ fn set_tile_tint(
     rel_index: UVec2,
     target_size: UVec2,
     bake_target: &mut Vec<u8>,
-    tint: Vec4,
+    tint: Color,
 ) {
+    let tint = tint.rgba_to_vec4();
+
     for y in 0..texture.desc.tile_size.y {
         for x in 0..texture.desc.tile_size.x {
             let map_px_col = get_pixel(

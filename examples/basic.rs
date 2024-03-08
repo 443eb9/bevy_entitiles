@@ -2,7 +2,7 @@ use bevy::{
     app::{PluginGroup, Update},
     ecs::{query::With, system::Query},
     input::{keyboard::KeyCode, ButtonInput},
-    math::{IVec2, Vec4},
+    math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
     render::{color::Color, render_resource::FilterMode, view::Visibility},
     window::{PresentMode, Window, WindowPlugin},
@@ -76,7 +76,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(1))
-            .with_tint(Vec4::new(0.8, 1., 0.8, 0.5)),
+            .with_tint(Color::rgba(0.8, 1., 0.8, 0.5)),
     );
 
     tilemap.storage.set(
@@ -84,7 +84,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         IVec2 { x: 18, y: 8 },
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
-            .with_tint(Color::BLUE.rgba_to_vec4()),
+            .with_tint(Color::BLUE),
     );
 
     tilemap.storage.set(
@@ -169,7 +169,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
-            .with_tint(Vec4::new(1., 1., 0., 1.)),
+            .with_tint(Color::rgba(1., 1., 0., 1.)),
     );
 
     commands.entity(entity).insert(tilemap);

@@ -34,7 +34,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
     var position_world = vec4<f32>((tilemap.rot_mat * position_model) + tilemap.translation, 0., 1.);
 
     output.position = view.view_proj * position_world;
-    output.tint = vec4<f32>(pow(input.tint.rgb, vec3<f32>(2.2)), input.tint.a);
+    output.tint = input.tint;
 
 #ifndef PURE_COLOR
 #ifdef ATLAS

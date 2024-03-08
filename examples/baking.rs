@@ -83,7 +83,7 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
             .with_layer(1, TileLayer::flip_h(1))
-            .with_tint(Color::rgba_u8(68, 62, 185, 64).rgba_to_vec4()),
+            .with_tint(Color::rgba_u8(68, 62, 185, 64)),
     );
 
     tilemap.storage.fill_rect(
@@ -94,7 +94,7 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
             .with_layer(1, TileLayer::no_flip(1))
             .with_layer(2, TileLayer::no_flip(2))
             .with_layer(3, TileLayer::no_flip(3))
-            .with_tint(Color::ORANGE_RED.rgba_to_vec4()),
+            .with_tint(Color::ORANGE_RED),
     );
 
     tilemap.storage.fill_rect(
@@ -129,5 +129,5 @@ fn fetch_bake_result(
         ..Default::default()
     });
 
-    commands.entity(tilemap).remove::<BakedTilemap>();
+    commands.entity(tilemap).despawn();
 }
