@@ -1,6 +1,7 @@
 use bevy::{
     ecs::{
         entity::Entity,
+        event::EventWriter,
         system::{ParallelCommands, Query},
     },
     math::UVec2,
@@ -15,22 +16,29 @@ use crate::{
     },
 };
 
-use super::{DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTilemap};
+use super::{
+    DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn, PhysicsTilemap,
+};
 
 pub fn spawn_colliders(
     commands: ParallelCommands,
     mut tilemaps_query: Query<(
+        Entity,
         &mut PhysicsTilemap,
         &TilemapType,
         &TilemapTransform,
         &TilePivot,
         &TilemapSlotSize,
     )>,
+    mut spawn_event: EventWriter<PhysicsTileSpawn>,
 ) {
-    tilemaps_query.par_iter_mut().for_each(
-        |(mut physics_tilemap, ty, transform, tile_pivot, slot_size)| {
-            let physics_tiles = physics_tilemap.spawn_queue.drain(..).collect::<Vec<_>>();
-            physics_tiles.into_iter().for_each(|(aabb, physics_tile)| {
+    for (tilemap_entity, mut physics_tilemap, ty, transform, tile_pivot, slot_size) in
+        &mut tilemaps_query
+    {
+        let physics_tiles = physics_tilemap.spawn_queue.drain(..).collect::<Vec<_>>();
+        physics_tiles
+            .into_iter()
+            .for_each(|(aabb, physics_tile, maybe_int_repr)| {
                 commands.command_scope(|mut c| {
                     let vertices = coordinates::get_tile_collider_world(
                         aabb.min,
@@ -53,15 +61,19 @@ pub fn spawn_colliders(
                         },
                         physics_tile,
                     };
+                    let tile_entity = packed_tile.spawn(&mut c);
+                    
+                    spawn_event.send(PhysicsTileSpawn {
+                        tilemap: tilemap_entity,
+                        tile: tile_entity,
+                        int_repr: maybe_int_repr,
+                    });
 
-                    physics_tilemap
-                        .storage
-                        .set_elem(aabb.min, packed_tile.spawn(&mut c));
+                    physics_tilemap.storage.set_elem(aabb.min, tile_entity);
                     physics_tilemap.data.set_elem(aabb.min, packed_tile);
                 });
             });
-        },
-    );
+    }
 }
 
 pub fn data_physics_tilemap_analyzer(
@@ -128,6 +140,7 @@ pub fn data_physics_tilemap_analyzer(
                             max: dst.as_ivec2() + data_tilemap.origin,
                         },
                         data_tilemap.get_tile(cur_i).unwrap_or_default(),
+                        Some(cur_i),
                     ));
                 }
             }

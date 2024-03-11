@@ -28,15 +28,14 @@ You should **NEVER** install the following versions! They contains critical bugs
 
 *The higher the priority, the more towards the front in the following list.*
 
-- Mesh & Texture Baking
-- [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff)
 - Pathfinding (Parallel A* Pathfinding)
+- [LDtk](https://ldtk.io/) Support (Automatically map `EntityRef` to real entities)
+- [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff, auto map `object` type to real entities)
 - Tilemap Serializing (Custom Binary Format)
 - Wang Tiling
 - Tilemap Mask
 - ~~Frustum Culling~~
 - ~~Physics~~
-- ~~[LDtk](https://ldtk.io/) Support~~
 - ~~Infinite Tilemap~~
 - ~~Chunk Unloading~~
 - ~~Custom Material~~

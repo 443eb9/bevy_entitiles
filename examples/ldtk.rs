@@ -25,7 +25,7 @@ use bevy::{
     utils::HashMap,
     DefaultPlugins,
 };
-use bevy_entitiles::tilemap::tile::RawTileAnimation;
+use bevy_entitiles::tilemap::{physics::PhysicsTileSpawn, tile::RawTileAnimation};
 use bevy_entitiles::{
     ldtk::{
         app_ext::LdtkApp,
@@ -58,7 +58,16 @@ fn main() {
             PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .add_systems(Update, (load, events, hot_reload, player_control))
+        .add_systems(
+            Update,
+            (
+                load,
+                level_events,
+                hot_reload,
+                player_control,
+                physics_tile_events,
+            ),
+        )
         .register_type::<Teleport>()
         .register_type::<Player>()
         .register_type::<Item>()
@@ -180,7 +189,7 @@ fn hot_reload(
     }
 }
 
-fn events(mut ldtk_events: EventReader<LdtkEvent>) {
+fn level_events(mut ldtk_events: EventReader<LdtkEvent>) {
     for event in ldtk_events.read() {
         match event {
             LdtkEvent::LevelLoaded(level) => {
@@ -323,6 +332,24 @@ pub struct Item {
 #[spawn_sprite]
 pub struct Teleport {
     pub destination: EntityRef,
+}
+
+// Marker components for generated physics tiles.
+
+#[derive(Component)]
+pub struct Wall;
+
+#[derive(Component)]
+pub struct PoolBottom;
+
+fn physics_tile_events(mut commands: Commands, mut event: EventReader<PhysicsTileSpawn>) {
+    event.read().for_each(|ev| {
+        match ev.int_repr {
+            Some(1) => commands.entity(ev.tile).insert(Wall),
+            Some(2) => commands.entity(ev.tile).insert(PoolBottom),
+            _ => unreachable!(),
+        };
+    });
 }
 
 // Entity tags are the tags in PROJECT ENTITIES -> ENTITY SETTINGS

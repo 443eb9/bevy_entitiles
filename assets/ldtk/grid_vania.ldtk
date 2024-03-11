@@ -10,7 +10,7 @@
 	},
 	"iid": "a39fb1b0-7820-11ed-b6fd-87f9a01f3d6b",
 	"jsonVersion": "1.5.3",
-	"appBuildId": 473703,
+	"appBuildId": 474876,
 	"nextUid": 149,
 	"identifierStyle": "Capitalize",
 	"toc": [{
@@ -117,8 +117,8 @@
 			"uiFilterTags": [],
 			"useAsyncRender": false,
 			"intGridValues": [
-				{ "value": 1, "identifier": null, "color": "#000000", "tile": null, "groupUid": 0 },
-				{ "value": 2, "identifier": null, "color": "#BE4A2F", "tile": null, "groupUid": 0 }
+				{ "value": 1, "identifier": "Wall", "color": "#000000", "tile": null, "groupUid": 0 },
+				{ "value": 2, "identifier": "Pool_Bottom", "color": "#BE4A2F", "tile": null, "groupUid": 0 }
 			],
 			"intGridValuesGroups": [],
 			"autoRuleGroups": [],

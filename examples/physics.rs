@@ -1,8 +1,9 @@
 use bevy::{
-    app::FixedUpdate,
+    app::{FixedUpdate, Update},
     asset::Assets,
     ecs::{
         component::Component,
+        event::EventReader,
         query::With,
         system::{Query, ResMut},
     },
@@ -23,7 +24,7 @@ use bevy_entitiles::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
         },
-        physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap},
+        physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTileSpawn, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
@@ -46,6 +47,7 @@ fn main() {
             PhysicsDebugPlugin::default(),
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, physics_tile_events)
         .add_systems(FixedUpdate, character_move)
         .run();
 }
@@ -186,6 +188,16 @@ fn setup(
         LinearVelocity::ZERO,
         Character,
     ));
+}
+
+fn physics_tile_events(mut event: EventReader<PhysicsTileSpawn>) {
+    event.read().for_each(|ev| {
+        match ev.int_repr {
+            Some(1) => println!("Spawned a tile with int_repr 1"),
+            Some(2) => println!("Spawned a tile with int_repr 2"),
+            _ => {}
+        };
+    })
 }
 
 #[derive(Component)]

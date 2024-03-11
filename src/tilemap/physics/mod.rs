@@ -1,6 +1,6 @@
 use bevy::{
     app::{App, Plugin, Update},
-    ecs::{component::Component, entity::Entity, system::Commands},
+    ecs::{component::Component, entity::Entity, event::Event, system::Commands},
     math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
     utils::HashMap,
@@ -31,10 +31,26 @@ impl Plugin for EntiTilesPhysicsTilemapPlugin {
             ),
         );
 
-        app.register_type::<PhysicsTilemap>()
+        app.register_type::<PhysicsTileSpawn>()
+            .register_type::<PhysicsTilemap>()
             .register_type::<DataPhysicsTilemap>()
             .register_type::<PhysicsTile>();
+
+        app.add_event::<PhysicsTileSpawn>();
     }
+}
+
+/// An event that is fired when a physics tile is spawned after the analysis
+/// of a data tilemap.
+///
+/// Which means if the physics tile is not from a `DataPhysicsTilemap`, this event
+/// won't be fired.
+#[derive(Event, Debug, Clone, Copy, Reflect)]
+pub struct PhysicsTileSpawn {
+    pub tile: Entity,
+    pub tilemap: Entity,
+    /// The possible integer representation of the tile in the corresponding `DataPhysicsTile`.
+    pub int_repr: Option<i32>,
 }
 
 /// Possible representations of a serialized physics tilemap.
@@ -218,7 +234,7 @@ impl DataPhysicsTilemap {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
     pub(crate) storage: EntityChunkedStorage,
-    pub(crate) spawn_queue: Vec<(IAabb2d, PhysicsTile)>,
+    pub(crate) spawn_queue: Vec<(IAabb2d, PhysicsTile, Option<i32>)>,
     pub(crate) data: PackedPhysicsTileChunkedStorage,
 }
 
@@ -252,7 +268,7 @@ impl PhysicsTilemap {
     /// Set a tile. This actually queues the tile and it will be spawned later.
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: PhysicsTile) {
-        self.spawn_queue.push((IAabb2d::splat(index), tile));
+        self.spawn_queue.push((IAabb2d::splat(index), tile, None));
     }
 
     /// Remove a tile.
@@ -287,12 +303,12 @@ impl PhysicsTilemap {
     /// Set `concat` to true if you want to concat the adjacent tiles.
     pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
         if concat {
-            self.spawn_queue.push((area.into(), tile));
+            self.spawn_queue.push((area.into(), tile, None));
         } else {
             self.spawn_queue.extend(
                 (area.origin.y..=area.dest.y)
                     .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
-                    .map(|index| (IAabb2d::splat(index), tile.clone())),
+                    .map(|index| (IAabb2d::splat(index), tile.clone(), None)),
             );
         }
     }
@@ -316,7 +332,7 @@ impl PhysicsTilemap {
                 } else {
                     index
                 }) {
-                    self.spawn_queue.push((IAabb2d::splat(index), tile));
+                    self.spawn_queue.push((IAabb2d::splat(index), tile, None));
                 }
             }
         }
@@ -328,7 +344,7 @@ impl PhysicsTilemap {
             buffer
                 .tiles
                 .into_iter()
-                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile)),
+                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile, None)),
         );
     }
 
@@ -337,7 +353,7 @@ impl PhysicsTilemap {
             buffer
                 .tiles
                 .into_iter()
-                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile.into())),
+                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile.into(), None)),
         );
     }
 }

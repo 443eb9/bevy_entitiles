@@ -5,10 +5,10 @@
     },
     "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
-        "tilemaps",
-        ".",
         "world_test",
-        "tilesets"
+        "tilemaps",
+        "tilesets",
+        "."
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -132,8 +132,8 @@
             "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 147,
-                "y": 124.25
+                "x": 146.75,
+                "y": 124
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -148,8 +148,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 99.66666666666666,
-                "y": 15.166666666666657
+                "x": 99.5,
+                "y": 15
             }
         },
         "tilemaps/isometric.tmx": {
@@ -159,8 +159,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 136,
-                "y": 139.16666666666666
+                "x": 136.16666666666669,
+                "y": 138.99999999999997
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -177,14 +177,14 @@
             ],
             "expandedObjectLayers": [
                 5,
-                4,
-                3
+                3,
+                4
             ],
             "scale": 5.5,
-            "selectedLayer": 5,
+            "selectedLayer": 3,
             "viewCenter": {
-                "x": 120,
-                "y": 79.9090909090909
+                "x": 143.72727272727275,
+                "y": 79.81818181818183
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -247,16 +247,16 @@
         "tilemaps/hexagonal.tmx"
     ],
     "project": "Tilemap.tiled-project",
-    "property.type": "DetectArea",
+    "property.type": "object",
     "recentFiles": [
         "tilemaps/hexagonal.tmx",
         "tilemaps/infinite.tmx",
         "tilemaps/isometric.tmx",
         "tilemaps/orthogonal.tmx",
+        "tilesets/Isometric.tsx",
         "tilesets/Hexagonal.tsx",
         "tilesets/Squares.tsx",
         "tilemaps/orthogonal.tmj",
-        "tilesets/Isometric.tsx",
         "tilemaps/hexagonal..tmj",
         "tilemaps/hexgonal.tmx",
         "tilesets/Tileset2.tsx",
