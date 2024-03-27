@@ -4,6 +4,8 @@ A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
 It's **NOT** recommended to use the code in the `dev` branch! There's full of incomplete code and even errors in it! But the `master` branch would be ok if you can't wait to try out new features.
 
+Currently, documentation is not very comprehensive. If you encounter any problems, please feel free to open an issue or simply ping me or DM *@443eb9* on the bevy discord server.
+
 This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/StarArawn/bevy_ecs_tilemap)(Rendering) and [`bevy_ecs_ldtk`](https://github.com/Trouv/bevy_ecs_ldtk)(LDtk entity spawning)
 
 ## Why EntiTiles

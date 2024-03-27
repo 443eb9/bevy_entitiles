@@ -1,10 +1,7 @@
 use bevy::{
-    ecs::{
-        component::Component,
-        entity::Entity,
-        system::{ParallelCommands, Res, Resource},
-    },
+    ecs::system::{Res, Resource},
     prelude::{Query, ResMut},
+    render::view::ViewVisibility,
 };
 
 use crate::{math::CameraAabb2d, tilemap::map::TilemapAabbs};
@@ -14,9 +11,6 @@ use super::{
     extract::{ExtractedTilemap, ExtractedView},
     material::TilemapMaterial,
 };
-
-#[derive(Component)]
-pub struct InvisibleTilemap;
 
 #[derive(Resource)]
 pub struct FrustumCulling(pub bool);
@@ -28,8 +22,7 @@ impl Default for FrustumCulling {
 }
 
 pub fn cull_tilemaps(
-    commands: ParallelCommands,
-    tilemaps: Query<(Entity, &TilemapAabbs)>,
+    mut tilemaps: Query<(&TilemapAabbs, &mut ViewVisibility)>,
     cameras: Query<&CameraAabb2d>,
     culling: Res<FrustumCulling>,
 ) {
@@ -37,15 +30,11 @@ pub fn cull_tilemaps(
         return;
     }
 
-    cameras.par_iter().for_each(|camera| {
-        tilemaps.par_iter().for_each(|(entity, aabbs)| {
-            commands.command_scope(|mut c| {
-                if !aabbs.world_aabb.is_intersected(camera.0) {
-                    c.entity(entity).insert(InvisibleTilemap);
-                } else {
-                    c.entity(entity).remove::<InvisibleTilemap>();
-                }
-            });
+    cameras.iter().for_each(|camera| {
+        tilemaps.par_iter_mut().for_each(|(aabbs, mut visibility)| {
+            if aabbs.world_aabb.is_intersected(camera.0) {
+                visibility.set();
+            }
         });
     });
 }
@@ -60,6 +49,15 @@ pub fn cull_chunks<M: TilemapMaterial>(
         return;
     }
 
+    tilemaps.iter().for_each(|tilemap| {
+        let Some(chunks) = render_chunk_storage.get_chunks_mut(tilemap.id) else {
+            return;
+        };
+        chunks.values_mut().for_each(|c| {
+            c.visible = false;
+        });
+    });
+
     cameras.iter().for_each(|cam_aabb| {
         tilemaps.iter().for_each(|tilemap| {
             let Some(chunks) = render_chunk_storage.get_chunks_mut(tilemap.id) else {
@@ -69,8 +67,6 @@ pub fn cull_chunks<M: TilemapMaterial>(
             chunks.values_mut().for_each(|c| {
                 if c.aabb.is_intersected(cam_aabb.0) {
                     c.visible = true;
-                } else {
-                    c.visible = false;
                 }
             });
         });

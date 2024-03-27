@@ -3,11 +3,11 @@ use bevy::{
     ecs::{
         entity::EntityHashMap,
         event::EventReader,
-        query::{Or, With, Without},
+        query::{Or, With},
         system::{Res, ResMut},
     },
     prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
-    render::{view::Visibility, Extract},
+    render::{view::InheritedVisibility, Extract},
 };
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
 
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
-    cull::{FrustumCulling, InvisibleTilemap},
+    cull::FrustumCulling,
     material::TilemapMaterial,
     resources::{ExtractedTilemapMaterials, TilemapInstances},
 };
@@ -72,21 +72,18 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
                 Option<&TilemapTexture>,
                 Option<&TilemapAnimations>,
             ),
-            (
-                Without<InvisibleTilemap>,
-                Or<(
-                    Changed<TileRenderSize>,
-                    Changed<TilemapSlotSize>,
-                    Changed<TilemapType>,
-                    Changed<TilePivot>,
-                    Changed<TilemapLayerOpacities>,
-                    Changed<TilemapTransform>,
-                    Changed<TilemapAxisFlip>,
-                    Changed<Handle<M>>,
-                    Changed<TilemapTexture>,
-                    Changed<TilemapAnimations>,
-                )>,
-            ),
+            Or<(
+                Changed<TileRenderSize>,
+                Changed<TilemapSlotSize>,
+                Changed<TilemapType>,
+                Changed<TilePivot>,
+                Changed<TilemapLayerOpacities>,
+                Changed<TilemapTransform>,
+                Changed<TilemapAxisFlip>,
+                Changed<Handle<M>>,
+                Changed<TilemapTexture>,
+                Changed<TilemapAnimations>,
+            )>,
         >,
     >,
     mut instances: ResMut<TilemapInstances<M>>,
@@ -138,18 +135,16 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
 
 pub fn extract_tilemaps(
     mut commands: Commands,
-    tilemaps_query: Extract<
-        Query<(Entity, &Visibility), (With<TilemapStorage>, Without<InvisibleTilemap>)>,
-    >,
+    tilemaps_query: Extract<Query<(Entity, &InheritedVisibility), With<TilemapStorage>>>,
 ) {
     commands.insert_or_spawn_batch(
         tilemaps_query
             .iter()
-            .filter_map(|(entity, visibility)| {
-                if visibility == Visibility::Hidden {
-                    None
-                } else {
+            .filter_map(|(entity, inherited_visibility)| {
+                if inherited_visibility.get() {
                     Some((entity, TilemapInstance))
+                } else {
+                    None
                 }
             })
             .collect::<Vec<_>>(),

@@ -1,9 +1,11 @@
 use bevy::{
-    app::{App, Update},
+    app::{App, PostUpdate, Update},
     asset::load_internal_asset,
+    ecs::schedule::IntoSystemConfigs,
     prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute, render_resource::VertexFormat, ExtractSchedule, RenderApp,
+        mesh::MeshVertexAttribute, render_resource::VertexFormat, view::VisibilitySystems,
+        ExtractSchedule, RenderApp,
     },
 };
 
@@ -66,20 +68,22 @@ impl Plugin for EntiTilesRendererPlugin {
         app.add_systems(
             Update,
             (
-                cull::cull_tilemaps,
                 texture::set_texture_usage,
                 material::standard_material_register,
                 #[cfg(feature = "baking")]
                 bake::tilemap_baker,
             ),
-        );
-
-        app.init_resource::<FrustumCulling>()
-            .init_resource::<StandardTilemapMaterialSingleton>();
-
-        app.register_type::<UnloadRenderChunk>();
-
-        app.add_event::<ChunkUnload>();
+        )
+        .add_systems(
+            PostUpdate,
+            cull::cull_tilemaps
+                .in_set(VisibilitySystems::CheckVisibility)
+                .after(bevy::render::view::check_visibility),
+        )
+        .init_resource::<FrustumCulling>()
+        .init_resource::<StandardTilemapMaterialSingleton>()
+        .register_type::<UnloadRenderChunk>()
+        .add_event::<ChunkUnload>();
 
         #[cfg(feature = "baking")]
         {
@@ -89,28 +93,27 @@ impl Plugin for EntiTilesRendererPlugin {
                 .register_type::<BakedTilemap>();
         }
 
-        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
-
-        render_app.add_systems(
-            ExtractSchedule,
-            (
-                extract::extract_tilemaps,
-                extract::extract_tiles,
-                extract::extract_view,
-                extract::extract_unloaded_chunks,
-                extract::extract_resources,
-                extract::extract_despawned_tilemaps,
-                extract::extract_despawned_tiles,
-            ),
-        );
+        let render_app = app.sub_app_mut(RenderApp);
 
         render_app
+            .add_systems(
+                ExtractSchedule,
+                (
+                    extract::extract_tilemaps,
+                    extract::extract_tiles,
+                    extract::extract_view,
+                    extract::extract_unloaded_chunks,
+                    extract::extract_resources,
+                    extract::extract_despawned_tilemaps,
+                    extract::extract_despawned_tiles,
+                ),
+            )
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapStorageBuffers>();
     }
 
     fn finish(&self, app: &mut App) {
-        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
+        let render_app = app.sub_app_mut(RenderApp);
 
         render_app.init_resource::<TilemapBindGroupLayouts>();
     }

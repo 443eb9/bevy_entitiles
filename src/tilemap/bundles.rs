@@ -1,13 +1,17 @@
-use bevy::{asset::Handle, ecs::bundle::Bundle, render::view::Visibility};
+use bevy::{
+    asset::Handle,
+    ecs::bundle::Bundle,
+    render::view::{InheritedVisibility, ViewVisibility, Visibility},
+};
 
 use crate::render::material::{
     StandardTilemapMaterial, TilemapMaterial, WaitForStandardMaterialReplacement,
 };
 
 use super::map::{
-    TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
-    TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
-    WaitForTextureUsageChange,
+    TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapAxisFlip,
+    TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
+    TilemapTransform, TilemapType, WaitForTextureUsageChange,
 };
 
 /// All the possible bundles of the tilemap.
@@ -58,6 +62,9 @@ pub struct MaterialTilemapBundle<M: TilemapMaterial> {
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
     pub visibility: Visibility,
+    pub inherited_visibility: InheritedVisibility,
+    pub view_visibility: ViewVisibility,
+    pub aabbs: TilemapAabbs,
     pub marker: WaitForTextureUsageChange,
 }
 
@@ -77,6 +84,9 @@ pub struct StandardTilemapBundle {
     pub texture: TilemapTexture,
     pub animations: TilemapAnimations,
     pub visibility: Visibility,
+    pub inherited_visibility: InheritedVisibility,
+    pub view_visibility: ViewVisibility,
+    pub aabbs: TilemapAabbs,
     pub texture_marker: WaitForTextureUsageChange,
     pub material_marker: WaitForStandardMaterialReplacement,
 }
@@ -108,7 +118,10 @@ impl Into<StandardPureColorTilemapBundle> for StandardTilemapBundle {
             axis_flip: self.axis_flip,
             material: self.material,
             visibility: self.visibility,
-            material_marker: self.material_marker,
+            inherited_visibility: self.inherited_visibility,
+            view_visibility: self.view_visibility,
+            aabbs: self.aabbs,
+            ..Default::default()
         }
     }
 }
@@ -128,6 +141,9 @@ pub struct PureColorTilemapBundle<M: TilemapMaterial> {
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<M>,
     pub visibility: Visibility,
+    pub inherited_visibility: InheritedVisibility,
+    pub view_visibility: ViewVisibility,
+    pub aabbs: TilemapAabbs,
 }
 
 /// The bundle of the tilemap without a texture and with a standard material.
@@ -145,6 +161,9 @@ pub struct StandardPureColorTilemapBundle {
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<StandardTilemapMaterial>,
     pub visibility: Visibility,
+    pub inherited_visibility: InheritedVisibility,
+    pub view_visibility: ViewVisibility,
+    pub aabbs: TilemapAabbs,
     pub material_marker: WaitForStandardMaterialReplacement,
 }
 
@@ -168,8 +187,10 @@ impl StandardPureColorTilemapBundle {
             texture,
             animations,
             visibility: self.visibility,
-            texture_marker: Default::default(),
-            material_marker: self.material_marker,
+            inherited_visibility: self.inherited_visibility,
+            view_visibility: self.view_visibility,
+            aabbs: self.aabbs,
+            ..Default::default()
         }
     }
 }
