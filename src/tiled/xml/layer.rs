@@ -306,6 +306,15 @@ impl Tiles {
 
                 let mut builder = TileBuilder::new();
                 let mut layer = TileLayer::default();
+
+                assert!(
+                    texture >= first_gid,
+                    "Invalid texture index {} for tileset {}. \
+                    Are you using multiple tilesets on one layer? That's not supported.",
+                    texture,
+                    first_gid
+                );
+
                 let mut tile_id = texture - first_gid;
                 if texture > i32::MAX as u32 {
                     let flip = texture >> 30;
@@ -335,15 +344,6 @@ impl Tiles {
                     layer.texture_index = tile_id as i32;
                     builder = builder.with_layer(0, layer);
                 }
-
-                assert!(
-                    layer.texture_index < tileset.xml.tile_count as i32,
-                    "Index {} is not in range [{}, {}]. Are you using \
-                    multiple tilesets on one layer which is currently not supported?",
-                    layer.texture_index,
-                    0,
-                    tileset.xml.tile_count - 1
-                );
 
                 let mut index = IVec2::new(index as i32 % size.x, index as i32 / size.x);
 

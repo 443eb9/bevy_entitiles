@@ -3,12 +3,12 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "tilemaps/orthogonal.tmx",
+    "activeFile": "tilemaps/Caves.tmx",
     "expandedProjectPaths": [
-        "world_test",
-        "tilemaps",
+        ".",
         "tilesets",
-        "."
+        "tilemaps",
+        "world_test"
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -117,6 +117,14 @@
                 "y": 228.5
             }
         },
+        "tilemaps/Caves.tmx": {
+            "scale": 0.5850911458333333,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 253.80660954712357,
+                "y": 126.47602091910528
+            }
+        },
         "tilemaps/hexagonal..tmj": {
             "scale": 2.594727891156462,
             "selectedLayer": 0,
@@ -159,8 +167,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 136.16666666666669,
-                "y": 138.99999999999997
+                "x": 135.83333333333334,
+                "y": 139
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -183,7 +191,7 @@
             "scale": 5.5,
             "selectedLayer": 3,
             "viewCenter": {
-                "x": 143.72727272727275,
+                "x": 120.0909090909091,
                 "y": 79.81818181818183
             }
         },
@@ -197,6 +205,12 @@
             "scaleInDock": 1
         },
         "tilemaps/tilesets/Tileset1.tsx": {
+            "scaleInDock": 1
+        },
+        "tilesets/Caves1.tsx": {
+            "scaleInDock": 1
+        },
+        "tilesets/Caves2.tsx": {
             "scaleInDock": 1
         },
         "tilesets/Hexagonal.tsx": {
@@ -214,6 +228,9 @@
         "tilesets/Squares.tsx": {
             "scaleInDock": 8,
             "scaleInEditor": 8
+        },
+        "tilesets/Taiga.tsx": {
+            "scaleInDock": 1
         },
         "tilesets/Tileset1.tsx": {
             "scaleInDock": 4,
@@ -244,23 +261,24 @@
         "tilemaps/orthogonal.tmx",
         "tilemaps/isometric.tmx",
         "tilemaps/infinite.tmx",
-        "tilemaps/hexagonal.tmx"
+        "tilemaps/hexagonal.tmx",
+        "tilemaps/Caves.tmx"
     ],
     "project": "Tilemap.tiled-project",
     "property.type": "object",
     "recentFiles": [
-        "tilemaps/hexagonal.tmx",
-        "tilemaps/infinite.tmx",
-        "tilemaps/isometric.tmx",
         "tilemaps/orthogonal.tmx",
+        "tilemaps/isometric.tmx",
+        "tilemaps/infinite.tmx",
+        "tilemaps/hexagonal.tmx",
+        "tilemaps/Caves.tmx",
         "tilesets/Isometric.tsx",
         "tilesets/Hexagonal.tsx",
         "tilesets/Squares.tsx",
         "tilemaps/orthogonal.tmj",
         "tilemaps/hexagonal..tmj",
         "tilemaps/hexgonal.tmx",
-        "tilesets/Tileset2.tsx",
-        "tilesets/Tileset1.tsx"
+        "tilesets/Tileset2.tsx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
