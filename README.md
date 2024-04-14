@@ -14,9 +14,9 @@ This crate is largely inspired from [`bevy_ecs_tilemap`](https://github.com/Star
 - **Performant** Able to render 1000x1000 tilemaps at 200+fps on 10600KF + 3070.
 - **Various Built-in Stuff** Useful algorithms(pathfinding, WFC...) and tools(LDtk and Tiled importer...) are built in.
 
-## Warining!
+## Warning!
 
-You should **NEVER** install the following versions! They contains critical bugs and are not recommended to use!
+You should **NEVER** install the following versions! They contain critical bugs and are not recommended to use!
 
 **0.6.0**
 
