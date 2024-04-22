@@ -1,5 +1,6 @@
 #import bevy_entitiles::common::{
-    TilemapVertexInput, TilemapVertexOutput, tilemap, atlas_uvs, anim_seqs
+    TilemapVertexInput, TilemapVertexOutput, tilemap, atlas_uvs, anim_seqs,
+    std_mat_uniform
 }
 #import bevy_sprite::mesh2d_view_bindings::view
 
@@ -36,7 +37,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
     output.position = view.view_proj * position_world;
     output.tint = input.tint;
 
-#ifndef PURE_COLOR
+#ifndef WITHOUT_TEXTURE
 #ifdef ATLAS
     var uvs = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
@@ -52,7 +53,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         vec2<f32>(1., 1.),
     );
 #endif
-    output.uv = uvs[(input.v_index + tilemap.uv_rot) % 4u];
+    output.uv = uvs[(input.v_index + std_mat_uniform.uv_rotation) % 4u];
     output.flip = input.flip;
     output.anim_flag = input.index.z;
 
@@ -75,7 +76,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
 
 @fragment
 fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
-#ifdef PURE_COLOR
+#ifdef WITHOUT_TEXTURE
     return input.tint;
 #else
     var color = vec4<f32>(0., 0., 0., 0.);
@@ -97,9 +98,9 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
         }
 #ifdef ATLAS
         // If `atlas` feature is enabled, we need to calculate the uv.
-        let tile_index = vec2<f32>(f32(input.texture_indices[i] % tilemap.texture_tiled_size.x),
-                                   f32(input.texture_indices[i] / tilemap.texture_tiled_size.x));
-        let atlas_uv = (tile_index + uv) * tilemap.tile_uv_size;
+        let tile_index = vec2<f32>(f32(input.texture_indices[i] % i32(std_mat_uniform.num_tiles.x)),
+                                   f32(input.texture_indices[i] / i32(std_mat_uniform.num_tiles.x)));
+        let atlas_uv = (tile_index + uv) * std_mat_uniform.tile_uv_size;
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
                                       atlas_uv);

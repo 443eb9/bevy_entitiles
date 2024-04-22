@@ -11,9 +11,9 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::material::{EntiTilesMaterialPlugin, TilemapMaterial},
+    render::material::{EntiTilesMaterialPlugin, StandardTilemapMaterial, TilemapMaterial},
     tilemap::{
-        bundles::MaterialTilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTextureDescriptor,
@@ -55,22 +55,35 @@ impl TilemapMaterial for MyMaterial {
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<MyMaterial>>,
+    mut std_materals: ResMut<Assets<StandardTilemapMaterial>>,
+    mut my_materials: ResMut<Assets<MyMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = MaterialTilemapBundle {
+    let mut tilemap = StandardTilemapBundle {
         tile_render_size: TileRenderSize(Vec2::splat(16.)),
         slot_size: TilemapSlotSize(Vec2::splat(16.)),
-        texture: TilemapTexture::new(
-            asset_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
-            TilemapRotation::None,
-        ),
-        material: materials.add(MyMaterial {
-            speed_and_time: Vec2::new(5., 0.),
+        material: std_materals.add(StandardTilemapMaterial {
+            texture: Some(TilemapTexture::new(
+                asset_server.load("test_square.png"),
+                TilemapTextureDescriptor::new(
+                    UVec2::splat(32),
+                    UVec2::splat(16),
+                    FilterMode::Nearest,
+                ),
+                TilemapRotation::None,
+            )),
+            ..Default::default()
         }),
+        // texture: TilemapTexture::new(
+        //     asset_server.load("test_square.png"),
+        //     TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
+        //     TilemapRotation::None,
+        // ),
+        // material: my_materials.add(MyMaterial {
+        //     speed_and_time: Vec2::new(5., 0.),
+        // }),
         storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
         ..Default::default()
     };

@@ -15,6 +15,7 @@ use bevy::{
 };
 
 use crate::{
+    render::material::StandardTilemapMaterial,
     tiled::traits::TiledObjectRegistry,
     tilemap::{
         buffers::TileBuilderBuffer,
@@ -115,6 +116,7 @@ fn load_tiled_xml(
     mut material_assets: ResMut<Assets<TiledSpriteMaterial>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     object_registry: NonSend<TiledObjectRegistry>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
 ) {
     for (entity, loader) in &loaders_query {
         tiled_assets.initialize(
@@ -134,6 +136,7 @@ fn load_tiled_xml(
             &loader,
             &object_registry,
             entity,
+            &mut materials,
         );
 
         commands.entity(entity).remove::<TiledLoader>();
@@ -149,6 +152,7 @@ fn load_tiled_tilemap(
     loader: &TiledLoader,
     object_registry: &TiledObjectRegistry,
     map_entity: Entity,
+    materials: &mut Assets<StandardTilemapMaterial>,
 ) {
     let tiled_data = manager.get_cached_data().get(&loader.map).unwrap();
     let mut loaded_map = TiledLoadedTilemap {
@@ -169,6 +173,7 @@ fn load_tiled_tilemap(
             object_registry,
             config,
             &mut loaded_map,
+            materials,
         )
     });
 
@@ -183,6 +188,7 @@ fn load_tiled_tilemap(
             object_registry,
             config,
             &mut loaded_map,
+            materials,
         )
     });
 
@@ -199,6 +205,7 @@ fn load_group(
     object_registry: &TiledObjectRegistry,
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
+    materials: &mut Assets<StandardTilemapMaterial>,
 ) {
     group.layers.iter().for_each(|content| {
         load_layer(
@@ -211,6 +218,7 @@ fn load_group(
             object_registry,
             config,
             loaded_map,
+            materials,
         )
     });
 
@@ -225,6 +233,7 @@ fn load_group(
             object_registry,
             config,
             loaded_map,
+            materials,
         )
     });
 }
@@ -239,6 +248,7 @@ fn load_layer(
     object_registry: &TiledObjectRegistry,
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
+    materials: &mut Assets<StandardTilemapMaterial>,
 ) {
     *z += 0.1;
 
@@ -297,7 +307,14 @@ fn load_layer(
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
-                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data, tint)
+                        .iter_decoded(
+                            layer_size,
+                            tiled_assets,
+                            &mut tilemap,
+                            &tiled_data,
+                            tint,
+                            materials,
+                        )
                         .for_each(|(index, builder)| {
                             buffer.set(index, builder);
                         });
@@ -309,7 +326,14 @@ fn load_layer(
 
                         chunk
                             .tiles
-                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data, tint)
+                            .iter_decoded(
+                                size,
+                                tiled_assets,
+                                &mut tilemap,
+                                &tiled_data,
+                                tint,
+                                materials,
+                            )
                             .for_each(|(index, builder)| {
                                 buffer.set(index + offset, builder);
                             });

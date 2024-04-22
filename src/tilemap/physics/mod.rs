@@ -275,6 +275,7 @@ impl PhysicsTilemap {
     #[inline]
     pub fn remove(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(entity) = self.storage.remove_elem(index) {
+            self.data.remove_elem(index);
             commands.entity(entity).despawn();
         }
     }
@@ -283,6 +284,7 @@ impl PhysicsTilemap {
     #[inline]
     pub fn remove_chunk(&mut self, commands: &mut Commands, index: IVec2) {
         if let Some(chunk) = self.storage.remove_chunk(index) {
+            self.data.remove_chunk(index);
             chunk.into_iter().filter_map(|e| e).for_each(|entity| {
                 commands.entity(entity).despawn();
             });
@@ -296,6 +298,7 @@ impl PhysicsTilemap {
             commands.entity(*entity).despawn();
         }
         self.storage.clear();
+        self.data.clear();
     }
 
     /// Fill a rectangle area with the same tile.

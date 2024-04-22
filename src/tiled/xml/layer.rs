@@ -1,6 +1,7 @@
 use std::fmt::Formatter;
 
 use bevy::{
+    asset::Assets,
     ecs::system::EntityCommands,
     math::{IVec2, Vec2, Vec4},
     reflect::Reflect,
@@ -13,6 +14,7 @@ use serde::{
 };
 
 use crate::{
+    render::material::StandardTilemapMaterial,
     tiled::resources::{PackedTiledTilemap, TiledAssets},
     tilemap::{
         bundles::StandardTilemapBundle,
@@ -284,6 +286,7 @@ impl Tiles {
         layer_tilemap: &'a mut StandardTilemapBundle,
         tiled_data: &'a PackedTiledTilemap,
         tint: Vec4,
+        materials: &'a mut Assets<StandardTilemapMaterial>,
     ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
         let mut tileset = None;
         let mut first_gid = 0;
@@ -300,7 +303,10 @@ impl Tiles {
                     let (ts, gid) = tiled_assets.get_tileset(texture, &tiled_data.name);
                     tileset = Some(ts);
                     first_gid = gid;
-                    layer_tilemap.texture = ts.texture.clone();
+                    layer_tilemap.material = materials.add(StandardTilemapMaterial {
+                        tint: Color::rgba_linear_from_array(tint),
+                        texture: Some(ts.texture.clone()),
+                    });
                     ts
                 });
 
@@ -358,10 +364,7 @@ impl Tiles {
                     }
                 }
 
-                Some((
-                    index,
-                    builder.with_tint(Color::rgba_linear_from_array(tint.to_array())),
-                ))
+                Some((index, builder))
             })
     }
 }

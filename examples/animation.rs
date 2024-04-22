@@ -1,14 +1,15 @@
 use bevy::{
     app::{App, Startup},
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::{Commands, Res},
+    ecs::system::{Commands, Res, ResMut},
     math::{IVec2, UVec2, Vec2},
     render::render_resource::FilterMode,
     DefaultPlugins,
 };
 use bevy_entitiles::{
     math::TileArea,
+    render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -34,7 +35,11 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -43,15 +48,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
-        texture: TilemapTexture::new(
-            asset_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 16, y: 16 },
-                FilterMode::Nearest,
-            ),
-            TilemapRotation::None,
-        ),
+        material: materials.add(StandardTilemapMaterial {
+            texture: Some(TilemapTexture::new(
+                asset_server.load("test_square.png"),
+                TilemapTextureDescriptor::new(
+                    UVec2 { x: 32, y: 32 },
+                    UVec2 { x: 16, y: 16 },
+                    FilterMode::Nearest,
+                ),
+                TilemapRotation::None,
+            )),
+            ..Default::default()
+        }),
         ..Default::default()
     };
 

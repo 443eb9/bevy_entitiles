@@ -1,20 +1,24 @@
 use bevy::{
     app::{App, Plugin, Update},
+    asset::{AssetServer, Assets},
     ecs::entity::Entity,
     math::UVec2,
-    render::render_resource::FilterMode,
+    render::{color::Color, render_resource::FilterMode},
 };
 use serde::{Deserialize, Serialize};
 
-use crate::tilemap::{
-    bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
-    chunking::storage::ChunkedStorage,
-    map::{
-        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
-        TilemapTransform, TilemapType,
+use crate::{
+    render::material::StandardTilemapMaterial,
+    tilemap::{
+        bundles::StandardTilemapBundle,
+        chunking::storage::ChunkedStorage,
+        map::{
+            TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+            TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTextureDescriptor, TilemapTransform, TilemapType,
+        },
+        tile::TileBuilder,
     },
-    tile::TileBuilder,
 };
 
 use self::save::TilemapSaver;
@@ -50,7 +54,7 @@ pub struct SerializedTilemap {
     pub tile_pivot: TilePivot,
     pub layer_opacities: TilemapLayerOpacities,
     pub tilemap_transform: TilemapTransform,
-    pub texture: Option<SerializedTilemapTexture>,
+    pub material: SerializedTilemapMaterial,
     pub animations: Option<TilemapAnimations>,
     pub layers: TilemapLayer,
     pub chunk_size: u32,
@@ -66,7 +70,7 @@ impl SerializedTilemap {
         layer_opacities: TilemapLayerOpacities,
         storage: TilemapStorage,
         tilemap_transform: TilemapTransform,
-        texture: Option<TilemapTexture>,
+        material: StandardTilemapMaterial,
         animations: Option<TilemapAnimations>,
         saver: &TilemapSaver,
     ) -> Self {
@@ -76,13 +80,14 @@ impl SerializedTilemap {
             tile_render_size,
             slot_size,
             tile_pivot,
-            texture: texture.and_then(|tex| {
-                Some(SerializedTilemapTexture {
+            material: SerializedTilemapMaterial {
+                tint: material.tint,
+                texture: material.texture.map(|t| SerializedTilemapTexture {
                     path: saver.texture_path.clone().unwrap(),
-                    desc: tex.desc.into(),
-                    rotation: tex.rotation,
-                })
-            }),
+                    desc: t.desc.into(),
+                    rotation: t.rotation,
+                }),
+            },
             layer_opacities,
             tilemap_transform,
             layers: saver.layers,
@@ -91,7 +96,12 @@ impl SerializedTilemap {
         }
     }
 
-    pub fn into_tilemap(&self, tilemap: Entity, texture: TilemapTexture) -> StandardTilemapBundle {
+    pub fn into_tilemap(
+        &self,
+        tilemap: Entity,
+        asset_server: &AssetServer,
+        materials: &mut Assets<StandardTilemapMaterial>,
+    ) -> StandardTilemapBundle {
         StandardTilemapBundle {
             name: self.name.clone(),
             ty: self.ty,
@@ -105,29 +115,24 @@ impl SerializedTilemap {
                 ..Default::default()
             },
             transform: self.tilemap_transform,
-            texture,
+            material: materials.add(StandardTilemapMaterial {
+                tint: self.material.tint,
+                texture: self.material.texture.as_ref().map(|t| TilemapTexture {
+                    texture: asset_server.load(&t.path),
+                    desc: t.desc.clone().into(),
+                    rotation: t.rotation,
+                }),
+            }),
             animations: self.animations.clone().unwrap(),
             ..Default::default()
         }
     }
+}
 
-    pub fn into_pure_color_tilemap(&self, tilemap: Entity) -> StandardPureColorTilemapBundle {
-        StandardPureColorTilemapBundle {
-            name: self.name.clone(),
-            ty: self.ty,
-            tile_render_size: self.tile_render_size,
-            slot_size: self.slot_size,
-            tile_pivot: self.tile_pivot,
-            layer_opacities: self.layer_opacities,
-            storage: TilemapStorage {
-                tilemap,
-                storage: ChunkedStorage::new(self.chunk_size),
-                ..Default::default()
-            },
-            transform: self.tilemap_transform,
-            ..Default::default()
-        }
-    }
+#[derive(Serialize, Deserialize)]
+pub struct SerializedTilemapMaterial {
+    pub tint: Color,
+    pub texture: Option<SerializedTilemapTexture>,
 }
 
 #[derive(Serialize, Deserialize)]

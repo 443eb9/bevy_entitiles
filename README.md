@@ -30,6 +30,8 @@ You should **NEVER** install the following versions! They contain critical bugs 
 
 *The higher the priority, the more towards the front in the following list.*
 
+- Triangle Tilemap
+- Irregular Tilemap (Generated using Voronoi noise)
 - Pathfinding (Parallel A* Pathfinding)
 - [LDtk](https://ldtk.io/) Support (Automatically map `EntityRef` to real entities)
 - [Tiled](https://www.mapeditor.org/) Support (Algorithm stuff, auto map `object` type to real entities)

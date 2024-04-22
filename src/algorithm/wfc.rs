@@ -2,11 +2,13 @@
 use std::{collections::VecDeque, path::Path};
 
 use bevy::{
+    asset::Assets,
     ecs::{entity::Entity, system::ResMut},
     log::warn,
     math::IVec2,
     prelude::{Commands, Component, Query, UVec2},
     reflect::Reflect,
+    render::color::Color,
     utils::{HashMap, HashSet},
 };
 use rand::{
@@ -17,13 +19,14 @@ use rand::{
 
 use crate::{
     math::{extension::TileIndex, TileArea},
+    render::material::StandardTilemapMaterial,
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
         algorithm::path::PathTilemap,
-        bundles::StandardPureColorTilemapBundle,
+        bundles::StandardTilemapBundle,
         map::{
-            TileRenderSize, TilemapAnimations, TilemapName, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTransform, TilemapType,
+            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -713,6 +716,7 @@ pub fn wfc_applier(
         &WfcSource,
     )>,
     mut path_tilemaps: ResMut<PathTilemaps>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
     #[cfg(feature = "physics")] mut physics_tilemaps_query: Query<
         &mut crate::tilemap::physics::PhysicsTilemap,
     >,
@@ -790,7 +794,7 @@ pub fn wfc_applier(
                         let pattern_size = slice.pattern_size.as_vec2();
                         let layer_entity = commands.spawn_empty().id();
 
-                        let mut bundle = StandardPureColorTilemapBundle {
+                        let mut bundle = StandardTilemapBundle {
                             name: TilemapName(layer.label.clone().unwrap()),
                             ty: TilemapType::Square,
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, layer_entity),
@@ -798,10 +802,10 @@ pub fn wfc_applier(
                         };
 
                         if let Some(texture) = texture {
-                            let mut bundle = bundle.convert_to_texture_bundle(
-                                texture.clone(),
-                                TilemapAnimations::default()
-                            );
+                            bundle.material = materials.add(StandardTilemapMaterial {
+                                tint: Color::WHITE,
+                                texture: Some(texture.clone()),
+                            });
                             let tile_size = texture.desc.tile_size.as_vec2();
                             bundle.tile_render_size = TileRenderSize(tile_size);
                             bundle.slot_size = TilemapSlotSize(tile_size);

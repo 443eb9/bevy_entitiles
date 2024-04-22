@@ -1,5 +1,6 @@
 use bevy::{
     app::Update,
+    asset::Assets,
     ecs::{
         entity::Entity,
         query::With,
@@ -14,6 +15,7 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::pathfinding::PathTilemaps,
     math::TileArea,
+    render::material::StandardTilemapMaterial,
     serializing::map::{
         load::TilemapLoader,
         save::{TilemapSaver, TilemapSaverMode},
@@ -54,6 +56,7 @@ fn setup(
     mut commands: Commands,
     assets_server: Res<AssetServer>,
     mut path_tilemaps: ResMut<PathTilemaps>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -65,15 +68,18 @@ fn setup(
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(64, entity),
         tile_pivot: TilePivot(Vec2 { x: 0.5, y: 0. }),
-        texture: TilemapTexture::new(
-            assets_server.load("test_isometric.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 32, y: 16 },
-                FilterMode::Nearest,
-            ),
-            TilemapRotation::None,
-        ),
+        material: materials.add(StandardTilemapMaterial {
+            texture: Some(TilemapTexture::new(
+                assets_server.load("test_isometric.png"),
+                TilemapTextureDescriptor::new(
+                    UVec2 { x: 32, y: 32 },
+                    UVec2 { x: 32, y: 16 },
+                    FilterMode::Nearest,
+                ),
+                TilemapRotation::None,
+            )),
+            ..Default::default()
+        }),
         ..Default::default()
     };
 

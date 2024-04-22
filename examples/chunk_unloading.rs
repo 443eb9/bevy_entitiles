@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         entity::Entity,
@@ -18,7 +18,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     debug::CameraAabbScale,
-    render::cull::FrustumCulling,
+    render::{cull::FrustumCulling, material::StandardTilemapMaterial},
     serializing::{
         chunk::{
             load::{ChunkLoadCache, ChunkLoadConfig},
@@ -80,10 +80,11 @@ fn main() {
         .run();
 }
 
-#[derive(Event, Debug, Clone, Copy)]
-struct GenerateChunk(IVec2);
-
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+) {
     // When the detect aabb is intersected with a invisible chunk,
     // all the chunks that are intercected with the update aabb must be visible.
 
@@ -98,15 +99,18 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
-        texture: TilemapTexture::new(
-            asset_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 16, y: 16 },
-                FilterMode::Nearest,
-            ),
-            TilemapRotation::None,
-        ),
+        material: materials.add(StandardTilemapMaterial {
+            texture: Some(TilemapTexture::new(
+                asset_server.load("test_square.png"),
+                TilemapTextureDescriptor::new(
+                    UVec2 { x: 32, y: 32 },
+                    UVec2 { x: 16, y: 16 },
+                    FilterMode::Nearest,
+                ),
+                TilemapRotation::None,
+            )),
+            ..Default::default()
+        }),
         ..Default::default()
     };
 

@@ -28,6 +28,7 @@ use crate::{
         },
         sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
     },
+    render::material::StandardTilemapMaterial,
     tilemap::map::TilemapStorage,
 };
 
@@ -79,6 +80,7 @@ impl Plugin for EntiTilesLdtkPlugin {
             Update,
             (
                 load_ldtk_json,
+                spawn_levels,
                 unload_ldtk_level,
                 unload_ldtk_layer,
                 global_entity_registerer,
@@ -224,10 +226,7 @@ pub fn load_ldtk_json(
     mut commands: Commands,
     loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
-    entity_registry: Option<NonSend<LdtkEntityRegistry>>,
-    entity_tag_registry: Option<NonSend<LdtkEntityTagRegistry>>,
     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-    mut ldtk_events: EventWriter<LdtkEvent>,
     config: Res<LdtkLoadConfig>,
     mut manager: ResMut<LdtkLevelManager>,
     addi_layers: Res<LdtkAdditionalLayers>,
@@ -236,12 +235,8 @@ pub fn load_ldtk_json(
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut patterns: ResMut<LdtkPatterns>,
     global_entities: Res<LdtkGlobalEntityRegistry>,
-    #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, loader) in loader_query.iter() {
-        let entity_registry = entity_registry.as_ref().map(|r| &**r);
-        let entity_tag_registry = entity_tag_registry.as_ref().map(|r| &**r);
-
         ldtk_assets.initialize(
             &config,
             &manager,
@@ -258,15 +253,10 @@ pub fn load_ldtk_json(
             &addi_layers,
             loader,
             &asset_server,
-            &entity_registry.unwrap_or(&LdtkEntityRegistry::default()),
-            &entity_tag_registry.unwrap_or(&LdtkEntityTagRegistry::default()),
             entity,
-            &mut ldtk_events,
             &mut ldtk_assets,
             &mut patterns,
             &global_entities,
-            #[cfg(feature = "algorithm")]
-            &mut path_tilemaps,
         );
 
         commands.entity(entity).remove::<LdtkLoader>();
@@ -280,14 +270,10 @@ fn load_levels(
     addi_layers: &LdtkAdditionalLayers,
     loader: &LdtkLoader,
     asset_server: &AssetServer,
-    entity_registry: &LdtkEntityRegistry,
-    entity_tag_registry: &LdtkEntityTagRegistry,
     level_entity: Entity,
-    ldtk_events: &mut EventWriter<LdtkEvent>,
     ldtk_assets: &mut LdtkAssets,
     patterns: &mut LdtkPatterns,
     global_entities: &LdtkGlobalEntityRegistry,
-    #[cfg(feature = "algorithm")] path_tilemaps: &mut PathTilemaps,
 ) {
     let ldtk_data = manager.get_cached_data();
 
@@ -312,6 +298,7 @@ fn load_levels(
     let background = load_background(level, translation, level_px, asset_server, config);
 
     let mut ldtk_layers = LdtkLayers::new(
+        level_index,
         level_entity,
         level.layer_instances.len(),
         &ldtk_assets,
@@ -358,23 +345,49 @@ fn load_levels(
         );
     }
 
-    ldtk_layers.apply_all(
-        commands,
-        patterns,
-        level,
-        entity_registry,
-        entity_tag_registry,
-        config,
-        ldtk_assets,
-        asset_server,
-        #[cfg(feature = "algorithm")]
-        path_tilemaps,
-    );
+    commands.entity(level_entity).insert(ldtk_layers);
+}
 
-    ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
-        identifier: level.identifier.clone(),
-        iid: level.iid.clone(),
-    }));
+fn spawn_levels(
+    mut commands: Commands,
+    mut layers_query: Query<(Entity, &mut LdtkLayers)>,
+    mut ldtk_events: EventWriter<LdtkEvent>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    entity_registry: Option<NonSend<LdtkEntityRegistry>>,
+    entity_tag_registry: Option<NonSend<LdtkEntityTagRegistry>>,
+    config: Res<LdtkLoadConfig>,
+    asset_server: Res<AssetServer>,
+    manager: Res<LdtkLevelManager>,
+    mut patterns: ResMut<LdtkPatterns>,
+    ldtk_assets: ResMut<LdtkAssets>,
+    #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
+) {
+    for (level_entity, mut ldtk_layers) in &mut layers_query {
+        let entity_registry = entity_registry.as_ref().map(|r| &**r);
+        let entity_tag_registry = entity_tag_registry.as_ref().map(|r| &**r);
+
+        let level = &manager.get_cached_data().levels[ldtk_layers.level_index];
+
+        ldtk_layers.apply_all(
+            &mut commands,
+            &mut patterns,
+            level,
+            &entity_registry.unwrap_or(&LdtkEntityRegistry::default()),
+            &entity_tag_registry.unwrap_or(&LdtkEntityTagRegistry::default()),
+            &config,
+            &ldtk_assets,
+            &asset_server,
+            &mut materials,
+            #[cfg(feature = "algorithm")]
+            &mut path_tilemaps,
+        );
+
+        ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
+            identifier: level.identifier.clone(),
+            iid: level.iid.clone(),
+        }));
+        commands.entity(level_entity).remove::<LdtkLayers>();
+    }
 }
 
 fn load_background(

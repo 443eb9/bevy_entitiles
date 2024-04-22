@@ -1,7 +1,7 @@
 use std::{f32::consts::SQRT_2, fmt::Debug};
 
 use bevy::{
-    asset::Handle,
+    asset::{Asset, Handle},
     ecs::{component::Component, query::Changed, system::Query},
     math::{Mat2, Quat, Vec4},
     prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
@@ -183,7 +183,7 @@ impl TilemapAxisFlip {
 }
 
 /// A tilemap texture. It's similar to `TextureAtlas`.
-#[derive(Component, Clone, Default, Debug, Reflect)]
+#[derive(Asset, Clone, Default, Debug, Reflect)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
@@ -518,7 +518,7 @@ impl TilemapStorage {
     }
 
     /// Despawn the entire tilemap.
-    /// 
+    ///
     /// **Notice** this is the **only** and easiest way you can safely despawn the tilemap.
     #[inline]
     pub fn despawn(&mut self, commands: &mut Commands) {

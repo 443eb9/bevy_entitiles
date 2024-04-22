@@ -14,10 +14,10 @@ use bevy::{
 };
 
 use super::{
-    binding::{TilemapBindGroups, TilemapViewBindGroup},
-    draw::DrawTilemap,
+    binding::TilemapViewBindGroup,
+    draw::{DrawTilemap, DrawTilemapWithoutTexture},
     extract::TilemapInstance,
-    material::TilemapMaterial,
+    material::StandardTilemapMaterialInstances,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     resources::TilemapInstances,
     texture::TilemapTexturesStorage,
@@ -26,20 +26,20 @@ use super::{
 #[cfg(not(feature = "atlas"))]
 use bevy::render::renderer::RenderQueue;
 
-pub fn queue<M: TilemapMaterial>(
+pub fn queue(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
     tilemaps_query: Query<Entity, With<TilemapInstance>>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline<M>>>,
-    entitiles_pipeline: Res<EntiTilesPipeline<M>>,
+    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
+    entitiles_pipeline: Res<EntiTilesPipeline>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
-    mut bind_groups: ResMut<TilemapBindGroups<M>>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
-    tilemap_instances: Res<TilemapInstances<M>>,
+    tilemap_instances: Res<TilemapInstances>,
+    materials: Res<StandardTilemapMaterialInstances>,
     #[cfg(not(feature = "atlas"))] render_queue: Res<RenderQueue>,
     #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<Image>>,
     #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<Image>>,
@@ -49,9 +49,9 @@ pub fn queue<M: TilemapMaterial>(
     };
 
     #[cfg(not(feature = "atlas"))]
-    textures_storage.queue_textures(&render_device, &render_queue, &render_images);
+    textures_storage.queue_textures(&render_device, &render_queue, &render_images, &materials);
     #[cfg(feature = "atlas")]
-    textures_storage.queue_textures(&render_device, &mut render_images);
+    textures_storage.queue_textures(&render_device, &materials, &mut render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TilemapViewBindGroup {
@@ -72,12 +72,11 @@ pub fn queue<M: TilemapMaterial>(
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
         for tilemap in tilemaps.iter() {
-            let is_pure_color = bind_groups.queue_textures(
-                &tilemap,
-                &render_device,
-                &textures_storage,
-                &entitiles_pipeline,
-            );
+            let Some(material) = materials.get(&tilemap.material) else {
+                continue;
+            };
+
+            let without_texture = material.texture.is_none();
 
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
@@ -85,15 +84,24 @@ pub fn queue<M: TilemapMaterial>(
                 EntiTilesPipelineKey {
                     msaa: msaa.samples(),
                     map_type: tilemap.ty,
-                    is_pure_color,
+                    without_texture,
                 },
             );
+
+            let draw_function = if without_texture {
+                draw_functions
+                    .read()
+                    .get_id::<DrawTilemapWithoutTexture>()
+                    .unwrap()
+            } else {
+                draw_functions.read().get_id::<DrawTilemap>().unwrap()
+            };
 
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.transform.z_index as f32),
                 entity: tilemap.id,
                 pipeline,
-                draw_function: draw_functions.read().get_id::<DrawTilemap<M>>().unwrap(),
+                draw_function,
                 batch_range: 0..1,
                 dynamic_offset: None,
             });

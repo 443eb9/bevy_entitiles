@@ -1,5 +1,5 @@
 use bevy::{
-    asset::Assets,
+    asset::{Assets, Handle},
     ecs::{
         component::Component,
         entity::Entity,
@@ -27,6 +27,8 @@ use crate::{
     MAX_LAYER_COUNT,
 };
 
+use super::material::StandardTilemapMaterial;
+
 /// A component that marks an tilemap entity to be baked into a **static** quad mesh.
 #[derive(Component, Reflect)]
 pub struct TilemapBaker {
@@ -53,15 +55,24 @@ pub fn tilemap_baker(
         &TilemapSlotSize,
         &mut TilemapStorage,
         &TilemapLayerOpacities,
-        &TilemapTexture,
+        &Handle<StandardTilemapMaterial>,
         &TilemapBaker,
     )>,
     tiles_query: Query<&Tile>,
     image_assets: Res<Assets<Image>>,
+    materials: Res<Assets<StandardTilemapMaterial>>,
 ) {
-    for (tilemap_entity, tile_render_size, slot_size, mut storage, opacities, texture, baker) in
+    for (tilemap_entity, tile_render_size, slot_size, mut storage, opacities, material, baker) in
         &mut tilemaps_query
     {
+        let Some(material) = materials.get(material) else {
+            continue;
+        };
+
+        let Some(texture) = &material.texture else {
+            continue;
+        };
+
         let chunk_size = storage.storage.chunk_size as i32;
         let mut tilemap_aabb = IAabb2d::default();
 
@@ -118,7 +129,7 @@ pub fn tilemap_baker(
                     })
                     .for_each(|(opacity, layer)| {
                         set_tile(
-                            texture,
+                            &texture,
                             texture_image,
                             rel_index,
                             target_size,
@@ -132,7 +143,13 @@ pub fn tilemap_baker(
                 }
             };
 
-            set_tile_tint(texture, rel_index, target_size, &mut bake_target, tile.tint);
+            set_tile_tint(
+                &texture,
+                rel_index,
+                target_size,
+                &mut bake_target,
+                tile.tint,
+            );
         });
 
         let baked_tilemap = BakedTilemap {
