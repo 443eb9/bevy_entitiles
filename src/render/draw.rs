@@ -1,4 +1,7 @@
+use std::marker::PhantomData;
+
 use bevy::{
+    asset::Handle,
     core_pipeline::core_2d::Transparent2d,
     ecs::{
         query::ROQueryItem,
@@ -19,8 +22,27 @@ use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
     buffer::{StandardMaterialUniformBuffer, TilemapUniformBuffer},
     chunk::RenderChunkStorage,
+    material::{StandardTilemapMaterial, TilemapMaterial},
     resources::TilemapInstances,
 };
+
+pub type DrawMaterialTilemap<M> = (
+    SetItemPipeline,
+    SetTilemapViewBindGroup<0>,
+    SetUniformBuffersBindGroup<1>,
+    SetTilemapColorTextureBindGroup<2>,
+    SetTilemapStorageBufferBindGroup<3>,
+    SetTilemapAdditionalMaterialBindGroup<4, M>,
+    DrawTileMesh,
+);
+
+pub type DrawMaterialTilemapWithoutTexture<M> = (
+    SetItemPipeline,
+    SetTilemapViewBindGroup<0>,
+    SetUniformBuffersBindGroup<1>,
+    SetTilemapAdditionalMaterialBindGroup<4, M>,
+    DrawTileMesh,
+);
 
 pub type DrawTilemap = (
     SetItemPipeline,
@@ -65,7 +87,7 @@ pub struct SetUniformBuffersBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetUniformBuffersBindGroup<I> {
     type Param = (
         SRes<TilemapInstances>,
-        SRes<TilemapBindGroups>,
+        SRes<TilemapBindGroups<StandardTilemapMaterial>>,
         SRes<TilemapUniformBuffer>,
         SRes<StandardMaterialUniformBuffer>,
     );
@@ -90,7 +112,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetUniformBuffersBindGroup
             error!("Failed to get tilemap uniform bind groups!");
             return RenderCommandResult::Failure;
         };
-        
+
         let material = instance.material;
 
         if let (Some(tilemap_uniform_bind_group), Some(uniform_offset), Some(material_offset)) = (
@@ -114,7 +136,7 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetUniformBuffersBindGroup
 #[derive(Default)]
 pub struct SetTilemapStorageBufferBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapStorageBufferBindGroup<I> {
-    type Param = SRes<TilemapBindGroups>;
+    type Param = SRes<TilemapBindGroups<StandardTilemapMaterial>>;
 
     type ViewQuery = ();
 
@@ -139,7 +161,10 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapStorageBufferBin
 #[derive(Default)]
 pub struct SetTilemapColorTextureBindGroup<const I: usize>;
 impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBindGroup<I> {
-    type Param = (SRes<TilemapBindGroups>, SRes<TilemapInstances>);
+    type Param = (
+        SRes<TilemapBindGroups<StandardTilemapMaterial>>,
+        SRes<TilemapInstances>,
+    );
 
     type ViewQuery = ();
 
@@ -159,7 +184,39 @@ impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapColorTextureBind
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Filed to get color texture bind group!");
+            error!("Failed to get color texture bind group!");
+            RenderCommandResult::Failure
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct SetTilemapAdditionalMaterialBindGroup<const I: usize, M: TilemapMaterial>(
+    PhantomData<M>,
+);
+impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
+    for SetTilemapAdditionalMaterialBindGroup<I, M>
+{
+    type Param = SRes<TilemapBindGroups<M>>;
+
+    type ViewQuery = ();
+
+    type ItemQuery = Read<Handle<M>>;
+
+    fn render<'w>(
+        _item: &Transparent2d,
+        _view: ROQueryItem<'w, Self::ViewQuery>,
+        handle: Option<ROQueryItem<'w, Self::ItemQuery>>,
+        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        pass: &mut TrackedRenderPass<'w>,
+    ) -> RenderCommandResult {
+        if let Some(bind_group) =
+            handle.and_then(|h| bind_groups.into_inner().materials.get(&h.id()))
+        {
+            pass.set_bind_group(I, &bind_group, &[]);
+            RenderCommandResult::Success
+        } else {
+            error!("Failed to get additional material bind group!");
             RenderCommandResult::Failure
         }
     }

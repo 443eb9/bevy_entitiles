@@ -26,7 +26,7 @@ use crate::{
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
     cull::FrustumCulling,
-    material::{ExtractedStandardTilemapMaterials, StandardTilemapMaterial},
+    material::{ExtractedTilemapMaterials, StandardTilemapMaterial, TilemapMaterial},
     resources::TilemapInstances,
 };
 
@@ -129,10 +129,10 @@ pub fn extract_changed_tilemaps(
 }
 
 // From bevy_sprite::mesh2d::material::extract_materials_2d
-pub fn extract_std_materials(
+pub fn extract_tilemap_materials<M: TilemapMaterial>(
     mut commands: Commands,
-    mut events: Extract<EventReader<AssetEvent<StandardTilemapMaterial>>>,
-    assets: Extract<Res<Assets<StandardTilemapMaterial>>>,
+    mut events: Extract<EventReader<AssetEvent<M>>>,
+    assets: Extract<Res<Assets<M>>>,
 ) {
     let mut changed_assets = HashSet::default();
     let mut removed = Vec::new();
@@ -160,7 +160,7 @@ pub fn extract_std_materials(
         }
     }
 
-    commands.insert_resource(ExtractedStandardTilemapMaterials {
+    commands.insert_resource(ExtractedTilemapMaterials {
         extracted: extracted_assets,
         removed,
     });

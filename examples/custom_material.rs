@@ -11,7 +11,9 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::material::{EntiTilesMaterialPlugin, StandardTilemapMaterial, TilemapMaterial},
+    render::material::{
+        EntiTilesAdditionalMaterialPlugin, StandardTilemapMaterial, TilemapMaterial,
+    },
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -33,7 +35,7 @@ fn main() {
             EntiTilesPlugin,
             EntiTilesHelpersPlugin::default(),
             // Don't forget to add the material plugin!
-            EntiTilesMaterialPlugin::<MyMaterial>::default(),
+            EntiTilesAdditionalMaterialPlugin::<MyMaterial>::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, update_time)
@@ -76,14 +78,6 @@ fn setup(
             )),
             ..Default::default()
         }),
-        // texture: TilemapTexture::new(
-        //     asset_server.load("test_square.png"),
-        //     TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
-        //     TilemapRotation::None,
-        // ),
-        // material: my_materials.add(MyMaterial {
-        //     speed_and_time: Vec2::new(5., 0.),
-        // }),
         storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
         ..Default::default()
     };
@@ -92,7 +86,12 @@ fn setup(
         TileArea::new(IVec2::ZERO, UVec2::splat(5)),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
-    commands.entity(entity).insert(tilemap);
+    commands.entity(entity).insert((
+        tilemap,
+        my_materials.add(MyMaterial {
+            speed_and_time: Vec2::new(5., 0.),
+        }),
+    ));
 }
 
 fn update_time(mut materials: ResMut<Assets<MyMaterial>>, time: Res<Time>) {

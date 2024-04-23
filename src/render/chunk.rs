@@ -23,7 +23,7 @@ use crate::{
 
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
-    material::StandardTilemapMaterialInstances,
+    material::{StandardTilemapMaterial, TilemapMaterialInstances},
     TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX,
     TILEMAP_MESH_ATTR_TEX_INDICES,
 };
@@ -67,7 +67,7 @@ impl TilemapRenderChunk {
     pub fn from_index(
         index: IVec2,
         tilemap: &ExtractedTilemap,
-        materials: &StandardTilemapMaterialInstances,
+        materials: &TilemapMaterialInstances<StandardTilemapMaterial>,
     ) -> Self {
         TilemapRenderChunk {
             visible: true,

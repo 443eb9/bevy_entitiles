@@ -51,6 +51,9 @@ var<uniform> tilemap: Tilemap;
 @group(1) @binding(1)
 var<uniform> std_mat_uniform: StandardMaterialUniform;
 
+// @group(2) @binding(x)
+// Custom additional material binding
+
 #ifndef WITHOUT_TEXTURE
 #ifdef ATLAS
 @group(2) @binding(0)

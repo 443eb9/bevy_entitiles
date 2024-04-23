@@ -15,9 +15,12 @@ use bevy::{
 
 use super::{
     binding::TilemapViewBindGroup,
-    draw::{DrawTilemap, DrawTilemapWithoutTexture},
+    draw::{
+        DrawMaterialTilemap, DrawMaterialTilemapWithoutTexture, DrawTilemap,
+        DrawTilemapWithoutTexture,
+    },
     extract::TilemapInstance,
-    material::StandardTilemapMaterialInstances,
+    material::{StandardTilemapMaterial, TilemapMaterial, TilemapMaterialInstances},
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
     resources::TilemapInstances,
     texture::TilemapTexturesStorage,
@@ -26,20 +29,20 @@ use super::{
 #[cfg(not(feature = "atlas"))]
 use bevy::render::renderer::RenderQueue;
 
-pub fn queue(
+pub fn queue<M: TilemapMaterial>(
     mut commands: Commands,
     mut views_query: Query<(Entity, &mut RenderPhase<Transparent2d>)>,
     tilemaps_query: Query<Entity, With<TilemapInstance>>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
-    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline>>,
-    entitiles_pipeline: Res<EntiTilesPipeline>,
+    mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline<M>>>,
+    entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     tilemap_instances: Res<TilemapInstances>,
-    materials: Res<StandardTilemapMaterialInstances>,
+    std_materials: Res<TilemapMaterialInstances<StandardTilemapMaterial>>,
     #[cfg(not(feature = "atlas"))] render_queue: Res<RenderQueue>,
     #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<Image>>,
     #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<Image>>,
@@ -49,9 +52,14 @@ pub fn queue(
     };
 
     #[cfg(not(feature = "atlas"))]
-    textures_storage.queue_textures(&render_device, &render_queue, &render_images, &materials);
+    textures_storage.queue_textures(
+        &render_device,
+        &render_queue,
+        &render_images,
+        &std_materials,
+    );
     #[cfg(feature = "atlas")]
-    textures_storage.queue_textures(&render_device, &materials, &mut render_images);
+    textures_storage.queue_textures(&render_device, &std_materials, &mut render_images);
 
     for (view_entity, mut transparent_phase) in views_query.iter_mut() {
         commands.entity(view_entity).insert(TilemapViewBindGroup {
@@ -72,7 +80,7 @@ pub fn queue(
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
         for tilemap in tilemaps.iter() {
-            let Some(material) = materials.get(&tilemap.material) else {
+            let Some(material) = std_materials.get(&tilemap.material) else {
                 continue;
             };
 
@@ -88,13 +96,30 @@ pub fn queue(
                 },
             );
 
-            let draw_function = if without_texture {
-                draw_functions
-                    .read()
-                    .get_id::<DrawTilemapWithoutTexture>()
-                    .unwrap()
-            } else {
-                draw_functions.read().get_id::<DrawTilemap>().unwrap()
+            let draw_function = {
+                if std::any::TypeId::of::<M>() == std::any::TypeId::of::<StandardTilemapMaterial>()
+                {
+                    if without_texture {
+                        draw_functions.read().get_id::<DrawTilemap>().unwrap()
+                    } else {
+                        draw_functions
+                            .read()
+                            .get_id::<DrawTilemapWithoutTexture>()
+                            .unwrap()
+                    }
+                } else {
+                    if without_texture {
+                        draw_functions
+                            .read()
+                            .get_id::<DrawMaterialTilemapWithoutTexture<M>>()
+                            .unwrap()
+                    } else {
+                        draw_functions
+                            .read()
+                            .get_id::<DrawMaterialTilemap<M>>()
+                            .unwrap()
+                    }
+                }
             };
 
             transparent_phase.add(Transparent2d {

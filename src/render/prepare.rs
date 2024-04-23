@@ -1,7 +1,13 @@
 use bevy::{
+    asset::AssetId,
     ecs::{entity::Entity, query::With, system::Local},
     prelude::{Query, Res, ResMut},
-    render::renderer::{RenderDevice, RenderQueue},
+    render::{
+        render_asset::RenderAssets,
+        render_resource::{AsBindGroupError, BindGroup, BindGroupEntries},
+        renderer::{RenderDevice, RenderQueue},
+        texture::{FallbackImage, Image},
+    },
     time::Time,
 };
 
@@ -16,8 +22,8 @@ use super::{
     chunk::{TilemapRenderChunk, UnloadRenderChunk},
     extract::{ExtractedTile, TilemapInstance},
     material::{
-        ExtractedStandardTilemapMaterials, PrepareNextFrameStdTilemapMaterials,
-        StandardTilemapMaterialInstances,
+        ExtractedTilemapMaterials, PrepareNextFrameTilemapMaterials, StandardTilemapMaterial,
+        TilemapMaterial, TilemapMaterialInstances,
     },
     pipeline::EntiTilesPipeline,
     resources::TilemapInstances,
@@ -33,10 +39,10 @@ pub fn prepare_tilemaps(
     mut uniform_buffers: ResMut<TilemapUniformBuffer>,
     mut storage_buffers: ResMut<TilemapStorageBuffers>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
-    entitiles_pipeline: Res<EntiTilesPipeline>,
-    mut bind_groups: ResMut<TilemapBindGroups>,
+    entitiles_pipeline: Res<EntiTilesPipeline<StandardTilemapMaterial>>,
+    mut bind_groups: ResMut<TilemapBindGroups<StandardTilemapMaterial>>,
     tilemap_instances: Res<TilemapInstances>,
-    materials: Res<StandardTilemapMaterialInstances>,
+    materials: Res<TilemapMaterialInstances<StandardTilemapMaterial>>,
     std_material_uniform_buffer: Res<StandardMaterialUniformBuffer>,
     time: Res<Time>,
 ) {
@@ -80,13 +86,13 @@ pub fn prepare_tilemaps(
 }
 
 pub fn prepare_std_materials(
-    mut prepare_next_frame: Local<PrepareNextFrameStdTilemapMaterials>,
-    mut extracted_materials: ResMut<ExtractedStandardTilemapMaterials>,
-    mut material_instances: ResMut<StandardTilemapMaterialInstances>,
+    mut prepare_next_frame: Local<PrepareNextFrameTilemapMaterials<StandardTilemapMaterial>>,
+    mut extracted_materials: ResMut<ExtractedTilemapMaterials<StandardTilemapMaterial>>,
+    mut material_instances: ResMut<TilemapMaterialInstances<StandardTilemapMaterial>>,
     mut std_material_uniform_buffer: ResMut<StandardMaterialUniformBuffer>,
-    mut bind_groups: ResMut<TilemapBindGroups>,
+    mut bind_groups: ResMut<TilemapBindGroups<StandardTilemapMaterial>>,
     textures_storage: Res<TilemapTexturesStorage>,
-    entitiles_pipeline: Res<EntiTilesPipeline>,
+    entitiles_pipeline: Res<EntiTilesPipeline<StandardTilemapMaterial>>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
 ) {
@@ -106,10 +112,11 @@ pub fn prepare_std_materials(
         material_instances.insert(asset_id, material.clone());
         std_material_uniform_buffer.insert(&material, asset_id);
 
-        if !bind_groups.prepare_materials(
+        if !prepare_std_material(
             &asset_id,
-            &render_device,
             &textures_storage,
+            &mut bind_groups,
+            &render_device,
             &entitiles_pipeline,
         ) {
             prepare_next_frame.assets.push((asset_id, material));
@@ -118,10 +125,11 @@ pub fn prepare_std_materials(
     }
 
     for (asset_id, material) in std::mem::take(&mut prepare_next_frame.assets) {
-        if !bind_groups.prepare_materials(
+        if !prepare_std_material(
             &asset_id,
-            &render_device,
             &textures_storage,
+            &mut bind_groups,
+            &render_device,
             &entitiles_pipeline,
         ) {
             prepare_next_frame.assets.push((asset_id, material));
@@ -134,11 +142,101 @@ pub fn prepare_std_materials(
     }
 }
 
+fn prepare_std_material(
+    material: &AssetId<StandardTilemapMaterial>,
+    textures_storage: &TilemapTexturesStorage,
+    bind_groups: &mut TilemapBindGroups<StandardTilemapMaterial>,
+    render_device: &RenderDevice,
+    entitiles_pipeline: &EntiTilesPipeline<StandardTilemapMaterial>,
+) -> bool {
+    let Some(texture) = textures_storage.get_texture(material) else {
+        return false;
+    };
+
+    if !bind_groups.materials.contains_key(material) {
+        bind_groups.materials.insert(
+            *material,
+            render_device.create_bind_group(
+                Some("color_texture_bind_group"),
+                &entitiles_pipeline.color_texture_layout,
+                &BindGroupEntries::sequential((&texture.texture_view, &texture.sampler)),
+            ),
+        );
+    }
+
+    true
+}
+
+pub fn prepare_tilemap_materials<M: TilemapMaterial>(
+    mut prepare_next_frame: Local<PrepareNextFrameTilemapMaterials<M>>,
+    mut extracted_assets: ResMut<ExtractedTilemapMaterials<M>>,
+    mut bind_groups: ResMut<TilemapBindGroups<M>>,
+    pipeline: Res<EntiTilesPipeline<M>>,
+    render_device: Res<RenderDevice>,
+    images: Res<RenderAssets<Image>>,
+    fallback_image: Res<FallbackImage>,
+) {
+    let queued_assets = std::mem::take(&mut prepare_next_frame.assets);
+    for (id, material) in queued_assets {
+        match prepare_material2d(
+            &material,
+            &render_device,
+            &images,
+            &fallback_image,
+            &pipeline,
+        ) {
+            Ok(prepared_asset) => {
+                bind_groups.insert_add_material(id, prepared_asset);
+            }
+            Err(AsBindGroupError::RetryNextUpdate) => {
+                prepare_next_frame.assets.push((id, material));
+            }
+        }
+    }
+
+    for removed in std::mem::take(&mut extracted_assets.removed) {
+        bind_groups.remove_add_material(&removed);
+    }
+
+    for (asset_id, material) in std::mem::take(&mut extracted_assets.extracted) {
+        match prepare_material2d(
+            &material,
+            &render_device,
+            &images,
+            &fallback_image,
+            &pipeline,
+        ) {
+            Ok(prepared_asset) => {
+                bind_groups.insert_add_material(asset_id, prepared_asset);
+            }
+            Err(AsBindGroupError::RetryNextUpdate) => {
+                prepare_next_frame.assets.push((asset_id, material));
+            }
+        }
+    }
+}
+
+fn prepare_material2d<M: TilemapMaterial>(
+    material: &M,
+    render_device: &RenderDevice,
+    images: &RenderAssets<Image>,
+    fallback_image: &FallbackImage,
+    pipeline: &EntiTilesPipeline<M>,
+) -> Result<BindGroup, AsBindGroupError> {
+    let prepared = material.as_bind_group(
+        &pipeline.add_material_layout,
+        render_device,
+        images,
+        fallback_image,
+    )?;
+    Ok(prepared.bind_group)
+}
+
 pub fn prepare_tiles(
     extracted_tiles: Query<&mut ExtractedTile>,
     mut render_chunks: ResMut<RenderChunkStorage>,
     tilemap_instances: Res<TilemapInstances>,
-    materials: Res<StandardTilemapMaterialInstances>,
+    materials: Res<TilemapMaterialInstances<StandardTilemapMaterial>>,
 ) {
     extracted_tiles.iter().for_each(|tile| {
         let Some(tilemap) = tilemap_instances.0.get(&tile.tilemap_id) else {

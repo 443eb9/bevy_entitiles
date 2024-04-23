@@ -17,9 +17,8 @@ use super::{
         PerTilemapBuffersStorage, StandardMaterialUniform, StandardMaterialUniformBuffer,
         TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffer, UniformBuffer,
     },
-    material::StandardTilemapMaterial,
+    material::TilemapMaterial,
     pipeline::EntiTilesPipeline,
-    texture::TilemapTexturesStorage,
 };
 
 use bevy::render::render_resource::binding_types as binding;
@@ -30,13 +29,13 @@ pub struct TilemapViewBindGroup {
 }
 
 #[derive(Resource)]
-pub struct TilemapBindGroups {
+pub struct TilemapBindGroups<M: TilemapMaterial> {
     pub tilemap_uniform_buffer: Option<BindGroup>,
     pub storage_buffers: EntityHashMap<BindGroup>,
-    pub materials: HashMap<AssetId<StandardTilemapMaterial>, BindGroup>,
+    pub materials: HashMap<AssetId<M>, BindGroup>,
 }
 
-impl Default for TilemapBindGroups {
+impl<M: TilemapMaterial> Default for TilemapBindGroups<M> {
     fn default() -> Self {
         Self {
             tilemap_uniform_buffer: Default::default(),
@@ -46,12 +45,12 @@ impl Default for TilemapBindGroups {
     }
 }
 
-impl TilemapBindGroups {
+impl<M: TilemapMaterial> TilemapBindGroups<M> {
     pub fn bind_uniform_buffers(
         &mut self,
         render_device: &RenderDevice,
         uniform_buffers: &mut TilemapUniformBuffer,
-        entitiles_pipeline: &EntiTilesPipeline,
+        entitiles_pipeline: &EntiTilesPipeline<M>,
         std_material_uniform_buffer: &StandardMaterialUniformBuffer,
     ) {
         let Some(tilemap_uniform) = uniform_buffers.binding() else {
@@ -73,7 +72,7 @@ impl TilemapBindGroups {
         &mut self,
         render_device: &RenderDevice,
         storage_buffers: &mut TilemapStorageBuffers,
-        entitiles_pipeline: &EntiTilesPipeline,
+        entitiles_pipeline: &EntiTilesPipeline<M>,
     ) {
         storage_buffers
             .bindings()
@@ -90,29 +89,14 @@ impl TilemapBindGroups {
             });
     }
 
-    pub fn prepare_materials(
-        &mut self,
-        material: &AssetId<StandardTilemapMaterial>,
-        render_device: &RenderDevice,
-        textures_storage: &TilemapTexturesStorage,
-        entitiles_pipeline: &EntiTilesPipeline,
-    ) -> bool {
-        let Some(texture) = textures_storage.get_texture(material) else {
-            return false;
-        };
+    #[inline]
+    pub fn insert_add_material(&mut self, id: AssetId<M>, bind_group: BindGroup) {
+        self.materials.insert(id, bind_group);
+    }
 
-        if !self.materials.contains_key(material) {
-            self.materials.insert(
-                *material,
-                render_device.create_bind_group(
-                    Some("color_texture_bind_group"),
-                    &entitiles_pipeline.color_texture_layout,
-                    &BindGroupEntries::sequential((&texture.texture_view, &texture.sampler)),
-                ),
-            );
-        }
-
-        true
+    #[inline]
+    pub fn remove_add_material(&mut self, id: &AssetId<M>) {
+        self.materials.remove(id);
     }
 }
 
