@@ -1,9 +1,8 @@
-use std::{hash::Hash, marker::PhantomData};
+use std::marker::PhantomData;
 
 use bevy::{
-    asset::AssetId,
     ecs::entity::{Entity, EntityHashMap},
-    math::{Mat2, UVec2, Vec4},
+    math::{Mat2, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -12,31 +11,28 @@ use bevy::{
         },
         renderer::{RenderDevice, RenderQueue},
     },
-    utils::HashMap,
 };
 
-use crate::tilemap::map::{TilemapTexture, TilemapTextureDescriptor, TilemapType};
+use crate::tilemap::map::TilemapType;
 
-use super::{extract::ExtractedTilemap, material::StandardTilemapMaterial};
+use super::{extract::ExtractedTilemap, material::TilemapMaterial};
 
-pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static, I: PartialEq + Eq + Hash> {
-    fn insert(&mut self, extracted: &E, ident: I);
+pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static> {
+    fn insert(&mut self, extracted: &E) -> DynamicOffsetComponent<U>;
 
-    fn binding(&self) -> Option<BindingResource> {
+    fn binding(&mut self) -> Option<BindingResource> {
         self.buffer().binding()
     }
 
     fn clear(&mut self) {
-        self.buffer_mut().clear();
+        self.buffer().clear();
     }
 
     fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        self.buffer_mut().write_buffer(render_device, render_queue);
+        self.buffer().write_buffer(render_device, render_queue);
     }
 
-    fn buffer(&self) -> &DynamicUniformBuffer<U>;
-
-    fn buffer_mut(&mut self) -> &mut DynamicUniformBuffer<U>;
+    fn buffer(&mut self) -> &mut DynamicUniformBuffer<U>;
 }
 
 #[derive(Component)]
@@ -98,6 +94,7 @@ pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'sta
 pub struct TilemapUniform {
     pub translation: Vec2,
     pub rotation: Mat2,
+    pub uv_rotation: u32,
     pub tile_render_size: Vec2,
     pub slot_size: Vec2,
     pub pivot: Vec2,
@@ -105,39 +102,62 @@ pub struct TilemapUniform {
     pub axis_dir: Vec2,
     pub hex_legs: f32,
     pub time: f32,
-}
-
-#[derive(ShaderType, Clone, Copy)]
-pub struct StandardMaterialUniform {
-    pub num_tiles: UVec2,
+    #[cfg(feature = "atlas")]
+    pub texture_tiled_size: bevy::math::IVec2,
+    #[cfg(feature = "atlas")]
     pub tile_uv_size: Vec2,
-    pub uv_rotation: u32,
 }
 
 #[derive(Resource)]
-pub struct TilemapUniformBuffer {
-    tilemap: DynamicUniformBuffer<TilemapUniform>,
-    pub offsets: EntityHashMap<DynamicOffsetComponent<TilemapUniform>>,
+pub struct TilemapUniformBuffer<M: TilemapMaterial> {
+    buffer: DynamicUniformBuffer<TilemapUniform>,
+    _marker: PhantomData<M>,
 }
 
-impl Default for TilemapUniformBuffer {
+impl<M: TilemapMaterial> Default for TilemapUniformBuffer<M> {
     fn default() -> Self {
         Self {
-            tilemap: DynamicUniformBuffer::default(),
-            offsets: EntityHashMap::default(),
+            buffer: DynamicUniformBuffer::default(),
+            _marker: PhantomData,
         }
     }
 }
 
-impl UniformBuffer<(&ExtractedTilemap, f32), TilemapUniform, Entity> for TilemapUniformBuffer {
+impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUniform>
+    for TilemapUniformBuffer<M>
+{
     /// Update the uniform buffer with the current tilemap uniforms.
     /// Returns the `TilemapUniform` component to be used in the tilemap render pass.
-    fn insert(&mut self, extracted: &(&ExtractedTilemap, f32), ident: Entity) {
+    fn insert(
+        &mut self,
+        extracted: &(&ExtractedTilemap<M>, f32),
+    ) -> DynamicOffsetComponent<TilemapUniform> {
         let (extracted, time) = (&extracted.0, extracted.1);
 
-        let offset = self.buffer_mut().push(&TilemapUniform {
+        let uv_rotation = {
+            if let Some(tex) = extracted.texture.as_ref() {
+                tex.rotation as u32 / 90
+            } else {
+                0
+            }
+        };
+
+        #[cfg(feature = "atlas")]
+        let (texture_tiled_size, tile_uv_size) = {
+            if let Some(tex) = extracted.texture.as_ref() {
+                (
+                    (tex.desc.size / tex.desc.tile_size).as_ivec2(),
+                    tex.desc.tile_size.as_vec2() / tex.desc.size.as_vec2(),
+                )
+            } else {
+                (bevy::math::IVec2::ZERO, Vec2::ZERO)
+            }
+        };
+
+        DynamicOffsetComponent::new(self.buffer().push(&TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
+            uv_rotation,
             tile_render_size: extracted.tile_render_size,
             slot_size: extracted.slot_size,
             pivot: extracted.tile_pivot,
@@ -148,69 +168,16 @@ impl UniformBuffer<(&ExtractedTilemap, f32), TilemapUniform, Entity> for Tilemap
                 _ => 0.,
             },
             time,
-        });
-
-        self.offsets
-            .insert(ident, DynamicOffsetComponent::new(offset));
+            #[cfg(feature = "atlas")]
+            texture_tiled_size,
+            #[cfg(feature = "atlas")]
+            tile_uv_size,
+        }))
     }
 
     #[inline]
-    fn buffer(&self) -> &DynamicUniformBuffer<TilemapUniform> {
-        &self.tilemap
-    }
-
-    #[inline]
-    fn buffer_mut(&mut self) -> &mut DynamicUniformBuffer<TilemapUniform> {
-        &mut self.tilemap
-    }
-}
-
-#[derive(Resource, Default)]
-pub struct StandardMaterialUniformBuffer {
-    materials: DynamicUniformBuffer<StandardMaterialUniform>,
-    pub offsets:
-        HashMap<AssetId<StandardTilemapMaterial>, DynamicOffsetComponent<StandardMaterialUniform>>,
-}
-
-impl
-    UniformBuffer<
-        StandardTilemapMaterial,
-        StandardMaterialUniform,
-        AssetId<StandardTilemapMaterial>,
-    > for StandardMaterialUniformBuffer
-{
-    fn insert(
-        &mut self,
-        extracted: &StandardTilemapMaterial,
-        ident: AssetId<StandardTilemapMaterial>,
-    ) {
-        let texture = extracted.texture.clone().unwrap_or_else(|| TilemapTexture {
-            desc: TilemapTextureDescriptor {
-                size: UVec2::ONE,
-                tile_size: UVec2::ONE,
-                ..Default::default()
-            },
-            ..Default::default()
-        });
-
-        let offset = self.materials.push(&StandardMaterialUniform {
-            num_tiles: texture.desc.size / texture.desc.tile_size,
-            tile_uv_size: texture.desc.tile_size.as_vec2() / texture.desc.size.as_vec2(),
-            uv_rotation: texture.rotation as u32,
-        });
-
-        self.offsets
-            .insert(ident, DynamicOffsetComponent::new(offset));
-    }
-
-    #[inline]
-    fn buffer(&self) -> &DynamicUniformBuffer<StandardMaterialUniform> {
-        &self.materials
-    }
-
-    #[inline]
-    fn buffer_mut(&mut self) -> &mut DynamicUniformBuffer<StandardMaterialUniform> {
-        &mut self.materials
+    fn buffer(&mut self) -> &mut DynamicUniformBuffer<TilemapUniform> {
+        &mut self.buffer
     }
 }
 

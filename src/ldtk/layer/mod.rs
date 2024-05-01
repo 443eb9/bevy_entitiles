@@ -1,7 +1,6 @@
 use bevy::{
-    asset::{AssetServer, Assets},
+    asset::AssetServer,
     ecs::{
-        component::Component,
         entity::Entity,
         system::{Commands, EntityCommands},
     },
@@ -15,7 +14,6 @@ use bevy::{
 
 use crate::{
     math::aabb::IAabb2d,
-    render::material::StandardTilemapMaterial,
     serializing::pattern::TilemapPattern,
     tilemap::{
         buffers::TileBuffer,
@@ -113,14 +111,12 @@ impl PackedLdtkEntity {
 
 pub type LayerOpacity = f32;
 
-#[derive(Component)]
-pub struct LdtkLayers {
-    pub level_index: usize,
+pub struct LdtkLayers<'a> {
     pub ty: LdtkLoaderMode,
     pub level_entity: Entity,
     pub layers: Vec<Option<(TilemapPattern, TilemapTexture, LayerIid, LayerOpacity)>>,
     pub entities: Vec<PackedLdtkEntity>,
-    pub tilesets: HashMap<i32, TilemapTexture>,
+    pub tilesets: &'a HashMap<i32, TilemapTexture>,
     pub translation: Vec2,
     pub base_z_index: f32,
     pub background: SpriteBundle,
@@ -133,23 +129,21 @@ pub struct LdtkLayers {
     pub physics_layer: Option<(physics::LdtkPhysicsLayer, Vec<i32>, UVec2)>,
 }
 
-impl LdtkLayers {
+impl<'a> LdtkLayers<'a> {
     pub fn new(
-        level_index: usize,
         level_entity: Entity,
         total_layers: usize,
-        ldtk_assets: &LdtkAssets,
+        ldtk_assets: &'a LdtkAssets,
         translation: Vec2,
         base_z_index: f32,
         ty: LdtkLoaderMode,
         background: SpriteBundle,
     ) -> Self {
         Self {
-            level_index,
             level_entity,
             layers: vec![None; total_layers],
             entities: vec![],
-            tilesets: ldtk_assets.tilesets.clone(),
+            tilesets: &ldtk_assets.tilesets,
             translation,
             base_z_index,
             background,
@@ -273,7 +267,6 @@ impl LdtkLayers {
         config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
-        materials: &mut Assets<StandardTilemapMaterial>,
         #[cfg(feature = "algorithm")] path_tilemaps: &mut PathTilemaps,
     ) {
         match self.ty {
@@ -306,10 +299,7 @@ impl LdtkLayers {
                             ty: TilemapType::Square,
                             tile_render_size: TileRenderSize(texture.desc.tile_size.as_vec2()),
                             slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
-                            material: materials.add(StandardTilemapMaterial {
-                                tint: Color::WHITE,
-                                texture: Some(texture),
-                            }),
+                            texture: texture.clone(),
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, tilemap_entity),
                             transform: TilemapTransform {
                                 translation: self.translation,

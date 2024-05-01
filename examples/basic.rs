@@ -1,10 +1,6 @@
 use bevy::{
     app::{PluginGroup, Update},
-    asset::Assets,
-    ecs::{
-        query::With,
-        system::{Query, ResMut},
-    },
+    ecs::{query::With, system::Query},
     input::{keyboard::KeyCode, ButtonInput},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
@@ -14,9 +10,8 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::material::StandardTilemapMaterial,
     tilemap::{
-        bundles::StandardTilemapBundle,
+        bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
             TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
@@ -47,11 +42,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    assets_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
-) {
+fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -62,18 +53,15 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
-        material: materials.add(StandardTilemapMaterial {
-            texture: Some(TilemapTexture::new(
-                assets_server.load("test_square.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 16, y: 16 },
-                    FilterMode::Nearest,
-                ),
-                TilemapRotation::None,
-            )),
-            ..Default::default()
-        }),
+        texture: TilemapTexture::new(
+            assets_server.load("test_square.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 16, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
+        ),
         ..Default::default()
     };
 
@@ -138,18 +126,15 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2 { x: 32., y: 16. }),
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(32, entity),
-        material: materials.add(StandardTilemapMaterial {
-            texture: Some(TilemapTexture::new(
-                assets_server.load("test_isometric.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 32, y: 16 },
-                    FilterMode::Nearest,
-                ),
-                TilemapRotation::None,
-            )),
-            ..Default::default()
-        }),
+        texture: TilemapTexture::new(
+            assets_server.load("test_isometric.png"),
+            TilemapTextureDescriptor::new(
+                UVec2 { x: 32, y: 32 },
+                UVec2 { x: 32, y: 16 },
+                FilterMode::Nearest,
+            ),
+            TilemapRotation::None,
+        ),
         transform: TilemapTransform {
             translation: Vec2 { x: -400., y: 0. },
             ..Default::default()
@@ -166,7 +151,7 @@ fn setup(
     commands.entity(entity).insert(tilemap);
 
     let entity = commands.spawn_empty().id();
-    let mut tilemap = StandardTilemapBundle {
+    let mut tilemap = StandardPureColorTilemapBundle {
         name: TilemapName("test_map".to_string()),
         tile_render_size: TileRenderSize(Vec2 { x: 16., y: 16. }),
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
@@ -176,7 +161,6 @@ fn setup(
             translation: Vec2 { x: 0., y: -300. },
             ..Default::default()
         },
-        material: materials.add(StandardTilemapMaterial::default()),
         ..Default::default()
     };
 

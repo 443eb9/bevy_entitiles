@@ -35,7 +35,7 @@ use crate::{
     tilemap::{buffers::PackedPhysicsTileBuffer, physics::PhysicsTilemap},
 };
 
-#[cfg(feature = "algorithm")]
+#[cfg(any(feature = "algorithm", feature = "physics"))]
 use bevy::log::error;
 
 #[derive(Component)]

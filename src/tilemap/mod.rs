@@ -1,7 +1,4 @@
-use bevy::{
-    app::{Plugin, PostUpdate, PreUpdate, Update},
-    asset::AssetApp,
-};
+use bevy::app::{Plugin, PostUpdate, PreUpdate, Update};
 
 use self::{
     chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
@@ -75,8 +72,6 @@ impl Plugin for EntiTilesTilemapPlugin {
             .register_type::<CameraChunkUpdater>();
 
         app.add_event::<CameraChunkUpdation>();
-
-        app.init_asset::<TilemapTexture>();
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmTilemapPlugin);

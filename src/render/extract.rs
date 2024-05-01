@@ -1,5 +1,5 @@
 use bevy::{
-    asset::{AssetEvent, AssetId, Assets, Handle},
+    asset::{AssetEvent, Assets, Handle},
     ecs::{
         entity::EntityHashMap,
         event::EventReader,
@@ -8,7 +8,6 @@ use bevy::{
     },
     prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
     render::{view::InheritedVisibility, Extract},
-    utils::HashSet,
 };
 
 use crate::{
@@ -17,7 +16,8 @@ use crate::{
         despawn::{DespawnedTile, DespawnedTilemap},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
-            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTransform, TilemapType,
+            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform,
+            TilemapType,
         },
         tile::Tile,
     },
@@ -26,15 +26,15 @@ use crate::{
 use super::{
     chunk::{ChunkUnload, UnloadRenderChunk},
     cull::FrustumCulling,
-    material::{ExtractedStandardTilemapMaterials, StandardTilemapMaterial},
-    resources::TilemapInstances,
+    material::TilemapMaterial,
+    resources::{ExtractedTilemapMaterials, TilemapInstances},
 };
 
 #[derive(Component, Debug)]
 pub struct TilemapInstance;
 
 #[derive(Component, Debug)]
-pub struct ExtractedTilemap {
+pub struct ExtractedTilemap<M: TilemapMaterial> {
     pub id: Entity,
     pub name: String,
     pub tile_render_size: Vec2,
@@ -44,7 +44,8 @@ pub struct ExtractedTilemap {
     pub layer_opacities: Vec4,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
-    pub material: AssetId<StandardTilemapMaterial>,
+    pub material: Handle<M>,
+    pub texture: Option<TilemapTexture>,
     pub animations: Option<TilemapAnimations>,
     pub chunk_size: u32,
 }
@@ -53,7 +54,7 @@ pub type ExtractedTile = Tile;
 
 pub type ExtractedView = CameraAabb2d;
 
-pub fn extract_changed_tilemaps(
+pub fn extract_changed_tilemaps<M: TilemapMaterial>(
     tilemaps_query: Extract<
         Query<
             (
@@ -67,7 +68,8 @@ pub fn extract_changed_tilemaps(
                 &TilemapTransform,
                 &TilemapAxisFlip,
                 &TilemapStorage,
-                &Handle<StandardTilemapMaterial>,
+                &Handle<M>,
+                Option<&TilemapTexture>,
                 Option<&TilemapAnimations>,
             ),
             Or<(
@@ -78,12 +80,13 @@ pub fn extract_changed_tilemaps(
                 Changed<TilemapLayerOpacities>,
                 Changed<TilemapTransform>,
                 Changed<TilemapAxisFlip>,
-                Changed<Handle<StandardTilemapMaterial>>,
+                Changed<Handle<M>>,
+                Changed<TilemapTexture>,
                 Changed<TilemapAnimations>,
             )>,
         >,
     >,
-    mut instances: ResMut<TilemapInstances>,
+    mut instances: ResMut<TilemapInstances<M>>,
 ) {
     tilemaps_query.iter().for_each(
         |(
@@ -98,6 +101,7 @@ pub fn extract_changed_tilemaps(
             axis_flip,
             storage,
             material,
+            texture,
             animations,
         )| {
             assert_ne!(
@@ -119,51 +123,14 @@ pub fn extract_changed_tilemaps(
                     layer_opacities: layer_opacities.0,
                     transform: *transform,
                     axis_flip: *axis_flip,
-                    material: material.id(),
+                    texture: texture.cloned(),
+                    material: material.clone(),
                     animations: animations.cloned(),
                     chunk_size: storage.storage.chunk_size,
                 },
             );
         },
     );
-}
-
-// From bevy_sprite::mesh2d::material::extract_materials_2d
-pub fn extract_std_materials(
-    mut commands: Commands,
-    mut events: Extract<EventReader<AssetEvent<StandardTilemapMaterial>>>,
-    assets: Extract<Res<Assets<StandardTilemapMaterial>>>,
-) {
-    let mut changed_assets = HashSet::default();
-    let mut removed = Vec::new();
-    for event in events.read() {
-        #[allow(clippy::match_same_arms)]
-        match event {
-            AssetEvent::Added { id } | AssetEvent::Modified { id } => {
-                changed_assets.insert(*id);
-            }
-            AssetEvent::Removed { id } => {
-                changed_assets.remove(id);
-                removed.push(*id);
-            }
-            AssetEvent::Unused { .. } => {}
-            AssetEvent::LoadedWithDependencies { .. } => {
-                // TODO: handle this
-            }
-        }
-    }
-
-    let mut extracted_assets = Vec::new();
-    for id in changed_assets.drain() {
-        if let Some(asset) = assets.get(id) {
-            extracted_assets.push((id, asset.clone()));
-        }
-    }
-
-    commands.insert_resource(ExtractedStandardTilemapMaterials {
-        extracted: extracted_assets,
-        removed,
-    });
 }
 
 pub fn extract_tilemaps(
@@ -206,6 +173,31 @@ pub fn extract_tiles(
             })
             .collect::<Vec<_>>(),
     );
+}
+
+pub fn extract_materials<M: TilemapMaterial>(
+    mut commands: Commands,
+    mut events: Extract<EventReader<AssetEvent<M>>>,
+    assets: Extract<Res<Assets<M>>>,
+) {
+    let mats = events
+        .read()
+        .fold(ExtractedTilemapMaterials::default(), |mut acc, ev| {
+            match ev {
+                AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+                    if let Some(mat) = assets.get(*id) {
+                        acc.changed.push((id.clone(), mat.clone()));
+                    }
+                }
+                AssetEvent::Removed { id } => {
+                    acc.removed.push(*id);
+                }
+                AssetEvent::LoadedWithDependencies { .. } | AssetEvent::Unused { .. } => {}
+            };
+            acc
+        });
+
+    commands.insert_resource(mats);
 }
 
 pub fn extract_view(

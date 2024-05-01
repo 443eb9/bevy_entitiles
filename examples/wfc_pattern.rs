@@ -1,11 +1,7 @@
 use bevy::{
     app::{App, Startup},
-    asset::Assets,
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        entity::Entity,
-        system::{Commands, ResMut},
-    },
+    ecs::{entity::Entity, system::Commands},
     math::{IVec2, UVec2, Vec2},
     render::color::Color,
     DefaultPlugins,
@@ -13,13 +9,12 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
-    render::material::StandardTilemapMaterial,
     serializing::map::{
         save::{TilemapSaver, TilemapSaverMode},
         TilemapLayer,
     },
     tilemap::{
-        bundles::StandardTilemapBundle,
+        bundles::StandardPureColorTilemapBundle,
         map::{
             TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTransform,
             TilemapType,
@@ -43,7 +38,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMaterial>>) {
+fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
     // convert the image into 6 tilemaps as patterns
@@ -62,7 +57,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMat
     for row in 0..ROWS {
         for col in 0..COLS {
             let entity = commands.spawn_empty().id();
-            let mut tilemap = StandardTilemapBundle {
+            let mut tilemap = StandardPureColorTilemapBundle {
                 name: TilemapName(format!("{}{}", PREFIX, col + row * COLS)),
                 tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
                 slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
@@ -127,13 +122,12 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMat
             TileArea::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
             Some(0),
         ),
-        StandardTilemapBundle {
+        StandardPureColorTilemapBundle {
             name: TilemapName("wfc_map".to_string()),
             tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
             slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
             ty: TilemapType::Square,
             storage: TilemapStorage::new(16, entity),
-            material: materials.add(StandardTilemapMaterial::default()),
             ..Default::default()
         },
     ));

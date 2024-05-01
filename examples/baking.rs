@@ -18,10 +18,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::{
-        bake::{BakedTilemap, TilemapBaker},
-        material::StandardTilemapMaterial,
-    },
+    render::bake::{BakedTilemap, TilemapBaker},
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -56,11 +53,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    asset_server: Res<AssetServer>,
-    mut commands: Commands,
-    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
-) {
+fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -69,18 +62,11 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2::splat(16.)),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(32, entity),
-        material: materials.add(StandardTilemapMaterial {
-            texture: Some(TilemapTexture::new(
-                asset_server.load("test_square.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2::splat(32),
-                    UVec2::splat(16),
-                    FilterMode::Nearest,
-                ),
-                TilemapRotation::None,
-            )),
-            ..Default::default()
-        }),
+        texture: TilemapTexture::new(
+            asset_server.load("test_square.png"),
+            TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
+            TilemapRotation::None,
+        ),
         layer_opacities: TilemapLayerOpacities(Vec4::new(0.8, 0.5, 0.1, 0.3)),
         ..Default::default()
     };

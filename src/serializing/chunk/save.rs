@@ -36,7 +36,8 @@ use crate::{
     serializing::chunk::PHYSICS_TILE_CHUNKS_FOLDER,
     tilemap::{buffers::PackedPhysicsTileBuffer, physics::PhysicsTilemap},
 };
-#[cfg(feature = "algorithm")]
+
+#[cfg(any(feature = "algorithm", feature = "physics"))]
 use bevy::log::error;
 
 #[derive(Component)]

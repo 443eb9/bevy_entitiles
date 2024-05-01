@@ -1,22 +1,21 @@
 use std::path::Path;
 
 use bevy::{
-    asset::{AssetServer, Assets},
+    asset::AssetServer,
     ecs::{
         bundle::Bundle,
         component::Component,
         entity::Entity,
-        system::{Commands, Query, Res, ResMut},
+        system::{Commands, Query, Res},
     },
     hierarchy::DespawnRecursiveExt,
 };
 
 use crate::{
-    render::material::StandardTilemapMaterial,
     serializing::load_object,
     tilemap::{
         chunking::storage::{ChunkedStorage, TileBuilderChunkedStorage},
-        map::TilemapStorage,
+        map::{TilemapStorage, TilemapTexture},
         tile::Tile,
     },
 };
@@ -25,10 +24,12 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use crate::{
-    algorithm::pathfinding::PathTilemaps,
     serializing::map::PATH_TILES,
     tilemap::{algorithm::path::PathTilemap, chunking::storage::PathTileChunkedStorage},
+    algorithm::pathfinding::PathTilemaps,
 };
+#[cfg(feature = "algorithm")]
+use bevy::ecs::system::ResMut;
 
 #[cfg(feature = "physics")]
 use crate::{
@@ -57,7 +58,6 @@ pub fn load(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &TilemapLoader)>,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
     #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
@@ -66,6 +66,16 @@ pub fn load(
         let Ok(ser_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META) else {
             complete(&mut commands, entity, (), false);
             continue;
+        };
+
+        let texture = if let Some(tex) = &ser_tilemap.texture {
+            Some(TilemapTexture {
+                texture: asset_server.load(tex.path.clone()),
+                desc: tex.desc.clone().into(),
+                rotation: tex.rotation,
+            })
+        } else {
+            None
         };
 
         // texture
@@ -113,9 +123,15 @@ pub fn load(
             commands.insert_or_spawn_batch(bundles);
         }
 
-        let mut bundle = ser_tilemap.into_tilemap(entity, &asset_server, &mut materials);
-        bundle.storage = storage;
-        complete(&mut commands, entity, bundle, true);
+        if let Some(tex) = texture {
+            let mut bundle = ser_tilemap.into_tilemap(entity, tex);
+            bundle.storage = storage;
+            complete(&mut commands, entity, bundle, true);
+        } else {
+            let mut bundle = ser_tilemap.into_pure_color_tilemap(entity);
+            bundle.storage = storage;
+            complete(&mut commands, entity, bundle, true);
+        }
 
         // algorithm
         #[cfg(feature = "algorithm")]
@@ -126,12 +142,7 @@ pub fn load(
                 continue;
             };
 
-            path_tilemaps.insert(
-                entity,
-                PathTilemap {
-                    storage: path_storage,
-                },
-            );
+            path_tilemaps.insert(entity, PathTilemap { storage: path_storage });
         }
 
         // physics

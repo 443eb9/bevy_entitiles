@@ -9,6 +9,7 @@ use crate::{math::CameraAabb2d, tilemap::map::TilemapAabbs};
 use super::{
     chunk::RenderChunkStorage,
     extract::{ExtractedTilemap, ExtractedView},
+    material::TilemapMaterial,
 };
 
 #[derive(Resource)]
@@ -38,9 +39,9 @@ pub fn cull_tilemaps(
     });
 }
 
-pub fn cull_chunks(
-    tilemaps: Query<&ExtractedTilemap>,
-    mut render_chunk_storage: ResMut<RenderChunkStorage>,
+pub fn cull_chunks<M: TilemapMaterial>(
+    tilemaps: Query<&ExtractedTilemap<M>>,
+    mut render_chunk_storage: ResMut<RenderChunkStorage<M>>,
     cameras: Query<&ExtractedView>,
     culling: Res<FrustumCulling>,
 ) {

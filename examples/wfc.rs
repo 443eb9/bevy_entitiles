@@ -1,6 +1,6 @@
 use bevy::{
-    asset::{AssetServer, Assets},
-    ecs::system::{Res, ResMut},
+    asset::AssetServer,
+    ecs::system::Res,
     math::IVec2,
     prelude::{App, Camera2dBundle, Commands, Startup, UVec2, Vec2},
     render::render_resource::FilterMode,
@@ -9,7 +9,6 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
-    render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -34,11 +33,7 @@ fn main() {
         .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
-) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -61,18 +56,15 @@ fn setup(
             slot_size: TilemapSlotSize(Vec2::new(16., 16.)),
             ty: TilemapType::Square,
             storage: TilemapStorage::new(16, entity),
-            material: materials.add(StandardTilemapMaterial {
-                texture: Some(TilemapTexture::new(
-                    asset_server.load("test_wfc.png"),
-                    TilemapTextureDescriptor::new(
-                        UVec2 { x: 48, y: 32 },
-                        UVec2 { x: 16, y: 16 },
-                        FilterMode::Nearest,
-                    ),
-                    TilemapRotation::None,
-                )),
-                ..Default::default()
-            }),
+            texture: TilemapTexture::new(
+                asset_server.load("test_wfc.png"),
+                TilemapTextureDescriptor::new(
+                    UVec2 { x: 48, y: 32 },
+                    UVec2 { x: 16, y: 16 },
+                    FilterMode::Nearest,
+                ),
+                TilemapRotation::None,
+            ),
             ..Default::default()
         },
     ));

@@ -1,6 +1,9 @@
 use bevy::prelude::Plugin;
 use math::EntiTilesMathPlugin;
-use render::EntiTilesRendererPlugin;
+use render::{
+    material::{EntiTilesMaterialPlugin, StandardTilemapMaterial},
+    EntiTilesRendererPlugin,
+};
 use shaders::EntiTilesShaderPlugin;
 use tilemap::EntiTilesTilemapPlugin;
 
@@ -32,7 +35,6 @@ pub mod prelude {
     #[cfg(feature = "ldtk")]
     pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager};
     pub use crate::math::{aabb::Aabb2d, TileArea};
-    pub use crate::render::material::StandardTilemapMaterial;
     #[cfg(feature = "serializing")]
     pub use crate::serializing::{
         chunk::{
@@ -46,7 +48,7 @@ pub mod prelude {
     #[cfg(feature = "physics")]
     pub use crate::tilemap::physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap};
     pub use crate::tilemap::{
-        bundles::StandardTilemapBundle,
+        bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
@@ -64,6 +66,7 @@ impl Plugin for EntiTilesPlugin {
         app.add_plugins((
             EntiTilesTilemapPlugin,
             EntiTilesRendererPlugin,
+            EntiTilesMaterialPlugin::<StandardTilemapMaterial>::default(),
             EntiTilesMathPlugin,
             EntiTilesShaderPlugin,
             #[cfg(feature = "debug")]

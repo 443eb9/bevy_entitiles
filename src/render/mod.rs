@@ -1,30 +1,22 @@
 use bevy::{
     app::{App, PostUpdate, Update},
-    asset::{load_internal_asset, AssetApp},
-    core_pipeline::core_2d::Transparent2d,
+    asset::load_internal_asset,
     ecs::schedule::IntoSystemConfigs,
     prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute,
-        render_phase::AddRenderCommand,
-        render_resource::{SpecializedRenderPipelines, VertexFormat},
-        view::VisibilitySystems,
-        ExtractSchedule, Render, RenderApp, RenderSet,
+        mesh::MeshVertexAttribute, render_resource::VertexFormat, view::VisibilitySystems,
+        ExtractSchedule, RenderApp,
     },
 };
 
 use crate::render::{
-    binding::{TilemapBindGroupLayouts, TilemapBindGroups},
-    buffer::{StandardMaterialUniformBuffer, TilemapStorageBuffers, TilemapUniformBuffer},
+    binding::TilemapBindGroupLayouts,
+    buffer::TilemapStorageBuffers,
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
     cull::FrustumCulling,
-    draw::{DrawTilemap, DrawTilemapWithoutTexture},
-    material::{StandardTilemapMaterial, StandardTilemapMaterialInstances},
-    resources::TilemapInstances,
+    material::StandardTilemapMaterialSingleton,
     texture::TilemapTexturesStorage,
 };
-
-use self::pipeline::EntiTilesPipeline;
 
 #[cfg(feature = "baking")]
 pub mod bake;
@@ -77,6 +69,7 @@ impl Plugin for EntiTilesRendererPlugin {
             Update,
             (
                 texture::set_texture_usage,
+                material::standard_material_register,
                 #[cfg(feature = "baking")]
                 bake::tilemap_baker,
             ),
@@ -88,7 +81,7 @@ impl Plugin for EntiTilesRendererPlugin {
                 .after(bevy::render::view::check_visibility),
         )
         .init_resource::<FrustumCulling>()
-        .init_asset::<StandardTilemapMaterial>()
+        .init_resource::<StandardTilemapMaterialSingleton>()
         .register_type::<UnloadRenderChunk>()
         .add_event::<ChunkUnload>();
 
@@ -106,10 +99,8 @@ impl Plugin for EntiTilesRendererPlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    extract::extract_changed_tilemaps,
                     extract::extract_tilemaps,
                     extract::extract_tiles,
-                    extract::extract_std_materials,
                     extract::extract_view,
                     extract::extract_unloaded_chunks,
                     extract::extract_resources,
@@ -117,38 +108,13 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_despawned_tiles,
                 ),
             )
-            .add_systems(
-                Render,
-                (
-                    prepare::prepare_unloaded_chunks,
-                    prepare::prepare_despawned_tilemaps,
-                    prepare::prepare_despawned_tiles,
-                    prepare::prepare_tilemaps,
-                    prepare::prepare_tiles,
-                    prepare::prepare_std_materials,
-                    cull::cull_chunks,
-                )
-                    .in_set(RenderSet::Prepare),
-            )
-            .add_systems(Render, queue::queue.in_set(RenderSet::Queue))
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapStorageBuffers>()
-            .init_resource::<RenderChunkStorage>()
-            .init_resource::<TilemapUniformBuffer>()
-            .init_resource::<StandardMaterialUniformBuffer>()
-            .init_resource::<TilemapBindGroups>()
-            .init_resource::<TilemapInstances>()
-            .init_resource::<StandardTilemapMaterialInstances>()
-            .add_render_command::<Transparent2d, DrawTilemap>()
-            .add_render_command::<Transparent2d, DrawTilemapWithoutTexture>();
+            .init_resource::<TilemapStorageBuffers>();
     }
 
     fn finish(&self, app: &mut App) {
         let render_app = app.sub_app_mut(RenderApp);
 
-        render_app
-            .init_resource::<TilemapBindGroupLayouts>()
-            .init_resource::<EntiTilesPipeline>()
-            .init_resource::<SpecializedRenderPipelines<EntiTilesPipeline>>();
+        render_app.init_resource::<TilemapBindGroupLayouts>();
     }
 }

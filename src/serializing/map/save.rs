@@ -1,24 +1,22 @@
 use std::path::Path;
 
 use bevy::{
-    asset::{Assets, Handle},
     ecs::{
         component::Component,
         entity::Entity,
-        system::{Commands, Query, Res},
+        system::{Commands, Query},
     },
     reflect::Reflect,
 };
 
 use crate::{
-    render::material::StandardTilemapMaterial,
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
         chunking::storage::ChunkedStorage,
         despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-            TilemapSlotSize, TilemapStorage, TilemapTransform, TilemapType,
+            TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
         },
         tile::{Tile, TileBuilder},
     },
@@ -28,6 +26,8 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use crate::{algorithm::pathfinding::PathTilemaps, serializing::map::PATH_TILES};
+#[cfg(feature = "algorithm")]
+use bevy::ecs::system::Res;
 
 #[cfg(feature = "physics")]
 use crate::{
@@ -77,12 +77,11 @@ pub fn save(
         &TilemapLayerOpacities,
         &mut TilemapStorage,
         &TilemapTransform,
-        &Handle<StandardTilemapMaterial>,
+        Option<&TilemapTexture>,
         Option<&TilemapAnimations>,
         &TilemapSaver,
     )>,
     tiles_query: Query<&Tile>,
-    materials: Res<Assets<StandardTilemapMaterial>>,
     #[cfg(feature = "algorithm")] path_tilemaps: Res<PathTilemaps>,
     #[cfg(feature = "physics")] physics_tilemaps_query: Query<
         &crate::tilemap::physics::PhysicsTilemap,
@@ -98,7 +97,7 @@ pub fn save(
         layer_opacities,
         mut storage,
         transform,
-        material,
+        texture,
         animations,
         saver,
     ) in tilemaps_query.iter_mut()
@@ -116,7 +115,7 @@ pub fn save(
                 *layer_opacities,
                 storage.clone(),
                 transform.clone(),
-                materials.get(material).unwrap().clone(),
+                texture.cloned(),
                 animations.cloned(),
                 saver,
             );
