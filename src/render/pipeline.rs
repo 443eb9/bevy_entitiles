@@ -1,39 +1,30 @@
-use std::marker::PhantomData;
-
 use bevy::{
-    asset::{AssetServer, Handle},
-    ecs::{system::Resource, world::World},
-    prelude::FromWorld,
+    asset::Handle,
+    ecs::world::World,
+    prelude::{FromWorld, Resource},
     render::{
         render_resource::{
             BindGroupLayout, BlendState, ColorTargetState, ColorWrites, Face, FragmentState,
             FrontFace, MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, Shader, ShaderDefVal, ShaderRef, SpecializedRenderPipeline,
+            RenderPipelineDescriptor, Shader, ShaderDefVal, SpecializedRenderPipeline,
             TextureFormat, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
-        renderer::RenderDevice,
         texture::BevyDefault,
     },
 };
 
 use crate::tilemap::map::TilemapType;
 
-use super::{
-    binding::TilemapBindGroupLayouts,
-    material::{StandardTilemapMaterial, TilemapMaterial},
-    TILEMAP_SHADER,
-};
+use super::{binding::TilemapBindGroupLayouts, TILEMAP_SHADER};
 
 #[derive(Resource)]
-pub struct EntiTilesPipeline<M: TilemapMaterial> {
+pub struct EntiTilesPipeline {
     pub view_layout: BindGroupLayout,
     pub uniform_buffers_layout: BindGroupLayout,
     pub storage_buffers_layout: BindGroupLayout,
     pub color_texture_layout: BindGroupLayout,
-    pub add_material_layout: BindGroupLayout,
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
-    pub marker: PhantomData<M>,
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -43,34 +34,22 @@ pub struct EntiTilesPipelineKey {
     pub without_texture: bool,
 }
 
-impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
+impl FromWorld for EntiTilesPipeline {
     fn from_world(world: &mut World) -> Self {
         let layouts = world.resource::<TilemapBindGroupLayouts>();
-        let render_device = world.resource::<RenderDevice>();
-        let asset_server = world.resource::<AssetServer>();
 
         Self {
             view_layout: layouts.view_layout.clone(),
             uniform_buffers_layout: layouts.tilemap_uniforms_layout.clone(),
             storage_buffers_layout: layouts.tilemap_storage_layout.clone(),
             color_texture_layout: layouts.color_texture_layout.clone(),
-            add_material_layout: M::bind_group_layout(render_device),
-            vertex_shader: match M::vertex_shader() {
-                ShaderRef::Default => TILEMAP_SHADER,
-                ShaderRef::Handle(h) => h,
-                ShaderRef::Path(p) => asset_server.load(p),
-            },
-            fragment_shader: match M::fragment_shader() {
-                ShaderRef::Default => TILEMAP_SHADER,
-                ShaderRef::Handle(h) => h,
-                ShaderRef::Path(p) => asset_server.load(p),
-            },
-            marker: PhantomData::default(),
+            vertex_shader: TILEMAP_SHADER,
+            fragment_shader: TILEMAP_SHADER,
         }
     }
 }
 
-impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
+impl SpecializedRenderPipeline for EntiTilesPipeline {
     type Key = EntiTilesPipelineKey;
 
     fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
@@ -123,12 +102,7 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
             layout.push(self.storage_buffers_layout.clone());
         }
 
-        if std::any::TypeId::of::<M>() != std::any::TypeId::of::<StandardTilemapMaterial>() {
-            // group(4)
-            layout.push(self.add_material_layout.clone());
-        }
-
-        let mut desc = RenderPipelineDescriptor {
+        let desc = RenderPipelineDescriptor {
             label: Some("tilemap_pipeline".into()),
             layout,
             push_constant_ranges: vec![],
@@ -164,8 +138,6 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
                 alpha_to_coverage_enabled: false,
             },
         };
-
-        M::specialize(&mut desc);
 
         desc
     }

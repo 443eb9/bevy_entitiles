@@ -29,7 +29,7 @@ use bevy::{
 
 use crate::tilemap::map::WaitForTextureUsageChange;
 
-use super::material::{StandardTilemapMaterial, TilemapMaterialInstances};
+use super::material::{StandardTilemapMaterial, StandardTilemapMaterialInstances};
 
 #[derive(Resource, Default)]
 pub struct TilemapTexturesStorage {
@@ -56,7 +56,7 @@ impl TilemapTexturesStorage {
     pub fn prepare_textures(
         &mut self,
         render_device: &RenderDevice,
-        materials: &TilemapMaterialInstances<StandardTilemapMaterial>,
+        materials: &StandardTilemapMaterialInstances,
     ) {
         if self.prepare_queue.is_empty() {
             return;
@@ -137,7 +137,7 @@ impl TilemapTexturesStorage {
         render_device: &RenderDevice,
         render_queue: &RenderQueue,
         render_images: &RenderAssets<Image>,
-        materials: &TilemapMaterialInstances<StandardTilemapMaterial>,
+        materials: &StandardTilemapMaterialInstances,
     ) {
         if self.queue_queue.is_empty() {
             return;
@@ -211,7 +211,7 @@ impl TilemapTexturesStorage {
     pub fn queue_textures(
         &mut self,
         render_device: &RenderDevice,
-        materials: &TilemapMaterialInstances<StandardTilemapMaterial>,
+        materials: &StandardTilemapMaterialInstances,
         render_images: &mut RenderAssets<Image>,
     ) {
         if self.queue_queue.is_empty() {
