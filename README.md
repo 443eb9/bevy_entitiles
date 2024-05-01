@@ -1,4 +1,6 @@
 # Bevy EntiTiles 🗺️
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2F443eb9%2Fbevy_entitiles.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2F443eb9%2Fbevy_entitiles?ref=badge_shield)
+
 
 A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
@@ -93,3 +95,7 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 | 0.11.x   | 0.1.x         | Not supported | Not supported |
 
 *Versions before 0.3.0 are not named following [`Semantic Versioning`](https://semver.org/)*
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2F443eb9%2Fbevy_entitiles.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2F443eb9%2Fbevy_entitiles?ref=badge_large)
