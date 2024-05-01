@@ -16,7 +16,7 @@ use crate::{
         despawn::{DespawnedTile, DespawnedTilemap},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
-            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform,
+            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures, TilemapTransform,
             TilemapType,
         },
         tile::Tile,
@@ -45,7 +45,7 @@ pub struct ExtractedTilemap<M: TilemapMaterial> {
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<M>,
-    pub texture: Option<TilemapTexture>,
+    pub texture: Option<Handle<TilemapTextures>>,
     pub animations: Option<TilemapAnimations>,
     pub chunk_size: u32,
 }
@@ -69,7 +69,7 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
                 &TilemapAxisFlip,
                 &TilemapStorage,
                 &Handle<M>,
-                Option<&TilemapTexture>,
+                Option<&Handle<TilemapTextures>>,
                 Option<&TilemapAnimations>,
             ),
             Or<(
@@ -81,7 +81,7 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
                 Changed<TilemapTransform>,
                 Changed<TilemapAxisFlip>,
                 Changed<Handle<M>>,
-                Changed<TilemapTexture>,
+                Changed<Handle<TilemapTextures>>,
                 Changed<TilemapAnimations>,
             )>,
         >,

@@ -13,6 +13,8 @@ use bevy::{
     utils::FloatOrd,
 };
 
+use crate::tilemap::map::TilemapTextures;
+
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
     draw::DrawTilemap,
@@ -40,6 +42,7 @@ pub fn queue<M: TilemapMaterial>(
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     msaa: Res<Msaa>,
     tilemap_instances: Res<TilemapInstances<M>>,
+    textures_assets: Res<RenderAssets<TilemapTextures>>,
     #[cfg(not(feature = "atlas"))] render_queue: Res<RenderQueue>,
     #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<Image>>,
     #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<Image>>,
@@ -49,7 +52,12 @@ pub fn queue<M: TilemapMaterial>(
     };
 
     #[cfg(not(feature = "atlas"))]
-    textures_storage.queue_textures(&render_device, &render_queue, &render_images);
+    textures_storage.queue_textures(
+        &render_device,
+        &render_queue,
+        &render_images,
+        &textures_assets,
+    );
     #[cfg(feature = "atlas")]
     textures_storage.queue_textures(&render_device, &mut render_images);
 

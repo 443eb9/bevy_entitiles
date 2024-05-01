@@ -14,7 +14,7 @@ use bevy_entitiles::{
         bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapType,
+            TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
     },
     EntiTilesPlugin,
@@ -38,6 +38,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -62,15 +63,14 @@ fn setup(
             ty: TilemapType::Square,
             storage: TilemapStorage::new(16, entity),
             material: materials.add(StandardTilemapMaterial::default()),
-            texture: TilemapTexture::new(
-                asset_server.load("test_wfc.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 48, y: 32 },
-                    UVec2 { x: 16, y: 16 },
-                    FilterMode::Nearest,
+            textures: textures.add(TilemapTextures::single(
+                TilemapTexture::new(
+                    asset_server.load("test_wfc.png"),
+                    TilemapTextureDescriptor::new(UVec2 { x: 48, y: 32 }, UVec2 { x: 16, y: 16 }),
+                    TilemapRotation::None,
                 ),
-                TilemapRotation::None,
-            ),
+                FilterMode::Nearest,
+            )),
             ..Default::default()
         },
     ));

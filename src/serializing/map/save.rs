@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use bevy::{
+    asset::{Assets, Handle},
     ecs::{
         component::Component,
         entity::Entity,
@@ -16,7 +17,7 @@ use crate::{
         despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-            TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTransform, TilemapType,
+            TilemapSlotSize, TilemapStorage, TilemapTextures, TilemapTransform, TilemapType,
         },
         tile::{Tile, TileBuilder},
     },
@@ -61,7 +62,7 @@ pub struct TilemapSaver {
     pub path: String,
     pub mode: TilemapSaverMode,
     pub layers: TilemapLayer,
-    pub texture_path: Option<String>,
+    pub texture_path: Option<Vec<String>>,
     pub remove_after_save: bool,
 }
 
@@ -77,11 +78,12 @@ pub fn save(
         &TilemapLayerOpacities,
         &mut TilemapStorage,
         &TilemapTransform,
-        Option<&TilemapTexture>,
+        Option<&Handle<TilemapTextures>>,
         Option<&TilemapAnimations>,
         &TilemapSaver,
     )>,
     tiles_query: Query<&Tile>,
+    textures_assets: Res<Assets<TilemapTextures>>,
     #[cfg(feature = "algorithm")] path_tilemaps: Res<PathTilemaps>,
     #[cfg(feature = "physics")] physics_tilemaps_query: Query<
         &crate::tilemap::physics::PhysicsTilemap,
@@ -115,7 +117,7 @@ pub fn save(
                 *layer_opacities,
                 storage.clone(),
                 transform.clone(),
-                texture.cloned(),
+                texture.and_then(|t| textures_assets.get(t)).cloned(),
                 animations.cloned(),
                 saver,
             );

@@ -90,11 +90,12 @@ pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'sta
     fn get_mapper(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
 }
 
+// TODO
+// Add a indivudual storage buffer to store texture metas
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
     pub translation: Vec2,
     pub rotation: Mat2,
-    pub uv_rotation: u32,
     pub tile_render_size: Vec2,
     pub slot_size: Vec2,
     pub pivot: Vec2,
@@ -102,10 +103,6 @@ pub struct TilemapUniform {
     pub axis_dir: Vec2,
     pub hex_legs: f32,
     pub time: f32,
-    #[cfg(feature = "atlas")]
-    pub texture_tiled_size: bevy::math::IVec2,
-    #[cfg(feature = "atlas")]
-    pub tile_uv_size: Vec2,
 }
 
 #[derive(Resource)]
@@ -134,30 +131,9 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
     ) -> DynamicOffsetComponent<TilemapUniform> {
         let (extracted, time) = (&extracted.0, extracted.1);
 
-        let uv_rotation = {
-            if let Some(tex) = extracted.texture.as_ref() {
-                tex.rotation as u32 / 90
-            } else {
-                0
-            }
-        };
-
-        #[cfg(feature = "atlas")]
-        let (texture_tiled_size, tile_uv_size) = {
-            if let Some(tex) = extracted.texture.as_ref() {
-                (
-                    (tex.desc.size / tex.desc.tile_size).as_ivec2(),
-                    tex.desc.tile_size.as_vec2() / tex.desc.size.as_vec2(),
-                )
-            } else {
-                (bevy::math::IVec2::ZERO, Vec2::ZERO)
-            }
-        };
-
         DynamicOffsetComponent::new(self.buffer().push(&TilemapUniform {
             translation: extracted.transform.translation,
             rotation: extracted.transform.get_rotation_matrix(),
-            uv_rotation,
             tile_render_size: extracted.tile_render_size,
             slot_size: extracted.slot_size,
             pivot: extracted.tile_pivot,
@@ -168,10 +144,6 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
                 _ => 0.,
             },
             time,
-            #[cfg(feature = "atlas")]
-            texture_tiled_size,
-            #[cfg(feature = "atlas")]
-            tile_uv_size,
         }))
     }
 

@@ -26,7 +26,7 @@ use bevy_entitiles::{
         bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapRotation, TilemapSlotSize,
-            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapType,
+            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -60,6 +60,7 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -70,11 +71,11 @@ fn setup(
         ty: TilemapType::Square,
         storage: TilemapStorage::new(32, entity),
         material: materials.add(StandardTilemapMaterial::default()),
-        texture: TilemapTexture::new(
+        textures: textures.add(TilemapTexture::new(
             asset_server.load("test_square.png"),
             TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
             TilemapRotation::None,
-        ),
+        )),
         layer_opacities: TilemapLayerOpacities(Vec4::new(0.8, 0.5, 0.1, 0.3)),
         ..Default::default()
     };

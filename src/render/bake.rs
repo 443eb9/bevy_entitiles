@@ -1,5 +1,5 @@
 use bevy::{
-    asset::Assets,
+    asset::{Assets, Handle},
     ecs::{
         component::Component,
         entity::Entity,
@@ -21,6 +21,7 @@ use crate::{
     tilemap::{
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTextures,
         },
         tile::{Tile, TileFlip, TileLayer, TileTexture},
     },
@@ -53,11 +54,12 @@ pub fn tilemap_baker(
         &TilemapSlotSize,
         &mut TilemapStorage,
         &TilemapLayerOpacities,
-        &TilemapTexture,
+        &Handle<TilemapTextures>,
         &TilemapBaker,
     )>,
     tiles_query: Query<&Tile>,
     image_assets: Res<Assets<Image>>,
+    textures_assets: Res<Assets<TilemapTextures>>,
 ) {
     for (tilemap_entity, tile_render_size, slot_size, mut storage, opacities, texture, baker) in
         &mut tilemaps_query
@@ -95,8 +97,13 @@ pub fn tilemap_baker(
             })
             .collect::<Vec<_>>();
 
-        let texture_image = image_assets.get(texture.handle()).unwrap();
-        let target_size = tilemap_aabb.size().as_uvec2() * texture.desc.tile_size;
+        let textures = textures_assets.get(texture).unwrap();
+        let texture_images = textures
+            .0
+            .iter()
+            .map(|tex| image_assets.get(tex.handle()).unwrap())
+            .collect::<Vec<_>>();
+        let target_size = (tilemap_aabb.size().as_vec2() * tile_render_size.0).as_uvec2();
         let mut bake_target = vec![0; (target_size.x * target_size.y * 4) as usize];
 
         tiles.into_iter().for_each(|(tile_index, tile)| {
@@ -118,8 +125,8 @@ pub fn tilemap_baker(
                     })
                     .for_each(|(opacity, layer)| {
                         set_tile(
-                            texture,
-                            texture_image,
+                            &textures.0,
+                            &texture_images,
                             rel_index,
                             target_size,
                             &mut bake_target,
@@ -132,7 +139,7 @@ pub fn tilemap_baker(
                 }
             };
 
-            set_tile_tint(texture, rel_index, target_size, &mut bake_target, tile.tint);
+            set_tile_tint(&textures.0, rel_index, target_size, &mut bake_target, tile.tint);
         });
 
         let baked_tilemap = BakedTilemap {
@@ -164,11 +171,11 @@ pub fn tilemap_baker(
 }
 
 fn set_tile(
-    texture: &TilemapTexture,
-    texture_image: &Image,
+    texture: &[TilemapTexture],
+    texture_images: &[&Image],
     rel_index: UVec2,
     target_size: UVec2,
-    bake_target: &mut Vec<u8>,
+    bake_target: &mut [u8],
     layer: &TileLayer,
     opacity: f32,
 ) {
@@ -184,7 +191,7 @@ fn set_tile(
             }
 
             let tile_px_col = get_pixel(
-                &texture_image.data,
+                &texture_images.data,
                 texture.desc.size,
                 tile_px.min + UVec2 { x, y },
             );
@@ -208,7 +215,7 @@ fn set_tile(
 }
 
 fn set_tile_tint(
-    texture: &TilemapTexture,
+    texture: &[TilemapTexture],
     rel_index: UVec2,
     target_size: UVec2,
     bake_target: &mut Vec<u8>,

@@ -174,15 +174,11 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(texture) = instances.0.get(&item.entity).unwrap().texture.as_ref() else {
+        let Some(textures) = instances.0.get(&item.entity).unwrap().texture.as_ref() else {
             return RenderCommandResult::Success;
         };
 
-        if let Some(bind_group) = &bind_groups
-            .into_inner()
-            .colored_textures
-            .get(texture.handle())
-        {
+        if let Some(bind_group) = &bind_groups.into_inner().colored_textures.get(textures) {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {

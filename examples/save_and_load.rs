@@ -26,7 +26,7 @@ use bevy_entitiles::{
         bundles::StandardTilemapBundle,
         map::{
             TilePivot, TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize,
-            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapType,
+            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         physics::{PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
@@ -57,6 +57,7 @@ fn setup(
     assets_server: Res<AssetServer>,
     mut path_tilemaps: ResMut<PathTilemaps>,
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -69,15 +70,14 @@ fn setup(
         storage: TilemapStorage::new(64, entity),
         tile_pivot: TilePivot(Vec2 { x: 0.5, y: 0. }),
         material: materials.add(StandardTilemapMaterial::default()),
-        texture: TilemapTexture::new(
-            assets_server.load("test_isometric.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 32, y: 16 },
-                FilterMode::Nearest,
+        textures: textures.add(TilemapTextures::single(
+            TilemapTexture::new(
+                assets_server.load("test_isometric.png"),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
+                TilemapRotation::None,
             ),
-            TilemapRotation::None,
-        ),
+            FilterMode::Nearest,
+        )),
         ..Default::default()
     };
 
@@ -133,7 +133,7 @@ fn save_and_load(
                 path: "generated/save_and_load".to_string(),
                 mode: TilemapSaverMode::Tilemap,
                 layers: TilemapLayer::all(),
-                texture_path: Some("test_isometric.png".to_string()),
+                texture_path: Some(vec!["test_isometric.png".to_string()]),
                 remove_after_save: true,
             });
             println!("Saved tilemap!");

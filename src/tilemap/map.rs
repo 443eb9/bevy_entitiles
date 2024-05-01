@@ -1,12 +1,19 @@
 use std::{f32::consts::SQRT_2, fmt::Debug};
 
 use bevy::{
-    asset::Handle,
-    ecs::{component::Component, query::Changed, system::Query},
+    asset::{Asset, Handle},
+    ecs::{
+        component::Component,
+        query::Changed,
+        system::{Query, SystemParamItem},
+    },
     math::{Mat2, Quat, Vec4},
     prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
     reflect::Reflect,
-    render::render_resource::FilterMode,
+    render::{
+        render_asset::{PrepareAssetError, RenderAsset, RenderAssetUsages},
+        render_resource::FilterMode,
+    },
     sprite::TextureAtlasLayout,
     transform::components::Transform,
     utils::{HashMap, HashSet},
@@ -182,8 +189,82 @@ impl TilemapAxisFlip {
     }
 }
 
+#[derive(Asset, Clone, Default, Debug, Reflect)]
+pub struct TilemapTextures {
+    pub(crate) textures: Vec<TilemapTexture>,
+    pub(crate) start_index: Vec<u32>,
+    #[reflect(ignore)]
+    pub(crate) filter_mode: FilterMode,
+}
+
+impl RenderAsset for TilemapTextures {
+    type PreparedAsset = Self;
+
+    type Param = ();
+
+    fn asset_usage(&self) -> RenderAssetUsages {
+        RenderAssetUsages::all()
+    }
+
+    fn prepare_asset(
+        self,
+        _param: &mut SystemParamItem<Self::Param>,
+    ) -> Result<Self::PreparedAsset, PrepareAssetError<Self>> {
+        Ok(self)
+    }
+}
+
+impl TilemapTextures {
+    pub fn single(texture: TilemapTexture, filter_mode: FilterMode) -> Self {
+        Self::new(vec![texture], filter_mode)
+    }
+
+    pub fn new(textures: Vec<TilemapTexture>, filter_mode: FilterMode) -> Self {
+        let mut start_index = Vec::with_capacity(textures.len());
+        let mut cur = 0;
+
+        for tex in &textures {
+            start_index.push(cur);
+            cur += tex.tile_count();
+        }
+
+        Self {
+            textures,
+            start_index,
+            filter_mode,
+        }
+    }
+
+    pub fn assert_uniform_tile_size(&self) {
+        if self.textures.is_empty() {
+            return;
+        }
+
+        for t in &self.textures {
+            assert_eq!(t.desc.tile_size, self.textures[0].desc.tile_size);
+        }
+    }
+
+    pub fn total_tile_count(&self) -> u32 {
+        self.textures.iter().fold(0, |acc, tex| {
+            let t = tex.desc.size / tex.desc.tile_size;
+            acc + t.x * t.y
+        })
+    }
+
+    pub fn get_texture_packed(&self, index: usize) -> Option<(&TilemapTexture, u32)> {
+        self.textures
+            .get(index)
+            .zip(self.start_index.get(index).cloned())
+    }
+
+    pub fn iter_packed(&self) -> impl Iterator<Item = (&TilemapTexture, u32)> {
+        self.textures.iter().zip(self.start_index.iter().cloned())
+    }
+}
+
 /// A tilemap texture. It's similar to `TextureAtlas`.
-#[derive(Component, Clone, Default, Debug, Reflect)]
+#[derive(Clone, Default, Debug, Reflect)]
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
@@ -203,16 +284,25 @@ impl TilemapTexture {
         }
     }
 
+    #[inline]
     pub fn clone_weak(&self) -> Handle<Image> {
         self.texture.clone_weak()
     }
 
+    #[inline]
     pub fn desc(&self) -> &TilemapTextureDescriptor {
         &self.desc
     }
 
+    #[inline]
     pub fn handle(&self) -> &Handle<Image> {
         &self.texture
+    }
+
+    #[inline]
+    pub fn tile_count(&self) -> u32 {
+        let t = self.desc.size / self.desc.tile_size;
+        t.x * t.y
     }
 
     pub fn as_atlas_layout(&self) -> TextureAtlasLayout {
@@ -251,27 +341,22 @@ impl TilemapTexture {
 pub struct WaitForTextureUsageChange;
 
 /// A descriptor for a tilemap texture.
-#[derive(Clone, Default, Debug, PartialEq, Reflect)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapTextureDescriptor {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
-    #[reflect(ignore)]
-    pub(crate) filter_mode: FilterMode,
 }
 
 impl TilemapTextureDescriptor {
-    pub fn new(size: UVec2, tile_size: UVec2, filter_mode: FilterMode) -> Self {
+    pub fn new(size: UVec2, tile_size: UVec2) -> Self {
         assert_eq!(
             size % tile_size,
             UVec2::ZERO,
             "Invalid tilemap texture descriptor! The size must be divisible by the tile size!"
         );
 
-        Self {
-            size,
-            tile_size,
-            filter_mode,
-        }
+        Self { size, tile_size }
     }
 }
 
@@ -518,7 +603,7 @@ impl TilemapStorage {
     }
 
     /// Despawn the entire tilemap.
-    /// 
+    ///
     /// **Notice** this is the **only** and easiest way you can safely despawn the tilemap.
     #[inline]
     pub fn despawn(&mut self, commands: &mut Commands) {

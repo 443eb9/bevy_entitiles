@@ -32,7 +32,7 @@ use bevy_entitiles::{
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTextureDescriptor, TilemapType,
+            TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         physics::{PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
@@ -87,6 +87,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     // When the detect aabb is intersected with a invisible chunk,
     // all the chunks that are intercected with the update aabb must be visible.
@@ -103,15 +104,14 @@ fn setup(
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
         material: materials.add(StandardTilemapMaterial::default()),
-        texture: TilemapTexture::new(
-            asset_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 16, y: 16 },
-                FilterMode::Nearest,
+        textures: textures.add(TilemapTextures::single(
+            TilemapTexture::new(
+                asset_server.load("test_square.png"),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 16, y: 16 }),
+                TilemapRotation::None,
             ),
-            TilemapRotation::None,
-        ),
+            FilterMode::Nearest,
+        )),
         ..Default::default()
     };
 

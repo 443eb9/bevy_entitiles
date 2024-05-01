@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use bevy::{
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     ecs::{
         bundle::Bundle,
         component::Component,
@@ -15,7 +15,7 @@ use crate::{
     serializing::load_object,
     tilemap::{
         chunking::storage::{ChunkedStorage, TileBuilderChunkedStorage},
-        map::{TilemapStorage, TilemapTexture},
+        map::{TilemapStorage, TilemapTexture, TilemapTextures},
         tile::Tile,
     },
 };
@@ -24,9 +24,9 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use crate::{
+    algorithm::pathfinding::PathTilemaps,
     serializing::map::PATH_TILES,
     tilemap::{algorithm::path::PathTilemap, chunking::storage::PathTileChunkedStorage},
-    algorithm::pathfinding::PathTilemaps,
 };
 #[cfg(feature = "algorithm")]
 use bevy::ecs::system::ResMut;
@@ -58,6 +58,7 @@ pub fn load(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &TilemapLoader)>,
     asset_server: Res<AssetServer>,
+    mut textures_assets: ResMut<Assets<TilemapTextures>>,
     #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
@@ -68,14 +69,21 @@ pub fn load(
             continue;
         };
 
-        let texture = if let Some(tex) = &ser_tilemap.texture {
-            Some(TilemapTexture {
-                texture: asset_server.load(tex.path.clone()),
-                desc: tex.desc.clone().into(),
-                rotation: tex.rotation,
-            })
-        } else {
-            None
+        let texture = {
+            if let Some((tex, filter_mode)) = &ser_tilemap.textures {
+                Some(TilemapTextures::new(
+                    tex.iter()
+                        .map(|tex| TilemapTexture {
+                            texture: asset_server.load(&tex.path),
+                            desc: tex.desc.clone().into(),
+                            rotation: tex.rotation,
+                        })
+                        .collect(),
+                    (*filter_mode).into(),
+                ))
+            } else {
+                None
+            }
         };
 
         // texture
@@ -124,7 +132,7 @@ pub fn load(
         }
 
         if let Some(tex) = texture {
-            let mut bundle = ser_tilemap.into_tilemap(entity, tex);
+            let mut bundle = ser_tilemap.into_tilemap(entity, textures_assets.add(tex));
             bundle.storage = storage;
             complete(&mut commands, entity, bundle, true);
         } else {
@@ -142,7 +150,12 @@ pub fn load(
                 continue;
             };
 
-            path_tilemaps.insert(entity, PathTilemap { storage: path_storage });
+            path_tilemaps.insert(
+                entity,
+                PathTilemap {
+                    storage: path_storage,
+                },
+            );
         }
 
         // physics

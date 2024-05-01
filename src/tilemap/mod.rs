@@ -1,11 +1,14 @@
-use bevy::app::{Plugin, PostUpdate, PreUpdate, Update};
+use bevy::{
+    app::{Plugin, PostUpdate, PreUpdate, Update},
+    asset::AssetApp,
+};
 
 use self::{
     chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
     map::{
         TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapLayerOpacities,
         TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
-        TilemapTransform, TilemapType,
+        TilemapTextures, TilemapTransform, TilemapType,
     },
     tile::{LayerUpdater, Tile, TileLayer, TileTexture, TileUpdater},
 };
@@ -26,36 +29,32 @@ pub struct EntiTilesTilemapPlugin;
 
 impl Plugin for EntiTilesTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(PreUpdate, despawn::despawn_applier);
-
-        app.add_systems(
-            Update,
-            (
-                map::transform_syncer,
-                map::queued_chunk_aabb_calculator,
-                map::tilemap_aabb_calculator,
-                tile::tile_updater,
-                chunking::camera::camera_chunk_update,
-            ),
-        );
-
-        app.add_systems(
-            PostUpdate,
-            (
-                despawn::despawn_tilemap,
-                despawn::despawn_tiles,
-                #[cfg(feature = "physics")]
-                despawn::despawn_physics_tilemaps,
-            ),
-        );
-
-        app.register_type::<TileLayer>()
+        app.add_systems(PreUpdate, despawn::despawn_applier)
+            .add_systems(
+                Update,
+                (
+                    map::transform_syncer,
+                    map::queued_chunk_aabb_calculator,
+                    map::tilemap_aabb_calculator,
+                    tile::tile_updater,
+                    chunking::camera::camera_chunk_update,
+                ),
+            )
+            .add_systems(
+                PostUpdate,
+                (
+                    despawn::despawn_tilemap,
+                    despawn::despawn_tiles,
+                    #[cfg(feature = "physics")]
+                    despawn::despawn_physics_tilemaps,
+                ),
+            )
+            .register_type::<TileLayer>()
             .register_type::<LayerUpdater>()
             .register_type::<TileUpdater>()
             .register_type::<Tile>()
-            .register_type::<TileTexture>();
-
-        app.register_type::<TilemapName>()
+            .register_type::<TileTexture>()
+            .register_type::<TilemapName>()
             .register_type::<TileRenderSize>()
             .register_type::<TilemapSlotSize>()
             .register_type::<TilemapType>()
@@ -66,12 +65,11 @@ impl Plugin for EntiTilesTilemapPlugin {
             .register_type::<TilemapTransform>()
             .register_type::<TilemapTexture>()
             .register_type::<TilemapTextureDescriptor>()
-            .register_type::<TilemapAnimations>();
-
-        app.register_type::<CameraChunkUpdation>()
-            .register_type::<CameraChunkUpdater>();
-
-        app.add_event::<CameraChunkUpdation>();
+            .register_type::<TilemapAnimations>()
+            .register_type::<CameraChunkUpdation>()
+            .register_type::<CameraChunkUpdater>()
+            .init_asset::<TilemapTextures>()
+            .add_event::<CameraChunkUpdation>();
 
         #[cfg(feature = "algorithm")]
         app.add_plugins(algorithm::EntiTilesAlgorithmTilemapPlugin);

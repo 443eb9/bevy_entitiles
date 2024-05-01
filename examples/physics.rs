@@ -23,7 +23,8 @@ use bevy_entitiles::{
         bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTextureDescriptor, TilemapTransform, TilemapType,
+            TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapTransform,
+            TilemapType,
         },
         physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTileSpawn, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
@@ -59,6 +60,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut col_materials: ResMut<Assets<ColorMaterial>>,
     mut std_materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -90,15 +92,14 @@ fn setup(
         storage: TilemapStorage::new(16, entity),
         transform: TilemapTransform::from_z_index(-1.),
         material: std_materials.add(StandardTilemapMaterial::default()),
-        texture: TilemapTexture::new(
-            assets_server.load("test_isometric.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 32, y: 16 },
-                FilterMode::Nearest,
+        textures: textures.add(TilemapTextures::single(
+            TilemapTexture::new(
+                assets_server.load("test_isometric.png"),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
+                TilemapRotation::None,
             ),
-            TilemapRotation::None,
-        ),
+            FilterMode::Nearest,
+        )),
         ..Default::default()
     };
 
@@ -127,15 +128,14 @@ fn setup(
         storage: TilemapStorage::new(16, entity),
         transform: TilemapTransform::from_translation(Vec2::new(500., -100.)),
         material: std_materials.add(StandardTilemapMaterial::default()),
-        texture: TilemapTexture::new(
-            assets_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 16, y: 16 },
-                FilterMode::Nearest,
+        textures: textures.add(TilemapTextures::single(
+            TilemapTexture::new(
+                assets_server.load("test_square.png"),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 16, y: 16 }),
+                TilemapRotation::None,
             ),
-            TilemapRotation::None,
-        ),
+            FilterMode::Nearest,
+        )),
         ..Default::default()
     };
 

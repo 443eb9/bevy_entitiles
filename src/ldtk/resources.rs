@@ -204,7 +204,6 @@ impl LdtkAssets {
                     x: tileset.tile_grid_size as u32,
                     y: tileset.tile_grid_size as u32,
                 },
-                filter_mode: config.filter_mode,
             };
             let texture = TilemapTexture {
                 texture,

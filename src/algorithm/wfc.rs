@@ -2,11 +2,13 @@
 use std::{collections::VecDeque, path::Path};
 
 use bevy::{
+    asset::Assets,
     ecs::{entity::Entity, system::ResMut},
     log::warn,
     math::IVec2,
     prelude::{Commands, Component, Query, UVec2},
     reflect::Reflect,
+    render::render_resource::FilterMode,
     utils::{HashMap, HashSet},
 };
 use rand::{
@@ -23,7 +25,7 @@ use crate::{
         bundles::StandardPureColorTilemapBundle,
         map::{
             TileRenderSize, TilemapAnimations, TilemapName, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTransform, TilemapType,
+            TilemapTexture, TilemapTextures, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -713,6 +715,7 @@ pub fn wfc_applier(
         &WfcSource,
     )>,
     mut path_tilemaps: ResMut<PathTilemaps>,
+    mut textures_assets: ResMut<Assets<TilemapTextures>>,
     #[cfg(feature = "physics")] mut physics_tilemaps_query: Query<
         &mut crate::tilemap::physics::PhysicsTilemap,
     >,
@@ -799,7 +802,7 @@ pub fn wfc_applier(
 
                         if let Some(texture) = texture {
                             let mut bundle = bundle.convert_to_texture_bundle(
-                                texture.clone(),
+                                textures_assets.add(TilemapTextures::single(texture.clone(), FilterMode::Nearest)),
                                 TilemapAnimations::default()
                             );
                             let tile_size = texture.desc.tile_size.as_vec2();

@@ -8,7 +8,7 @@ use crate::render::material::{StandardTilemapMaterial, TilemapMaterial};
 
 use super::map::{
     TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapAxisFlip,
-    TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
+    TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures,
     TilemapTransform, TilemapType, WaitForTextureUsageChange,
 };
 
@@ -57,7 +57,7 @@ pub struct MaterialTilemapBundle<M: TilemapMaterial> {
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<M>,
-    pub texture: TilemapTexture,
+    pub textures: Handle<TilemapTextures>,
     pub animations: TilemapAnimations,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -79,7 +79,7 @@ pub struct StandardTilemapBundle {
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
     pub material: Handle<StandardTilemapMaterial>,
-    pub texture: TilemapTexture,
+    pub textures: Handle<TilemapTextures>,
     pub animations: TilemapAnimations,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -166,7 +166,7 @@ pub struct StandardPureColorTilemapBundle {
 impl StandardPureColorTilemapBundle {
     pub fn convert_to_texture_bundle(
         self,
-        texture: TilemapTexture,
+        textures: Handle<TilemapTextures>,
         animations: TilemapAnimations,
     ) -> StandardTilemapBundle {
         StandardTilemapBundle {
@@ -180,7 +180,7 @@ impl StandardPureColorTilemapBundle {
             transform: self.transform,
             axis_flip: self.axis_flip,
             material: self.material,
-            texture,
+            textures,
             animations,
             visibility: self.visibility,
             inherited_visibility: self.inherited_visibility,

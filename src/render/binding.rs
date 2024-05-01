@@ -14,6 +14,8 @@ use bevy::{
     utils::HashMap,
 };
 
+use crate::tilemap::map::TilemapTextures;
+
 use super::{
     buffer::{
         PerTilemapBuffersStorage, TilemapStorageBuffers, TilemapUniform, TilemapUniformBuffer,
@@ -37,7 +39,7 @@ pub struct TilemapViewBindGroup {
 pub struct TilemapBindGroups<M: TilemapMaterial> {
     pub tilemap_uniform_buffer: Option<BindGroup>,
     pub tilemap_storage_buffers: EntityHashMap<BindGroup>,
-    pub colored_textures: HashMap<Handle<Image>, BindGroup>,
+    pub colored_textures: HashMap<Handle<TilemapTextures>, BindGroup>,
     pub material_bind_groups: HashMap<AssetId<M>, BindGroup>,
 }
 
@@ -122,11 +124,11 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
             return true;
         };
 
-        let Some(texture) = textures_storage.get_texture(tilemap_texture.handle()) else {
-            return !textures_storage.contains(tilemap_texture.handle());
+        let Some(texture) = textures_storage.get_texture(tilemap_texture) else {
+            return !textures_storage.contains(tilemap_texture);
         };
 
-        if !self.colored_textures.contains_key(tilemap_texture.handle()) {
+        if !self.colored_textures.contains_key(tilemap_texture) {
             self.colored_textures.insert(
                 tilemap_texture.clone_weak(),
                 render_device.create_bind_group(
@@ -194,7 +196,7 @@ impl FromWorld for TilemapBindGroupLayouts {
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::FRAGMENT,
                 (
-                    binding::texture_2d(TextureSampleType::Float { filterable: true }),
+                    binding::texture_2d_array(TextureSampleType::Float { filterable: true }),
                     binding::sampler(SamplerBindingType::Filtering),
                 ),
             ),

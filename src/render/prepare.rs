@@ -9,7 +9,10 @@ use bevy::{
     time::Time,
 };
 
-use crate::tilemap::despawn::{DespawnedTile, DespawnedTilemap};
+use crate::tilemap::{
+    despawn::{DespawnedTile, DespawnedTilemap},
+    map::TilemapTextures,
+};
 
 use super::{
     binding::TilemapBindGroups,
@@ -41,6 +44,7 @@ pub fn prepare_tilemaps<M: TilemapMaterial>(
     images: Res<RenderAssets<Image>>,
     fallback_image: Res<FallbackImage>,
     extracted_materials: Res<ExtractedTilemapMaterials<M>>,
+    textures_assets: Res<RenderAssets<TilemapTextures>>,
 ) {
     uniform_buffers.clear();
     storage_buffers.clear();
@@ -55,19 +59,19 @@ pub fn prepare_tilemaps<M: TilemapMaterial>(
 
             render_chunks.prepare_chunks(tilemap, &render_device);
 
-            if let Some(texture) = tilemap.texture.as_ref() {
+            if let Some(textures) = tilemap.texture.as_ref() {
                 storage_buffers
                     .get_or_insert_buffer(tilemap.id)
                     .extend(&tilemap.animations.as_ref().unwrap().0);
 
-                if !textures_storage.contains(&texture.texture) {
-                    textures_storage.insert(texture.clone_weak(), texture.desc());
+                if !textures_storage.contains(textures) {
+                    textures_storage.insert(textures.clone());
                 }
             }
         });
 
     #[cfg(not(feature = "atlas"))]
-    textures_storage.prepare_textures(&render_device);
+    textures_storage.prepare_textures(&render_device, &textures_assets);
     uniform_buffers.write(&render_device, &render_queue);
     storage_buffers.write(&render_device, &render_queue);
 

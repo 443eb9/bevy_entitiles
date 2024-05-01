@@ -1,6 +1,7 @@
 use bevy::{
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     ecs::{
+        component::Component,
         entity::Entity,
         system::{Commands, EntityCommands},
     },
@@ -14,13 +15,14 @@ use bevy::{
 
 use crate::{
     math::aabb::IAabb2d,
+    render::material::StandardTilemapMaterial,
     serializing::pattern::TilemapPattern,
     tilemap::{
         buffers::TileBuffer,
         bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTransform, TilemapType,
+            TilemapTexture, TilemapTextures, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileFlip, TileLayer, TileTexture},
     },
@@ -111,12 +113,14 @@ impl PackedLdtkEntity {
 
 pub type LayerOpacity = f32;
 
-pub struct LdtkLayers<'a> {
+#[derive(Component)]
+pub struct LdtkLayers {
     pub ty: LdtkLoaderMode,
     pub level_entity: Entity,
+    pub level: Level,
     pub layers: Vec<Option<(TilemapPattern, TilemapTexture, LayerIid, LayerOpacity)>>,
     pub entities: Vec<PackedLdtkEntity>,
-    pub tilesets: &'a HashMap<i32, TilemapTexture>,
+    pub tilesets: HashMap<i32, TilemapTexture>,
     pub translation: Vec2,
     pub base_z_index: f32,
     pub background: SpriteBundle,
@@ -129,11 +133,12 @@ pub struct LdtkLayers<'a> {
     pub physics_layer: Option<(physics::LdtkPhysicsLayer, Vec<i32>, UVec2)>,
 }
 
-impl<'a> LdtkLayers<'a> {
+impl LdtkLayers {
     pub fn new(
         level_entity: Entity,
+        level: &Level,
         total_layers: usize,
-        ldtk_assets: &'a LdtkAssets,
+        ldtk_assets: &LdtkAssets,
         translation: Vec2,
         base_z_index: f32,
         ty: LdtkLoaderMode,
@@ -141,9 +146,10 @@ impl<'a> LdtkLayers<'a> {
     ) -> Self {
         Self {
             level_entity,
+            level: level.clone(),
             layers: vec![None; total_layers],
             entities: vec![],
-            tilesets: &ldtk_assets.tilesets,
+            tilesets: ldtk_assets.tilesets.clone(),
             translation,
             base_z_index,
             background,
@@ -261,12 +267,13 @@ impl<'a> LdtkLayers<'a> {
         &mut self,
         commands: &mut Commands,
         ldtk_patterns: &mut LdtkPatterns,
-        level: &Level,
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
         config: &LdtkLoadConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
+        material_assets: &mut Assets<StandardTilemapMaterial>,
+        textures_assets: &mut Assets<TilemapTextures>,
         #[cfg(feature = "algorithm")] path_tilemaps: &mut PathTilemaps,
     ) {
         match self.ty {
@@ -299,13 +306,15 @@ impl<'a> LdtkLayers<'a> {
                             ty: TilemapType::Square,
                             tile_render_size: TileRenderSize(texture.desc.tile_size.as_vec2()),
                             slot_size: TilemapSlotSize(texture.desc.tile_size.as_vec2()),
-                            texture: texture.clone(),
+                            textures: textures_assets
+                                .add(TilemapTextures::single(texture.clone(), config.filter_mode)),
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, tilemap_entity),
                             transform: TilemapTransform {
                                 translation: self.translation,
                                 z_index: self.base_z_index - index as f32 - 1.,
                                 ..Default::default()
                             },
+                            material: material_assets.add(StandardTilemapMaterial::default()),
                             layer_opacities: TilemapLayerOpacities([opacity; 4].into()),
                             animations: pattern.animations.clone(),
                             ..Default::default()
@@ -355,7 +364,7 @@ impl<'a> LdtkLayers<'a> {
 
                 commands.entity(self.level_entity).insert((
                     LdtkLoadedLevel {
-                        identifier: level.identifier.clone(),
+                        identifier: self.level.identifier.clone(),
                         layers,
                         entities,
                         background: bg,
@@ -364,7 +373,7 @@ impl<'a> LdtkLayers<'a> {
                         transform: Transform::from_translation(self.translation.extend(0.)),
                         ..Default::default()
                     },
-                    LevelIid(level.iid.clone()),
+                    LevelIid(self.level.iid.clone()),
                 ));
             }
             LdtkLoaderMode::MapPattern => {
@@ -404,10 +413,11 @@ impl<'a> LdtkLayers<'a> {
                             &iid,
                             pattern,
                             &Some(texture),
-                            &level.identifier,
+                            &self.level.identifier,
                         );
 
-                        ldtk_patterns.add_background(&level.identifier, self.background.clone());
+                        ldtk_patterns
+                            .add_background(&self.level.identifier, self.background.clone());
                     });
 
                 commands.entity(self.level_entity).despawn();

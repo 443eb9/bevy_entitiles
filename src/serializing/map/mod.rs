@@ -1,7 +1,7 @@
 use bevy::{
     app::{App, Plugin, Update},
+    asset::Handle,
     ecs::entity::Entity,
-    math::UVec2,
     render::render_resource::FilterMode,
 };
 use serde::{Deserialize, Serialize};
@@ -11,8 +11,8 @@ use crate::tilemap::{
     chunking::storage::ChunkedStorage,
     map::{
         TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
-        TilemapTransform, TilemapType,
+        TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTextureDescriptor,
+        TilemapTextures, TilemapTransform, TilemapType,
     },
     tile::TileBuilder,
 };
@@ -50,7 +50,7 @@ pub struct SerializedTilemap {
     pub tile_pivot: TilePivot,
     pub layer_opacities: TilemapLayerOpacities,
     pub tilemap_transform: TilemapTransform,
-    pub texture: Option<SerializedTilemapTexture>,
+    pub textures: Option<(Vec<SerializedTilemapTexture>, SerializedFilterMode)>,
     pub animations: Option<TilemapAnimations>,
     pub layers: TilemapLayer,
     pub chunk_size: u32,
@@ -66,7 +66,7 @@ impl SerializedTilemap {
         layer_opacities: TilemapLayerOpacities,
         storage: TilemapStorage,
         tilemap_transform: TilemapTransform,
-        texture: Option<TilemapTexture>,
+        texture: Option<TilemapTextures>,
         animations: Option<TilemapAnimations>,
         saver: &TilemapSaver,
     ) -> Self {
@@ -76,12 +76,19 @@ impl SerializedTilemap {
             tile_render_size,
             slot_size,
             tile_pivot,
-            texture: texture.and_then(|tex| {
-                Some(SerializedTilemapTexture {
-                    path: saver.texture_path.clone().unwrap(),
-                    desc: tex.desc.into(),
-                    rotation: tex.rotation,
-                })
+            textures: texture.map(|tex| {
+                (
+                    tex.textures
+                        .into_iter()
+                        .zip(saver.texture_path.as_ref().unwrap())
+                        .map(|(tex, path)| SerializedTilemapTexture {
+                            path: path.clone(),
+                            desc: tex.desc.clone(),
+                            rotation: tex.rotation,
+                        })
+                        .collect(),
+                    tex.filter_mode.into(),
+                )
             }),
             layer_opacities,
             tilemap_transform,
@@ -91,7 +98,11 @@ impl SerializedTilemap {
         }
     }
 
-    pub fn into_tilemap(&self, tilemap: Entity, texture: TilemapTexture) -> StandardTilemapBundle {
+    pub fn into_tilemap(
+        &self,
+        tilemap: Entity,
+        textures: Handle<TilemapTextures>,
+    ) -> StandardTilemapBundle {
         StandardTilemapBundle {
             name: self.name.clone(),
             ty: self.ty,
@@ -105,7 +116,7 @@ impl SerializedTilemap {
                 ..Default::default()
             },
             transform: self.tilemap_transform,
-            texture,
+            textures,
             animations: self.animations.clone().unwrap(),
             ..Default::default()
         }
@@ -133,38 +144,11 @@ impl SerializedTilemap {
 #[derive(Serialize, Deserialize)]
 pub struct SerializedTilemapTexture {
     pub path: String,
-    pub desc: SerializedTilemapTextureDescriptor,
+    pub desc: TilemapTextureDescriptor,
     pub rotation: TilemapRotation,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct SerializedTilemapTextureDescriptor {
-    pub size: UVec2,
-    pub tile_size: UVec2,
-    pub filter_mode: SerializedFilterMode,
-}
-
-impl From<TilemapTextureDescriptor> for SerializedTilemapTextureDescriptor {
-    fn from(value: TilemapTextureDescriptor) -> Self {
-        Self {
-            size: value.size,
-            tile_size: value.tile_size,
-            filter_mode: value.filter_mode.into(),
-        }
-    }
-}
-
-impl Into<TilemapTextureDescriptor> for SerializedTilemapTextureDescriptor {
-    fn into(self) -> TilemapTextureDescriptor {
-        TilemapTextureDescriptor {
-            size: self.size,
-            tile_size: self.tile_size,
-            filter_mode: self.filter_mode.into(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum SerializedFilterMode {
     Nearest = 0,
     Linear = 1,

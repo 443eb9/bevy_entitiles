@@ -29,7 +29,7 @@ struct TilemapVertexOutput {
 struct Tilemap {
     translation: vec2<f32>,
     rot_mat: mat2x2<f32>,
-    uv_rot: u32,
+    // uv_rot: u32,
     tile_render_size: vec2<f32>,
     slot_size: vec2<f32>,
     pivot: vec2<f32>,
@@ -38,11 +38,11 @@ struct Tilemap {
     // this value will only be meaningful when the tilemap is hexagonal!
     hex_legs: f32,
     time: f32,
-#ifdef ATLAS
-    // texture size in tiles
-    texture_tiled_size: vec2<i32>,
-    tile_uv_size: vec2<f32>,
-#endif
+// #ifdef ATLAS
+//     // texture size in tiles
+//     texture_tiled_size: vec2<i32>,
+//     tile_uv_size: vec2<f32>,
+// #endif
 }
 
 struct StandardTilemapUniform {
@@ -56,13 +56,8 @@ var<uniform> tilemap: Tilemap;
 var<uniform> material: StandardTilemapUniform;
 
 #ifndef PURE_COLOR
-#ifdef ATLAS
-@group(3) @binding(0)
-var color_texture: texture_2d<f32>;
-#else
 @group(3) @binding(0)
 var color_texture: texture_2d_array<f32>;
-#endif
 
 @group(3) @binding(1)
 var color_texture_sampler: sampler;

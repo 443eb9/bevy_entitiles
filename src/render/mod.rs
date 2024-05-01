@@ -4,21 +4,25 @@ use bevy::{
     ecs::schedule::IntoSystemConfigs,
     prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute, render_resource::VertexFormat, view::VisibilitySystems,
-        ExtractSchedule, RenderApp,
+        mesh::MeshVertexAttribute, render_asset::RenderAssetPlugin, render_resource::VertexFormat,
+        view::VisibilitySystems, ExtractSchedule, RenderApp,
     },
 };
 
-use crate::render::{
-    binding::TilemapBindGroupLayouts,
-    buffer::TilemapStorageBuffers,
-    chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
-    cull::FrustumCulling,
-    texture::TilemapTexturesStorage,
+use crate::{
+    render::{
+        binding::TilemapBindGroupLayouts,
+        buffer::TilemapStorageBuffers,
+        chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
+        cull::FrustumCulling,
+        texture::TilemapTexturesStorage,
+    },
+    tilemap::map::TilemapTextures,
 };
 
-#[cfg(feature = "baking")]
-pub mod bake;
+// TODO
+// #[cfg(feature = "baking")]
+// pub mod bake;
 pub mod binding;
 pub mod buffer;
 pub mod chunk;
@@ -68,8 +72,9 @@ impl Plugin for EntiTilesRendererPlugin {
             Update,
             (
                 texture::set_texture_usage,
-                #[cfg(feature = "baking")]
-                bake::tilemap_baker,
+                // TODO
+                // #[cfg(feature = "baking")]
+                // bake::tilemap_baker,
             ),
         )
         .add_systems(
@@ -80,15 +85,17 @@ impl Plugin for EntiTilesRendererPlugin {
         )
         .init_resource::<FrustumCulling>()
         .register_type::<UnloadRenderChunk>()
-        .add_event::<ChunkUnload>();
+        .add_event::<ChunkUnload>()
+        .add_plugins(RenderAssetPlugin::<TilemapTextures, ()>::default());
 
-        #[cfg(feature = "baking")]
-        {
-            use bake::{BakedTilemap, TilemapBaker};
+        // TODO
+        // #[cfg(feature = "baking")]
+        // {
+        //     use bake::{BakedTilemap, TilemapBaker};
 
-            app.register_type::<TilemapBaker>()
-                .register_type::<BakedTilemap>();
-        }
+        //     app.register_type::<TilemapBaker>()
+        //         .register_type::<BakedTilemap>();
+        // }
 
         let render_app = app.sub_app_mut(RenderApp);
 

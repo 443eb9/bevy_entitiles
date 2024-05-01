@@ -52,7 +52,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         vec2<f32>(1., 1.),
     );
 #endif
-    output.uv = uvs[(input.v_index + tilemap.uv_rot) % 4u];
+    output.uv = uvs[(input.v_index) % 4u];
     output.flip = input.flip;
     output.anim_flag = input.index.z;
 

@@ -22,7 +22,7 @@ use bevy_entitiles::{
         bundles::StandardTilemapBundle,
         map::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapType,
+            TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -52,6 +52,7 @@ fn setup(
     assets_server: Res<AssetServer>,
     mut path_tilemaps: ResMut<PathTilemaps>,
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -62,15 +63,14 @@ fn setup(
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(64, entity),
         material: materials.add(StandardTilemapMaterial::default()),
-        texture: TilemapTexture::new(
-            assets_server.load("test_isometric.png"),
-            TilemapTextureDescriptor::new(
-                UVec2 { x: 32, y: 32 },
-                UVec2 { x: 32, y: 16 },
-                FilterMode::Nearest,
+        textures: textures.add(TilemapTextures::single(
+            TilemapTexture::new(
+                assets_server.load("test_isometric.png"),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
+                TilemapRotation::None,
             ),
-            TilemapRotation::None,
-        ),
+            FilterMode::Nearest,
+        )),
         ..Default::default()
     };
 

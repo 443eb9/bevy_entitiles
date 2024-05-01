@@ -300,7 +300,8 @@ impl Tiles {
                     let (ts, gid) = tiled_assets.get_tileset(texture, &tiled_data.name);
                     tileset = Some(ts);
                     first_gid = gid;
-                    layer_tilemap.texture = ts.texture.clone();
+                    // TODO FIXFIXFIX
+                    // layer_tilemap.textures = ts.texture.clone();
                     ts
                 });
 

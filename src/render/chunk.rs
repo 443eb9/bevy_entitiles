@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use bevy::{
+    asset::Handle,
     ecs::{component::Component, entity::EntityHashMap, event::Event},
     math::{IVec2, IVec4, UVec4},
     prelude::{Entity, Mesh, Resource, Vec3, Vec4},
@@ -17,7 +18,7 @@ use bevy::{
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor},
     tilemap::{
-        map::{TilemapTexture, TilemapType},
+        map::{TilemapTextures, TilemapType},
         tile::TileTexture,
     },
     MAX_LAYER_COUNT,
@@ -58,7 +59,7 @@ pub struct TilemapRenderChunk<M: TilemapMaterial> {
     pub dirty_mesh: bool,
     pub ty: TilemapType,
     pub size: u32,
-    pub texture: Option<TilemapTexture>,
+    pub texture: Option<Handle<TilemapTextures>>,
     pub tiles: Vec<Option<MeshTileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,

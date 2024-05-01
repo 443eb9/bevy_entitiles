@@ -16,7 +16,7 @@ use bevy_entitiles::{
         bundles::MaterialTilemapBundle,
         map::{
             TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor,
+            TilemapTextureDescriptor, TilemapTextures,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -56,6 +56,7 @@ fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<MyMaterial>>,
+    mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -63,11 +64,14 @@ fn setup(
     let mut tilemap = MaterialTilemapBundle {
         tile_render_size: TileRenderSize(Vec2::splat(16.)),
         slot_size: TilemapSlotSize(Vec2::splat(16.)),
-        texture: TilemapTexture::new(
-            asset_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
-            TilemapRotation::None,
-        ),
+        textures: textures.add(TilemapTextures::single(
+            TilemapTexture::new(
+                asset_server.load("test_square.png"),
+                TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16)),
+                TilemapRotation::None,
+            ),
+            FilterMode::Nearest,
+        )),
         material: materials.add(MyMaterial {
             speed_and_time: Vec2::new(5., 0.),
         }),

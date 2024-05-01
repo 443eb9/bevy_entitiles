@@ -15,7 +15,7 @@ use bevy::{
     render::{
         mesh::{Indices, Mesh},
         render_asset::RenderAssetUsages,
-        render_resource::{FilterMode, PrimitiveTopology},
+        render_resource::PrimitiveTopology,
     },
     utils::{hashbrown::hash_map::Entry, HashMap},
 };
@@ -297,7 +297,6 @@ impl TiledAssets {
                             x: tileset_xml.tile_width,
                             y: tileset_xml.tile_height,
                         },
-                        filter_mode: FilterMode::Nearest,
                     },
                     rotation: TilemapRotation::None,
                 };
