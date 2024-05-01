@@ -2,20 +2,16 @@ use std::marker::PhantomData;
 
 use bevy::{
     app::{App, Plugin},
-    asset::{Asset, AssetApp, Assets, Handle},
+    asset::{Asset, AssetApp},
     core_pipeline::core_2d::Transparent2d,
-    ecs::{
-        component::Component,
-        entity::Entity,
-        query::With,
-        schedule::IntoSystemConfigs,
-        system::{Commands, Query, ResMut, Resource},
-    },
+    ecs::schedule::IntoSystemConfigs,
     reflect::TypePath,
     render::{
+        color::Color,
         render_phase::AddRenderCommand,
         render_resource::{
-            AsBindGroup, RenderPipelineDescriptor, ShaderRef, SpecializedRenderPipelines,
+            AsBindGroup, RenderPipelineDescriptor, ShaderRef, ShaderType,
+            SpecializedRenderPipelines,
         },
         ExtractSchedule, Render, RenderApp, RenderSet,
     },
@@ -96,14 +92,22 @@ pub trait TilemapMaterial: Default + Asset + AsBindGroup + TypePath + Clone {
     fn specialize(descriptor: &mut RenderPipelineDescriptor) {}
 }
 
-#[derive(Component, Default, Debug, Clone)]
-pub struct WaitForStandardMaterialReplacement;
+#[derive(ShaderType)]
+pub struct StandardTilemapUniform {
+    pub tint: Color,
+}
 
-#[derive(Resource, Default)]
-pub struct StandardTilemapMaterialSingleton(pub Option<Handle<StandardTilemapMaterial>>);
+impl From<&StandardTilemapMaterial> for StandardTilemapUniform {
+    fn from(value: &StandardTilemapMaterial) -> Self {
+        Self { tint: value.tint }
+    }
+}
 
 #[derive(Default, Asset, AsBindGroup, TypePath, Clone)]
-pub struct StandardTilemapMaterial {}
+#[uniform(0, StandardTilemapUniform)]
+pub struct StandardTilemapMaterial {
+    pub tint: Color,
+}
 
 impl TilemapMaterial for StandardTilemapMaterial {
     fn vertex_shader() -> ShaderRef {
@@ -112,27 +116,5 @@ impl TilemapMaterial for StandardTilemapMaterial {
 
     fn fragment_shader() -> ShaderRef {
         super::TILEMAP_SHADER.into()
-    }
-}
-
-pub fn standard_material_register(
-    mut commands: Commands,
-    mut tilemaps_query: Query<
-        (Entity, &mut Handle<StandardTilemapMaterial>),
-        With<WaitForStandardMaterialReplacement>,
-    >,
-    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
-    mut material_singleton: ResMut<StandardTilemapMaterialSingleton>,
-) {
-    if material_singleton.0.is_none() {
-        let material = materials.add(StandardTilemapMaterial::default());
-        material_singleton.0 = Some(material);
-    }
-
-    for (entity, mut material) in tilemaps_query.iter_mut() {
-        *material = material_singleton.0.clone().unwrap();
-        commands
-            .entity(entity)
-            .remove::<WaitForStandardMaterialReplacement>();
     }
 }

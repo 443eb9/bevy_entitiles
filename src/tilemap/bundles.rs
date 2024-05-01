@@ -4,9 +4,7 @@ use bevy::{
     render::view::{InheritedVisibility, ViewVisibility, Visibility},
 };
 
-use crate::render::material::{
-    StandardTilemapMaterial, TilemapMaterial, WaitForStandardMaterialReplacement,
-};
+use crate::render::material::{StandardTilemapMaterial, TilemapMaterial};
 
 use super::map::{
     TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapAxisFlip,
@@ -88,7 +86,6 @@ pub struct StandardTilemapBundle {
     pub view_visibility: ViewVisibility,
     pub aabbs: TilemapAabbs,
     pub texture_marker: WaitForTextureUsageChange,
-    pub material_marker: WaitForStandardMaterialReplacement,
 }
 
 impl Into<DataTilemapBundle> for StandardTilemapBundle {
@@ -164,7 +161,6 @@ pub struct StandardPureColorTilemapBundle {
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
     pub aabbs: TilemapAabbs,
-    pub material_marker: WaitForStandardMaterialReplacement,
 }
 
 impl StandardPureColorTilemapBundle {

@@ -45,8 +45,15 @@ struct Tilemap {
 #endif
 }
 
+struct StandardTilemapUniform {
+    color: vec4f,
+}
+
 @group(1) @binding(0)
 var<uniform> tilemap: Tilemap;
+
+@group(2) @binding(0)
+var<uniform> material: StandardTilemapUniform;
 
 #ifndef PURE_COLOR
 #ifdef ATLAS

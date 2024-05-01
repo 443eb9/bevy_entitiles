@@ -14,7 +14,6 @@ use crate::render::{
     buffer::TilemapStorageBuffers,
     chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
     cull::FrustumCulling,
-    material::StandardTilemapMaterialSingleton,
     texture::TilemapTexturesStorage,
 };
 
@@ -69,7 +68,6 @@ impl Plugin for EntiTilesRendererPlugin {
             Update,
             (
                 texture::set_texture_usage,
-                material::standard_material_register,
                 #[cfg(feature = "baking")]
                 bake::tilemap_baker,
             ),
@@ -81,7 +79,6 @@ impl Plugin for EntiTilesRendererPlugin {
                 .after(bevy::render::view::check_visibility),
         )
         .init_resource::<FrustumCulling>()
-        .init_resource::<StandardTilemapMaterialSingleton>()
         .register_type::<UnloadRenderChunk>()
         .add_event::<ChunkUnload>();
 

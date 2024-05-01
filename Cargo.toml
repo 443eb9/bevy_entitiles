@@ -44,9 +44,9 @@ bevy = { version = "0.13", default-features = false, features = [
     "x11",
     "wayland",
 ] }
-bevy-inspector-egui = "0.23"
+bevy-inspector-egui = "0.24"
 bevy_mod_debugdump = "0.10"
-image = "0.24.7"
+image = "0.25"
 
 [features]
 default = ["multi-threaded"]

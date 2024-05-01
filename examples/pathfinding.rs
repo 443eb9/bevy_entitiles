@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     app::Update,
+    asset::Assets,
     ecs::{
         schedule::IntoSystemConfigs,
         system::{Query, ResMut},
@@ -15,6 +16,7 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::pathfinding::{PathFinder, PathFindingQueue, PathTilemaps},
     math::TileArea,
+    render::material::StandardTilemapMaterial,
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
         bundles::StandardTilemapBundle,
@@ -49,6 +51,7 @@ fn setup(
     mut commands: Commands,
     assets_server: Res<AssetServer>,
     mut path_tilemaps: ResMut<PathTilemaps>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -58,6 +61,7 @@ fn setup(
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(64, entity),
+        material: materials.add(StandardTilemapMaterial::default()),
         texture: TilemapTexture::new(
             assets_server.load("test_isometric.png"),
             TilemapTextureDescriptor::new(

@@ -1,6 +1,10 @@
 use bevy::{
     app::{PluginGroup, Update},
-    ecs::{query::With, system::Query},
+    asset::Assets,
+    ecs::{
+        query::With,
+        system::{Query, ResMut},
+    },
     input::{keyboard::KeyCode, ButtonInput},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
@@ -10,6 +14,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
+    render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         map::{
@@ -42,7 +47,11 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    assets_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -53,6 +62,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
+        material: materials.add(StandardTilemapMaterial::default()),
         texture: TilemapTexture::new(
             assets_server.load("test_square.png"),
             TilemapTextureDescriptor::new(
@@ -126,6 +136,9 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         slot_size: TilemapSlotSize(Vec2 { x: 32., y: 16. }),
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(32, entity),
+        material: materials.add(StandardTilemapMaterial {
+            tint: Color::TOMATO,
+        }),
         texture: TilemapTexture::new(
             assets_server.load("test_isometric.png"),
             TilemapTextureDescriptor::new(
@@ -157,6 +170,7 @@ fn setup(mut commands: Commands, assets_server: Res<AssetServer>) {
         slot_size: TilemapSlotSize(Vec2 { x: 16., y: 16. }),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(32, entity),
+        material: materials.add(StandardTilemapMaterial::default()),
         transform: TilemapTransform {
             translation: Vec2 { x: 0., y: -300. },
             ..Default::default()

@@ -18,6 +18,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
+    render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -56,7 +57,8 @@ fn setup(
     mut commands: Commands,
     assets_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut col_materials: ResMut<Assets<ColorMaterial>>,
+    mut std_materials: ResMut<Assets<StandardTilemapMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
@@ -87,6 +89,7 @@ fn setup(
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(16, entity),
         transform: TilemapTransform::from_z_index(-1.),
+        material: std_materials.add(StandardTilemapMaterial::default()),
         texture: TilemapTexture::new(
             assets_server.load("test_isometric.png"),
             TilemapTextureDescriptor::new(
@@ -123,6 +126,7 @@ fn setup(
         ty: TilemapType::Square,
         storage: TilemapStorage::new(16, entity),
         transform: TilemapTransform::from_translation(Vec2::new(500., -100.)),
+        material: std_materials.add(StandardTilemapMaterial::default()),
         texture: TilemapTexture::new(
             assets_server.load("test_square.png"),
             TilemapTextureDescriptor::new(
@@ -179,7 +183,7 @@ fn setup(
     commands.spawn((
         ColorMesh2dBundle {
             mesh: meshes.add(Circle::new(15.)).into(),
-            material: materials.add(ColorMaterial::from(Color::WHITE)),
+            material: col_materials.add(ColorMaterial::from(Color::WHITE)),
             transform: Transform::from_translation(Vec3::new(0., -50., 0.)),
             ..Default::default()
         },

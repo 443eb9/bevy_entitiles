@@ -18,7 +18,10 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::bake::{BakedTilemap, TilemapBaker},
+    render::{
+        bake::{BakedTilemap, TilemapBaker},
+        material::StandardTilemapMaterial,
+    },
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -53,7 +56,11 @@ fn main() {
         .run();
 }
 
-fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
+fn setup(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
+) {
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();
@@ -62,6 +69,7 @@ fn setup(asset_server: Res<AssetServer>, mut commands: Commands) {
         slot_size: TilemapSlotSize(Vec2::splat(16.)),
         ty: TilemapType::Square,
         storage: TilemapStorage::new(32, entity),
+        material: materials.add(StandardTilemapMaterial::default()),
         texture: TilemapTexture::new(
             asset_server.load("test_square.png"),
             TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),

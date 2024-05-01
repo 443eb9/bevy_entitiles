@@ -1,7 +1,11 @@
 use bevy::{
     app::{App, Startup},
+    asset::Assets,
     core_pipeline::core_2d::Camera2dBundle,
-    ecs::{entity::Entity, system::Commands},
+    ecs::{
+        entity::Entity,
+        system::{Commands, ResMut},
+    },
     math::{IVec2, UVec2, Vec2},
     render::color::Color,
     DefaultPlugins,
@@ -9,6 +13,7 @@ use bevy::{
 use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
     math::TileArea,
+    render::material::StandardTilemapMaterial,
     serializing::map::{
         save::{TilemapSaver, TilemapSaverMode},
         TilemapLayer,
@@ -38,7 +43,7 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMaterial>>) {
     commands.spawn(Camera2dBundle::default());
 
     // convert the image into 6 tilemaps as patterns
@@ -128,6 +133,7 @@ fn setup(mut commands: Commands) {
             slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
             ty: TilemapType::Square,
             storage: TilemapStorage::new(16, entity),
+            material: materials.add(StandardTilemapMaterial::default()),
             ..Default::default()
         },
     ));
