@@ -44,14 +44,15 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         vec2<f32>(1., 0.),
         vec2<f32>(1., 1.),
     );
-#else
+    output.texture_indices = input.texture_indices;
+#else // ATLAS
     var uvs = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
         vec2<f32>(0., 0.),
         vec2<f32>(1., 0.),
         vec2<f32>(1., 1.),
     );
-#endif
+#endif // ATLAS
     output.uv = uvs[(input.v_index) % 4u];
     output.flip = input.flip;
     output.anim_flag = input.index.z;
@@ -68,7 +69,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
     } else {
         output.atlas_indices = input.atlas_indices;
     }
-#endif
+#endif // PURE_COLOR
 
     return output;
 }
@@ -77,7 +78,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
 fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
 #ifdef PURE_COLOR
     return input.tint;
-#else
+#else // PURE_COLOR
     var color = vec4<f32>(0., 0., 0., 0.);
 
     // Sample the 4 layers.
@@ -86,6 +87,14 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
             // No texture for this layer.
             continue;
         }
+        let atlas_index = u32(input.atlas_indices[i]);
+
+#ifdef ATLAS
+        if input.texture_indices[i] < 0 {
+            // No texture for this layer.
+            continue;
+        }
+#endif // ATLAS
 
         var uv = input.uv;
         // Flip the uv if needed.
@@ -95,20 +104,24 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
         if (input.flip[i] & 2u) != 0u {
             uv.y = 1. - uv.y;
         }
+
 #ifdef ATLAS
+        let texture_index = u32(input.texture_indices[i]);
+        let desc = &texture_descs[texture_index];
+
         // If `atlas` feature is enabled, we need to calculate the uv.
-        let tile_index = vec2<f32>(f32(input.texture_indices[i] % tilemap.texture_tiled_size.x),
-                                   f32(input.texture_indices[i] / tilemap.texture_tiled_size.x));
-        let atlas_uv = (tile_index + uv) * tilemap.tile_uv_size;
+        let tile_index = vec2<f32>(f32(atlas_index % (*desc).tile_count.x),
+                                   f32(atlas_index / (*desc).tile_count.x));
+        let atlas_uv = (tile_index + uv) * (*desc).tile_uv_size * (*desc).uv_scale;
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
-                                      atlas_uv);
-#else
+                                      atlas_uv, texture_index);
+#else // ATLAS
         // Otherwise, sample the texture at the right layer using the uv directly.
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
-                                      uv, input.atlas_indices[i]);
-#endif
+                                      uv, atlas_index);
+#endif // ATLAS
         // Mix the color of each layer.
         color = mix(color, tex_color, tex_color.a * tilemap.layer_opacities[i]);
 
@@ -119,7 +132,8 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
         }
     }
     // Apply the tint of the tile and the tilemap.
-    return color * input.tint * material.color;
-    // return vec4f(f32(arrayLength(&texture_descs)) / 2., 0., 0., 1.);
-#endif
+    // return color * input.tint * material.color;
+    return color;
+    // return vec4f(f32(arrayLength(&bevy_entitiles::common::color_texture)) / 2., 0., 0., 1.);
+#endif // PURE_COLOR
 }

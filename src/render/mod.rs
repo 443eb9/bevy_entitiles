@@ -51,7 +51,7 @@ pub const TILEMAP_MESH_ATTR_FLIP: MeshVertexAttribute =
     MeshVertexAttribute::new("Flip", 7365156123161, VertexFormat::Uint32x4);
 #[cfg(feature = "atlas")]
 pub const TILEMAP_MESH_ATTR_TEX_INDICES: MeshVertexAttribute =
-    MeshVertexAttribute::new("TextureIndex", 186541653135, VertexFormat::Sint32x4);
+    MeshVertexAttribute::new("TextureIndex", 9486541537415344, VertexFormat::Sint32x4);
 
 #[derive(Default)]
 pub struct EntiTilesRendererPlugin;

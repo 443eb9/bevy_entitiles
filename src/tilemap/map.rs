@@ -193,6 +193,8 @@ impl TilemapAxisFlip {
 pub struct TilemapTextures {
     pub(crate) textures: Vec<TilemapTexture>,
     pub(crate) start_index: Vec<u32>,
+    pub(crate) uv_scales: Vec<Vec2>,
+    pub(crate) max_size: UVec2,
     #[reflect(ignore)]
     pub(crate) filter_mode: FilterMode,
 }
@@ -222,15 +224,22 @@ impl TilemapTextures {
     pub fn new(textures: Vec<TilemapTexture>, filter_mode: FilterMode) -> Self {
         let mut start_index = Vec::with_capacity(textures.len());
         let mut cur = 0;
+        let mut max_size = UVec2::ZERO;
 
         for tex in &textures {
             start_index.push(cur);
             cur += tex.tile_count();
+            max_size = max_size.max(tex.desc.size);
         }
 
         Self {
+            uv_scales: textures
+                .iter()
+                .map(|t| t.desc.size.as_vec2() / max_size.as_vec2())
+                .collect(),
             textures,
             start_index,
+            max_size,
             filter_mode,
         }
     }
@@ -250,12 +259,6 @@ impl TilemapTextures {
             let t = tex.desc.size / tex.desc.tile_size;
             acc + t.x * t.y
         })
-    }
-
-    pub fn get_texture_packed(&self, index: usize) -> Option<(&TilemapTexture, u32)> {
-        self.textures
-            .get(index)
-            .zip(self.start_index.get(index).cloned())
     }
 
     pub fn iter_packed(&self) -> impl Iterator<Item = (&TilemapTexture, u32)> {

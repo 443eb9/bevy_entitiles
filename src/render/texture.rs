@@ -8,23 +8,15 @@ use bevy::{
     prelude::Image,
     render::{
         render_asset::RenderAssets,
-        render_resource::{AddressMode, SamplerDescriptor, TextureUsages},
-        renderer::RenderDevice,
-        texture::GpuImage,
+        render_resource::{
+            AddressMode, Extent3d, ImageCopyTexture, Origin3d, SamplerDescriptor, TextureAspect,
+            TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+            TextureViewDescriptor, TextureViewDimension,
+        },
+        renderer::{RenderDevice, RenderQueue},
+        texture::{BevyDefault, GpuImage},
     },
     utils::{HashMap, HashSet},
-};
-
-#[cfg(not(feature = "atlas"))]
-use bevy::{
-    math::Vec2,
-    render::{
-        render_resource::{
-            Extent3d, ImageCopyTexture, Origin3d, TextureAspect, TextureDescriptor,
-            TextureDimension, TextureFormat, TextureViewDescriptor, TextureViewDimension,
-        },
-        renderer::RenderQueue,
-    },
 };
 
 use crate::tilemap::map::{TilemapTextures, WaitForTextureUsageChange};
@@ -64,9 +56,10 @@ impl TilemapTexturesStorage {
 
         for textures_handle in &to_prepare {
             let Some(textures) = textures_assets.get(textures_handle) else {
+                self.prepare_queue.insert(textures_handle.clone());
                 continue;
             };
-            
+
             textures.assert_uniform_tile_size();
             if textures.textures.is_empty() {
                 continue;
@@ -85,7 +78,7 @@ impl TilemapTexturesStorage {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: TextureDimension::D2,
-                format: TextureFormat::Rgba8UnormSrgb,
+                format: TextureFormat::bevy_default(),
                 usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             });
@@ -107,7 +100,7 @@ impl TilemapTexturesStorage {
 
             let texture_view = texture.create_view(&TextureViewDescriptor {
                 label: Some("tilemap_texture_array_view"),
-                format: Some(TextureFormat::Rgba8UnormSrgb),
+                format: Some(TextureFormat::bevy_default()),
                 dimension: Some(TextureViewDimension::D2Array),
                 aspect: TextureAspect::All,
                 base_mip_level: 0,
@@ -122,7 +115,84 @@ impl TilemapTexturesStorage {
                 texture,
                 texture_view,
                 sampler,
-                size: Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
+                size: bevy::math::Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
+            };
+
+            self.textures.insert(textures_handle.clone(), gpu_image);
+            self.queue_queue.insert(textures_handle.clone());
+        }
+    }
+
+    #[cfg(feature = "atlas")]
+    pub fn prepare_textures(
+        &mut self,
+        render_device: &RenderDevice,
+        textures_assets: &RenderAssets<TilemapTextures>,
+    ) {
+        if self.prepare_queue.is_empty() {
+            return;
+        }
+
+        let to_prepare = self.prepare_queue.drain().collect::<Vec<_>>();
+
+        for textures_handle in &to_prepare {
+            let Some(textures) = textures_assets.get(textures_handle) else {
+                self.prepare_queue.insert(textures_handle.clone());
+                continue;
+            };
+
+            if textures.textures.is_empty() {
+                continue;
+            }
+
+            let texture = render_device.create_texture(&TextureDescriptor {
+                label: Some("tilemap_texture_array"),
+                size: Extent3d {
+                    width: textures.max_size.x,
+                    height: textures.max_size.y,
+                    depth_or_array_layers: textures.textures.len() as u32,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: TextureDimension::D2,
+                format: TextureFormat::bevy_default(),
+                usage: TextureUsages::COPY_DST | TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+
+            let sampler = render_device.create_sampler(&SamplerDescriptor {
+                label: Some("tilemap_texture_array_sampler"),
+                address_mode_u: AddressMode::ClampToEdge,
+                address_mode_v: AddressMode::ClampToEdge,
+                address_mode_w: AddressMode::ClampToEdge,
+                mag_filter: textures.filter_mode,
+                min_filter: textures.filter_mode,
+                mipmap_filter: textures.filter_mode,
+                lod_min_clamp: 0.,
+                lod_max_clamp: f32::MAX,
+                compare: None,
+                anisotropy_clamp: 1,
+                border_color: None,
+            });
+
+            let texture_view = texture.create_view(&TextureViewDescriptor {
+                label: Some("tilemap_texture_array_view"),
+                format: Some(TextureFormat::bevy_default()),
+                dimension: Some(TextureViewDimension::D2Array),
+                aspect: TextureAspect::All,
+                base_mip_level: 0,
+                base_array_layer: 0,
+                mip_level_count: None,
+                array_layer_count: Some(textures.textures.len() as u32),
+            });
+
+            let gpu_image = GpuImage {
+                texture_format: texture.format(),
+                mip_level_count: texture.mip_level_count(),
+                texture,
+                texture_view,
+                sampler,
+                size: textures.max_size.as_vec2(),
             };
 
             self.textures.insert(textures_handle.clone(), gpu_image);
@@ -148,6 +218,7 @@ impl TilemapTexturesStorage {
 
         for textures_handle in &to_queue {
             let Some(textures) = textures_assets.get(textures_handle) else {
+                self.queue_queue.insert(textures_handle.clone());
                 continue;
             };
 
@@ -213,40 +284,61 @@ impl TilemapTexturesStorage {
     pub fn queue_textures(
         &mut self,
         render_device: &RenderDevice,
+        render_queue: &RenderQueue,
         render_images: &mut RenderAssets<Image>,
+        textures_assets: &RenderAssets<TilemapTextures>,
     ) {
         if self.queue_queue.is_empty() {
             return;
         }
 
         let to_queue = self.queue_queue.drain().collect::<Vec<_>>();
+        let mut command_encoder = render_device.create_command_encoder(&Default::default());
 
-        // TODO implement this!!!
+        for textures_handle in to_queue.into_iter() {
+            let Some(textures) = textures_assets.get(&textures_handle) else {
+                self.queue_queue.insert(textures_handle.clone());
+                continue;
+            };
 
-        // for (textures) in to_queue.into_iter() {
-        //     let Some(texture) = render_images.get_mut(&image_handle) else {
-        //         self.queue_queue.insert(image_handle);
-        //         continue;
-        //     };
+            let Some(destination) = self.textures.get(&textures_handle) else {
+                self.prepare_queue.insert(textures_handle);
+                continue;
+            };
 
-        //     let sampler = render_device.create_sampler(&SamplerDescriptor {
-        //         label: Some("tilemap_texture_atlas_sampler"),
-        //         address_mode_u: AddressMode::ClampToEdge,
-        //         address_mode_v: AddressMode::ClampToEdge,
-        //         address_mode_w: AddressMode::ClampToEdge,
-        //         mag_filter: desc.filter_mode,
-        //         min_filter: desc.filter_mode,
-        //         mipmap_filter: desc.filter_mode,
-        //         lod_min_clamp: 0.,
-        //         lod_max_clamp: f32::MAX,
-        //         compare: None,
-        //         anisotropy_clamp: 1,
-        //         border_color: None,
-        //     });
+            for (index, texture) in textures.textures.iter().enumerate() {
+                let Some(source) = render_images.get_mut(texture.handle()) else {
+                    self.queue_queue.insert(textures_handle.clone());
+                    continue;
+                };
 
-        //     texture.sampler = sampler;
-        //     self.textures.insert(image_handle, texture.clone());
-        // }
+                command_encoder.copy_texture_to_texture(
+                    ImageCopyTexture {
+                        texture: &source.texture,
+                        mip_level: 0,
+                        origin: Origin3d::ZERO,
+                        aspect: TextureAspect::All,
+                    },
+                    ImageCopyTexture {
+                        texture: &destination.texture,
+                        mip_level: 0,
+                        origin: Origin3d {
+                            x: 0,
+                            y: 0,
+                            z: index as u32,
+                        },
+                        aspect: TextureAspect::All,
+                    },
+                    Extent3d {
+                        width: texture.desc.size.x,
+                        height: texture.desc.size.y,
+                        depth_or_array_layers: 1,
+                    },
+                );
+            }
+        }
+
+        render_queue.submit(vec![command_encoder.finish()]);
     }
 
     pub fn contains(&self, handle: &Handle<TilemapTextures>) -> bool {

@@ -207,6 +207,7 @@ impl LdtkLayers {
                     builder.with_layer(
                         0,
                         TileLayer {
+                            texture_index: 0,
                             atlas_index,
                             flip: TileFlip::from_bits(tile.flip as u32).unwrap(),
                         },

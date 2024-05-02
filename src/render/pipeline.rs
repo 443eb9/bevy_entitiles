@@ -152,10 +152,14 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
         if key.is_pure_color {
             shader_defs.push("PURE_COLOR".into());
         } else {
-            // texture_indices
+            // atlas indices
             vtx_fmt.push(VertexFormat::Sint32x4);
             // flip
             vtx_fmt.push(VertexFormat::Uint32x4);
+
+            #[cfg(feature = "atlas")]
+            // texture_indices
+            vtx_fmt.push(VertexFormat::Sint32x4);
         }
 
         let vertex_layout =

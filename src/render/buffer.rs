@@ -166,20 +166,9 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
 #[cfg(feature = "atlas")]
 #[derive(ShaderType)]
 pub struct GpuTilemapTextureDescriptor {
-    pub tile_count: UVec2,
+    pub tile_count: bevy::math::UVec2,
     pub tile_uv_size: Vec2,
-    pub uv_rotation: u32,
-}
-
-#[cfg(feature = "atlas")]
-impl From<TilemapTextureDescriptor> for GpuTilemapTextureDescriptor {
-    fn from(value: TilemapTextureDescriptor) -> Self {
-        Self {
-            tile_count: value.size / value.tile_size,
-            tile_uv_size: value.tile_size.as_vec2() / value.size.as_vec2(),
-            uv_rotation: value.uv_rotation as u32,
-        }
-    }
+    pub uv_scale: Vec2,
 }
 
 #[derive(Resource, Default)]

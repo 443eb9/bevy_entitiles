@@ -69,6 +69,7 @@ var<storage> anim_seqs: array<i32>;
 struct TilemapTextureDescriptor {
     tile_count: vec2u,
     tile_uv_size: vec2f,
+    uv_scale: vec2f,
 }
 
 @group(4) @binding(1)

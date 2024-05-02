@@ -103,18 +103,24 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
             #[cfg(feature = "atlas")]
             texture_desc_buffers
                 .get_or_insert_buffer(tilemap.id)
-                .extend(_textures.textures.iter().map(|t| t.desc.into()));
+                .extend(_textures.textures.iter().enumerate().map(|(i, t)| {
+                    super::buffer::GpuTilemapTextureDescriptor {
+                        tile_count: t.desc.size / t.desc.tile_size,
+                        tile_uv_size: t.desc.tile_size.as_vec2() / t.desc.size.as_vec2(),
+                        uv_scale: _textures.uv_scales[i],
+                    }
+                }));
 
             if !textures_storage.contains(textures_handle) {
                 textures_storage.insert(textures_handle.clone());
             }
         });
 
-    #[cfg(not(feature = "atlas"))]
-    textures_storage.prepare_textures(&render_device, &textures_assets);
-    animation_buffers.write(&render_device, &render_queue);
     #[cfg(feature = "atlas")]
     texture_desc_buffers.write(&render_device, &render_queue);
+    animation_buffers.write(&render_device, &render_queue);
+
+    textures_storage.prepare_textures(&render_device, &textures_assets);
     bind_groups.bind_tilemap_storage_buffers(
         &render_device,
         &mut animation_buffers,
