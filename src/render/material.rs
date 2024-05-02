@@ -22,7 +22,7 @@ use super::{
     buffer::TilemapUniformBuffer,
     chunk::RenderChunkStorage,
     cull,
-    draw::DrawTilemap,
+    draw::{DrawTilemapNonTextured, DrawTilemapTextured},
     extract,
     pipeline::EntiTilesPipeline,
     prepare, queue,
@@ -36,7 +36,7 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
     fn build(&self, app: &mut App) {
         app.init_asset::<M>();
 
-        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
+        let render_app = app.sub_app_mut(RenderApp);
 
         render_app
             .add_systems(
@@ -49,7 +49,10 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
             .add_systems(
                 Render,
                 (
-                    prepare::prepare_tilemaps::<M>,
+                    // Splitting into 2 systems because there're
+                    // too many parameters for Bevy to handle
+                    prepare::prepare_tilemaps_a::<M>,
+                    prepare::prepare_tilemaps_b::<M>,
                     prepare::prepare_tiles::<M>,
                     prepare::prepare_unloaded_chunks::<M>,
                     prepare::prepare_despawned_tilemaps::<M>,
@@ -58,20 +61,18 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                 )
                     .in_set(RenderSet::Prepare),
             )
-            .add_systems(Render, queue::queue::<M>.in_set(RenderSet::Queue));
-
-        render_app
+            .add_systems(Render, queue::queue::<M>.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkStorage<M>>()
             .init_resource::<TilemapUniformBuffer<M>>()
             .init_resource::<TilemapBindGroups<M>>()
             .init_resource::<TilemapInstances<M>>()
-            .init_resource::<ExtractedTilemapMaterials<M>>();
-
-        render_app.add_render_command::<Transparent2d, DrawTilemap<M>>();
+            .init_resource::<ExtractedTilemapMaterials<M>>()
+            .add_render_command::<Transparent2d, DrawTilemapTextured<M>>()
+            .add_render_command::<Transparent2d, DrawTilemapNonTextured<M>>();
     }
 
     fn finish(&self, app: &mut bevy::prelude::App) {
-        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
+        let render_app = app.sub_app_mut(RenderApp);
 
         render_app
             .init_resource::<EntiTilesPipeline<M>>()

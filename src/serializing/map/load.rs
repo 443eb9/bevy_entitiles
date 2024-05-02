@@ -76,7 +76,6 @@ pub fn load(
                         .map(|tex| TilemapTexture {
                             texture: asset_server.load(&tex.path),
                             desc: tex.desc.clone().into(),
-                            rotation: tex.rotation,
                         })
                         .collect(),
                     (*filter_mode).into(),

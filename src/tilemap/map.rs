@@ -44,7 +44,7 @@ pub enum TilemapType {
 }
 
 /// Actually four directions.
-#[derive(Debug, Clone, Copy, Default, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub enum TilemapRotation {
     #[default]
@@ -268,20 +268,11 @@ impl TilemapTextures {
 pub struct TilemapTexture {
     pub(crate) texture: Handle<Image>,
     pub(crate) desc: TilemapTextureDescriptor,
-    pub(crate) rotation: TilemapRotation,
 }
 
 impl TilemapTexture {
-    pub fn new(
-        texture: Handle<Image>,
-        desc: TilemapTextureDescriptor,
-        rotation: TilemapRotation,
-    ) -> Self {
-        Self {
-            texture,
-            desc,
-            rotation,
-        }
+    pub fn new(texture: Handle<Image>, desc: TilemapTextureDescriptor) -> Self {
+        Self { texture, desc }
     }
 
     #[inline]
@@ -346,17 +337,22 @@ pub struct WaitForTextureUsageChange;
 pub struct TilemapTextureDescriptor {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
+    pub(crate) uv_rotation: TilemapRotation,
 }
 
 impl TilemapTextureDescriptor {
-    pub fn new(size: UVec2, tile_size: UVec2) -> Self {
+    pub fn new(size: UVec2, tile_size: UVec2, uv_rotation: TilemapRotation) -> Self {
         assert_eq!(
             size % tile_size,
             UVec2::ZERO,
             "Invalid tilemap texture descriptor! The size must be divisible by the tile size!"
         );
 
-        Self { size, tile_size }
+        Self {
+            size,
+            tile_size,
+            uv_rotation,
+        }
     }
 }
 

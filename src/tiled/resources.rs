@@ -297,8 +297,8 @@ impl TiledAssets {
                             x: tileset_xml.tile_width,
                             y: tileset_xml.tile_height,
                         },
+                        uv_rotation: TilemapRotation::None,
                     },
-                    rotation: TilemapRotation::None,
                 };
 
                 self.tilesets.push(PackedTiledTileset {

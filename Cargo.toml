@@ -134,3 +134,8 @@ required-features = []
 name = "baking"
 path = "examples/baking.rs"
 required-features = ["baking"]
+
+[[example]]
+name = "multiple_tilesets"
+path = "examples/multiple_tilesets.rs"
+required-features = []

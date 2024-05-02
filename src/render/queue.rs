@@ -17,7 +17,7 @@ use crate::tilemap::map::TilemapTextures;
 
 use super::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
-    draw::DrawTilemap,
+    draw::{DrawTilemapNonTextured, DrawTilemapTextured},
     extract::TilemapInstance,
     material::TilemapMaterial,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
@@ -97,11 +97,25 @@ pub fn queue<M: TilemapMaterial>(
                 },
             );
 
+            let draw_function = {
+                if is_pure_color {
+                    draw_functions
+                        .read()
+                        .get_id::<DrawTilemapNonTextured<M>>()
+                        .unwrap()
+                } else {
+                    draw_functions
+                        .read()
+                        .get_id::<DrawTilemapTextured<M>>()
+                        .unwrap()
+                }
+            };
+
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.transform.z_index as f32),
                 entity: tilemap.id,
                 pipeline,
-                draw_function: draw_functions.read().get_id::<DrawTilemap<M>>().unwrap(),
+                draw_function,
                 batch_range: 0..1,
                 dynamic_offset: None,
             });

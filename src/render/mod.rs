@@ -11,8 +11,7 @@ use bevy::{
 
 use crate::{
     render::{
-        binding::TilemapBindGroupLayouts,
-        buffer::TilemapStorageBuffers,
+        buffer::{TilemapAnimationBuffer, TilemapTextureDescriptorBuffer},
         chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
         cull::FrustumCulling,
         texture::TilemapTexturesStorage,
@@ -113,12 +112,7 @@ impl Plugin for EntiTilesRendererPlugin {
                 ),
             )
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapStorageBuffers>();
-    }
-
-    fn finish(&self, app: &mut App) {
-        let render_app = app.sub_app_mut(RenderApp);
-
-        render_app.init_resource::<TilemapBindGroupLayouts>();
+            .init_resource::<TilemapAnimationBuffer>()
+            .init_resource::<TilemapTextureDescriptorBuffer>();
     }
 }

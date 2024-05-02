@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::entity::{Entity, EntityHashMap},
-    math::{Mat2, Vec4},
+    math::{Mat2, UVec2, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -13,7 +13,7 @@ use bevy::{
     },
 };
 
-use crate::tilemap::map::TilemapType;
+use crate::tilemap::map::{TilemapTextureDescriptor, TilemapType};
 
 use super::{extract::ExtractedTilemap, material::TilemapMaterial};
 
@@ -59,35 +59,45 @@ impl<T: ShaderType> DynamicOffsetComponent<T> {
 }
 
 pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'static> {
+    #[inline]
     fn get_or_insert_buffer(&mut self, tilemap: Entity) -> &mut Vec<U> {
-        &mut self.get_mapper().entry(tilemap).or_default().1
+        &mut self.get_mapper_mut().entry(tilemap).or_default().1
     }
 
     fn bindings(&mut self) -> EntityHashMap<BindingResource> {
-        self.get_mapper()
+        self.get_mapper_mut()
             .iter()
             .filter_map(|(tilemap, (buffer, _))| buffer.binding().map(|res| (*tilemap, res)))
             .collect()
     }
 
+    #[inline]
     fn remove(&mut self, tilemap: Entity) {
-        self.get_mapper().remove(&tilemap);
+        self.get_mapper_mut().remove(&tilemap);
     }
 
+    #[inline]
     fn clear(&mut self) {
-        self.get_mapper()
+        self.get_mapper_mut()
             .values_mut()
             .for_each(|(_, buffer)| buffer.clear());
     }
 
     fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        for (buffer, data) in self.get_mapper().values_mut() {
+        for (buffer, data) in self.get_mapper_mut().values_mut() {
             buffer.set(std::mem::take(data));
             buffer.write_buffer(render_device, render_queue);
         }
     }
 
-    fn get_mapper(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
+    #[inline]
+    fn len(&self) -> usize {
+        self.get_mapper().len()
+    }
+
+    fn get_mapper_mut(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
+
+    fn get_mapper(&self) -> &EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
 }
 
 // TODO
@@ -153,11 +163,64 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
     }
 }
 
-#[derive(Resource, Default)]
-pub struct TilemapStorageBuffers(EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)>);
+#[derive(ShaderType)]
+pub struct GpuTilemapTextureDescriptor {
+    pub tile_count: UVec2,
+    pub tile_uv_size: Vec2,
+    pub uv_rotation: u32,
+}
 
-impl PerTilemapBuffersStorage<i32> for TilemapStorageBuffers {
-    fn get_mapper(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)> {
+impl From<TilemapTextureDescriptor> for GpuTilemapTextureDescriptor {
+    fn from(value: TilemapTextureDescriptor) -> Self {
+        Self {
+            tile_count: value.size / value.tile_size,
+            tile_uv_size: value.tile_size.as_vec2() / value.size.as_vec2(),
+            uv_rotation: value.uv_rotation as u32,
+        }
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct TilemapAnimationBuffer(EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)>);
+
+impl PerTilemapBuffersStorage<i32> for TilemapAnimationBuffer {
+    #[inline]
+    fn get_mapper_mut(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)> {
         &mut self.0
+    }
+
+    #[inline]
+    fn get_mapper(&self) -> &EntityHashMap<(StorageBuffer<Vec<i32>>, Vec<i32>)> {
+        &self.0
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct TilemapTextureDescriptorBuffer(
+    EntityHashMap<(
+        StorageBuffer<Vec<GpuTilemapTextureDescriptor>>,
+        Vec<GpuTilemapTextureDescriptor>,
+    )>,
+);
+
+impl PerTilemapBuffersStorage<GpuTilemapTextureDescriptor> for TilemapTextureDescriptorBuffer {
+    #[inline]
+    fn get_mapper_mut(
+        &mut self,
+    ) -> &mut EntityHashMap<(
+        StorageBuffer<Vec<GpuTilemapTextureDescriptor>>,
+        Vec<GpuTilemapTextureDescriptor>,
+    )> {
+        &mut self.0
+    }
+
+    #[inline]
+    fn get_mapper(
+        &self,
+    ) -> &EntityHashMap<(
+        StorageBuffer<Vec<GpuTilemapTextureDescriptor>>,
+        Vec<GpuTilemapTextureDescriptor>,
+    )> {
+        &self.0
     }
 }

@@ -11,8 +11,8 @@ use crate::tilemap::{
     chunking::storage::ChunkedStorage,
     map::{
         TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTextureDescriptor,
-        TilemapTextures, TilemapTransform, TilemapType,
+        TilemapSlotSize, TilemapStorage, TilemapTextureDescriptor, TilemapTextures,
+        TilemapTransform, TilemapType,
     },
     tile::TileBuilder,
 };
@@ -84,7 +84,6 @@ impl SerializedTilemap {
                         .map(|(tex, path)| SerializedTilemapTexture {
                             path: path.clone(),
                             desc: tex.desc.clone(),
-                            rotation: tex.rotation,
                         })
                         .collect(),
                     tex.filter_mode.into(),
@@ -145,7 +144,6 @@ impl SerializedTilemap {
 pub struct SerializedTilemapTexture {
     pub path: String,
     pub desc: TilemapTextureDescriptor,
-    pub rotation: TilemapRotation,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]

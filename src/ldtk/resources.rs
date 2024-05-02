@@ -204,12 +204,9 @@ impl LdtkAssets {
                     x: tileset.tile_grid_size as u32,
                     y: tileset.tile_grid_size as u32,
                 },
+                uv_rotation: TilemapRotation::None,
             };
-            let texture = TilemapTexture {
-                texture,
-                desc,
-                rotation: TilemapRotation::None,
-            };
+            let texture = TilemapTexture { texture, desc };
 
             self.tilesets.insert(tileset.uid, texture.clone());
             self.atlas_handles

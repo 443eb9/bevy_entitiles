@@ -25,13 +25,21 @@ use super::{
     resources::TilemapInstances,
 };
 
-pub type DrawTilemap<M> = (
+pub type DrawTilemapTextured<M> = (
     SetItemPipeline,
     SetTilemapViewBindGroup<0>,
     SetTilemapUniformBufferBindGroup<1, M>,
     SetTilemapMaterialBindGroup<2, M>,
     SetTilemapColorTextureBindGroup<3, M>,
     SetTilemapStorageBufferBindGroup<4, M>,
+    DrawTileMesh<M>,
+);
+
+pub type DrawTilemapNonTextured<M> = (
+    SetItemPipeline,
+    SetTilemapViewBindGroup<0>,
+    SetTilemapUniformBufferBindGroup<1, M>,
+    SetTilemapMaterialBindGroup<2, M>,
     DrawTileMesh<M>,
 );
 
@@ -77,7 +85,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let (Some(tilemap_uniform_bind_group), Some(uniform_data)) = (
-            bind_groups.into_inner().tilemap_uniform_buffer.as_ref(),
+            bind_groups.into_inner().uniform_buffer.as_ref(),
             uniform_data,
         ) {
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index()]);
@@ -114,7 +122,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         };
 
         let id = inst.material.id();
-        if let Some(bind_group) = bind_groups.into_inner().material_bind_groups.get(&id) {
+        if let Some(bind_group) = bind_groups.into_inner().materials.get(&id) {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
@@ -143,15 +151,12 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(bind_group) = bind_groups
-            .into_inner()
-            .tilemap_storage_buffers
-            .get(&item.entity)
-        {
+        if let Some(bind_group) = bind_groups.into_inner().storage_buffers.get(&item.entity) {
             pass.set_bind_group(I, bind_group, &[]);
+            RenderCommandResult::Success
+        } else {
+            RenderCommandResult::Failure
         }
-
-        RenderCommandResult::Success
     }
 }
 
@@ -178,7 +183,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             return RenderCommandResult::Success;
         };
 
-        if let Some(bind_group) = &bind_groups.into_inner().colored_textures.get(textures) {
+        if let Some(bind_group) = &bind_groups.into_inner().textures.get(textures) {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {

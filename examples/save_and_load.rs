@@ -73,8 +73,11 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 assets_server.load("test_isometric.png"),
-                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
-                TilemapRotation::None,
+                TilemapTextureDescriptor::new(
+                    UVec2 { x: 32, y: 32 },
+                    UVec2 { x: 32, y: 16 },
+                    TilemapRotation::None,
+                ),
             ),
             FilterMode::Nearest,
         )),

@@ -1,5 +1,5 @@
 #import bevy_entitiles::common::{
-    TilemapVertexInput, TilemapVertexOutput, tilemap, atlas_uvs, anim_seqs, material
+    TilemapVertexInput, TilemapVertexOutput, tilemap, atlas_uvs, anim_seqs, material, texture_descs
 }
 #import bevy_sprite::mesh2d_view_bindings::view
 
@@ -120,5 +120,6 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
     }
     // Apply the tint of the tile and the tilemap.
     return color * input.tint * material.color;
+    // return vec4f(f32(arrayLength(&texture_descs)) / 2., 0., 0., 1.);
 #endif
 }

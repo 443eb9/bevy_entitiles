@@ -67,8 +67,11 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 asset_server.load("test_square.png"),
-                TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16)),
-                TilemapRotation::None,
+                TilemapTextureDescriptor::new(
+                    UVec2::splat(32),
+                    UVec2::splat(16),
+                    TilemapRotation::None,
+                ),
             ),
             FilterMode::Nearest,
         )),

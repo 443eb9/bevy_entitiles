@@ -6,26 +6,33 @@ use bevy::{
     prelude::{FromWorld, Resource},
     render::{
         render_resource::{
-            BindGroupLayout, BlendState, ColorTargetState, ColorWrites, Face, FragmentState,
-            FrontFace, MultisampleState, PolygonMode, PrimitiveState, PrimitiveTopology,
-            RenderPipelineDescriptor, Shader, ShaderDefVal, ShaderRef, SpecializedRenderPipeline,
-            TextureFormat, VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+            BindGroupLayout, BindGroupLayoutEntries, BlendState, ColorTargetState, ColorWrites,
+            Face, FragmentState, FrontFace, MultisampleState, PolygonMode, PrimitiveState,
+            PrimitiveTopology, RenderPipelineDescriptor, SamplerBindingType, Shader, ShaderDefVal,
+            ShaderRef, ShaderStages, SpecializedRenderPipeline, TextureFormat, TextureSampleType,
+            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
+        view::ViewUniform,
     },
 };
 
 use crate::tilemap::map::TilemapType;
 
-use super::{binding::TilemapBindGroupLayouts, material::TilemapMaterial};
+use super::{
+    buffer::{GpuTilemapTextureDescriptor, TilemapUniform},
+    material::TilemapMaterial,
+};
+
+use bevy::render::render_resource::binding_types as binding;
 
 #[derive(Resource)]
 pub struct EntiTilesPipeline<M: TilemapMaterial> {
     pub view_layout: BindGroupLayout,
     pub uniform_buffers_layout: BindGroupLayout,
+    pub texture_layout: BindGroupLayout,
     pub storage_buffers_layout: BindGroupLayout,
-    pub color_texture_layout: BindGroupLayout,
     pub material_layout: BindGroupLayout,
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
@@ -41,15 +48,65 @@ pub struct EntiTilesPipelineKey {
 
 impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
     fn from_world(world: &mut World) -> Self {
-        let layouts = world.resource::<TilemapBindGroupLayouts>();
         let asset_server = world.resource::<AssetServer>();
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
+        let view_layout = render_device.create_bind_group_layout(
+            "tilemap_view_layout",
+            &BindGroupLayoutEntries::single(
+                ShaderStages::VERTEX_FRAGMENT,
+                binding::uniform_buffer::<ViewUniform>(true),
+            ),
+        );
+
+        let uniform_buffers_layout = render_device.create_bind_group_layout(
+            "uniform_buffers_layout",
+            &BindGroupLayoutEntries::single(
+                ShaderStages::VERTEX_FRAGMENT,
+                binding::uniform_buffer::<TilemapUniform>(true),
+            ),
+        );
+
+        let storage_buffers_layout = render_device.create_bind_group_layout(
+            "animation_buffer_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::VERTEX_FRAGMENT,
+                (
+                    binding::storage_buffer_read_only::<i32>(false),
+                    binding::storage_buffer_read_only::<Vec<GpuTilemapTextureDescriptor>>(false),
+                ),
+            ),
+        );
+
+        #[cfg(not(feature = "atlas"))]
+        let texture_layout = render_device.create_bind_group_layout(
+            "textured_tilemap_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::FRAGMENT,
+                (
+                    binding::texture_2d_array(TextureSampleType::Float { filterable: true }),
+                    binding::sampler(SamplerBindingType::Filtering),
+                ),
+            ),
+        );
+
+        #[cfg(feature = "atlas")]
+        let textured_tilemap_layout = render_device.create_bind_group_layout(
+            "textured_tilemap_layout",
+            &BindGroupLayoutEntries::sequential(
+                ShaderStages::FRAGMENT,
+                (
+                    binding::texture_2d_array(TextureSampleType::Float { filterable: true }),
+                    binding::sampler(SamplerBindingType::Filtering),
+                ),
+            ),
+        );
+
         Self {
-            view_layout: layouts.view_layout.clone(),
-            uniform_buffers_layout: layouts.tilemap_uniforms_layout.clone(),
-            storage_buffers_layout: layouts.tilemap_storage_layout.clone(),
-            color_texture_layout: layouts.color_texture_layout.clone(),
+            view_layout,
+            uniform_buffers_layout,
+            texture_layout,
+            storage_buffers_layout,
             material_layout: M::bind_group_layout(render_device),
             vertex_shader: match M::vertex_shader() {
                 ShaderRef::Default => panic!("You must provide a valid custom vertex shader!"),
@@ -118,12 +175,12 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
 
         if !key.is_pure_color {
             // group(3)
-            layout.push(self.color_texture_layout.clone());
+            layout.push(self.texture_layout.clone());
             // group(4)
             layout.push(self.storage_buffers_layout.clone());
         }
 
-        let mut desc=RenderPipelineDescriptor {
+        let mut desc = RenderPipelineDescriptor {
             label: Some("tilemap_pipeline".into()),
             layout,
             push_constant_ranges: vec![],
