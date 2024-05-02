@@ -64,9 +64,9 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         // See register function in TilemapAnimations.
         let fps = f32(anim_seqs[start - 1]);
         var frame = i32(tilemap.time * fps) % length;
-        output.texture_indices[0] = anim_seqs[start + frame];
+        output.atlas_indices[0] = anim_seqs[start + frame];
     } else {
-        output.texture_indices = input.texture_indices;
+        output.atlas_indices = input.atlas_indices;
     }
 #endif
 
@@ -82,7 +82,7 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
 
     // Sample the 4 layers.
     for (var i = 0u; i < 4u; i++) {
-        if input.texture_indices[i] < 0 {
+        if input.atlas_indices[i] < 0 {
             // No texture for this layer.
             continue;
         }
@@ -107,7 +107,7 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
         // Otherwise, sample the texture at the right layer using the uv directly.
         let tex_color = textureSample(bevy_entitiles::common::color_texture,
                                       bevy_entitiles::common::color_texture_sampler,
-                                      uv, input.texture_indices[i]);
+                                      uv, input.atlas_indices[i]);
 #endif
         // Mix the color of each layer.
         color = mix(color, tex_color, tex_color.a * tilemap.layer_opacities[i]);

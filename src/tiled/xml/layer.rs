@@ -342,7 +342,8 @@ impl Tiles {
                         },
                     ));
                 } else {
-                    layer.texture_index = tile_id as i32;
+                    // TODO multiple tilesets
+                    layer.atlas_index = tile_id as i32;
                     builder = builder.with_layer(0, layer);
                 }
 

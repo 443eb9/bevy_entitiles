@@ -17,8 +17,7 @@ use crate::tilemap::{
 use super::{
     binding::TilemapBindGroups,
     buffer::{
-        PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapTextureDescriptorBuffer,
-        TilemapUniformBuffer, UniformBuffer,
+        PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
     },
     chunk::{TilemapRenderChunk, UnloadRenderChunk},
     extract::{ExtractedTile, TilemapInstance},
@@ -28,6 +27,9 @@ use super::{
     texture::TilemapTexturesStorage,
     RenderChunkStorage,
 };
+
+#[cfg(feature = "atlas")]
+use super::buffer::TilemapTextureDescriptorBuffer;
 
 pub fn prepare_tilemaps_a<M: TilemapMaterial>(
     mut commands: Commands,
@@ -73,14 +75,15 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
     render_queue: Res<RenderQueue>,
     extracted_tilemaps: Query<Entity, With<TilemapInstance>>,
     mut animation_buffers: ResMut<TilemapAnimationBuffer>,
-    mut texture_desc_buffers: ResMut<TilemapTextureDescriptorBuffer>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
     tilemap_instances: Res<TilemapInstances<M>>,
     textures_assets: Res<RenderAssets<TilemapTextures>>,
+    #[cfg(feature = "atlas")] mut texture_desc_buffers: ResMut<TilemapTextureDescriptorBuffer>,
 ) {
     animation_buffers.clear();
+    #[cfg(feature = "atlas")]
     texture_desc_buffers.clear();
 
     extracted_tilemaps
@@ -93,13 +96,14 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
                 .get_or_insert_buffer(tilemap.id)
                 .extend(&tilemap.animations.as_ref().unwrap().0);
 
-            let Some(textures) = textures_assets.get(textures_handle) else {
+            let Some(_textures) = textures_assets.get(textures_handle) else {
                 return;
             };
 
+            #[cfg(feature = "atlas")]
             texture_desc_buffers
                 .get_or_insert_buffer(tilemap.id)
-                .extend(textures.textures.iter().map(|t| t.desc.into()));
+                .extend(_textures.textures.iter().map(|t| t.desc.into()));
 
             if !textures_storage.contains(textures_handle) {
                 textures_storage.insert(textures_handle.clone());
@@ -109,12 +113,14 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
     #[cfg(not(feature = "atlas"))]
     textures_storage.prepare_textures(&render_device, &textures_assets);
     animation_buffers.write(&render_device, &render_queue);
+    #[cfg(feature = "atlas")]
     texture_desc_buffers.write(&render_device, &render_queue);
     bind_groups.bind_tilemap_storage_buffers(
         &render_device,
         &mut animation_buffers,
-        &mut texture_desc_buffers,
         &entitiles_pipeline,
+        #[cfg(feature = "atlas")]
+        &mut texture_desc_buffers,
     );
 }
 

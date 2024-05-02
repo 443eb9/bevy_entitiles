@@ -14,7 +14,9 @@ use super::{buffers::Tiles, map::TilemapStorage};
 #[derive(Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileLayer {
+    #[cfg(feature = "atlas")]
     pub texture_index: i32,
+    pub atlas_index: i32,
     #[reflect(ignore)]
     pub flip: TileFlip,
 }
@@ -23,41 +25,83 @@ impl Default for TileLayer {
     /// The default empty layer.
     fn default() -> Self {
         Self {
+            #[cfg(feature = "atlas")]
             texture_index: -1,
+            atlas_index: -1,
             flip: Default::default(),
         }
     }
 }
 
+#[cfg(not(feature = "atlas"))]
 impl TileLayer {
     #[inline]
-    pub fn no_flip(texture_index: i32) -> Self {
+    pub fn no_flip(atlas_index: i32) -> Self {
         Self {
-            texture_index,
+            atlas_index,
             flip: TileFlip::NONE,
         }
     }
 
     #[inline]
-    pub fn flip_h(texture_index: i32) -> Self {
+    pub fn flip_h(atlas_index: i32) -> Self {
         Self {
-            texture_index,
+            atlas_index,
             flip: TileFlip::HORIZONTAL,
         }
     }
 
     #[inline]
-    pub fn flip_v(texture_index: i32) -> Self {
+    pub fn flip_v(atlas_index: i32) -> Self {
         Self {
-            texture_index,
+            atlas_index,
             flip: TileFlip::VERTICAL,
         }
     }
 
     #[inline]
-    pub fn flip_both(texture_index: i32) -> Self {
+    pub fn flip_both(atlas_index: i32) -> Self {
+        Self {
+            atlas_index,
+            flip: TileFlip::BOTH,
+        }
+    }
+}
+
+#[cfg(feature = "atlas")]
+impl TileLayer {
+    #[inline]
+    pub fn no_flip(texture_index: i32, atlas_index: i32) -> Self {
         Self {
             texture_index,
+            atlas_index,
+            flip: TileFlip::NONE,
+        }
+    }
+
+    #[inline]
+    pub fn flip_h(texture_index: i32, atlas_index: i32) -> Self {
+        Self {
+            texture_index,
+            atlas_index,
+            flip: TileFlip::HORIZONTAL,
+        }
+    }
+
+    #[inline]
+    pub fn flip_v(texture_index: i32, atlas_index: i32) -> Self {
+        Self {
+            texture_index,
+            atlas_index,
+            flip: TileFlip::VERTICAL,
+        }
+    }
+
+    #[inline]
+    pub fn flip_both(texture_index: i32, atlas_index: i32) -> Self {
+        Self {
+            texture_index,
+            atlas_index,
             flip: TileFlip::BOTH,
         }
     }

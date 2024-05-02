@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use bevy::{
     ecs::entity::{Entity, EntityHashMap},
-    math::{Mat2, UVec2, Vec4},
+    math::{Mat2, Vec4},
     prelude::{Component, Resource, Vec2},
     render::{
         render_resource::{
@@ -13,7 +13,7 @@ use bevy::{
     },
 };
 
-use crate::tilemap::map::{TilemapTextureDescriptor, TilemapType};
+use crate::tilemap::map::TilemapType;
 
 use super::{extract::ExtractedTilemap, material::TilemapMaterial};
 
@@ -163,6 +163,7 @@ impl<M: TilemapMaterial> UniformBuffer<(&ExtractedTilemap<M>, f32), TilemapUnifo
     }
 }
 
+#[cfg(feature = "atlas")]
 #[derive(ShaderType)]
 pub struct GpuTilemapTextureDescriptor {
     pub tile_count: UVec2,
@@ -170,6 +171,7 @@ pub struct GpuTilemapTextureDescriptor {
     pub uv_rotation: u32,
 }
 
+#[cfg(feature = "atlas")]
 impl From<TilemapTextureDescriptor> for GpuTilemapTextureDescriptor {
     fn from(value: TilemapTextureDescriptor) -> Self {
         Self {
@@ -195,6 +197,7 @@ impl PerTilemapBuffersStorage<i32> for TilemapAnimationBuffer {
     }
 }
 
+#[cfg(feature = "atlas")]
 #[derive(Resource, Default)]
 pub struct TilemapTextureDescriptorBuffer(
     EntityHashMap<(
@@ -203,6 +206,7 @@ pub struct TilemapTextureDescriptorBuffer(
     )>,
 );
 
+#[cfg(feature = "atlas")]
 impl PerTilemapBuffersStorage<GpuTilemapTextureDescriptor> for TilemapTextureDescriptorBuffer {
     #[inline]
     fn get_mapper_mut(

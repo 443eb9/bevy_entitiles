@@ -20,10 +20,10 @@ use bevy::{
 
 use crate::tilemap::map::TilemapType;
 
-use super::{
-    buffer::{GpuTilemapTextureDescriptor, TilemapUniform},
-    material::TilemapMaterial,
-};
+use super::{buffer::TilemapUniform, material::TilemapMaterial};
+
+#[cfg(feature = "atlas")]
+use super::buffer::GpuTilemapTextureDescriptor;
 
 use bevy::render::render_resource::binding_types as binding;
 
@@ -67,6 +67,16 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
             ),
         );
 
+        #[cfg(not(feature = "atlas"))]
+        let storage_buffers_layout = render_device.create_bind_group_layout(
+            "animation_buffer_layout",
+            &BindGroupLayoutEntries::single(
+                ShaderStages::VERTEX_FRAGMENT,
+                binding::storage_buffer_read_only::<i32>(false),
+            ),
+        );
+
+        #[cfg(feature = "atlas")]
         let storage_buffers_layout = render_device.create_bind_group_layout(
             "animation_buffer_layout",
             &BindGroupLayoutEntries::sequential(
@@ -78,20 +88,7 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
             ),
         );
 
-        #[cfg(not(feature = "atlas"))]
         let texture_layout = render_device.create_bind_group_layout(
-            "textured_tilemap_layout",
-            &BindGroupLayoutEntries::sequential(
-                ShaderStages::FRAGMENT,
-                (
-                    binding::texture_2d_array(TextureSampleType::Float { filterable: true }),
-                    binding::sampler(SamplerBindingType::Filtering),
-                ),
-            ),
-        );
-
-        #[cfg(feature = "atlas")]
-        let textured_tilemap_layout = render_device.create_bind_group_layout(
             "textured_tilemap_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::FRAGMENT,

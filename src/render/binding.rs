@@ -15,8 +15,7 @@ use crate::tilemap::map::TilemapTextures;
 
 use super::{
     buffer::{
-        PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapTextureDescriptorBuffer,
-        TilemapUniformBuffer, UniformBuffer,
+        PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
     },
     extract::ExtractedTilemap,
     material::TilemapMaterial,
@@ -24,6 +23,9 @@ use super::{
     resources::ExtractedTilemapMaterials,
     texture::TilemapTexturesStorage,
 };
+
+#[cfg(feature = "atlas")]
+use super::buffer::TilemapTextureDescriptorBuffer;
 
 #[derive(Component)]
 pub struct TilemapViewBindGroup {
@@ -71,10 +73,11 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
         &mut self,
         render_device: &RenderDevice,
         animation_buffers: &mut TilemapAnimationBuffer,
-        texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
         entitiles_pipeline: &EntiTilesPipeline<M>,
+        #[cfg(feature = "atlas")] texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
     ) {
         let anim_bindings = animation_buffers.bindings();
+        #[cfg(feature = "atlas")]
         let tex_desc_bindings = texture_desc_buffers.bindings();
 
         for tilemap in anim_bindings.keys() {
@@ -82,11 +85,24 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
                 error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
                 return;
             };
+            
+            #[cfg(feature = "atlas")]
             let Some(tex_desc) = tex_desc_bindings.get(tilemap) else {
                 error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
                 return;
             };
 
+            #[cfg(not(feature = "atlas"))]
+            self.storage_buffers.insert(
+                *tilemap,
+                render_device.create_bind_group(
+                    "tilemap_storage_buffers_bind_group",
+                    &entitiles_pipeline.storage_buffers_layout,
+                    &BindGroupEntries::single(anim.clone()),
+                ),
+            );
+
+            #[cfg(feature = "atlas")]
             self.storage_buffers.insert(
                 *tilemap,
                 render_device.create_bind_group(

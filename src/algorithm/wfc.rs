@@ -173,7 +173,7 @@ impl WfcSource {
                 TileBuilder::new().with_layer(
                     0,
                     TileLayer {
-                        texture_index: r as i32,
+                        atlas_index: r as i32,
                         ..Default::default()
                     },
                 )

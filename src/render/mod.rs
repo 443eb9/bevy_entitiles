@@ -11,7 +11,7 @@ use bevy::{
 
 use crate::{
     render::{
-        buffer::{TilemapAnimationBuffer, TilemapTextureDescriptorBuffer},
+        buffer::TilemapAnimationBuffer,
         chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
         cull::FrustumCulling,
         texture::TilemapTexturesStorage,
@@ -45,10 +45,13 @@ pub const TILEMAP_MESH_ATTR_INDEX: MeshVertexAttribute =
     MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Sint32x4);
 pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
     MeshVertexAttribute::new("Color", 85415341854, VertexFormat::Float32x4);
-pub const TILEMAP_MESH_ATTR_TEX_INDICES: MeshVertexAttribute =
-    MeshVertexAttribute::new("TextureIndex", 186541653135, VertexFormat::Sint32x4);
+pub const TILEMAP_MESH_ATTR_ATLAS_INDICES: MeshVertexAttribute =
+    MeshVertexAttribute::new("AtlasIndex", 3524536125341, VertexFormat::Sint32x4);
 pub const TILEMAP_MESH_ATTR_FLIP: MeshVertexAttribute =
     MeshVertexAttribute::new("Flip", 7365156123161, VertexFormat::Uint32x4);
+#[cfg(feature = "atlas")]
+pub const TILEMAP_MESH_ATTR_TEX_INDICES: MeshVertexAttribute =
+    MeshVertexAttribute::new("TextureIndex", 186541653135, VertexFormat::Sint32x4);
 
 #[derive(Default)]
 pub struct EntiTilesRendererPlugin;
@@ -112,7 +115,11 @@ impl Plugin for EntiTilesRendererPlugin {
                 ),
             )
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapAnimationBuffer>()
-            .init_resource::<TilemapTextureDescriptorBuffer>();
+            .init_resource::<TilemapAnimationBuffer>();
+
+        #[cfg(feature = "atlas")]
+        {
+            render_app.init_resource::<buffer::TilemapTextureDescriptorBuffer>();
+        }
     }
 }

@@ -27,9 +27,12 @@ use crate::{
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
     material::TilemapMaterial,
-    TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP, TILEMAP_MESH_ATTR_INDEX,
-    TILEMAP_MESH_ATTR_TEX_INDICES,
+    TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP,
+    TILEMAP_MESH_ATTR_INDEX,
 };
+
+#[cfg(feature = "atlas")]
+use super::TILEMAP_MESH_ATTR_TEX_INDICES;
 
 #[derive(Component, Default, Debug, Clone, Reflect)]
 pub struct UnloadRenderChunk(pub Vec<IVec2>);
@@ -47,7 +50,9 @@ pub struct MeshTileData {
     // So the zw components are the start index and the length of the animation sequence
     pub index: IVec4,
     // 4 layers
+    #[cfg(feature = "atlas")]
     pub texture_indices: IVec4,
+    pub atlas_indices: IVec4,
     pub tint: Vec4,
     pub flip: UVec4,
 }
@@ -106,7 +111,9 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         let len = self.tiles.len();
 
         let mut positions = Vec::with_capacity(len * 4);
+        #[cfg(feature = "atlas")]
         let mut texture_indices = Vec::with_capacity(len * 4);
+        let mut atlas_indices = Vec::with_capacity(len * 4);
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
@@ -115,11 +122,19 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
                 if !is_pure_color {
+                    #[cfg(feature = "atlas")]
                     texture_indices.extend_from_slice(&[
                         tile.texture_indices,
                         tile.texture_indices,
                         tile.texture_indices,
                         tile.texture_indices,
+                    ]);
+
+                    atlas_indices.extend_from_slice(&[
+                        tile.atlas_indices,
+                        tile.atlas_indices,
+                        tile.atlas_indices,
+                        tile.atlas_indices,
                     ]);
                 }
 
@@ -150,8 +165,13 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         self.mesh.insert_attribute(TILEMAP_MESH_ATTR_COLOR, color);
         if !is_pure_color {
             self.mesh
-                .insert_attribute(TILEMAP_MESH_ATTR_TEX_INDICES, texture_indices);
-            self.mesh.insert_attribute(TILEMAP_MESH_ATTR_FLIP, flip)
+                .insert_attribute(TILEMAP_MESH_ATTR_ATLAS_INDICES, atlas_indices);
+            self.mesh.insert_attribute(TILEMAP_MESH_ATTR_FLIP, flip);
+            #[cfg(feature = "atlas")]
+            {
+                self.mesh
+                    .insert_attribute(TILEMAP_MESH_ATTR_TEX_INDICES, texture_indices);
+            }
         }
         self.mesh.insert_indices(Indices::U32(vertex_indices));
 
@@ -200,21 +220,13 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             return;
         };
 
+        #[cfg(feature = "atlas")]
         let mut texture_indices = IVec4::NEG_ONE;
+        let mut atlas_indices = IVec4::NEG_ONE;
         let mut flip = UVec4::ZERO;
         let tile_index = {
             match &tile.texture {
-                TileTexture::Static(tex) => {
-                    tex.iter()
-                        .enumerate()
-                        .rev()
-                        .take(MAX_LAYER_COUNT)
-                        .for_each(|(i, t)| {
-                            texture_indices[i] = t.texture_index;
-                            flip[i] = t.flip.bits();
-                        });
-                    IVec4::new(tile.index.x, tile.index.y, -1, -1)
-                }
+                TileTexture::Static(_) => IVec4::new(tile.index.x, tile.index.y, -1, -1),
                 TileTexture::Animated(anim) => IVec4::new(
                     tile.index.x,
                     tile.index.y,
@@ -224,9 +236,26 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             }
         };
 
+        if let TileTexture::Static(tex) = &tile.texture {
+            tex.iter()
+                .enumerate()
+                .rev()
+                .take(MAX_LAYER_COUNT)
+                .for_each(|(i, t)| {
+                    #[cfg(feature = "atlas")]
+                    {
+                        texture_indices[i] = t.texture_index;
+                    }
+                    atlas_indices[i] = t.atlas_index;
+                    flip[i] = t.flip.bits();
+                });
+        }
+
         self.tiles[index] = Some(MeshTileData {
             index: tile_index,
+            #[cfg(feature = "atlas")]
             texture_indices,
+            atlas_indices,
             tint: tile.tint.rgba_linear_to_vec4(),
             flip,
         });

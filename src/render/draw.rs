@@ -155,6 +155,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
+            error!("Failed to get storage bind group!");
             RenderCommandResult::Failure
         }
     }
