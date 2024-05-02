@@ -19,9 +19,8 @@ use crate::{
     tilemap::map::TilemapTextures,
 };
 
-// TODO
-// #[cfg(feature = "baking")]
-// pub mod bake;
+#[cfg(feature = "baking")]
+pub mod bake;
 pub mod binding;
 pub mod buffer;
 pub mod chunk;
@@ -74,9 +73,8 @@ impl Plugin for EntiTilesRendererPlugin {
             Update,
             (
                 texture::set_texture_usage,
-                // TODO
-                // #[cfg(feature = "baking")]
-                // bake::tilemap_baker,
+                #[cfg(feature = "baking")]
+                bake::tilemap_baker,
             ),
         )
         .add_systems(
@@ -90,14 +88,13 @@ impl Plugin for EntiTilesRendererPlugin {
         .add_event::<ChunkUnload>()
         .add_plugins(RenderAssetPlugin::<TilemapTextures, ()>::default());
 
-        // TODO
-        // #[cfg(feature = "baking")]
-        // {
-        //     use bake::{BakedTilemap, TilemapBaker};
+        #[cfg(feature = "baking")]
+        {
+            use bake::{BakedTilemap, TilemapBaker};
 
-        //     app.register_type::<TilemapBaker>()
-        //         .register_type::<BakedTilemap>();
-        // }
+            app.register_type::<TilemapBaker>()
+                .register_type::<BakedTilemap>();
+        }
 
         let render_app = app.sub_app_mut(RenderApp);
 

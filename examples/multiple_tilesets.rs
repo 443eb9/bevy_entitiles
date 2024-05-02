@@ -13,7 +13,7 @@ use bevy_entitiles::{
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
-            TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTextureDescriptor, TilemapTextures,
         },
         tile::{TileBuilder, TileLayer},
@@ -53,19 +53,11 @@ fn setup(
             vec![
                 TilemapTexture::new(
                     asset_server.load("test_square.png"),
-                    TilemapTextureDescriptor::new(
-                        UVec2::splat(32),
-                        UVec2::splat(16),
-                        TilemapRotation::None,
-                    ),
+                    TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16)),
                 ),
                 TilemapTexture::new(
                     asset_server.load("test_wfc.png"),
-                    TilemapTextureDescriptor::new(
-                        UVec2 { x: 48, y: 32 },
-                        UVec2 { x: 16, y: 16 },
-                        TilemapRotation::None,
-                    ),
+                    TilemapTextureDescriptor::new(UVec2 { x: 48, y: 32 }, UVec2 { x: 16, y: 16 }),
                 ),
             ],
             FilterMode::Nearest,

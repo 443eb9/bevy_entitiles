@@ -13,7 +13,7 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
     // If you want to see how the original shader looks like, you can check src/render/shaders/tilemap.wgsl
     let tex_color = textureSample(bevy_entitiles::common::color_texture,
                               bevy_entitiles::common::color_texture_sampler,
-                              input.uv, input.texture_indices[3]);
+                              input.uv, input.atlas_indices[3]);
     let t = speed_and_time[0] * speed_and_time[1];
     let color = vec4<f32>(sin(t), cos(t), sin(2. * t), 1.);
     return color * tex_color;

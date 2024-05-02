@@ -74,7 +74,7 @@ impl Plugin for EntiTilesPlugin {
             #[cfg(feature = "algorithm")]
             algorithm::EntiTilesAlgorithmPlugin,
             #[cfg(feature = "serializing")]
-            serializing::EntiTilesSerializingPlugin,
+            serializing::EntiTilesSerializingPlugin::<StandardTilemapMaterial>::default(),
             #[cfg(feature = "ldtk")]
             ldtk::EntiTilesLdtkPlugin,
             #[cfg(feature = "tiled")]

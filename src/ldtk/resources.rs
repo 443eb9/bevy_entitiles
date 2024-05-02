@@ -18,10 +18,12 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::{serializing::pattern::PatternsLayer, tilemap::tile::RawTileAnimation};
 use crate::{
-    serializing::pattern::{PackedPatternLayers, TilemapPattern},
-    tilemap::map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
+    serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
+    tilemap::{
+        map::{TilemapTexture, TilemapTextureDescriptor},
+        tile::RawTileAnimation,
+    },
 };
 
 use super::{
@@ -204,7 +206,6 @@ impl LdtkAssets {
                     x: tileset.tile_grid_size as u32,
                     y: tileset.tile_grid_size as u32,
                 },
-                uv_rotation: TilemapRotation::None,
             };
             let texture = TilemapTexture { texture, desc };
 

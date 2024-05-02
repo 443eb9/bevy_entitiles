@@ -100,8 +100,6 @@ pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'sta
     fn get_mapper(&self) -> &EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
 }
 
-// TODO
-// Add a indivudual storage buffer to store texture metas
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
     pub translation: Vec2,

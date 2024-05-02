@@ -24,7 +24,7 @@ use crate::{
     math::{aabb::Aabb2d, extension::F32Integerize},
     tilemap::{
         coordinates,
-        map::{TilemapRotation, TilemapTexture, TilemapTextureDescriptor},
+        map::{TilemapTexture, TilemapTextureDescriptor},
     },
     utils::asset::AssetPath,
 };
@@ -297,7 +297,6 @@ impl TiledAssets {
                             x: tileset_xml.tile_width,
                             y: tileset_xml.tile_height,
                         },
-                        uv_rotation: TilemapRotation::None,
                     },
                 };
 

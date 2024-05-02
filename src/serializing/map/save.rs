@@ -9,8 +9,10 @@ use bevy::{
     },
     reflect::Reflect,
 };
+use serde::Serialize;
 
 use crate::{
+    render::material::TilemapMaterial,
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
         chunking::storage::ChunkedStorage,
@@ -66,7 +68,7 @@ pub struct TilemapSaver {
     pub remove_after_save: bool,
 }
 
-pub fn save(
+pub fn save<M: TilemapMaterial + Serialize>(
     mut commands: Commands,
     mut tilemaps_query: Query<(
         Entity,
@@ -78,12 +80,14 @@ pub fn save(
         &TilemapLayerOpacities,
         &mut TilemapStorage,
         &TilemapTransform,
+        &Handle<M>,
         Option<&Handle<TilemapTextures>>,
         Option<&TilemapAnimations>,
         &TilemapSaver,
     )>,
     tiles_query: Query<&Tile>,
     textures_assets: Res<Assets<TilemapTextures>>,
+    material_assets: Res<Assets<M>>,
     #[cfg(feature = "algorithm")] path_tilemaps: Res<PathTilemaps>,
     #[cfg(feature = "physics")] physics_tilemaps_query: Query<
         &crate::tilemap::physics::PhysicsTilemap,
@@ -99,6 +103,7 @@ pub fn save(
         layer_opacities,
         mut storage,
         transform,
+        material,
         texture,
         animations,
         saver,
@@ -118,6 +123,7 @@ pub fn save(
                 storage.clone(),
                 transform.clone(),
                 texture.and_then(|t| textures_assets.get(t)).cloned(),
+                material_assets.get(material).unwrap().clone(),
                 animations.cloned(),
                 saver,
             );

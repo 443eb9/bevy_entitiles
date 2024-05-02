@@ -105,6 +105,7 @@ impl From<&StandardTilemapMaterial> for StandardTilemapUniform {
 }
 
 #[derive(Default, Asset, AsBindGroup, TypePath, Clone)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 #[uniform(0, StandardTilemapUniform)]
 pub struct StandardTilemapMaterial {
     pub tint: Color,

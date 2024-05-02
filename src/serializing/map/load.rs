@@ -10,8 +10,10 @@ use bevy::{
     },
     hierarchy::DespawnRecursiveExt,
 };
+use serde::de::DeserializeOwned;
 
 use crate::{
+    render::material::TilemapMaterial,
     serializing::load_object,
     tilemap::{
         chunking::storage::{ChunkedStorage, TileBuilderChunkedStorage},
@@ -54,17 +56,18 @@ pub struct TilemapLoader {
     pub layers: TilemapLayer,
 }
 
-pub fn load(
+pub fn load<M: TilemapMaterial + DeserializeOwned>(
     mut commands: Commands,
     tilemaps_query: Query<(Entity, &TilemapLoader)>,
     asset_server: Res<AssetServer>,
     mut textures_assets: ResMut<Assets<TilemapTextures>>,
+    mut material_assets: ResMut<Assets<M>>,
     #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, loader) in tilemaps_query.iter() {
         let map_path = Path::new(&loader.path).join(&loader.map_name);
 
-        let Ok(ser_tilemap) = load_object::<SerializedTilemap>(&map_path, TILEMAP_META) else {
+        let Ok(ser_tilemap) = load_object::<SerializedTilemap<M>>(&map_path, TILEMAP_META) else {
             complete(&mut commands, entity, (), false);
             continue;
         };
@@ -131,7 +134,11 @@ pub fn load(
         }
 
         if let Some(tex) = texture {
-            let mut bundle = ser_tilemap.into_tilemap(entity, textures_assets.add(tex));
+            let mut bundle = ser_tilemap.into_tilemap(
+                entity,
+                textures_assets.add(tex),
+                material_assets.add(ser_tilemap.material.clone()),
+            );
             bundle.storage = storage;
             complete(&mut commands, entity, bundle, true);
         } else {

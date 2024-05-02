@@ -22,9 +22,8 @@ use bevy_entitiles::{
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
-            TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapTransform,
-            TilemapType,
+            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTextureDescriptor, TilemapTextures, TilemapTransform, TilemapType,
         },
         physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTileSpawn, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
@@ -95,11 +94,7 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 assets_server.load("test_isometric.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 32, y: 16 },
-                    TilemapRotation::None,
-                ),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
             ),
             FilterMode::Nearest,
         )),
@@ -109,13 +104,7 @@ fn setup(
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
-        TileBuilder::new().with_layer(
-            0,
-            TileLayer {
-                texture_index: 0,
-                ..Default::default()
-            },
-        ),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     commands
@@ -134,11 +123,7 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 assets_server.load("test_square.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 16, y: 16 },
-                    TilemapRotation::None,
-                ),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 16, y: 16 }),
             ),
             FilterMode::Nearest,
         )),

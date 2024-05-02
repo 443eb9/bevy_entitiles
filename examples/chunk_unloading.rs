@@ -22,17 +22,16 @@ use bevy_entitiles::{
     serializing::{
         chunk::{
             load::{ChunkLoadCache, ChunkLoadConfig},
-            save::{self, ChunkSaveCache, ChunkSaveConfig},
+            save::{ChunkSaveCache, ChunkSaveConfig},
         },
         map::TilemapLayer,
     },
     tilemap::{
-        buffers::TileBuilderBuffer,
         bundles::StandardTilemapBundle,
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
-            TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
+            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         physics::{PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
@@ -80,9 +79,6 @@ fn main() {
         .run();
 }
 
-#[derive(Event, Debug, Clone, Copy)]
-struct GenerateChunk(IVec2);
-
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -107,11 +103,7 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 asset_server.load("test_square.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 16, y: 16 },
-                    TilemapRotation::None,
-                ),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 16, y: 16 }),
             ),
             FilterMode::Nearest,
         )),

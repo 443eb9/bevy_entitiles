@@ -340,22 +340,17 @@ pub struct WaitForTextureUsageChange;
 pub struct TilemapTextureDescriptor {
     pub(crate) size: UVec2,
     pub(crate) tile_size: UVec2,
-    pub(crate) uv_rotation: TilemapRotation,
 }
 
 impl TilemapTextureDescriptor {
-    pub fn new(size: UVec2, tile_size: UVec2, uv_rotation: TilemapRotation) -> Self {
+    pub fn new(size: UVec2, tile_size: UVec2) -> Self {
         assert_eq!(
             size % tile_size,
             UVec2::ZERO,
             "Invalid tilemap texture descriptor! The size must be divisible by the tile size!"
         );
 
-        Self {
-            size,
-            tile_size,
-            uv_rotation,
-        }
+        Self { size, tile_size }
     }
 }
 

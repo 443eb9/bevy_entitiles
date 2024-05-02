@@ -132,8 +132,6 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
         }
     }
     // Apply the tint of the tile and the tilemap.
-    // return color * input.tint * material.color;
-    return color;
-    // return vec4f(f32(arrayLength(&bevy_entitiles::common::color_texture)) / 2., 0., 0., 1.);
+    return color * input.tint * material.color;
 #endif // PURE_COLOR
 }

@@ -25,8 +25,8 @@ use bevy_entitiles::{
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
-            TileRenderSize, TilemapLayerOpacities, TilemapRotation, TilemapSlotSize,
-            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
+            TileRenderSize, TilemapLayerOpacities, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
     },
@@ -71,10 +71,18 @@ fn setup(
         ty: TilemapType::Square,
         storage: TilemapStorage::new(32, entity),
         material: materials.add(StandardTilemapMaterial::default()),
-        textures: textures.add(TilemapTexture::new(
-            asset_server.load("test_square.png"),
-            TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16), FilterMode::Nearest),
-            TilemapRotation::None,
+        textures: textures.add(TilemapTextures::new(
+            vec![
+                TilemapTexture::new(
+                    asset_server.load("test_square.png"),
+                    TilemapTextureDescriptor::new(UVec2::splat(32), UVec2::splat(16)),
+                ),
+                TilemapTexture::new(
+                    asset_server.load("test_wfc.png"),
+                    TilemapTextureDescriptor::new(UVec2 { x: 48, y: 32 }, UVec2 { x: 16, y: 16 }),
+                ),
+            ],
+            FilterMode::Nearest,
         )),
         layer_opacities: TilemapLayerOpacities(Vec4::new(0.8, 0.5, 0.1, 0.3)),
         ..Default::default()
@@ -83,15 +91,15 @@ fn setup(
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::from_min_max(IVec2::ZERO, IVec2::splat(4)),
-        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(0, 0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::from_min_max(IVec2::new(5, 0), IVec2::new(9, 4)),
         TileBuilder::new()
-            .with_layer(0, TileLayer::no_flip(0))
-            .with_layer(1, TileLayer::flip_h(1))
+            .with_layer(0, TileLayer::no_flip(0, 0))
+            .with_layer(1, TileLayer::flip_h(0, 1))
             .with_tint(Color::rgba_u8(68, 62, 185, 64)),
     );
 
@@ -99,17 +107,17 @@ fn setup(
         &mut commands,
         TileArea::new(IVec2::new(10, 0), UVec2::splat(5)),
         TileBuilder::new()
-            .with_layer(0, TileLayer::no_flip(0))
-            .with_layer(1, TileLayer::no_flip(1))
-            .with_layer(2, TileLayer::no_flip(2))
-            .with_layer(3, TileLayer::no_flip(3))
+            .with_layer(0, TileLayer::no_flip(0, 0))
+            .with_layer(1, TileLayer::no_flip(0, 1))
+            .with_layer(2, TileLayer::no_flip(0, 2))
+            .with_layer(3, TileLayer::no_flip(0, 3))
             .with_tint(Color::ORANGE_RED),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         TileArea::new(IVec2::new(0, 10), UVec2::splat(10)),
-        TileBuilder::new().with_layer(0, TileLayer::no_flip(2)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip(1, 2)),
     );
 
     commands.entity(entity).insert((

@@ -1,20 +1,25 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write, marker::PhantomData, path::Path};
 
 use bevy::app::Plugin;
 use ron::error::SpannedError;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+
+use crate::render::material::TilemapMaterial;
 
 pub mod chunk;
 pub mod map;
 pub mod pattern;
 
-pub struct EntiTilesSerializingPlugin;
+#[derive(Default)]
+pub struct EntiTilesSerializingPlugin<M: TilemapMaterial + Serialize + DeserializeOwned>(
+    PhantomData<M>,
+);
 
-impl Plugin for EntiTilesSerializingPlugin {
+impl<M: TilemapMaterial + Serialize + DeserializeOwned> Plugin for EntiTilesSerializingPlugin<M> {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugins((
             chunk::EntiTilesChunkSerializingPlugin,
-            map::EntiTilesTilemapSerializingPlugin,
+            map::EntiTilesTilemapSerializingPlugin::<M>::default(),
         ));
     }
 }

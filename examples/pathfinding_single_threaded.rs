@@ -22,7 +22,7 @@ use bevy_entitiles::{
         algorithm::path::{PathTile, PathTilemap},
         bundles::StandardTilemapBundle,
         map::{
-            TileRenderSize, TilemapRotation, TilemapSlotSize, TilemapStorage, TilemapTexture,
+            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
             TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
@@ -67,11 +67,7 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 assets_server.load("test_isometric.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 32, y: 16 },
-                    TilemapRotation::None,
-                ),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
             ),
             FilterMode::Nearest,
         )),

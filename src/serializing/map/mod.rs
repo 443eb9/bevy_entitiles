@@ -1,20 +1,25 @@
+use std::marker::PhantomData;
+
 use bevy::{
     app::{App, Plugin, Update},
     asset::Handle,
     ecs::entity::Entity,
     render::render_resource::FilterMode,
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::tilemap::{
-    bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
-    chunking::storage::ChunkedStorage,
-    map::{
-        TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-        TilemapSlotSize, TilemapStorage, TilemapTextureDescriptor, TilemapTextures,
-        TilemapTransform, TilemapType,
+use crate::{
+    render::material::TilemapMaterial,
+    tilemap::{
+        bundles::{MaterialTilemapBundle, StandardPureColorTilemapBundle},
+        chunking::storage::ChunkedStorage,
+        map::{
+            TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
+            TilemapSlotSize, TilemapStorage, TilemapTextureDescriptor, TilemapTextures,
+            TilemapTransform, TilemapType,
+        },
+        tile::TileBuilder,
     },
-    tile::TileBuilder,
 };
 
 use self::save::TilemapSaver;
@@ -27,22 +32,27 @@ pub const PHYSICS_TILES: &str = "physics_tiles.ron";
 pub mod load;
 pub mod save;
 
-pub struct EntiTilesTilemapSerializingPlugin;
+#[derive(Default)]
+pub struct EntiTilesTilemapSerializingPlugin<M: TilemapMaterial + Serialize + DeserializeOwned>(
+    PhantomData<M>,
+);
 
-impl Plugin for EntiTilesTilemapSerializingPlugin {
+impl<M: TilemapMaterial + Serialize + DeserializeOwned> Plugin
+    for EntiTilesTilemapSerializingPlugin<M>
+{
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (save::save, load::load));
+        app.add_systems(Update, (save::save::<M>, load::load::<M>));
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SerializedTilemapData {
-    pub tilemap: SerializedTilemap,
+pub struct SerializedTilemapData<M: TilemapMaterial> {
+    pub tilemap: SerializedTilemap<M>,
     pub tiles: Vec<TileBuilder>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct SerializedTilemap {
+pub struct SerializedTilemap<M: TilemapMaterial> {
     pub name: TilemapName,
     pub tile_render_size: TileRenderSize,
     pub slot_size: TilemapSlotSize,
@@ -50,13 +60,14 @@ pub struct SerializedTilemap {
     pub tile_pivot: TilePivot,
     pub layer_opacities: TilemapLayerOpacities,
     pub tilemap_transform: TilemapTransform,
+    pub material: M,
     pub textures: Option<(Vec<SerializedTilemapTexture>, SerializedFilterMode)>,
     pub animations: Option<TilemapAnimations>,
     pub layers: TilemapLayer,
     pub chunk_size: u32,
 }
 
-impl SerializedTilemap {
+impl<M: TilemapMaterial> SerializedTilemap<M> {
     pub fn from_tilemap(
         name: TilemapName,
         tile_render_size: TileRenderSize,
@@ -67,6 +78,7 @@ impl SerializedTilemap {
         storage: TilemapStorage,
         tilemap_transform: TilemapTransform,
         texture: Option<TilemapTextures>,
+        material: M,
         animations: Option<TilemapAnimations>,
         saver: &TilemapSaver,
     ) -> Self {
@@ -76,6 +88,7 @@ impl SerializedTilemap {
             tile_render_size,
             slot_size,
             tile_pivot,
+            material,
             textures: texture.map(|tex| {
                 (
                     tex.textures
@@ -101,8 +114,9 @@ impl SerializedTilemap {
         &self,
         tilemap: Entity,
         textures: Handle<TilemapTextures>,
-    ) -> StandardTilemapBundle {
-        StandardTilemapBundle {
+        material: Handle<M>,
+    ) -> MaterialTilemapBundle<M> {
+        MaterialTilemapBundle {
             name: self.name.clone(),
             ty: self.ty,
             tile_render_size: self.tile_render_size,
@@ -114,6 +128,7 @@ impl SerializedTilemap {
                 storage: ChunkedStorage::new(self.chunk_size),
                 ..Default::default()
             },
+            material,
             transform: self.tilemap_transform,
             textures,
             animations: self.animations.clone().unwrap(),

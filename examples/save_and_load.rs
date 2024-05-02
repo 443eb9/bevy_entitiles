@@ -25,8 +25,8 @@ use bevy_entitiles::{
         algorithm::path::{PathTile, PathTilemap},
         bundles::StandardTilemapBundle,
         map::{
-            TilePivot, TileRenderSize, TilemapName, TilemapRotation, TilemapSlotSize,
-            TilemapStorage, TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
+            TilePivot, TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage,
+            TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
         },
         physics::{PhysicsTile, PhysicsTilemap},
         tile::{TileBuilder, TileLayer},
@@ -45,6 +45,10 @@ fn main() {
             EntiTilesPlugin,
             PhysicsPlugins::default(),
             PhysicsDebugPlugin::default(),
+            // IMPORTANT!!
+            // If you want to ser/de tilemaps that has your own custom material,
+            // you need to add this plugin:
+            // bevy_entitiles::serializing::EntiTilesSerializingPlugin::<M>::default(),
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
@@ -73,11 +77,7 @@ fn setup(
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
                 assets_server.load("test_isometric.png"),
-                TilemapTextureDescriptor::new(
-                    UVec2 { x: 32, y: 32 },
-                    UVec2 { x: 32, y: 16 },
-                    TilemapRotation::None,
-                ),
+                TilemapTextureDescriptor::new(UVec2 { x: 32, y: 32 }, UVec2 { x: 32, y: 16 }),
             ),
             FilterMode::Nearest,
         )),

@@ -98,12 +98,13 @@ pub fn tilemap_baker(
             .collect::<Vec<_>>();
 
         let textures = textures_assets.get(texture).unwrap();
+        textures.assert_uniform_tile_size();
         let texture_images = textures
-            .0
+            .textures
             .iter()
             .map(|tex| image_assets.get(tex.handle()).unwrap())
             .collect::<Vec<_>>();
-        let target_size = (tilemap_aabb.size().as_vec2() * tile_render_size.0).as_uvec2();
+        let target_size = tilemap_aabb.size().as_uvec2() * textures.textures[0].desc.size;
         let mut bake_target = vec![0; (target_size.x * target_size.y * 4) as usize];
 
         tiles.into_iter().for_each(|(tile_index, tile)| {
@@ -125,7 +126,7 @@ pub fn tilemap_baker(
                     })
                     .for_each(|(opacity, layer)| {
                         set_tile(
-                            &textures.0,
+                            &textures.textures,
                             &texture_images,
                             rel_index,
                             target_size,
@@ -139,7 +140,13 @@ pub fn tilemap_baker(
                 }
             };
 
-            set_tile_tint(&textures.0, rel_index, target_size, &mut bake_target, tile.tint);
+            set_tile_tint(
+                textures.textures[0].desc.tile_size,
+                rel_index,
+                target_size,
+                &mut bake_target,
+                tile.tint,
+            );
         });
 
         let baked_tilemap = BakedTilemap {
@@ -171,7 +178,7 @@ pub fn tilemap_baker(
 }
 
 fn set_tile(
-    texture: &[TilemapTexture],
+    textures: &[TilemapTexture],
     texture_images: &[&Image],
     rel_index: UVec2,
     target_size: UVec2,
@@ -179,7 +186,9 @@ fn set_tile(
     layer: &TileLayer,
     opacity: f32,
 ) {
-    let tile_px = texture.get_atlas_urect(layer.texture_index as u32);
+    let texture = &textures[layer.texture_index as usize];
+    let texture_image = &texture_images[layer.texture_index as usize];
+    let tile_px = texture.get_atlas_urect(layer.atlas_index as u32);
 
     for mut y in 0..texture.desc.tile_size.y {
         for mut x in 0..texture.desc.tile_size.x {
@@ -191,7 +200,7 @@ fn set_tile(
             }
 
             let tile_px_col = get_pixel(
-                &texture_images.data,
+                &texture_image.data,
                 texture.desc.size,
                 tile_px.min + UVec2 { x, y },
             );
@@ -215,7 +224,7 @@ fn set_tile(
 }
 
 fn set_tile_tint(
-    texture: &[TilemapTexture],
+    tile_size: UVec2,
     rel_index: UVec2,
     target_size: UVec2,
     bake_target: &mut Vec<u8>,
@@ -223,25 +232,25 @@ fn set_tile_tint(
 ) {
     let tint = tint.rgba_to_vec4();
 
-    for y in 0..texture.desc.tile_size.y {
-        for x in 0..texture.desc.tile_size.x {
+    for y in 0..tile_size.y {
+        for x in 0..tile_size.x {
             let map_px_col = get_pixel(
                 bake_target,
                 target_size,
-                rel_index * texture.desc.tile_size + UVec2 { x, y },
+                rel_index * tile_size + UVec2 { x, y },
             );
 
             set_pixel(
                 bake_target,
                 target_size,
-                rel_index * texture.desc.tile_size + UVec2 { x, y },
+                rel_index * tile_size + UVec2 { x, y },
                 apply_tint(map_px_col, tint),
             );
         }
     }
 }
 
-fn set_pixel(buffer: &mut Vec<u8>, mut image_size: UVec2, pos: UVec2, value: Vec4) {
+fn set_pixel(buffer: &mut [u8], mut image_size: UVec2, pos: UVec2, value: Vec4) {
     image_size.x *= 4;
     let index = (pos.y * image_size.x + pos.x * 4) as usize;
     buffer[index] = (value[0] * 255.) as u8;
@@ -250,7 +259,7 @@ fn set_pixel(buffer: &mut Vec<u8>, mut image_size: UVec2, pos: UVec2, value: Vec
     buffer[index + 3] = (value[3] * 255.) as u8;
 }
 
-fn get_pixel(buffer: &Vec<u8>, mut image_size: UVec2, pos: UVec2) -> Vec4 {
+fn get_pixel(buffer: &[u8], mut image_size: UVec2, pos: UVec2) -> Vec4 {
     image_size.x *= 4;
     let index = (pos.y * image_size.x + pos.x * 4) as usize;
     Vec4::new(
