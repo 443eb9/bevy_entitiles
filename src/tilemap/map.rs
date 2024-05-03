@@ -748,7 +748,11 @@ impl TilemapStorage {
 
 /// The tilemap's animation buffer.
 ///
-/// Its format is `[fps, seq_elem_1, ..., seq_elem_n, fps, seq_elem_1, ..., seq_elem_n, ...]`.
+/// Its format is `[fps, atlas_index_1, ..., atlas_index_n, fps, atlas_index_1, ..., atlas_index_n, ...]`.
+///
+/// If `atlas` feature is enabled, then the format is
+///
+/// `[fps, texture_index_1, atlas_index_1, ..., texture_index_n, atlas_index_n, fps, texture_index_1, atlas_index_1, ..., texture_index_n, atlas_index_n, ...]`
 #[derive(Component, Default, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapAnimations(pub(crate) Vec<i32>);
@@ -759,7 +763,16 @@ impl TilemapAnimations {
         self.0.push(anim.fps as i32);
         let start = self.0.len() as u32;
         let length = anim.sequence.len() as u32;
+
+        #[cfg(not(feature = "atlas"))]
         self.0.extend(anim.sequence.into_iter().map(|i| i as i32));
+        #[cfg(feature = "atlas")]
+        self.0.extend(
+            anim.sequence
+                .into_iter()
+                .flat_map(|(t, a)| [t as i32, a as i32]),
+        );
+
         TileAnimation {
             start,
             length,

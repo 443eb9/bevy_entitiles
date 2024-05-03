@@ -44,7 +44,6 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         vec2<f32>(1., 0.),
         vec2<f32>(1., 1.),
     );
-    output.texture_indices = input.texture_indices;
 #else // ATLAS
     var uvs = array<vec2<f32>, 4>(
         vec2<f32>(0., 1.),
@@ -62,12 +61,20 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         let start = input.index.z;
         let length = input.index.w;
         // The number before the start index is the fps.
-        // See register function in TilemapAnimations.
+        // See `register` function in TilemapAnimations.
         let fps = f32(anim_seqs[start - 1]);
         var frame = i32(tilemap.time * fps) % length;
+#ifdef ATLAS
+        output.texture_indices[0] = anim_seqs[start + frame * 2];
+        output.atlas_indices[0] = anim_seqs[start + frame * 2 + 1];
+#else // ATLAS
         output.atlas_indices[0] = anim_seqs[start + frame];
+#endif // ATLAS
     } else {
         output.atlas_indices = input.atlas_indices;
+#ifdef ATLAS
+        output.texture_indices = input.texture_indices;
+#endif // ATLAS
     }
 #endif // PURE_COLOR
 

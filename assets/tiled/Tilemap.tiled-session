@@ -3,12 +3,12 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "tilemaps/Caves.tmx",
+    "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
         ".",
         "tilesets",
-        "tilemaps",
-        "world_test"
+        "world_test",
+        "tilemaps"
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -140,8 +140,8 @@
             "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 146.75,
-                "y": 124
+                "x": 146.25,
+                "y": 123.5
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -185,14 +185,14 @@
             ],
             "expandedObjectLayers": [
                 5,
-                3,
-                4
+                4,
+                3
             ],
             "scale": 5.5,
-            "selectedLayer": 3,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 120.0909090909091,
-                "y": 79.81818181818183
+                "x": 107,
+                "y": 126.36363636363637
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -261,16 +261,15 @@
         "tilemaps/orthogonal.tmx",
         "tilemaps/isometric.tmx",
         "tilemaps/infinite.tmx",
-        "tilemaps/hexagonal.tmx",
-        "tilemaps/Caves.tmx"
+        "tilemaps/hexagonal.tmx"
     ],
     "project": "Tilemap.tiled-project",
     "property.type": "object",
     "recentFiles": [
-        "tilemaps/orthogonal.tmx",
-        "tilemaps/isometric.tmx",
-        "tilemaps/infinite.tmx",
         "tilemaps/hexagonal.tmx",
+        "tilemaps/infinite.tmx",
+        "tilemaps/isometric.tmx",
+        "tilemaps/orthogonal.tmx",
         "tilemaps/Caves.tmx",
         "tilesets/Isometric.tsx",
         "tilesets/Hexagonal.tsx",

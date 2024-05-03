@@ -220,6 +220,7 @@ impl TileBuilder {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileAnimation {
     pub(crate) start: u32,
+    /// When `atlas` feature is enabled, the length **WON'T** doubled!!
     pub(crate) length: u32,
     pub(crate) fps: u32,
 }
@@ -227,7 +228,11 @@ pub struct TileAnimation {
 /// A raw tile animation. This is contains the full information of a tile animation.
 #[derive(Debug, Clone, Reflect)]
 pub struct RawTileAnimation {
+    #[cfg(not(feature = "atlas"))]
     pub sequence: Vec<u32>,
+    /// (texture_index, atlas_index)
+    #[cfg(feature = "atlas")]
+    pub sequence: Vec<(u32, u32)>,
     pub fps: u32,
 }
 

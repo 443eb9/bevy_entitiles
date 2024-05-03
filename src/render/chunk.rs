@@ -43,7 +43,7 @@ pub struct ChunkUnload {
     pub index: IVec2,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct MeshTileData {
     // When the third and forth component of index are not -1,
     // it means this tile is a animated tile

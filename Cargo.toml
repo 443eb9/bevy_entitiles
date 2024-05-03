@@ -58,7 +58,7 @@ ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 multi-threaded = ["bevy/multi-threaded"]
 physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
-tiled = ["dep:serde", "dep:quick-xml", "dep:bevy_entitiles_derive"]
+tiled = ["dep:serde", "dep:quick-xml", "dep:bevy_entitiles_derive", "atlas"]
 
 [[example]]
 name = "basic"

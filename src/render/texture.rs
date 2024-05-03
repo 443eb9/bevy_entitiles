@@ -356,7 +356,13 @@ pub fn set_texture_usage(
 ) {
     // Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
     tilemaps_query.iter().for_each(|(entity, textures)| {
-        for tex in &textures_assets.get(textures).unwrap().textures {
+        let Some(t) = &textures_assets.get(textures) else {
+            panic!(
+                "Failed to fetch the TilemapTexture, did you forget to add that on your tilemap?"
+            )
+        };
+
+        for tex in &t.textures {
             let Some(image) = image_assets.get(&tex.clone_weak()) else {
                 return;
             };
