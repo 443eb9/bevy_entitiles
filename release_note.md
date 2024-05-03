@@ -6,6 +6,7 @@
 - Rotating the uv of tiles is no longer supported.
 - `texture_index` is renamed to `atlas_index`
 - Added `texture_index` (Only when `atlas` feature enabled).
+- Supported loading tilemaps that have multiple tilesets on one layer from Tiled.
 
 # What's Fixed:
 

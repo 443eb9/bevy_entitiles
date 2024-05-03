@@ -18,7 +18,7 @@ pub struct TiledUnloadLayer;
 
 #[derive(Component, Debug, Clone)]
 pub struct TiledLoadedTilemap {
-    pub map: String,
+    pub name: String,
     pub layers: HashMap<u32, Entity>,
     pub objects: HashMap<u32, Entity>,
 }

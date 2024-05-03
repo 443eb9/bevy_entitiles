@@ -6,22 +6,23 @@ use bevy::{
         query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
     },
-    math::{IVec2, Vec2, Vec4},
+    math::{IVec2, Vec2},
     prelude::SpatialBundle,
-    render::{mesh::Mesh, render_resource::Shader},
+    render::{color::Color, mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
     transform::components::Transform,
     utils::HashMap,
 };
 
 use crate::{
+    render::material::StandardTilemapMaterial,
     tiled::traits::TiledObjectRegistry,
     tilemap::{
         buffers::TileBuilderBuffer,
         bundles::StandardTilemapBundle,
         map::{
             TilePivot, TileRenderSize, TilemapAxisFlip, TilemapName, TilemapSlotSize,
-            TilemapStorage, TilemapTransform, TilemapType,
+            TilemapStorage, TilemapTextures, TilemapTransform, TilemapType,
         },
     },
     DEFAULT_CHUNK_SIZE,
@@ -112,7 +113,9 @@ fn load_tiled_xml(
     config: Res<TiledLoadConfig>,
     mut tiled_assets: ResMut<TiledAssets>,
     asset_server: Res<AssetServer>,
-    mut material_assets: ResMut<Assets<TiledSpriteMaterial>>,
+    mut sprite_material_assets: ResMut<Assets<TiledSpriteMaterial>>,
+    mut tilemap_material_assets: ResMut<Assets<StandardTilemapMaterial>>,
+    mut textures_assets: ResMut<Assets<TilemapTextures>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     object_registry: NonSend<TiledObjectRegistry>,
 ) {
@@ -121,7 +124,8 @@ fn load_tiled_xml(
             &manager,
             &config,
             &asset_server,
-            &mut material_assets,
+            &mut sprite_material_assets,
+            &mut textures_assets,
             &mut mesh_assets,
         );
 
@@ -134,6 +138,7 @@ fn load_tiled_xml(
             &loader,
             &object_registry,
             entity,
+            &mut tilemap_material_assets,
         );
 
         commands.entity(entity).remove::<TiledLoader>();
@@ -149,10 +154,11 @@ fn load_tiled_tilemap(
     loader: &TiledLoader,
     object_registry: &TiledObjectRegistry,
     map_entity: Entity,
+    tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
 ) {
     let tiled_data = manager.get_cached_data().get(&loader.map).unwrap();
     let mut loaded_map = TiledLoadedTilemap {
-        map: tiled_data.name.clone(),
+        name: tiled_data.name.clone(),
         layers: HashMap::default(),
         objects: HashMap::default(),
     };
@@ -169,6 +175,7 @@ fn load_tiled_tilemap(
             object_registry,
             config,
             &mut loaded_map,
+            tilemap_material_assets,
         )
     });
 
@@ -183,6 +190,7 @@ fn load_tiled_tilemap(
             object_registry,
             config,
             &mut loaded_map,
+            tilemap_material_assets,
         )
     });
 
@@ -199,6 +207,7 @@ fn load_group(
     object_registry: &TiledObjectRegistry,
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
+    tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
 ) {
     group.layers.iter().for_each(|content| {
         load_layer(
@@ -211,6 +220,7 @@ fn load_group(
             object_registry,
             config,
             loaded_map,
+            tilemap_material_assets,
         )
     });
 
@@ -225,6 +235,7 @@ fn load_group(
             object_registry,
             config,
             loaded_map,
+            tilemap_material_assets,
         )
     });
 }
@@ -239,6 +250,7 @@ fn load_layer(
     object_registry: &TiledObjectRegistry,
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
+    tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
 ) {
     *z += 0.1;
 
@@ -250,7 +262,14 @@ fn load_layer(
             );
             let layer_size = IVec2::new(layer.width as i32, layer.height as i32);
             let entity = commands.spawn_empty().id();
+            let (textures, animations) = tiled_assets.get_tilemap_data(&loaded_map.name);
 
+            let tint = Color::rgba(
+                layer.tint.r,
+                layer.tint.g,
+                layer.tint.b,
+                layer.tint.a * layer.opacity,
+            );
             let mut tilemap = StandardTilemapBundle {
                 name: TilemapName(layer.name.clone()),
                 tile_render_size: TileRenderSize(tile_size),
@@ -274,6 +293,9 @@ fn load_layer(
                         },
                     *z,
                 ),
+                textures,
+                animations,
+                material: tilemap_material_assets.add(StandardTilemapMaterial { tint }),
                 axis_flip: match tiled_data.xml.orientation {
                     MapOrientation::Isometric => TilemapAxisFlip::all(),
                     _ => TilemapAxisFlip::Y,
@@ -286,18 +308,12 @@ fn load_layer(
             };
 
             let mut buffer = TileBuilderBuffer::new();
-
-            let tint = Vec4::new(
-                layer.tint.r,
-                layer.tint.g,
-                layer.tint.b,
-                layer.tint.a * layer.opacity,
-            );
             match &layer.data {
+                // TODO assemble TilemapTextures here!!
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
-                        .iter_decoded(layer_size, tiled_assets, &mut tilemap, &tiled_data, tint)
+                        .iter_decoded(layer_size, &loaded_map.name, tiled_assets, &tiled_data)
                         .for_each(|(index, builder)| {
                             buffer.set(index, builder);
                         });
@@ -309,7 +325,7 @@ fn load_layer(
 
                         chunk
                             .tiles
-                            .iter_decoded(size, tiled_assets, &mut tilemap, &tiled_data, tint)
+                            .iter_decoded(size, &loaded_map.name, tiled_assets, &tiled_data)
                             .for_each(|(index, builder)| {
                                 buffer.set(index + offset, builder);
                             });

@@ -74,6 +74,7 @@ pub struct TiledTileset {
     #[serde(default)]
     pub transformations: TilesetTransformations,
 
+    /// Generally, animated tiles.
     #[serde(rename = "tile")]
     #[serde(default)]
     pub special_tiles: Vec<TiledTile>,

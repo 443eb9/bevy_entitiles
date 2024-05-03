@@ -2,9 +2,8 @@ use std::fmt::Formatter;
 
 use bevy::{
     ecs::system::EntityCommands,
-    math::{IVec2, Vec2, Vec4},
+    math::{IVec2, Vec2},
     reflect::Reflect,
-    render::color::Color,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use serde::{
@@ -15,9 +14,8 @@ use serde::{
 use crate::{
     tiled::resources::{PackedTiledTilemap, TiledAssets},
     tilemap::{
-        bundles::StandardTilemapBundle,
         coordinates,
-        tile::{RawTileAnimation, TileBuilder, TileFlip, TileLayer},
+        tile::{TileBuilder, TileFlip, TileLayer},
     },
 };
 
@@ -280,70 +278,35 @@ impl Tiles {
     pub fn iter_decoded<'a>(
         &'a self,
         size: IVec2,
+        tiled_tilemap_name: &'a str,
         tiled_assets: &'a TiledAssets,
-        layer_tilemap: &'a mut StandardTilemapBundle,
         tiled_data: &'a PackedTiledTilemap,
-        tint: Vec4,
     ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
-        let mut tileset = None;
-        let mut first_gid = 0;
         self.0
             .iter()
             .enumerate()
-            .filter_map(move |(index, texture)| {
-                if *texture == 0 {
+            .filter_map(move |(index, tile_id)| {
+                if *tile_id == 0 {
                     return None;
                 }
-
-                let texture = *texture;
-                let tileset = tileset.unwrap_or_else(|| {
-                    let (ts, gid) = tiled_assets.get_tileset(texture, &tiled_data.name);
-                    tileset = Some(ts);
-                    first_gid = gid;
-                    // TODO FIXFIXFIX
-                    // layer_tilemap.textures = ts.texture.clone();
-                    ts
-                });
 
                 let mut builder = TileBuilder::new();
                 let mut layer = TileLayer::default();
 
-                assert!(
-                    texture >= first_gid,
-                    "Invalid texture index {} for tileset {}. \
-                    Are you using multiple tilesets on one layer? That's not supported.",
-                    texture,
-                    first_gid
-                );
+                let flip = *tile_id >> 30;
+                let tile_id = tile_id & 0x3FFF_FFFF;
 
-                let mut tile_id = texture - first_gid;
-                if texture > i32::MAX as u32 {
-                    let flip = texture >> 30;
-                    layer.flip = {
-                        if flip == 3 {
-                            TileFlip::from_bits(flip)
-                        } else {
-                            TileFlip::from_bits(flip ^ 3)
-                        }
-                        .unwrap()
-                    };
-                    tile_id = (texture & 0x3FFF_FFFF) - first_gid;
-                }
+                let (tileset, tileset_meta) =
+                    tiled_assets.get_tileset(tile_id, &tiled_tilemap_name);
+                let atlas_index = tile_id - tileset_meta.first_gid;
 
-                if let Some(anim) = tileset
-                    .special_tiles
-                    .get(&tile_id)
-                    .and_then(|t| t.animation.as_ref())
-                {
-                    builder = builder.with_animation(layer_tilemap.animations.register(
-                        RawTileAnimation {
-                            sequence: anim.frames.iter().map(|f| f.tile_id).collect(),
-                            fps: 1000 / anim.frames[0].duration,
-                        },
-                    ));
+                layer.flip = TileFlip::from_bits(flip).unwrap();
+                layer.texture_index = tileset_meta.texture_index as i32;
+
+                if let Some(anim) = tileset.animated_tiles.get(&atlas_index) {
+                    builder = builder.with_animation(anim.clone());
                 } else {
-                    // TODO multiple tilesets
-                    layer.atlas_index = tile_id as i32;
+                    layer.atlas_index = atlas_index as i32;
                     builder = builder.with_layer(0, layer);
                 }
 
@@ -360,10 +323,7 @@ impl Tiles {
                     }
                 }
 
-                Some((
-                    index,
-                    builder.with_tint(Color::rgba_linear_from_array(tint.to_array())),
-                ))
+                Some((index, builder))
             })
     }
 }

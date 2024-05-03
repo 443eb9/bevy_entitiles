@@ -230,7 +230,7 @@ pub struct TileAnimation {
 pub struct RawTileAnimation {
     #[cfg(not(feature = "atlas"))]
     pub sequence: Vec<u32>,
-    /// (texture_index, atlas_index)
+    /// (texture_index, flip, atlas_index)
     #[cfg(feature = "atlas")]
     pub sequence: Vec<(u32, u32)>,
     pub fps: u32,

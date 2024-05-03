@@ -15,16 +15,17 @@ use bevy::{
     render::{
         mesh::{Indices, Mesh},
         render_asset::RenderAssetUsages,
-        render_resource::PrimitiveTopology,
+        render_resource::{FilterMode, PrimitiveTopology},
     },
-    utils::{hashbrown::hash_map::Entry, HashMap},
+    utils::HashMap,
 };
 
 use crate::{
     math::{aabb::Aabb2d, extension::F32Integerize},
     tilemap::{
         coordinates,
-        map::{TilemapTexture, TilemapTextureDescriptor},
+        map::{TilemapAnimations, TilemapTexture, TilemapTextureDescriptor, TilemapTextures},
+        tile::{RawTileAnimation, TileAnimation},
     },
     utils::asset::AssetPath,
 };
@@ -32,11 +33,7 @@ use crate::{
 use super::{
     components::{TiledLoader, TiledUnloader},
     sprite::{SpriteUniform, TiledSpriteMaterial},
-    xml::{
-        layer::TiledLayer,
-        tileset::{TiledTile, TiledTileset},
-        MapOrientation, TiledGroup, TiledTilemap,
-    },
+    xml::{layer::TiledLayer, tileset::TiledTileset, MapOrientation, TiledGroup, TiledTilemap},
 };
 
 /// Configuration for loading tiled tilemaps.
@@ -57,9 +54,8 @@ pub struct PackedTiledTilemap {
 #[derive(Debug, Clone, Reflect)]
 pub struct PackedTiledTileset {
     pub name: String,
-    pub xml: TiledTileset,
-    pub special_tiles: HashMap<u32, TiledTile>,
     pub texture: TilemapTexture,
+    pub animated_tiles: HashMap<u32, TileAnimation>,
 }
 
 /// A resource that manages tiled tilemaps.
@@ -159,15 +155,26 @@ impl TiledTilemapManger {
     }
 }
 
+#[derive(Clone, Copy, Reflect)]
+pub struct TiledTilesetMeta {
+    pub global_tileset_index: usize,
+    pub texture_index: u32,
+    pub first_gid: u32,
+}
+
 /// All the resources that are loaded from tiled tilemaps.
 ///
 /// This includes tilesets, image meshes/materials, object meshes/materials, etc.
 #[derive(Resource, Default, Reflect)]
 pub struct TiledAssets {
     pub(crate) version: u32,
+    /// Used when spawning objects that use a tile as texture.
     pub(crate) tilesets: Vec<PackedTiledTileset>,
-    /// (tileset_index, first_gid)
-    pub(crate) tilemap_tilesets: HashMap<String, Vec<(usize, u32)>>,
+
+    // Those keys in the following fields are corresponding to the name of Tiled tilemaps
+    // not single layers, which is tilemaps in entitles.
+    pub(crate) tileset_metas: HashMap<String, Vec<TiledTilesetMeta>>,
+    pub(crate) tilemap_data: HashMap<String, (Handle<TilemapTextures>, TilemapAnimations)>,
     /// (mesh_handle, z)
     #[reflect(ignore)]
     pub(crate) image_layer_mesh: HashMap<String, HashMap<u32, (Handle<Mesh>, f32)>>,
@@ -180,14 +187,25 @@ pub struct TiledAssets {
 }
 
 impl TiledAssets {
-    /// Returns (tileset, first_gid)
-    pub fn get_tileset(&self, gid: u32, tilemap: &str) -> (&PackedTiledTileset, u32) {
-        let (index, first_gid) = self.tilemap_tilesets[tilemap]
+    pub fn get_tileset(
+        &self,
+        tile_id: u32,
+        tilemap: &str,
+    ) -> (&PackedTiledTileset, TiledTilesetMeta) {
+        let meta = self.get_tileset_meta(tile_id, tilemap);
+        (self.tilesets.get(meta.global_tileset_index).unwrap(), meta)
+    }
+
+    pub fn get_tileset_meta(&self, tile_id: u32, tilemap: &str) -> TiledTilesetMeta {
+        *self.tileset_metas[tilemap]
             .iter()
             .rev()
-            .find(|(_, first_gid)| *first_gid <= gid)
-            .unwrap();
-        (&self.tilesets[*index], *first_gid)
+            .find(|meta| meta.first_gid <= tile_id)
+            .unwrap()
+    }
+
+    pub fn get_tilemap_data(&self, tilemap: &str) -> (Handle<TilemapTextures>, TilemapAnimations) {
+        self.tilemap_data.get(tilemap).unwrap().clone()
     }
 
     pub fn clone_image_layer_mesh_handle(&self, map: &str, layer: u32) -> (Handle<Mesh>, f32) {
@@ -244,6 +262,7 @@ impl TiledAssets {
         _config: &TiledLoadConfig,
         asset_server: &AssetServer,
         material_assets: &mut Assets<TiledSpriteMaterial>,
+        textures_assets: &mut Assets<TilemapTextures>,
         mesh_assets: &mut Assets<Mesh>,
     ) {
         if self.version == manager.version {
@@ -251,70 +270,109 @@ impl TiledAssets {
         }
 
         self.version = manager.version;
-        self.load_tilesets(manager, asset_server);
+        self.load_tilesets(manager, asset_server, textures_assets);
         self.load_map_assets(manager, asset_server, material_assets, mesh_assets);
     }
 
-    fn load_tilesets(&mut self, manager: &TiledTilemapManger, asset_server: &AssetServer) {
+    fn load_tilesets(
+        &mut self,
+        manager: &TiledTilemapManger,
+        asset_server: &AssetServer,
+        textures_assets: &mut Assets<TilemapTextures>,
+    ) {
         let tiled_xml = manager.get_cached_data();
-        let mut tileset_records = HashMap::default();
+        let mut tilesets_records = HashMap::default();
 
-        tiled_xml.iter().for_each(|(_, map)| {
-            map.xml.tilesets.iter().for_each(|tileset_def| {
-                let tileset_path = map.path.parent().unwrap().join(&tileset_def.source);
-                let tileset_xml = quick_xml::de::from_str::<TiledTileset>(
-                    &std::fs::read_to_string(&tileset_path).unwrap(),
-                )
-                .unwrap();
+        // Load all tilesets
+        tiled_xml.values().for_each(|map| {
+            let mut animations = TilemapAnimations::default();
+            let mut textures = Vec::with_capacity(map.xml.tilesets.len());
+            let mut metas = Vec::with_capacity(map.xml.tilesets.len());
 
-                match tileset_records.entry(tileset_xml.name.clone()) {
-                    Entry::Occupied(e) => {
-                        self.tilemap_tilesets
-                            .entry(map.name.clone())
-                            .or_default()
-                            .push((*e.get(), tileset_def.first_gid));
+            map.xml
+                .tilesets
+                .iter()
+                .enumerate()
+                .for_each(|(texture_index, tileset_def)| {
+                    let mut animated_tiles = HashMap::default();
+
+                    let tileset_path = map.path.parent().unwrap().join(&tileset_def.source);
+                    let tileset_xml = quick_xml::de::from_str::<TiledTileset>(
+                        &std::fs::read_to_string(&tileset_path).unwrap(),
+                    )
+                    .unwrap();
+
+                    if let Some(global_tileset_index) =
+                        tilesets_records.get(&tileset_xml.name).cloned()
+                    {
+                        metas.push(TiledTilesetMeta {
+                            global_tileset_index,
+                            texture_index: texture_index as u32,
+                            first_gid: tileset_def.first_gid,
+                        });
+                        textures.push(self.tilesets[global_tileset_index].texture.clone());
+                        return;
                     }
-                    Entry::Vacant(_) => {
-                        self.tilemap_tilesets
-                            .entry(map.name.clone())
-                            .or_default()
-                            .push((self.tilesets.len(), tileset_def.first_gid));
-                    }
-                }
 
-                let source_path = tileset_path
-                    .parent()
-                    .unwrap()
-                    .join(&tileset_xml.image.source);
-                let texture = TilemapTexture {
-                    texture: asset_server.load(source_path.to_asset_path()),
-                    desc: TilemapTextureDescriptor {
-                        size: UVec2 {
-                            x: tileset_xml.image.width,
-                            y: tileset_xml.image.height,
+                    let source_path = tileset_path
+                        .parent()
+                        .unwrap()
+                        .join(&tileset_xml.image.source);
+                    let texture = TilemapTexture {
+                        texture: asset_server.load(source_path.to_asset_path()),
+                        desc: TilemapTextureDescriptor {
+                            size: UVec2 {
+                                x: tileset_xml.image.width,
+                                y: tileset_xml.image.height,
+                            },
+                            tile_size: UVec2 {
+                                x: tileset_xml.tile_width,
+                                y: tileset_xml.tile_height,
+                            },
                         },
-                        tile_size: UVec2 {
-                            x: tileset_xml.tile_width,
-                            y: tileset_xml.tile_height,
-                        },
-                    },
-                };
+                    };
 
-                self.tilesets.push(PackedTiledTileset {
-                    name: tileset_xml.name.clone(),
-                    special_tiles: tileset_xml
+                    // Animated tiles
+                    tileset_xml
                         .special_tiles
                         .iter()
                         .map(|tile| (tile.id, tile.clone()))
-                        .collect(),
-                    xml: tileset_xml,
-                    texture,
-                });
-            });
+                        .for_each(|(atlas_index, tile)| {
+                            let frames = tile.animation.unwrap().frames;
+                            let anim = animations.register(RawTileAnimation {
+                                // TODO maybe support?
+                                fps: (1000. / frames[0].duration as f32) as u32,
+                                sequence: frames
+                                    .into_iter()
+                                    .map(|frame| (texture_index as u32, frame.tile_id))
+                                    .collect(),
+                            });
+                            animated_tiles.insert(atlas_index, anim);
+                        });
 
-            self.tilemap_tilesets.values_mut().for_each(|v| {
-                v.sort_by(|(_, a), (_, b)| a.cmp(b));
-            });
+                    tilesets_records.insert(tileset_xml.name.clone(), self.tilesets.len());
+                    metas.push(TiledTilesetMeta {
+                        global_tileset_index: self.tilesets.len(),
+                        texture_index: texture_index as u32,
+                        first_gid: tileset_def.first_gid,
+                    });
+                    self.tilesets.push(PackedTiledTileset {
+                        name: tileset_xml.name.clone(),
+                        texture: texture.clone(),
+                        animated_tiles,
+                    });
+                    textures.push(texture);
+                });
+
+            self.tileset_metas.insert(map.name.clone(), metas);
+
+            self.tilemap_data.insert(
+                map.name.clone(),
+                (
+                    textures_assets.add(TilemapTextures::new(textures, FilterMode::Nearest)),
+                    animations,
+                ),
+            );
         });
     }
 
@@ -671,13 +729,14 @@ impl TiledAssets {
             .iter()
             .map(|(object, tint)| {
                 let gid = object.gid.unwrap() & 0x3FFF_FFFF;
-                let (tileset, first_gid) = &self.get_tileset(gid, &map.name);
+                let (tileset, meta) = &self.get_tileset(gid, &map.name);
+                // TODO support animation and flipping
                 (
                     object.id,
                     material_assets.add(TiledSpriteMaterial {
                         image: tileset.texture.texture.clone(),
                         data: SpriteUniform {
-                            atlas: tileset.texture.get_atlas_rect(gid - first_gid),
+                            atlas: tileset.texture.get_atlas_rect(gid - meta.first_gid),
                             tint: (*tint).into(),
                         },
                     }),

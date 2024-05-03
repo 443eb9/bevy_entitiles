@@ -6,9 +6,9 @@
     "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
         ".",
-        "tilesets",
+        "tilemaps",
         "world_test",
-        "tilemaps"
+        "tilesets"
     ],
     "fileStates": {
         "D:/Program Files/Tiled/examples/desert.tmx": {
@@ -140,7 +140,7 @@
             "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 146.25,
+                "x": 117.75,
                 "y": 123.5
             }
         },
@@ -156,7 +156,7 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 99.5,
+                "x": 99.33333333333334,
                 "y": 15
             }
         },
@@ -167,8 +167,8 @@
             "scale": 3,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 135.83333333333334,
-                "y": 139
+                "x": 136,
+                "y": 138.66666666666666
             }
         },
         "tilemaps/orthogonal.tmj": {
@@ -189,10 +189,10 @@
                 3
             ],
             "scale": 5.5,
-            "selectedLayer": 1,
+            "selectedLayer": 5,
             "viewCenter": {
-                "x": 107,
-                "y": 126.36363636363637
+                "x": 111.90909090909092,
+                "y": 27.09090909090908
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {
@@ -206,6 +206,10 @@
         },
         "tilemaps/tilesets/Tileset1.tsx": {
             "scaleInDock": 1
+        },
+        "tilesets/8pxSquare.tsx": {
+            "scaleInDock": 16,
+            "scaleInEditor": 45
         },
         "tilesets/Caves1.tsx": {
             "scaleInDock": 1
@@ -244,7 +248,7 @@
     "frame.defaultDuration": 300,
     "last.exportedFilePath": "F:/EverythingBevy/bevy_entitiles/assets/tiled/tilemaps",
     "last.externalTilesetPath": "F:/EverythingBevy/bevy_entitiles/assets/tiled/tilesets",
-    "last.imagePath": "F:/EverythingBevy/bevy_entitiles/assets/tiled",
+    "last.imagePath": "/home/443eb9/Projects/bevy_entitiles/assets/tiled",
     "last.worldFilePath": "F:/EverythingBevy/bevy_entitiles/assets/tiled/world_test",
     "loadedWorlds": [
         "F:/EverythingBevy/bevy_entitiles/assets/tiled/world_test/test.world"
@@ -258,30 +262,30 @@
     "map.tileWidth": 8,
     "map.width": 10,
     "openFiles": [
-        "tilemaps/orthogonal.tmx",
         "tilemaps/isometric.tmx",
         "tilemaps/infinite.tmx",
-        "tilemaps/hexagonal.tmx"
+        "tilemaps/hexagonal.tmx",
+        "tilemaps/orthogonal.tmx"
     ],
     "project": "Tilemap.tiled-project",
     "property.type": "object",
     "recentFiles": [
-        "tilemaps/hexagonal.tmx",
-        "tilemaps/infinite.tmx",
         "tilemaps/isometric.tmx",
+        "tilemaps/infinite.tmx",
+        "tilemaps/hexagonal.tmx",
         "tilemaps/orthogonal.tmx",
+        "tilesets/8pxSquare.tsx",
         "tilemaps/Caves.tmx",
         "tilesets/Isometric.tsx",
         "tilesets/Hexagonal.tsx",
         "tilesets/Squares.tsx",
         "tilemaps/orthogonal.tmj",
         "tilemaps/hexagonal..tmj",
-        "tilemaps/hexgonal.tmx",
-        "tilesets/Tileset2.tsx"
+        "tilemaps/hexgonal.tmx"
     ],
     "tileset.lastUsedFormat": "tsx",
     "tileset.tileSize": {
-        "height": 56,
-        "width": 28
+        "height": 8,
+        "width": 8
     }
 }
