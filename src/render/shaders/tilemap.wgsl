@@ -53,7 +53,6 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
     );
 #endif // ATLAS
     output.uv = uvs[(input.v_index) % 4u];
-    output.flip = input.flip;
     output.anim_flag = input.index.z;
 
     if input.index.z != -1 {
@@ -94,7 +93,10 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
             // No texture for this layer.
             continue;
         }
-        let atlas_index = u32(input.atlas_indices[i]);
+        let atlas_index = u32(input.atlas_indices[i] & 0x1FFFFFFF);
+        // Shift 29 bits but not 30 because it's a signed integer,
+        // and we need to identify if the layer is empty or not according to the sign.
+        let flip = input.atlas_indices[i] >> 29;
 
 #ifdef ATLAS
         if input.texture_indices[i] < 0 {
@@ -105,10 +107,10 @@ fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
 
         var uv = input.uv;
         // Flip the uv if needed.
-        if (input.flip[i] & 1u) != 0u {
+        if (flip & 2) != 0 {
             uv.x = 1. - uv.x;
         }
-        if (input.flip[i] & 2u) != 0u {
+        if (flip & 1) != 0 {
             uv.y = 1. - uv.y;
         }
 

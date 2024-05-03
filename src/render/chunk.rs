@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bevy::{
     asset::Handle,
     ecs::{component::Component, entity::EntityHashMap, event::Event},
-    math::{IVec2, IVec4, UVec4},
+    math::{IVec2, IVec4},
     prelude::{Entity, Mesh, Resource, Vec3, Vec4},
     reflect::Reflect,
     render::{
@@ -27,8 +27,7 @@ use crate::{
 use super::{
     extract::{ExtractedTile, ExtractedTilemap},
     material::TilemapMaterial,
-    TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_FLIP,
-    TILEMAP_MESH_ATTR_INDEX,
+    TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
 };
 
 #[cfg(feature = "atlas")]
@@ -54,7 +53,6 @@ pub struct MeshTileData {
     pub texture_indices: IVec4,
     pub atlas_indices: IVec4,
     pub tint: Vec4,
-    pub flip: UVec4,
 }
 
 #[derive(Clone)]
@@ -117,7 +115,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         let mut grid_indices = Vec::with_capacity(len * 4);
         let mut vertex_indices = Vec::with_capacity(len * 6);
         let mut color = Vec::with_capacity(len * 4);
-        let mut flip = Vec::with_capacity(len * 4);
 
         for tile_data in self.tiles.iter() {
             if let Some(tile) = tile_data {
@@ -154,7 +151,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
 
                 grid_indices.extend_from_slice(&[tile.index, tile.index, tile.index, tile.index]);
                 color.extend_from_slice(&[tile.tint, tile.tint, tile.tint, tile.tint]);
-                flip.extend_from_slice(&[tile.flip, tile.flip, tile.flip, tile.flip]);
             }
         }
 
@@ -166,7 +162,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         if !is_pure_color {
             self.mesh
                 .insert_attribute(TILEMAP_MESH_ATTR_ATLAS_INDICES, atlas_indices);
-            self.mesh.insert_attribute(TILEMAP_MESH_ATTR_FLIP, flip);
             #[cfg(feature = "atlas")]
             {
                 self.mesh
@@ -223,7 +218,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
         #[cfg(feature = "atlas")]
         let mut texture_indices = IVec4::NEG_ONE;
         let mut atlas_indices = IVec4::NEG_ONE;
-        let mut flip = UVec4::ZERO;
         let tile_index = {
             match &tile.texture {
                 TileTexture::Static(_) => IVec4::new(tile.index.x, tile.index.y, -1, -1),
@@ -246,8 +240,10 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
                     {
                         texture_indices[i] = t.texture_index;
                     }
-                    atlas_indices[i] = t.atlas_index;
-                    flip[i] = t.flip.bits();
+                    let flip = t.flip.bits() as i32;
+                    // Shift 29 bits but not 30 because it's a signed integer,
+                    // and we need to identify if the layer is empty or not according to the sign.
+                    atlas_indices[i] = t.atlas_index | (flip << 29);
                 });
         }
 
@@ -257,7 +253,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             texture_indices,
             atlas_indices,
             tint: tile.tint.rgba_linear_to_vec4(),
-            flip,
         });
         self.dirty_mesh = true;
     }

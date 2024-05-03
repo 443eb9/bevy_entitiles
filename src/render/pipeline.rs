@@ -154,8 +154,6 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
         } else {
             // atlas indices
             vtx_fmt.push(VertexFormat::Sint32x4);
-            // flip
-            vtx_fmt.push(VertexFormat::Uint32x4);
 
             #[cfg(feature = "atlas")]
             // texture_indices

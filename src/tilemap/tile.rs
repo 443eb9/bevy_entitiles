@@ -135,8 +135,8 @@ bitflags::bitflags! {
     #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
     pub struct TileFlip: u32 {
         const NONE = 0b00;
-        const HORIZONTAL = 0b01;
-        const VERTICAL = 0b10;
+        const HORIZONTAL = 0b10;
+        const VERTICAL = 0b01;
         const BOTH = 0b11;
     }
 }

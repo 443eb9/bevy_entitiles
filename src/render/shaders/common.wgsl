@@ -10,9 +10,8 @@ struct TilemapVertexInput {
     @location(2) tint: vec4f,
 #ifndef PURE_COLOR
     @location(3) atlas_indices: vec4i,
-    @location(4) flip: vec4u,
 #ifdef ATLAS
-    @location(5) texture_indices: vec4i,
+    @location(4) texture_indices: vec4i,
 #endif
 #endif
 }
@@ -22,12 +21,11 @@ struct TilemapVertexOutput {
     @location(0) tint: vec4f,
 #ifndef PURE_COLOR
     @location(1) uv: vec2<f32>,
-    @location(2) flip: vec4u,
-    @location(3) atlas_indices: vec4i,
+    @location(2) atlas_indices: vec4i,
     // Indicates whether the tile is animated.
-    @location(4) anim_flag: i32,
+    @location(3) anim_flag: i32,
 #ifdef ATLAS
-    @location(5) texture_indices: vec4i,
+    @location(4) texture_indices: vec4i,
 #endif
 #endif
 }
