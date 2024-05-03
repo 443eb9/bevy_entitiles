@@ -341,43 +341,48 @@ fn load_layer(
             loaded_map.layers.insert(layer.id, entity);
         }
         TiledLayer::Objects(layer) => {
-            layer.objects.iter().for_each(|obj| {
-                let Some(phantom) = object_registry.get(&obj.ty) else {
-                    if config.ignore_unregisterd_objects {
-                        return;
-                    }
-                    panic!(
-                        "Could not find component type with custom class identifier: {}! \
+            let num_objects = layer.objects.len();
+            layer
+                .objects
+                .iter()
+                .enumerate()
+                .for_each(|(index, object)| {
+                    let Some(phantom) = object_registry.get(&object.ty) else {
+                        if config.ignore_unregisterd_objects {
+                            return;
+                        }
+                        panic!(
+                            "Could not find component type with custom class identifier: {}! \
                         You need to register it using App::register_tiled_object::<T>() first!",
-                        obj.ty
-                    )
-                };
+                            object.ty
+                        )
+                    };
 
-                let mut entity = commands.spawn_empty();
-                phantom.initialize(
-                    &mut entity,
-                    obj,
-                    &obj.properties
-                        .instances
-                        .iter()
-                        .map(|inst| (inst.ty.clone(), inst.clone()))
-                        .collect(),
-                    asset_server,
-                    tiled_assets,
-                    tiled_data.name.clone(),
-                );
-                entity.insert(SpatialBundle {
-                    transform: Transform::from_xyz(
-                        obj.x + obj.width / 2.,
-                        -obj.y - obj.height / 2.,
-                        *z,
-                    ),
-                    // .with_rotation(Quat::from_rotation_z(-obj.rotation / 180. * PI)),
-                    ..Default::default()
+                    let mut entity = commands.spawn_empty();
+                    phantom.initialize(
+                        &mut entity,
+                        object,
+                        &object
+                            .properties
+                            .instances
+                            .iter()
+                            .map(|inst| (inst.ty.clone(), inst.clone()))
+                            .collect(),
+                        asset_server,
+                        tiled_assets,
+                        tiled_data.name.clone(),
+                    );
+                    entity.insert(SpatialBundle {
+                        transform: Transform::from_xyz(
+                            object.x + object.width / 2.,
+                            -object.y - object.height / 2.,
+                            *z + index as f32 / (num_objects + 1) as f32,
+                        ),
+                        ..Default::default()
+                    });
+
+                    loaded_map.objects.insert(object.id, entity.id());
                 });
-
-                loaded_map.objects.insert(obj.id, entity.id());
-            });
         }
         TiledLayer::Image(layer) => {
             let ((mesh, z), material) = (

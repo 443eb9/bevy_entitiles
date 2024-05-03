@@ -5,9 +5,9 @@
     },
     "activeFile": "tilemaps/orthogonal.tmx",
     "expandedProjectPaths": [
+        "world_test",
         ".",
         "tilemaps",
-        "world_test",
         "tilesets"
     ],
     "fileStates": {
@@ -140,8 +140,8 @@
             "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 117.75,
-                "y": 123.5
+                "x": 147,
+                "y": 124
             }
         },
         "tilemaps/hexgonal.tmx": {
@@ -184,15 +184,15 @@
                 3
             ],
             "expandedObjectLayers": [
-                5,
+                3,
                 4,
-                3
+                5
             ],
-            "scale": 5.5,
+            "scale": 11,
             "selectedLayer": 5,
             "viewCenter": {
-                "x": 111.90909090909092,
-                "y": 27.09090909090908
+                "x": 105.95454545454547,
+                "y": 61.54545454545455
             }
         },
         "tilemaps/tilesets/Hexagonal.tsx": {

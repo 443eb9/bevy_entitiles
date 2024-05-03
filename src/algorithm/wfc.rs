@@ -165,18 +165,26 @@ pub enum WfcSource {
 impl WfcSource {
     /// Generate tiles with rules.
     ///
-    /// The numbers you fill in the rules will be directly considered as the texture indices.
-    pub fn from_texture_indices(conn_rules: &WfcRules) -> Self {
+    /// The numbers you fill in the rules will be directly considered as the atlas indices
+    #[cfg(feature = "atlas")]
+    pub fn from_atlas_indices(conn_rules: &WfcRules, texture_index: u32) -> Self {
         let tiles = (0..conn_rules.0.len())
             .into_iter()
-            .map(|r| {
+            .map(|atlas_index| {
                 TileBuilder::new().with_layer(
                     0,
-                    TileLayer {
-                        atlas_index: r as i32,
-                        ..Default::default()
-                    },
+                    TileLayer::no_flip(texture_index as i32, atlas_index as i32),
                 )
+            })
+            .collect();
+        Self::SingleTile(tiles)
+    }
+    #[cfg(not(feature = "atlas"))]
+    pub fn from_atlas_indices(conn_rules: &WfcRules) -> Self {
+        let tiles = (0..conn_rules.0.len())
+            .into_iter()
+            .map(|atlas_index| {
+                TileBuilder::new().with_layer(0, TileLayer::no_flip(atlas_index as i32))
             })
             .collect();
         Self::SingleTile(tiles)

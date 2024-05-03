@@ -581,7 +581,24 @@ impl TiledObjectInstance {
                     None,
                 )
             }
-            ObjectShape::Rect => Collider::rectangle(self.width, self.height),
+            ObjectShape::Rect => {
+                if self.gid.is_none() {
+                    Collider::rectangle(self.width, self.height)
+                } else {
+                    Collider::convex_hull(
+                        [
+                            Vec2::ZERO,
+                            Vec2::new(self.width, 0.),
+                            Vec2::new(self.width, self.height),
+                            Vec2::new(0., self.height),
+                        ]
+                        .into_iter()
+                        .map(|v| v + Vec2::new(-self.width / 2., self.height / 2.))
+                        .collect(),
+                    )
+                    .unwrap()
+                }
+            }
         });
     }
 }
