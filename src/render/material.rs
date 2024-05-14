@@ -61,6 +61,10 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                 )
                     .in_set(RenderSet::Prepare),
             )
+            .add_systems(
+                Render,
+                prepare::sort_chunks::<M>.in_set(RenderSet::PrepareResources),
+            )
             .add_systems(Render, queue::queue::<M>.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkStorage<M>>()
             .init_resource::<TilemapUniformBuffer<M>>()

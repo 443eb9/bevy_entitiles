@@ -19,7 +19,7 @@ use super::{
     buffer::{
         PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
     },
-    chunk::{TilemapRenderChunk, UnloadRenderChunk},
+    chunk::UnloadRenderChunk,
     extract::{ExtractedTile, TilemapInstance},
     material::TilemapMaterial,
     pipeline::EntiTilesPipeline,
@@ -140,13 +140,9 @@ pub fn prepare_tiles<M: TilemapMaterial>(
             return;
         };
 
-        let chunks = render_chunks.value.entry(tile.tilemap_id).or_default();
-
-        let chunk = chunks
-            .entry(tile.chunk_index)
-            .or_insert_with(|| TilemapRenderChunk::from_index(tile.chunk_index, tilemap));
-
-        chunk.set_tile(tile.in_chunk_index, Some(tile));
+        let chunks = render_chunks.get_or_insert_chunks(tilemap.id);
+        chunks.try_add_chunk(tile.chunk_index, tilemap);
+        chunks.set_tile(tile);
     });
 }
 
@@ -156,7 +152,7 @@ pub fn prepare_unloaded_chunks<M: TilemapMaterial>(
 ) {
     extracted_tilemaps.iter().for_each(|(entity, unloaded)| {
         unloaded.0.iter().for_each(|c| {
-            render_chunks.remove_chunk(entity, *c);
+            render_chunks.get_or_insert_chunks(entity).remove_chunk(*c);
         });
     });
 }
@@ -179,11 +175,12 @@ pub fn prepare_despawned_tiles<M: TilemapMaterial>(
     tiles_query: Query<&DespawnedTile>,
 ) {
     tiles_query.iter().for_each(|tile| {
-        if let Some(chunk) = render_chunks
-            .get_chunks_mut(tile.tilemap)
-            .and_then(|chunks| chunks.get_mut(&tile.chunk_index))
-        {
-            chunk.set_tile(tile.in_chunk_index, None);
-        }
+        render_chunks
+            .get_or_insert_chunks(tile.tilemap)
+            .remove_tile(tile.chunk_index, tile.in_chunk_index);
     });
+}
+
+pub fn sort_chunks<M: TilemapMaterial>(mut render_chunks: ResMut<RenderChunkStorage<M>>) {
+    render_chunks.sort();
 }

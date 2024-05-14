@@ -1,5 +1,11 @@
 use bevy::{
-    app::{App, Startup}, asset::{AssetServer, Assets}, core_pipeline::core_2d::Camera2dBundle, ecs::system::{Commands, Res, ResMut}, math::{IVec2, UVec2, Vec2}, render::render_resource::FilterMode, DefaultPlugins
+    app::{App, Startup},
+    asset::{AssetServer, Assets},
+    core_pipeline::core_2d::Camera2dBundle,
+    ecs::system::{Commands, Res, ResMut},
+    math::{IVec2, UVec2, Vec2},
+    render::render_resource::FilterMode,
+    DefaultPlugins,
 };
 use bevy_entitiles::{
     math::TileArea,
@@ -12,7 +18,7 @@ use bevy_entitiles::{
         },
         tile::{TileBuilder, TileLayer},
     },
-    EntiTilesPlugin, DEFAULT_CHUNK_SIZE,
+    EntiTilesPlugin,
 };
 use helpers::EntiTilesHelpersPlugin;
 

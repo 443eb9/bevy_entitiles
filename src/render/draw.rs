@@ -212,7 +212,7 @@ impl<M: TilemapMaterial> RenderCommand<Transparent2d> for DrawTileMesh<M> {
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let Some(chunks) = render_chunks.into_inner().get_chunks(item.entity) {
-            for chunk in chunks.values() {
+            for chunk in chunks.value.values() {
                 if !chunk.visible {
                     continue;
                 }

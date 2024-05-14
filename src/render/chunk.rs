@@ -12,14 +12,15 @@ use bevy::{
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
     },
-    utils::HashMap,
 };
+use indexmap::{map::Entry, IndexMap};
+use rayon::iter::ParallelIterator;
 
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor},
     tilemap::{
         map::{TilemapTextures, TilemapType},
-        tile::TileTexture,
+        tile::{Tile, TileTexture},
     },
     MAX_LAYER_COUNT,
 };
@@ -259,8 +260,65 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
 }
 
 #[derive(Resource)]
+pub struct TilemapRenderChunks<M: TilemapMaterial> {
+    pub tilemap: Entity,
+    pub value: IndexMap<IVec2, TilemapRenderChunk<M>>,
+    pub is_dirty: bool,
+}
+
+impl<M: TilemapMaterial> TilemapRenderChunks<M> {
+    pub fn new(tilemap: Entity) -> Self {
+        Self {
+            tilemap,
+            value: Default::default(),
+            is_dirty: true,
+        }
+    }
+
+    #[inline]
+    pub fn try_add_chunk(&mut self, chunk_index: IVec2, tilemap: &ExtractedTilemap<M>) {
+        match self.value.entry(chunk_index) {
+            Entry::Occupied(_) => {}
+            Entry::Vacant(e) => {
+                e.insert(TilemapRenderChunk::from_index(chunk_index, tilemap));
+                self.is_dirty = true;
+            }
+        }
+    }
+
+    #[inline]
+    pub fn remove_chunk(&mut self, index: IVec2) -> Option<TilemapRenderChunk<M>> {
+        self.value.shift_remove(&index)
+    }
+
+    #[inline]
+    pub fn set_tile(&mut self, tile: &Tile) {
+        self.value
+            .get_mut(&tile.chunk_index)
+            .unwrap()
+            .set_tile(tile.in_chunk_index, Some(tile));
+    }
+
+    #[inline]
+    pub fn remove_tile(&mut self, chunk_index: IVec2, in_chunk_index: usize) {
+        self.value
+            .get_mut(&chunk_index)
+            .unwrap()
+            .set_tile(in_chunk_index, None);
+    }
+
+    #[inline]
+    pub fn try_sort(&mut self) {
+        if self.is_dirty {
+            self.value
+                .par_sort_by(|lhs, _, rhs, _| rhs.x.cmp(&lhs.x).then_with(|| rhs.y.cmp(&lhs.y)));
+        }
+    }
+}
+
+#[derive(Resource)]
 pub struct RenderChunkStorage<M: TilemapMaterial> {
-    pub(crate) value: EntityHashMap<HashMap<IVec2, TilemapRenderChunk<M>>>,
+    pub(crate) value: EntityHashMap<TilemapRenderChunks<M>>,
 }
 
 impl<M: TilemapMaterial> Default for RenderChunkStorage<M> {
@@ -276,34 +334,31 @@ impl<M: TilemapMaterial> RenderChunkStorage<M> {
     pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap<M>, render_device: &RenderDevice) {
         if let Some(chunks) = self.value.get_mut(&tilemap.id) {
             chunks
+                .value
                 .values_mut()
                 .for_each(|c| c.try_update_mesh(render_device));
         }
     }
 
     #[inline]
-    pub fn get_chunks(&self, tilemap: Entity) -> Option<&HashMap<IVec2, TilemapRenderChunk<M>>> {
+    pub fn get_chunks(&self, tilemap: Entity) -> Option<&TilemapRenderChunks<M>> {
         self.value.get(&tilemap)
     }
 
     #[inline]
-    pub fn get_chunks_mut(
-        &mut self,
-        tilemap: Entity,
-    ) -> Option<&mut HashMap<IVec2, TilemapRenderChunk<M>>> {
-        self.value.get_mut(&tilemap)
+    pub fn get_or_insert_chunks(&mut self, tilemap: Entity) -> &mut TilemapRenderChunks<M> {
+        self.value
+            .entry(tilemap)
+            .or_insert_with(|| TilemapRenderChunks::new(tilemap))
     }
 
     #[inline]
-    pub fn remove_tilemap(
-        &mut self,
-        tilemap: Entity,
-    ) -> Option<HashMap<IVec2, TilemapRenderChunk<M>>> {
+    pub fn remove_tilemap(&mut self, tilemap: Entity) -> Option<TilemapRenderChunks<M>> {
         self.value.remove(&tilemap)
     }
 
     #[inline]
-    pub fn remove_chunk(&mut self, tilemap: Entity, index: IVec2) -> Option<TilemapRenderChunk<M>> {
-        self.value.get_mut(&tilemap).and_then(|c| c.remove(&index))
+    pub fn sort(&mut self) {
+        self.value.par_values_mut().for_each(|c| c.try_sort());
     }
 }

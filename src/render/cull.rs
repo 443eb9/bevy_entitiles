@@ -50,25 +50,26 @@ pub fn cull_chunks<M: TilemapMaterial>(
     }
 
     tilemaps.iter().for_each(|tilemap| {
-        let Some(chunks) = render_chunk_storage.get_chunks_mut(tilemap.id) else {
-            return;
-        };
-        chunks.values_mut().for_each(|c| {
-            c.visible = false;
-        });
+        render_chunk_storage
+            .get_or_insert_chunks(tilemap.id)
+            .value
+            .values_mut()
+            .for_each(|c| {
+                c.visible = false;
+            });
     });
 
     cameras.iter().for_each(|cam_aabb| {
         tilemaps.iter().for_each(|tilemap| {
-            let Some(chunks) = render_chunk_storage.get_chunks_mut(tilemap.id) else {
-                return;
-            };
-
-            chunks.values_mut().for_each(|c| {
-                if c.aabb.is_intersected(cam_aabb.0) {
-                    c.visible = true;
-                }
-            });
+            render_chunk_storage
+                .get_or_insert_chunks(tilemap.id)
+                .value
+                .values_mut()
+                .for_each(|c| {
+                    if c.aabb.is_intersected(cam_aabb.0) {
+                        c.visible = true;
+                    }
+                });
         });
     });
 }
