@@ -139,3 +139,8 @@ required-features = ["baking"]
 name = "multiple_tilesets"
 path = "examples/multiple_tilesets.rs"
 required-features = []
+
+[[example]]
+name = "isometric_cubes"
+path = "examples/isometric_cubes.rs"
+required-features = []
