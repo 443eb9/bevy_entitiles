@@ -293,18 +293,16 @@ impl<M: TilemapMaterial> TilemapRenderChunks<M> {
 
     #[inline]
     pub fn set_tile(&mut self, tile: &Tile) {
-        self.value
-            .get_mut(&tile.chunk_index)
-            .unwrap()
-            .set_tile(tile.in_chunk_index, Some(tile));
+        if let Some(c) = self.value.get_mut(&tile.chunk_index) {
+            c.set_tile(tile.in_chunk_index, Some(tile));
+        }
     }
 
     #[inline]
     pub fn remove_tile(&mut self, chunk_index: IVec2, in_chunk_index: usize) {
-        self.value
-            .get_mut(&chunk_index)
-            .unwrap()
-            .set_tile(in_chunk_index, None);
+        if let Some(c) = self.value.get_mut(&chunk_index) {
+            c.set_tile(in_chunk_index, None);
+        }
     }
 
     #[inline]

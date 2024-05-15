@@ -204,13 +204,14 @@ impl LdtkLayers {
                     let animation = pattern.animations.register(anim.clone());
                     builder.with_animation(animation)
                 } else {
+                    let flip = tile.flip.reverse_bits() >> 30 & 0b11;
                     builder.with_layer(
                         0,
                         TileLayer {
                             #[cfg(feature = "atlas")]
                             texture_index: 0,
                             atlas_index,
-                            flip: TileFlip::from_bits(tile.flip as u32).unwrap(),
+                            flip: TileFlip::from_bits(flip as u32).unwrap(),
                         },
                     )
                 }
