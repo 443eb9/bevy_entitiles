@@ -15,6 +15,7 @@ use crate::{
     tiled::resources::{PackedTiledTilemap, TiledAssets},
     tilemap::{
         coordinates,
+        map::TileRenderSize,
         tile::{TileBuilder, TileFlip, TileLayer},
     },
 };
@@ -281,7 +282,7 @@ impl Tiles {
         tiled_tilemap_name: &'a str,
         tiled_assets: &'a TiledAssets,
         tiled_data: &'a PackedTiledTilemap,
-    ) -> impl Iterator<Item = (IVec2, TileBuilder)> + 'a {
+    ) -> impl Iterator<Item = (IVec2, TileBuilder, TileRenderSize)> + 'a {
         self.0
             .iter()
             .enumerate()
@@ -315,7 +316,7 @@ impl Tiles {
                 match tiled_data.xml.orientation {
                     MapOrientation::Orthogonal => {}
                     MapOrientation::Isometric => index = IVec2::new(index.y, index.x),
-                    _ => {
+                    MapOrientation::Staggered | MapOrientation::Hexagonal => {
                         index = coordinates::destaggerize_index(
                             index,
                             tiled_data.xml.stagger_index.into(),
@@ -323,7 +324,11 @@ impl Tiles {
                     }
                 }
 
-                Some((index, builder))
+                Some((
+                    index,
+                    builder,
+                    TileRenderSize(tileset.texture.desc.tile_size.as_vec2()),
+                ))
             })
     }
 }

@@ -24,7 +24,7 @@ use crate::{
 };
 
 use super::{
-    chunk::{ChunkUnload, UnloadRenderChunk},
+    chunk::{ChunkUnload, RenderChunkSort, UnloadRenderChunk},
     cull::FrustumCulling,
     material::TilemapMaterial,
     resources::{ExtractedTilemapMaterials, TilemapInstances},
@@ -225,8 +225,13 @@ pub fn extract_unloaded_chunks(
     ));
 }
 
-pub fn extract_resources(mut commands: Commands, frustum_culling: Extract<Res<FrustumCulling>>) {
+pub fn extract_resources(
+    mut commands: Commands,
+    frustum_culling: Extract<Res<FrustumCulling>>,
+    sort_config: Extract<Res<RenderChunkSort>>,
+) {
     commands.insert_resource(FrustumCulling(frustum_culling.0));
+    commands.insert_resource(sort_config.clone());
 }
 
 pub fn extract_despawned_tilemaps(

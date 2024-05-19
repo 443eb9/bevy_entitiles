@@ -9,7 +9,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     math::TileArea,
-    render::material::StandardTilemapMaterial,
+    render::{chunk::RenderChunkSort, material::StandardTilemapMaterial},
     tilemap::{
         bundles::StandardTilemapBundle,
         map::{
@@ -32,6 +32,7 @@ fn main() {
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
+        .insert_resource(RenderChunkSort::XReverseAndYReverse)
         .run();
 }
 
@@ -48,7 +49,10 @@ fn setup(
         tile_render_size: TileRenderSize(Vec2::splat(32.)),
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
         ty: TilemapType::Isometric,
-        storage: TilemapStorage::new(4, entity),
+        // We can't take advantage of chunking for 3d isometric tilemaps.
+        // Stacking tiles needs to do z test, and requires a depth texture for the pipeline.
+        // But bevy doesn't support adding depth attachments to the pass in RenderCommand
+        storage: TilemapStorage::new(1, entity),
         material: materials.add(StandardTilemapMaterial::default()),
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
@@ -66,5 +70,6 @@ fn setup(
         |index| Some(TileBuilder::new().with_layer(0, TileLayer::no_flip(index.x % 2))),
         false,
     );
+
     commands.entity(entity).insert(tilemap);
 }

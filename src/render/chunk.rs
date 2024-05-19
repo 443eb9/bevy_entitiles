@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{cmp::Ordering, marker::PhantomData};
 
 use bevy::{
     asset::Handle,
@@ -36,6 +36,20 @@ use super::TILEMAP_MESH_ATTR_TEX_INDICES;
 
 #[derive(Component, Default, Debug, Clone, Reflect)]
 pub struct UnloadRenderChunk(pub Vec<IVec2>);
+
+#[derive(Resource, Clone, Default)]
+pub enum RenderChunkSort {
+    #[default]
+    None,
+    XAndY,
+    XReverseAndY,
+    XAndYReverse,
+    XReverseAndYReverse,
+    YAndX,
+    YReverseAndX,
+    YAndXReverse,
+    YReverseAndXReverse,
+}
 
 #[derive(Event, Debug, Clone)]
 pub struct ChunkUnload {
@@ -207,9 +221,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
 
     /// Set a tile in the chunk. Overwrites the previous tile.
     pub fn set_tile(&mut self, index: usize, tile: Option<&ExtractedTile>) {
-        // TODO fix this. This allows the tile sort by y axis. But this approach looks weird.
-        let index = self.tiles.len() - index - 1;
-
         let Some(tile) = tile else {
             self.tiles[index] = None;
             self.dirty_mesh = true;
@@ -306,10 +317,10 @@ impl<M: TilemapMaterial> TilemapRenderChunks<M> {
     }
 
     #[inline]
-    pub fn try_sort(&mut self) {
+    pub fn try_sort(&mut self, f: impl Fn(IVec2, IVec2) -> Ordering + Send + Sync) {
         if self.is_dirty {
-            self.value
-                .par_sort_by(|lhs, _, rhs, _| rhs.x.cmp(&lhs.x).then_with(|| rhs.y.cmp(&lhs.y)));
+            self.value.par_sort_by(|lhs, _, rhs, _| f(*lhs, *rhs));
+            self.is_dirty = false;
         }
     }
 }
@@ -356,7 +367,7 @@ impl<M: TilemapMaterial> RenderChunkStorage<M> {
     }
 
     #[inline]
-    pub fn sort(&mut self) {
-        self.value.par_values_mut().for_each(|c| c.try_sort());
+    pub fn sort(&mut self, f: impl Fn(IVec2, IVec2) -> Ordering + Sync + Send + Copy) {
+        self.value.par_values_mut().for_each(|c| c.try_sort(f));
     }
 }

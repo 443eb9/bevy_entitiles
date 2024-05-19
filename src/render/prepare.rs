@@ -1,5 +1,6 @@
 use bevy::{
     ecs::{entity::Entity, query::With},
+    math::IVec2,
     prelude::{Commands, Query, Res, ResMut},
     render::{
         render_asset::RenderAssets,
@@ -19,7 +20,7 @@ use super::{
     buffer::{
         PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
     },
-    chunk::UnloadRenderChunk,
+    chunk::{RenderChunkSort, UnloadRenderChunk},
     extract::{ExtractedTile, TilemapInstance},
     material::TilemapMaterial,
     pipeline::EntiTilesPipeline,
@@ -181,6 +182,40 @@ pub fn prepare_despawned_tiles<M: TilemapMaterial>(
     });
 }
 
-pub fn sort_chunks<M: TilemapMaterial>(mut render_chunks: ResMut<RenderChunkStorage<M>>) {
-    render_chunks.sort();
+pub fn sort_chunks<M: TilemapMaterial>(
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
+    sort_config: Res<RenderChunkSort>,
+) {
+    let cfg = sort_config.into_inner();
+    if matches!(cfg, RenderChunkSort::None) {
+        return;
+    }
+
+    render_chunks.sort(match cfg {
+        RenderChunkSort::XAndY => {
+            |lhs: IVec2, rhs: IVec2| lhs.x.cmp(&rhs.x).then_with(|| lhs.y.cmp(&rhs.y))
+        }
+        RenderChunkSort::XReverseAndY => {
+            |lhs: IVec2, rhs: IVec2| rhs.x.cmp(&lhs.x).then_with(|| lhs.y.cmp(&rhs.y))
+        }
+        RenderChunkSort::XAndYReverse => {
+            |lhs: IVec2, rhs: IVec2| lhs.x.cmp(&rhs.x).then_with(|| rhs.y.cmp(&lhs.y))
+        }
+        RenderChunkSort::XReverseAndYReverse => {
+            |lhs: IVec2, rhs: IVec2| rhs.x.cmp(&lhs.x).then_with(|| rhs.y.cmp(&lhs.y))
+        }
+        RenderChunkSort::YAndX => {
+            |lhs: IVec2, rhs: IVec2| lhs.y.cmp(&rhs.y).then_with(|| lhs.x.cmp(&rhs.x))
+        }
+        RenderChunkSort::YReverseAndX => {
+            |lhs: IVec2, rhs: IVec2| rhs.y.cmp(&lhs.y).then_with(|| lhs.x.cmp(&rhs.x))
+        }
+        RenderChunkSort::YAndXReverse => {
+            |lhs: IVec2, rhs: IVec2| lhs.y.cmp(&rhs.y).then_with(|| rhs.x.cmp(&lhs.x))
+        }
+        RenderChunkSort::YReverseAndXReverse => {
+            |lhs: IVec2, rhs: IVec2| rhs.y.cmp(&lhs.y).then_with(|| rhs.x.cmp(&lhs.x))
+        }
+        RenderChunkSort::None => unreachable!(),
+    });
 }

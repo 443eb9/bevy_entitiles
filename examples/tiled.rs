@@ -12,6 +12,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
+    render::chunk::RenderChunkSort,
     tiled::{
         app_ext::TiledApp,
         resources::{TiledLoadConfig, TiledTilemapManger},
@@ -41,6 +42,7 @@ fn main() {
                 "assets/tiled/tilemaps/infinite.tmx".to_string(),
                 "assets/tiled/tilemaps/orthogonal.tmx".to_string(),
                 "assets/tiled/tilemaps/isometric.tmx".to_string(),
+                "assets/tiled/tilemaps/isometricCube.tmx".to_string(),
             ],
             ignore_unregisterd_objects: true,
             z_index: 0.,
@@ -50,6 +52,7 @@ fn main() {
         .register_tiled_object::<PlayerBundle>("Player")
         .register_tiled_object::<DetectAreaBundle>("DetectArea")
         .register_type::<Block>()
+        .insert_resource(RenderChunkSort::XAndY)
         .run();
 }
 
@@ -74,6 +77,7 @@ fn switching(
     map_switching!(Digit2, "infinite", input, manager, commands);
     map_switching!(Digit3, "orthogonal", input, manager, commands);
     map_switching!(Digit4, "isometric", input, manager, commands);
+    map_switching!(Digit5, "isometricCube", input, manager, commands);
 }
 
 /*
@@ -85,7 +89,7 @@ fn switching(
 #[spawn_sprite]
 pub struct PlainBlockBundle {
     // You have to use `TiledClass`es for objects.
-    // Individual properties are not allowed and will cause panic.
+    // Primitive properties are not allowed and will cause panic.
     pub block: PlainBlock,
 }
 

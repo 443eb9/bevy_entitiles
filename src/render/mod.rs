@@ -12,7 +12,7 @@ use bevy::{
 use crate::{
     render::{
         buffer::TilemapAnimationBuffer,
-        chunk::{ChunkUnload, RenderChunkStorage, UnloadRenderChunk},
+        chunk::{ChunkUnload, RenderChunkSort, RenderChunkStorage, UnloadRenderChunk},
         cull::FrustumCulling,
         texture::TilemapTexturesStorage,
     },
@@ -109,6 +109,7 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_despawned_tiles,
                 ),
             )
+            .init_resource::<RenderChunkSort>()
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapAnimationBuffer>();
 

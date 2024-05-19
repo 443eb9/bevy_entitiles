@@ -6,6 +6,7 @@ use bevy::{
         query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
     },
+    log::warn,
     math::{IVec2, Vec2},
     prelude::SpatialBundle,
     render::{color::Color, mesh::Mesh, render_resource::Shader},
@@ -272,7 +273,6 @@ fn load_layer(
             );
             let mut tilemap = StandardTilemapBundle {
                 name: TilemapName(layer.name.clone()),
-                tile_render_size: TileRenderSize(tile_size),
                 slot_size: TilemapSlotSize(tile_size),
                 ty: match tiled_data.xml.orientation {
                     MapOrientation::Orthogonal => TilemapType::Square,
@@ -282,7 +282,6 @@ fn load_layer(
                         TilemapType::Hexagonal(tiled_data.xml.hex_side_length)
                     }
                 },
-                storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, entity),
                 transform: TilemapTransform::from_translation_3d(
                     Vec2::new(layer.offset_x as f32, layer.offset_y as f32)
                         + match tiled_data.xml.orientation {
@@ -308,14 +307,23 @@ fn load_layer(
             };
 
             let mut buffer = TileBuilderBuffer::new();
+            let mut tile_render_size: Option<TileRenderSize> = None;
+
             match &layer.data {
-                // TODO assemble TilemapTextures here!!
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
                         .iter_decoded(layer_size, &loaded_map.name, tiled_assets, &tiled_data)
-                        .for_each(|(index, builder)| {
+                        .for_each(|(index, builder, trs)| {
                             buffer.set(index, builder);
+                            if let Some(t) = tile_render_size {
+                                assert_eq!(
+                                    t.0,
+                                    trs.0,
+                                    "Using tilesets that have different tile size, which is not supported currently."
+                                );
+                            }
+                            tile_render_size = Some(trs);
                         });
                 }
                 ColorTileLayerData::Chunks(chunks) => {
@@ -326,13 +334,34 @@ fn load_layer(
                         chunk
                             .tiles
                             .iter_decoded(size, &loaded_map.name, tiled_assets, &tiled_data)
-                            .for_each(|(index, builder)| {
+                            .for_each(|(index, builder, trs)| {
                                 buffer.set(index + offset, builder);
+                                if let Some(t) = tile_render_size {
+                                    assert_eq!(
+                                        t.0,
+                                        trs.0,
+                                        "Using tilesets that have different tile size, which is not supported currently."
+                                    );
+                                }
+                                tile_render_size = Some(trs);
                             });
                     });
                 }
             }
 
+            tilemap.tile_render_size = tile_render_size.unwrap_or_default();
+            tilemap.storage = TilemapStorage::new(
+                if tilemap.tile_render_size.0.y > tilemap.slot_size.0.y {
+                    warn!(
+                        "Using chunk size 1 for layer {} as it looks like a 3d tilemap.",
+                        layer.name
+                    );
+                    1
+                } else {
+                    DEFAULT_CHUNK_SIZE
+                },
+                entity,
+            );
             tilemap
                 .storage
                 .fill_with_buffer(commands, IVec2::ZERO, buffer);
