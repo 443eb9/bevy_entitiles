@@ -332,22 +332,25 @@ impl TiledAssets {
                         },
                     };
 
-                    // Animated tiles
                     tileset_xml
                         .special_tiles
                         .iter()
                         .map(|tile| (tile.id, tile.clone()))
                         .for_each(|(atlas_index, tile)| {
-                            let frames = tile.animation.unwrap().frames;
-                            let anim = animations.register(RawTileAnimation {
-                                // TODO maybe support?
-                                fps: (1000. / frames[0].duration as f32) as u32,
-                                sequence: frames
-                                    .into_iter()
-                                    .map(|frame| (texture_index as u32, frame.tile_id))
-                                    .collect(),
-                            });
-                            animated_tiles.insert(atlas_index, anim);
+                            // Animated tiles
+                            if let Some(tiled_animation) = tile.animation {
+                                let frames = tiled_animation.frames;
+                                let anim = animations.register(RawTileAnimation {
+                                    // TODO maybe support?
+                                    fps: (1000. / frames[0].duration as f32) as u32,
+                                    sequence: frames
+                                        .into_iter()
+                                        .map(|frame| (texture_index as u32, frame.tile_id))
+                                        .collect(),
+                                });
+                                animated_tiles.insert(atlas_index, anim);
+                            }
+                            // TODO: handle tiles with custom properties ?
                         });
 
                     tilesets_records.insert(tileset_xml.name.clone(), self.tilesets.len());
