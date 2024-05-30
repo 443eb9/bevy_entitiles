@@ -6,7 +6,7 @@ use bevy::{
         bundle::Bundle,
         component::Component,
         entity::Entity,
-        system::{Commands, Query, Res},
+        system::{Commands, Query, Res, ResMut},
     },
     hierarchy::DespawnRecursiveExt,
 };
@@ -30,8 +30,6 @@ use crate::{
     serializing::map::PATH_TILES,
     tilemap::{algorithm::path::PathTilemap, chunking::storage::PathTileChunkedStorage},
 };
-#[cfg(feature = "algorithm")]
-use bevy::ecs::system::ResMut;
 
 #[cfg(feature = "physics")]
 use crate::{
