@@ -158,6 +158,26 @@
         {
             "color": "#ffa0a0a4",
             "drawFill": true,
+            "id": 13,
+            "members": [
+            ],
+            "name": "PlainBlockBundle",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
             "id": 7,
             "members": [
                 {
@@ -184,20 +204,6 @@
                 "wangset",
                 "project"
             ]
-        },
-        {
-            "id": 5,
-            "name": "ShapeType",
-            "storageType": "string",
-            "type": "enum",
-            "values": [
-                "Square",
-                "Isometry",
-                "Hexagon",
-                "Polygon",
-                "Eclipse"
-            ],
-            "valuesAsFlags": false
         },
         {
             "color": "#ffa0a0a4",
@@ -234,12 +240,70 @@
             ]
         },
         {
+            "id": 5,
+            "name": "ShapeType",
+            "storageType": "string",
+            "type": "enum",
+            "values": [
+                "Square",
+                "Isometry",
+                "Hexagon",
+                "Polygon",
+                "Eclipse"
+            ],
+            "valuesAsFlags": false
+        },
+        {
             "color": "#ffa0a0a4",
             "drawFill": true,
-            "id": 13,
+            "id": 14,
             "members": [
+                {
+                    "name": "Detect",
+                    "propertyType": "DetectArea",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
+                    "name": "Infos",
+                    "propertyType": "TileInfos",
+                    "type": "class",
+                    "value": {
+                    }
+                }
             ],
-            "name": "PlainBlockBundle",
+            "name": "TileBundle",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 15,
+            "members": [
+                {
+                    "name": "AllowLineOfSight",
+                    "type": "bool",
+                    "value": false
+                },
+                {
+                    "name": "DamagePerSecond",
+                    "type": "int",
+                    "value": 0
+                }
+            ],
+            "name": "TileInfos",
             "type": "class",
             "useAs": [
                 "property",

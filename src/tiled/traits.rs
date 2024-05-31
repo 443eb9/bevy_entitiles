@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use super::{
-    resources::TiledAssets,
+    resources::{TiledAssets, TiledCustomTileInstance},
     xml::{layer::TiledObjectInstance, property::ClassInstance},
 };
 
@@ -61,6 +61,64 @@ impl<T: TiledObject + Bundle> PhantomTiledObjectTrait for PhantomTiledObject<T> 
         T::initialize(
             commands,
             object_instance,
+            components,
+            asset_server,
+            tiled_assets,
+            tiled_map,
+        );
+    }
+}
+
+pub type TiledCustomTileRegistry = HashMap<String, Box<dyn PhantomTiledCustomTileTrait>>;
+
+pub trait TiledCustomTile {
+    fn initialize(
+        commands: &mut EntityCommands,
+        custom_tile_instance: &TiledCustomTileInstance,
+        components: &HashMap<String, ClassInstance>,
+        asset_server: &AssetServer,
+        tiled_assets: &TiledAssets,
+        tiled_map: String,
+    );
+}
+
+pub struct PhantomTiledCustomTile<T: TiledCustomTile + Bundle> {
+    marker: PhantomData<T>,
+}
+
+impl<T: TiledCustomTile + Bundle> PhantomTiledCustomTile<T> {
+    pub fn new() -> Self {
+        Self {
+            marker: PhantomData,
+        }
+    }
+}
+
+pub trait PhantomTiledCustomTileTrait {
+    fn initialize(
+        &self,
+        commands: &mut EntityCommands,
+        custom_tile_instance: &TiledCustomTileInstance,
+        components: &HashMap<String, ClassInstance>,
+        asset_server: &AssetServer,
+        tiled_assets: &TiledAssets,
+        tiled_map: String,
+    );
+}
+
+impl<T: TiledCustomTile + Bundle> PhantomTiledCustomTileTrait for PhantomTiledCustomTile<T> {
+    fn initialize(
+        &self,
+        commands: &mut EntityCommands,
+        custom_tile_instance: &TiledCustomTileInstance,
+        components: &HashMap<String, ClassInstance>,
+        asset_server: &AssetServer,
+        tiled_assets: &TiledAssets,
+        tiled_map: String,
+    ) {
+        T::initialize(
+            commands,
+            custom_tile_instance,
             components,
             asset_server,
             tiled_assets,

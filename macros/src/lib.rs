@@ -4,6 +4,7 @@ mod ldtk_enum;
 mod tiled_class;
 mod tiled_enum;
 mod tiled_object;
+mod tiled_custom_tile;
 
 #[proc_macro_derive(
     LdtkEntity,
@@ -35,6 +36,11 @@ pub fn derive_ldtk_entity_tags(input: proc_macro::TokenStream) -> proc_macro::To
 )]
 pub fn derive_tiled_objects(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     tiled_object::expand_tiled_objects_derive(syn::parse(input).unwrap())
+}
+
+#[proc_macro_derive(TiledCustomTile, attributes(tiled_default, callback))]
+pub fn derive_tiled_custom_tiles(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    tiled_custom_tile::expand_tiled_custom_tiles_derive(syn::parse(input).unwrap())
 }
 
 #[proc_macro_derive(TiledClass, attributes(tiled_name))]

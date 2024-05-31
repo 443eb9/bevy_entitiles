@@ -33,7 +33,7 @@ use crate::{
 use super::{
     components::{TiledLoader, TiledUnloader},
     sprite::{SpriteUniform, TiledSpriteMaterial},
-    xml::{layer::TiledLayer, tileset::TiledTileset, MapOrientation, TiledGroup, TiledTilemap},
+    xml::{layer::TiledLayer, tileset::TiledTileset, MapOrientation, TiledGroup, TiledTilemap, property::Components},
 };
 
 /// Configuration for loading tiled tilemaps.
@@ -42,6 +42,7 @@ pub struct TiledLoadConfig {
     pub map_path: Vec<String>,
     pub z_index: f32,
     pub ignore_unregisterd_objects: bool,
+    pub ignore_unregisterd_custom_tiles: bool,
 }
 
 #[derive(Debug, Clone, Reflect)]
@@ -52,10 +53,17 @@ pub struct PackedTiledTilemap {
 }
 
 #[derive(Debug, Clone, Reflect)]
+pub struct TiledCustomTileInstance {
+    pub properties: Components,
+    pub ty: String,
+}
+
+#[derive(Debug, Clone, Reflect)]
 pub struct PackedTiledTileset {
     pub name: String,
     pub texture: TilemapTexture,
     pub animated_tiles: HashMap<u32, TileAnimation>,
+    pub custom_properties_tiles: HashMap<u32, TiledCustomTileInstance>,
 }
 
 /// A resource that manages tiled tilemaps.
@@ -295,6 +303,7 @@ impl TiledAssets {
                 .enumerate()
                 .for_each(|(texture_index, tileset_def)| {
                     let mut animated_tiles = HashMap::default();
+                    let mut custom_properties_tiles = HashMap::default();
 
                     let tileset_path = map.path.parent().unwrap().join(&tileset_def.source);
                     let tileset_xml = quick_xml::de::from_str::<TiledTileset>(
@@ -350,7 +359,13 @@ impl TiledAssets {
                                 });
                                 animated_tiles.insert(atlas_index, anim);
                             }
-                            // TODO: handle tiles with custom properties ?
+                            // Tiles with custom properties
+                            if ! tile.ty.is_empty() {
+                                custom_properties_tiles.insert(atlas_index, TiledCustomTileInstance {
+                                    properties: tile.properties.unwrap_or_default(),
+                                    ty: tile.ty,
+                                });
+                            }
                         });
 
                     tilesets_records.insert(tileset_xml.name.clone(), self.tilesets.len());
@@ -363,6 +378,7 @@ impl TiledAssets {
                         name: tileset_xml.name.clone(),
                         texture: texture.clone(),
                         animated_tiles,
+                        custom_properties_tiles,
                     });
                     textures.push(texture);
                 });

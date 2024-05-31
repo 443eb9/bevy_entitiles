@@ -12,7 +12,7 @@ use serde::{
 };
 
 use crate::{
-    tiled::resources::{PackedTiledTilemap, TiledAssets},
+    tiled::resources::{PackedTiledTilemap, TiledAssets, TiledCustomTileInstance},
     tilemap::{
         coordinates,
         map::TileRenderSize,
@@ -282,7 +282,7 @@ impl Tiles {
         tiled_tilemap_name: &'a str,
         tiled_assets: &'a TiledAssets,
         tiled_data: &'a PackedTiledTilemap,
-    ) -> impl Iterator<Item = (IVec2, TileBuilder, TileRenderSize)> + 'a {
+    ) -> impl Iterator<Item = (IVec2, TileBuilder, TileRenderSize, Option<&TiledCustomTileInstance>)> + 'a {
         self.0
             .iter()
             .enumerate()
@@ -328,6 +328,7 @@ impl Tiles {
                     index,
                     builder,
                     TileRenderSize(tileset.texture.desc.tile_size.as_vec2()),
+                    tileset.custom_properties_tiles.get(&atlas_index),
                 ))
             })
     }
