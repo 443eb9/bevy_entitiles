@@ -47,11 +47,12 @@ fn main() {
             ignore_unregisterd_objects: true,
             z_index: 0.,
         })
-        .register_tiled_object::<BlockBundle>("Block")
-        .register_tiled_object::<PlainBlockBundle>("PlainBlock")
-        .register_tiled_object::<PlayerBundle>("Player")
-        .register_tiled_object::<DetectAreaBundle>("DetectArea")
+        .register_tiled_object::<BlockBundle>("BlockBundle")
+        .register_tiled_object::<PlainBlockBundle>("PlainBlockBundle")
+        .register_tiled_object::<PlayerBundle>("PlayerBundle")
+        .register_tiled_object::<DetectAreaBundle>("DetectAreaBundle")
         .register_type::<Block>()
+        .register_type::<Player>()
         .insert_resource(RenderChunkSort::XAndY)
         .run();
 }
@@ -85,7 +86,7 @@ fn switching(
  * So if you want to know what they do, you can go to examples/ldtk.rs.
  */
 
-#[derive(TiledObject, Bundle)]
+#[derive(TiledObject, Bundle, Default)]
 #[spawn_sprite]
 pub struct PlainBlockBundle {
     // You have to use `TiledClass`es for objects.
@@ -93,16 +94,16 @@ pub struct PlainBlockBundle {
     pub block: PlainBlock,
 }
 
-#[derive(TiledClass, Component)]
+#[derive(TiledClass, Component, Default)]
 pub struct PlainBlock;
 
-#[derive(TiledObject, Bundle)]
+#[derive(TiledObject, Bundle, Default)]
 #[spawn_sprite]
 pub struct BlockBundle {
     pub block: Block,
 }
 
-#[derive(TiledClass, Component, Reflect)]
+#[derive(TiledClass, Component, Reflect, Default)]
 pub struct Block {
     #[tiled_name = "Collision"]
     pub collision: bool,
@@ -116,8 +117,9 @@ pub struct Block {
     pub shape: ShapeType,
 }
 
-#[derive(TiledEnum, Reflect)]
+#[derive(TiledEnum, Reflect, Default)]
 pub enum ShapeType {
+    #[default]
     Square,
     Isometry,
     Hexagon,
@@ -125,7 +127,7 @@ pub enum ShapeType {
     Eclipse,
 }
 
-#[derive(TiledObject, Bundle)]
+#[derive(TiledObject, Bundle, Default)]
 #[spawn_sprite]
 #[global_object]
 // Generate the collider according to the shape.
@@ -136,25 +138,32 @@ pub struct PlayerBundle {
     pub moveable: MoveableObject,
 }
 
-#[derive(TiledClass, Component, Default)]
+#[derive(TiledClass, Component, Reflect, Default)]
 pub struct Player {
     #[tiled_name = "Hp"]
     pub hp: f32,
-    #[tiled_default]
+    // This property is not assigned an explicit value in Tiled:
+    // it does not even appear in the .tmx file,
+    // it will be initialized with a default value
+    #[tiled_name = "Level"]
     pub level: i32,
+    // This property does not exist at all in Tiled:
+    // it does not even appear in the .tmx file,
+    // it will be initialized with a default value
+    pub mp: i32,
 }
 
-#[derive(TiledClass, Component)]
+#[derive(TiledClass, Component, Default)]
 pub struct MoveableObject {
     #[tiled_name = "Speed"]
     pub speed: f32,
 }
 
-#[derive(TiledObject, Bundle)]
+#[derive(TiledObject, Bundle, Default)]
 #[shape_as_collider]
 pub struct DetectAreaBundle {
     pub detect_area: DetectArea,
 }
 
-#[derive(TiledClass, Component)]
+#[derive(TiledClass, Component, Default)]
 pub struct DetectArea;

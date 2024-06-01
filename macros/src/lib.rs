@@ -37,7 +37,7 @@ pub fn derive_tiled_objects(input: proc_macro::TokenStream) -> proc_macro::Token
     tiled_object::expand_tiled_objects_derive(syn::parse(input).unwrap())
 }
 
-#[proc_macro_derive(TiledClass, attributes(tiled_default, tiled_name))]
+#[proc_macro_derive(TiledClass, attributes(tiled_name))]
 pub fn derive_tiled_classes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     tiled_class::expand_tiled_class_derive(syn::parse(input).unwrap())
 }
