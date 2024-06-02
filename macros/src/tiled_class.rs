@@ -1,5 +1,4 @@
 static TILED_NAME_ATTR: &str = "tiled_name";
-static TILED_DEFAULT_ATTR: &str = "tiled_default";
 
 pub fn expand_tiled_class_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let syn::Data::Struct(data_struct) = input.data else {
@@ -15,35 +14,24 @@ pub fn expand_tiled_class_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
 
             for field in fields {
                 let field_name = field.ident.as_ref().unwrap();
-
-                let default = field
-                    .attrs
-                    .iter()
-                    .find(|attr| attr.path().get_ident().unwrap() == TILED_DEFAULT_ATTR);
-                if default.is_some() {
-                    continue;
-                }
-
                 let name = field
                     .attrs
                     .iter()
                     .find(|attr| attr.path().get_ident().unwrap() == TILED_NAME_ATTR);
                 if let Some(attr) = name {
                     fields_cton.push(expand_class_fields_rename(field_name, &attr.meta));
-                    continue;
+                } else {
+                    fields_cton.push(expand_class_fields(&field_name));
                 }
-
-                fields_cton.push(expand_class_fields(&field_name));
-            }
-
-            if fields_cton.len() < fields.len() {
-                fields_cton.push(quote::quote!(..Default::default()));
             }
 
             quote::quote!(
-                let data = &classes[stringify!(#ty)];
-                Self {
-                    #(#fields_cton)*
+                if let Some(data) = &classes.get(stringify!(#ty)) {
+                    Self {
+                        #(#fields_cton)*
+                    }
+                } else { // Class not found: use default
+                    Self::default()
                 }
             )
         } else {
@@ -65,7 +53,15 @@ pub fn expand_tiled_class_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
 
 fn expand_class_fields(field_name: &syn::Ident) -> proc_macro2::TokenStream {
     quote::quote!(
-        #field_name: data.properties.get(stringify!(#field_name)).unwrap_or_else(|| panic!("{}", stringify!(#field_name))).clone().into(),
+        #field_name: if data.properties.contains_key(stringify!(#field_name)) {
+            data.properties
+                .get(stringify!(#field_name))
+                .unwrap()
+                .clone()
+                .into()
+        } else { // Field not found: use default value
+            Self::default().#field_name
+        },
     )
 }
 
@@ -79,6 +75,14 @@ fn expand_class_fields_rename(
     };
 
     quote::quote!(
-        #field_name: data.properties[#name].clone().into(),
+        #field_name: if data.properties.contains_key(stringify!(#name)) {
+            data.properties
+                .get(stringify!(#name))
+                .unwrap()
+                .clone()
+                .into()
+        } else { // Field not found: use default value
+            Self::default().#field_name
+        },
     )
 }

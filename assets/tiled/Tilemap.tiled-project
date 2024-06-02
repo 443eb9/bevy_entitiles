@@ -59,6 +59,80 @@
         {
             "color": "#ffa0a0a4",
             "drawFill": true,
+            "id": 12,
+            "members": [
+                {
+                    "name": "Block",
+                    "propertyType": "Block",
+                    "type": "class",
+                    "value": {
+                    }
+                }
+            ],
+            "name": "BlockBundle",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 9,
+            "members": [
+            ],
+            "name": "DetectArea",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 11,
+            "members": [
+                {
+                    "name": "DetectArea",
+                    "propertyType": "DetectArea",
+                    "type": "class",
+                    "value": {
+                    }
+                }
+            ],
+            "name": "DetectAreaBundle",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
             "id": 8,
             "members": [
                 {
@@ -128,10 +202,44 @@
         {
             "color": "#ffa0a0a4",
             "drawFill": true,
-            "id": 9,
+            "id": 10,
+            "members": [
+                {
+                    "name": "Moveable",
+                    "propertyType": "MoveableObject",
+                    "type": "class",
+                    "value": {
+                    }
+                },
+                {
+                    "name": "Player",
+                    "propertyType": "Player",
+                    "type": "class",
+                    "value": {
+                    }
+                }
+            ],
+            "name": "PlayerBundle",
+            "type": "class",
+            "useAs": [
+                "property",
+                "map",
+                "layer",
+                "object",
+                "tile",
+                "tileset",
+                "wangcolor",
+                "wangset",
+                "project"
+            ]
+        },
+        {
+            "color": "#ffa0a0a4",
+            "drawFill": true,
+            "id": 13,
             "members": [
             ],
-            "name": "DetectArea",
+            "name": "PlainBlockBundle",
             "type": "class",
             "useAs": [
                 "property",
