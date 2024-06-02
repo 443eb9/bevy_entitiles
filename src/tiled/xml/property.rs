@@ -65,6 +65,9 @@ impl<'de> Deserialize<'de> for ClassInstance {
                                     .collect(),
                             );
                         }
+                        "@value" => {
+                            panic!("Primitive properties are not allowed in ClassInstance (name={})", name.unwrap_or("UNK".to_owned()));
+                        }
                         _ => panic!("Unknown key for ClassInstance: {}", key),
                     }
                 }
