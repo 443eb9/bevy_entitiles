@@ -5,7 +5,7 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        system::{Commands, Query},
+        system::{Commands, Query, Res},
     },
     reflect::Reflect,
 };
@@ -29,8 +29,6 @@ use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use crate::{algorithm::pathfinding::PathTilemaps, serializing::map::PATH_TILES};
-#[cfg(feature = "algorithm")]
-use bevy::ecs::system::Res;
 
 #[cfg(feature = "physics")]
 use crate::{
