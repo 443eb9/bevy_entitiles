@@ -52,7 +52,7 @@ fn main() {
         .register_tiled_object::<PlayerBundle>("Player")
         .register_tiled_object::<DetectAreaBundle>("DetectArea")
         .register_type::<Block>()
-        .insert_resource(RenderChunkSort::XAndY)
+        .insert_resource(RenderChunkSort::XThenY)
         .run();
 }
 

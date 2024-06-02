@@ -41,14 +41,14 @@ pub struct UnloadRenderChunk(pub Vec<IVec2>);
 pub enum RenderChunkSort {
     #[default]
     None,
-    XAndY,
-    XReverseAndY,
-    XAndYReverse,
-    XReverseAndYReverse,
-    YAndX,
-    YReverseAndX,
-    YAndXReverse,
-    YReverseAndXReverse,
+    XThenY,
+    XReverseThenY,
+    XThenYReverse,
+    XReverseThenYReverse,
+    YThenX,
+    YReverseThenX,
+    YThenXReverse,
+    YReverseThenXReverse,
 }
 
 #[derive(Event, Debug, Clone)]

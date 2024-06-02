@@ -32,7 +32,7 @@ fn main() {
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
-        .insert_resource(RenderChunkSort::XReverseAndYReverse)
+        .insert_resource(RenderChunkSort::XReverseThenYReverse)
         .run();
 }
 

@@ -192,28 +192,28 @@ pub fn sort_chunks<M: TilemapMaterial>(
     }
 
     render_chunks.sort(match cfg {
-        RenderChunkSort::XAndY => {
+        RenderChunkSort::XThenY => {
             |lhs: IVec2, rhs: IVec2| lhs.x.cmp(&rhs.x).then_with(|| lhs.y.cmp(&rhs.y))
         }
-        RenderChunkSort::XReverseAndY => {
+        RenderChunkSort::XReverseThenY => {
             |lhs: IVec2, rhs: IVec2| rhs.x.cmp(&lhs.x).then_with(|| lhs.y.cmp(&rhs.y))
         }
-        RenderChunkSort::XAndYReverse => {
+        RenderChunkSort::XThenYReverse => {
             |lhs: IVec2, rhs: IVec2| lhs.x.cmp(&rhs.x).then_with(|| rhs.y.cmp(&lhs.y))
         }
-        RenderChunkSort::XReverseAndYReverse => {
+        RenderChunkSort::XReverseThenYReverse => {
             |lhs: IVec2, rhs: IVec2| rhs.x.cmp(&lhs.x).then_with(|| rhs.y.cmp(&lhs.y))
         }
-        RenderChunkSort::YAndX => {
+        RenderChunkSort::YThenX => {
             |lhs: IVec2, rhs: IVec2| lhs.y.cmp(&rhs.y).then_with(|| lhs.x.cmp(&rhs.x))
         }
-        RenderChunkSort::YReverseAndX => {
+        RenderChunkSort::YReverseThenX => {
             |lhs: IVec2, rhs: IVec2| rhs.y.cmp(&lhs.y).then_with(|| lhs.x.cmp(&rhs.x))
         }
-        RenderChunkSort::YAndXReverse => {
+        RenderChunkSort::YThenXReverse => {
             |lhs: IVec2, rhs: IVec2| lhs.y.cmp(&rhs.y).then_with(|| rhs.x.cmp(&lhs.x))
         }
-        RenderChunkSort::YReverseAndXReverse => {
+        RenderChunkSort::YReverseThenXReverse => {
             |lhs: IVec2, rhs: IVec2| rhs.y.cmp(&lhs.y).then_with(|| rhs.x.cmp(&lhs.x))
         }
         RenderChunkSort::None => unreachable!(),
