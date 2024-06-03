@@ -75,9 +75,9 @@ fn expand_class_fields_rename(
     };
 
     quote::quote!(
-        #field_name: if data.properties.contains_key(stringify!(#name)) {
+        #field_name: if data.properties.contains_key(#name) {
             data.properties
-                .get(stringify!(#name))
+                .get(#name)
                 .unwrap()
                 .clone()
                 .into()
