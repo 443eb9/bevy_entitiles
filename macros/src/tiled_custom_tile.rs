@@ -1,58 +1,13 @@
 static TILED_DEFAULT_ATTR: &str = "tiled_default";
-static SHAPE_AS_COLLIDER_ATTR: &str = "shape_as_collider";
-static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
-static GLOBAL_OBJECT_ATTR: &str = "global_object";
 static CALLBACK_ATTR: &str = "callback";
 
-pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
+pub fn expand_tiled_custom_tiles_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
     let attrs = &input.attrs;
-
-    let shape_as_collider_attr = attrs
-        .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == SHAPE_AS_COLLIDER_ATTR);
-
-    let spawn_sprite_attr = attrs
-        .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == SPAWN_SPRITE_ATTR);
-
-    let global_object_attr = attrs
-        .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == GLOBAL_OBJECT_ATTR);
 
     let callback_attr = attrs
         .iter()
         .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
-
-    let shape_as_collider = {
-        if shape_as_collider_attr.is_some() {
-            quote::quote!(
-                object_instance.shape_as_collider(commands);
-            )
-        } else {
-            quote::quote!()
-        }
-    };
-
-    let spawn_sprite = {
-        if spawn_sprite_attr.is_some() {
-            quote::quote!(
-                object_instance.spawn_sprite(commands, tiled_assets, &tiled_map);
-            )
-        } else {
-            quote::quote!()
-        }
-    };
-
-    let global_object = {
-        if global_object_attr.is_some() {
-            quote::quote!(
-                commands.insert(bevy_entitiles::tiled::components::TiledGlobalObject);
-            )
-        } else {
-            quote::quote!()
-        }
-    };
 
     let callback = {
         if let Some(attr) = callback_attr {
@@ -60,7 +15,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
                 syn::Meta::List(meta) => {
                     let func = &meta.tokens;
                     quote::quote!(
-                        #func(commands, object_instance, components, asset_server, tiled_assets, tiled_map);
+                        #func(commands, custom_tile_instance, components, asset_server, tiled_assets, tiled_map);
                     )
                 }
                 _ => {
@@ -73,12 +28,12 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
     };
 
     let syn::Data::Struct(data_struct) = &input.data else {
-        panic!("TiledObject can only be derived for structs");
+        panic!("TiledCustomTile can only be derived for structs");
     };
 
     let ctor = {
         let syn::Fields::Named(fields) = &data_struct.fields else {
-            panic!("TiledObject can only be derived for structs with named fields!");
+            panic!("TiledCustomTile can only be derived for structs with named fields!");
         };
         let fields = &fields.named;
         let mut fields_cton = Vec::new();
@@ -95,7 +50,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
                 continue;
             }
 
-            fields_cton.push(expand_object_fields(field_name, field_type));
+            fields_cton.push(expand_custom_tile_fields(field_name, field_type));
         }
 
         let default = if fields_cton.len() < fields.len() {
@@ -113,10 +68,10 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
     };
 
     quote::quote! {
-        impl bevy_entitiles::tiled::traits::TiledObject for #ty {
+        impl bevy_entitiles::tiled::traits::TiledCustomTile for #ty {
             fn initialize(
                 commands: &mut bevy::ecs::system::EntityCommands,
-                object_instance: &bevy_entitiles::tiled::xml::layer::TiledObjectInstance,
+                custom_tile_instance: &bevy_entitiles::tiled::resources::TiledCustomTileInstance,
                 components: &bevy::utils::HashMap<
                     String,
                     bevy_entitiles::tiled::xml::property::ClassInstance,
@@ -126,9 +81,6 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
                 tiled_map: String,
             ) {
                 #callback
-                #spawn_sprite
-                #shape_as_collider
-                #global_object
 
                 commands.insert(#ctor);
             }
@@ -137,7 +89,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
     .into()
 }
 
-fn expand_object_fields(
+fn expand_custom_tile_fields(
     field_name: &syn::Ident,
     field_type: &syn::Type,
 ) -> proc_macro2::TokenStream {

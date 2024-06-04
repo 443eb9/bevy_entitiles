@@ -8,6 +8,35 @@
    <frame tileid="73" duration="300"/>
   </animation>
  </tile>
+ <tile id="140" type="TileBundle">
+  <properties>
+   <property name="Infos" type="class" propertytype="TileInfos">
+    <properties>
+     <property name="AllowLineOfSight" type="bool" value="true"/>
+     <property name="DamagePerSecond" type="int" value="50"/>
+    </properties>
+   </property>
+  </properties>
+ </tile>
+ <tile id="142" type="TileBundle">
+  <properties>
+   <property name="Infos" type="class" propertytype="TileInfos">
+    <properties>
+     <property name="DamagePerSecond" type="int" value="50"/>
+    </properties>
+   </property>
+  </properties>
+ </tile>
+ <tile id="152" type="TileBundle">
+  <properties>
+   <property name="Infos" type="class" propertytype="TileInfos">
+    <properties>
+     <property name="AllowLineOfSight" type="bool" value="true"/>
+    </properties>
+   </property>
+  </properties>
+ </tile>
+ <tile id="154" type="TileBundle"/>
  <tile id="216">
   <animation>
    <frame tileid="217" duration="300"/>

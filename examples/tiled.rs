@@ -19,7 +19,7 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use bevy_entitiles_derive::{TiledClass, TiledEnum, TiledObject};
+use bevy_entitiles_derive::{TiledClass, TiledEnum, TiledObject, TiledCustomTile};
 use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
@@ -45,13 +45,16 @@ fn main() {
                 "assets/tiled/tilemaps/isometricCube.tmx".to_string(),
             ],
             ignore_unregisterd_objects: true,
+            ignore_unregisterd_custom_tiles: true,
             z_index: 0.,
         })
         .register_tiled_object::<BlockBundle>("BlockBundle")
         .register_tiled_object::<PlainBlockBundle>("PlainBlockBundle")
         .register_tiled_object::<PlayerBundle>("PlayerBundle")
         .register_tiled_object::<DetectAreaBundle>("DetectAreaBundle")
+        .register_tiled_custom_tile::<TileBundle>("TileBundle")
         .register_type::<Block>()
+        .register_type::<TileInfos>()
         .insert_resource(RenderChunkSort::XThenY)
         .run();
 }
@@ -166,3 +169,17 @@ pub struct DetectAreaBundle {
 
 #[derive(TiledClass, Component, Default)]
 pub struct DetectArea;
+
+#[derive(TiledClass, Component, Reflect, Default)]
+pub struct TileInfos {
+    #[tiled_name = "AllowLineOfSight"]
+    pub allow_line_of_sight: bool,
+    #[tiled_name = "DamagePerSecond"]
+    pub damage_per_second: i32,
+}
+
+#[derive(TiledCustomTile, Bundle, Default)]
+pub struct TileBundle {
+    pub infos: TileInfos,
+    pub detect_area: DetectArea,
+}

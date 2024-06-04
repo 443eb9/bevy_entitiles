@@ -4,6 +4,7 @@
 - prevent panic when loading a .TSX file with custom properties #27
 - add a more explicit error message when trying to use primitive properties #29
 - when a class or a class property is expected but not found, use its default value #30
+- add a new 'TiledCustomTile' Component so we can assign custom properties directly to tiles without using an object #32
 
 # What's Fixed:
 

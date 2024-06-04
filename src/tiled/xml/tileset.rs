@@ -1,5 +1,6 @@
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
+use super::property::Components;
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -191,6 +192,9 @@ pub struct TiledTile {
 
     #[serde(default)]
     pub animation: Option<TiledAnimation>,
+
+    #[serde(default)]
+    pub properties: Option<Components>,
 }
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]

@@ -17,7 +17,7 @@ use bevy::{
 
 use crate::{
     render::material::StandardTilemapMaterial,
-    tiled::traits::TiledObjectRegistry,
+    tiled::traits::{TiledObjectRegistry, TiledCustomTileRegistry},
     tilemap::{
         buffers::TileBuilderBuffer,
         bundles::StandardTilemapBundle,
@@ -31,7 +31,7 @@ use crate::{
 
 use self::{
     components::{TiledLoadedTilemap, TiledLoader, TiledUnloadLayer, TiledUnloader},
-    resources::{PackedTiledTilemap, TiledAssets, TiledLoadConfig, TiledTilemapManger},
+    resources::{PackedTiledTilemap, TiledAssets, TiledLoadConfig, TiledTilemapManger, TiledCustomTileInstance},
     sprite::TiledSpriteMaterial,
     xml::{
         layer::{ColorTileLayerData, TiledLayer},
@@ -77,6 +77,7 @@ impl Plugin for EntiTilesTiledPlugin {
         );
 
         app.init_non_send_resource::<TiledObjectRegistry>();
+        app.init_non_send_resource::<TiledCustomTileRegistry>();
     }
 }
 
@@ -119,6 +120,7 @@ fn load_tiled_xml(
     mut textures_assets: ResMut<Assets<TilemapTextures>>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     object_registry: NonSend<TiledObjectRegistry>,
+    custom_tiles_registry: NonSend<TiledCustomTileRegistry>,
 ) {
     for (entity, loader) in &loaders_query {
         tiled_assets.initialize(
@@ -138,6 +140,7 @@ fn load_tiled_xml(
             &asset_server,
             &loader,
             &object_registry,
+            &custom_tiles_registry,
             entity,
             &mut tilemap_material_assets,
         );
@@ -154,6 +157,7 @@ fn load_tiled_tilemap(
     asset_server: &AssetServer,
     loader: &TiledLoader,
     object_registry: &TiledObjectRegistry,
+    custom_tiles_registry: &TiledCustomTileRegistry,
     map_entity: Entity,
     tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
 ) {
@@ -174,6 +178,7 @@ fn load_tiled_tilemap(
             tiled_assets,
             asset_server,
             object_registry,
+            custom_tiles_registry,
             config,
             &mut loaded_map,
             tilemap_material_assets,
@@ -189,6 +194,7 @@ fn load_tiled_tilemap(
             tiled_assets,
             asset_server,
             object_registry,
+            custom_tiles_registry,
             config,
             &mut loaded_map,
             tilemap_material_assets,
@@ -206,6 +212,7 @@ fn load_group(
     tiled_assets: &TiledAssets,
     asset_server: &AssetServer,
     object_registry: &TiledObjectRegistry,
+    custom_tiles_registry: &TiledCustomTileRegistry,
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
     tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
@@ -219,6 +226,7 @@ fn load_group(
             tiled_assets,
             asset_server,
             object_registry,
+            custom_tiles_registry,
             config,
             loaded_map,
             tilemap_material_assets,
@@ -234,6 +242,7 @@ fn load_group(
             tiled_assets,
             asset_server,
             object_registry,
+            custom_tiles_registry,
             config,
             loaded_map,
             tilemap_material_assets,
@@ -249,6 +258,7 @@ fn load_layer(
     tiled_assets: &TiledAssets,
     asset_server: &AssetServer,
     object_registry: &TiledObjectRegistry,
+    custom_tiles_registry: &TiledCustomTileRegistry,
     config: &TiledLoadConfig,
     loaded_map: &mut TiledLoadedTilemap,
     tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
@@ -264,6 +274,7 @@ fn load_layer(
             let layer_size = IVec2::new(layer.width as i32, layer.height as i32);
             let entity = commands.spawn_empty().id();
             let (textures, animations) = tiled_assets.get_tilemap_data(&loaded_map.name);
+            let mut custom_properties_tiles: Vec<(IVec2,TiledCustomTileInstance)> = vec!();
 
             let tint = Color::rgba(
                 layer.tint.r,
@@ -314,7 +325,7 @@ fn load_layer(
                     tiles
                         .content
                         .iter_decoded(layer_size, &loaded_map.name, tiled_assets, &tiled_data)
-                        .for_each(|(index, builder, trs)| {
+                        .for_each(|(index, builder, trs, custom_tile)| {
                             buffer.set(index, builder);
                             if let Some(t) = tile_render_size {
                                 assert_eq!(
@@ -324,6 +335,9 @@ fn load_layer(
                                 );
                             }
                             tile_render_size = Some(trs);
+                            if let Some(c) = custom_tile {
+                                custom_properties_tiles.push((index, c.clone()));
+                            }
                         });
                 }
                 ColorTileLayerData::Chunks(chunks) => {
@@ -334,7 +348,7 @@ fn load_layer(
                         chunk
                             .tiles
                             .iter_decoded(size, &loaded_map.name, tiled_assets, &tiled_data)
-                            .for_each(|(index, builder, trs)| {
+                            .for_each(|(index, builder, trs, _)| {
                                 buffer.set(index + offset, builder);
                                 if let Some(t) = tile_render_size {
                                     assert_eq!(
@@ -365,8 +379,39 @@ fn load_layer(
             tilemap
                 .storage
                 .fill_with_buffer(commands, IVec2::ZERO, buffer);
-            commands.entity(entity).insert(tilemap);
+            
 
+            // Tiles entity have been spawned: add custom properties to the ones we registered
+            custom_properties_tiles.iter().for_each(|(index, custom_tile_instance)| {
+                if let Some(entity) = tilemap.storage.get(*index) {
+                    let Some(phantom) = custom_tiles_registry.get(&custom_tile_instance.ty) else {
+                        if config.ignore_unregisterd_custom_tiles {
+                            return;
+                        }
+                        panic!(
+                            "Could not find component type with custom class identifier: {}! \
+                        You need to register it using App::register_tiled_custom_tile::<T>() first!",
+                            custom_tile_instance.ty
+                        )
+                    };
+                    
+                    let mut entity = commands.entity(entity);
+                    phantom.initialize(
+                        &mut entity,
+                        custom_tile_instance,
+                        &custom_tile_instance
+                            .properties
+                            .instances
+                            .iter()
+                            .map(|inst| (inst.ty.clone(), inst.clone()))
+                            .collect(),
+                        asset_server,
+                        tiled_assets,
+                        tiled_data.name.clone(),
+                    );
+                }
+            });
+            commands.entity(entity).insert(tilemap);
             loaded_map.layers.insert(layer.id, entity);
         }
         TiledLayer::Objects(layer) => {
