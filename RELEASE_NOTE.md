@@ -11,3 +11,4 @@
 - Wrong stacking order for tiles that are rendered larger than the slot. #26
 - Ldtk sprite flip is incorrect #25
 - fix compilation with 'serializing' feature when 'algorithm' is not used #28
+- Fix Tiled enum parsing, only worked with 'ShapeType' #33
