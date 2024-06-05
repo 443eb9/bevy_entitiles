@@ -23,7 +23,7 @@ pub fn expand_tiled_enum_derive(input: syn::DeriveInput) -> proc_macro::TokenStr
     }
 
     quote::quote!(
-        impl bevy_entitiles::tiled::traits::TiledEnum for ShapeType {
+        impl bevy_entitiles::tiled::traits::TiledEnum for #ty {
             fn get_identifier(ident: &str) -> Self {
                 match ident {
                     #(#variants_cton)*
