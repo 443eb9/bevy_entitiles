@@ -7,9 +7,10 @@ use bevy::{
 };
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use crate::tilemap::{coordinates::StaggerMode, map::TilemapType};
-
-use self::{default::*, layer::TiledLayer};
+use crate::{
+    tiled::xml::{default::*, layer::TiledLayer},
+    tilemap::{coordinates::StaggerMode, map::TilemapType},
+};
 
 pub mod default;
 pub mod layer;

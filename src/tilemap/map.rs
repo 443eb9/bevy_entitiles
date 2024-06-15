@@ -19,17 +19,18 @@ use bevy::{
     utils::{HashMap, HashSet},
 };
 
-use crate::math::{
-    aabb::{Aabb2d, IAabb2d, UAabb2d},
-    TileArea,
-};
-use crate::tilemap::tile::RawTileAnimation;
-
-use super::{
-    buffers::TileBuilderBuffer,
-    chunking::storage::{ChunkedStorage, EntityChunkedStorage},
-    despawn::DespawnMe,
-    tile::{TileAnimation, TileBuilder, TileUpdater},
+use crate::{
+    math::{
+        aabb::{Aabb2d, IAabb2d, UAabb2d},
+        TileArea,
+    },
+    tilemap::{
+        buffers::TileBuilderBuffer,
+        chunking::storage::{ChunkedStorage, EntityChunkedStorage},
+        despawn::DespawnMe,
+        tile::RawTileAnimation,
+        tile::{TileAnimation, TileBuilder, TileUpdater},
+    },
 };
 
 /// Defines the shape of tiles in a tilemap.

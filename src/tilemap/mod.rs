@@ -3,7 +3,7 @@ use bevy::{
     asset::AssetApp,
 };
 
-use self::{
+use crate::tilemap::{
     chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
     map::{
         TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapLayerOpacities,

@@ -4,12 +4,13 @@ use bevy::{
     render::view::{InheritedVisibility, ViewVisibility, Visibility},
 };
 
-use crate::render::material::{StandardTilemapMaterial, TilemapMaterial};
-
-use super::map::{
-    TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapAxisFlip,
-    TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures,
-    TilemapTransform, TilemapType, WaitForTextureUsageChange,
+use crate::{
+    render::material::{StandardTilemapMaterial, TilemapMaterial},
+    tilemap::map::{
+        TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapAxisFlip,
+        TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures,
+        TilemapTransform, TilemapType, WaitForTextureUsageChange,
+    },
 };
 
 /// All the possible bundles of the tilemap.

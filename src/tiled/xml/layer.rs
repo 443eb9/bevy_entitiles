@@ -12,15 +12,16 @@ use serde::{
 };
 
 use crate::{
-    tiled::resources::{PackedTiledTilemap, TiledAssets, TiledCustomTileInstance},
+    tiled::{
+        resources::{PackedTiledTilemap, TiledAssets, TiledCustomTileInstance},
+        xml::{default::*, property::Components, MapOrientation, TiledColor},
+    },
     tilemap::{
         coordinates,
         map::TileRenderSize,
         tile::{TileBuilder, TileFlip, TileLayer},
     },
 };
-
-use super::{default::*, property::Components, MapOrientation, TiledColor};
 
 #[cfg(feature = "physics")]
 use bevy_xpbd_2d::plugins::collision::Collider;
@@ -282,7 +283,14 @@ impl Tiles {
         tiled_tilemap_name: &'a str,
         tiled_assets: &'a TiledAssets,
         tiled_data: &'a PackedTiledTilemap,
-    ) -> impl Iterator<Item = (IVec2, TileBuilder, TileRenderSize, Option<&TiledCustomTileInstance>)> + 'a {
+    ) -> impl Iterator<
+        Item = (
+            IVec2,
+            TileBuilder,
+            TileRenderSize,
+            Option<&TiledCustomTileInstance>,
+        ),
+    > + 'a {
         self.0
             .iter()
             .enumerate()

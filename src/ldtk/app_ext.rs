@@ -3,7 +3,7 @@ use bevy::{
     ecs::{bundle::Bundle, component::Component},
 };
 
-use super::traits::{
+use crate::ldtk::traits::{
     LdtkEntity, LdtkEntityRegistry, LdtkEntityTag, LdtkEntityTagRegistry, PhantomLdtkEntity,
     PhantomLdtkEntityTag,
 };

@@ -14,15 +14,13 @@ use bevy::{
 
 use crate::{
     math::extension::ChunkIndex,
-    serializing::{load_object, map::TilemapLayer},
+    serializing::{chunk::TILE_CHUNKS_FOLDER, load_object, map::TilemapLayer},
     tilemap::{
         buffers::TileBuilderBuffer,
         map::{TilemapName, TilemapStorage},
         tile::Tile,
     },
 };
-
-use super::TILE_CHUNKS_FOLDER;
 
 #[cfg(feature = "algorithm")]
 use crate::{

@@ -13,11 +13,11 @@ use crate::{
         chunking::storage::ChunkedStorage,
         coordinates,
         map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
+        physics::{
+            DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn,
+            PhysicsTilemap,
+        },
     },
-};
-
-use super::{
-    DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn, PhysicsTilemap,
 };
 
 pub fn spawn_colliders(
@@ -62,7 +62,7 @@ pub fn spawn_colliders(
                         physics_tile,
                     };
                     let tile_entity = packed_tile.spawn(&mut c);
-                    
+
                     spawn_event.send(PhysicsTileSpawn {
                         tilemap: tilemap_entity,
                         tile: tile_entity,

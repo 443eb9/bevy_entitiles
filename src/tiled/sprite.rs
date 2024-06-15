@@ -9,9 +9,7 @@ use bevy::{
     sprite::Material2d,
 };
 
-use crate::math::aabb::Aabb2d;
-
-use super::TILED_SPRITE_SHADER;
+use crate::{math::aabb::Aabb2d, tiled::TILED_SPRITE_SHADER};
 
 #[derive(ShaderType, Debug, Clone, Reflect)]
 pub struct SpriteUniform {

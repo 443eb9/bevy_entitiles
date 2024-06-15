@@ -4,12 +4,14 @@ use bevy::{
     render::view::ViewVisibility,
 };
 
-use crate::{math::CameraAabb2d, tilemap::map::TilemapAabbs};
-
-use super::{
-    chunk::RenderChunkStorage,
-    extract::{ExtractedTilemap, ExtractedView},
-    material::TilemapMaterial,
+use crate::{
+    math::CameraAabb2d,
+    render::{
+        chunk::RenderChunkStorage,
+        extract::{ExtractedTilemap, ExtractedView},
+        material::TilemapMaterial,
+    },
+    tilemap::map::TilemapAabbs,
 };
 
 #[derive(Resource)]

@@ -16,15 +16,13 @@ use bevy::{
 use crate::{
     math::{aabb::IAabb2d, extension::ChunkIndex},
     render::chunk::{ChunkUnload, UnloadRenderChunk},
-    serializing::{map::TilemapLayer, save_object},
+    serializing::{chunk::TILE_CHUNKS_FOLDER, map::TilemapLayer, save_object},
     tilemap::{
         buffers::TileBuilderBuffer,
         map::{TilemapName, TilemapStorage},
         tile::Tile,
     },
 };
-
-use super::TILE_CHUNKS_FOLDER;
 
 #[cfg(feature = "algorithm")]
 use crate::{

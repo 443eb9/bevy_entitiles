@@ -5,7 +5,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use super::resources::LdtkGlobalEntityRegistry;
+use crate::ldtk::resources::LdtkGlobalEntityRegistry;
 
 #[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
 pub enum LdtkLoaderMode {

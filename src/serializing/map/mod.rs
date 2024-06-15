@@ -10,6 +10,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::{
     render::material::TilemapMaterial,
+    serializing::map::save::TilemapSaver,
     tilemap::{
         bundles::{MaterialTilemapBundle, StandardPureColorTilemapBundle},
         chunking::storage::ChunkedStorage,
@@ -21,8 +22,6 @@ use crate::{
         tile::TileBuilder,
     },
 };
-
-use self::save::TilemapSaver;
 
 pub const TILEMAP_META: &str = "tilemap.ron";
 pub const TILES: &str = "tiles.ron";

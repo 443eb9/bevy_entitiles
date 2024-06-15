@@ -1,6 +1,9 @@
-use bevy::prelude::{Plugin, Update};
+use bevy::{
+    app::App,
+    prelude::{Plugin, Update},
+};
 
-use self::{
+use crate::algorithm::{
     pathfinding::{Path, PathTilemaps},
     wfc::{WfcData, WfcElement, WfcHistory, WfcSource},
 };
@@ -11,7 +14,7 @@ pub mod wfc;
 pub struct EntiTilesAlgorithmPlugin;
 
 impl Plugin for EntiTilesAlgorithmPlugin {
-    fn build(&self, app: &mut bevy::prelude::App) {
+    fn build(&self, app: &mut App) {
         app.register_type::<Path>();
 
         app.register_type::<WfcElement>()

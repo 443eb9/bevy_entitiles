@@ -13,7 +13,7 @@ use bevy::{
     transform::components::Transform,
 };
 
-use self::aabb::{Aabb2d, IAabb2d};
+use crate::math::aabb::{Aabb2d, IAabb2d};
 
 pub mod aabb;
 pub mod extension;

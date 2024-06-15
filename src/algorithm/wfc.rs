@@ -18,6 +18,7 @@ use rand::{
 };
 
 use crate::{
+    algorithm::pathfinding::PathTilemaps,
     math::{extension::TileIndex, TileArea},
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
@@ -31,8 +32,6 @@ use crate::{
     },
     DEFAULT_CHUNK_SIZE,
 };
-
-use super::pathfinding::PathTilemaps;
 
 #[cfg(feature = "physics")]
 use crate::tilemap::physics::{PhysicsTilemap, SerializablePhysicsSource};

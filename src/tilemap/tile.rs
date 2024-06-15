@@ -6,7 +6,7 @@ use bevy::{
     render::{color::Color, render_resource::ShaderType},
 };
 
-use super::{buffers::Tiles, map::TilemapStorage};
+use crate::tilemap::{buffers::Tiles, map::TilemapStorage};
 
 /// A tile layer. This is the logical representation of a tile layer.
 /// Not all the layers you added to a tile will be taken into consideration

@@ -17,7 +17,7 @@ use bevy::{
     },
 };
 
-use super::{
+use crate::render::{
     binding::TilemapBindGroups,
     buffer::TilemapUniformBuffer,
     chunk::RenderChunkStorage,

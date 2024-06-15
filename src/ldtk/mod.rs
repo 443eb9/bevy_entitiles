@@ -17,35 +17,28 @@ use bevy::{
 
 use crate::{
     ldtk::{
-        components::{LayerIid, LdtkLoader, LdtkLoaderMode, LdtkUnloader, WorldIid},
+        components::{
+            EntityIid, GlobalEntity, LayerIid, LdtkLoadedLevel, LdtkLoader, LdtkLoaderMode,
+            LdtkTempTransform, LdtkUnloadLayer, LdtkUnloader, LevelIid, WorldIid,
+        },
+        events::{LdtkEvent, LevelEvent},
         json::{
+            definitions::LayerType,
             field::FieldInstance,
             level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
-            EntityRef, GridPoint, LdtkColor, Toc, World,
+            level::{LayerInstance, Level},
+            EntityRef, GridPoint, LdtkColor, LdtkJson, Toc, World, WorldLayout,
         },
+        layer::{LdtkLayers, PackedLdtkEntity},
         resources::{
-            LdtkAdditionalLayers, LdtkAssets, LdtkGlobalEntityRegistry, LdtkPatterns, LdtkTocs,
+            LdtkAdditionalLayers, LdtkAssets, LdtkGlobalEntityRegistry, LdtkLevelManager,
+            LdtkLoadConfig, LdtkPatterns, LdtkTocs,
         },
-        sprite::{AtlasRect, NineSliceBorders, SpriteMesh},
+        sprite::{AtlasRect, LdtkEntityMaterial, NineSliceBorders, SpriteMesh},
+        traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
     },
     render::material::StandardTilemapMaterial,
     tilemap::map::{TilemapStorage, TilemapTextures},
-};
-
-use self::{
-    components::{
-        EntityIid, GlobalEntity, LdtkLoadedLevel, LdtkTempTransform, LdtkUnloadLayer, LevelIid,
-    },
-    events::{LdtkEvent, LevelEvent},
-    json::{
-        definitions::LayerType,
-        level::{LayerInstance, Level},
-        LdtkJson, WorldLayout,
-    },
-    layer::{LdtkLayers, PackedLdtkEntity},
-    resources::{LdtkLevelManager, LdtkLoadConfig},
-    sprite::LdtkEntityMaterial,
-    traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
 };
 
 #[cfg(feature = "algorithm")]

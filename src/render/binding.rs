@@ -11,21 +11,22 @@ use bevy::{
     utils::HashMap,
 };
 
-use crate::tilemap::map::TilemapTextures;
-
-use super::{
-    buffer::{
-        PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
+use crate::{
+    render::{
+        buffer::{
+            PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
+        },
+        extract::ExtractedTilemap,
+        material::TilemapMaterial,
+        pipeline::EntiTilesPipeline,
+        resources::ExtractedTilemapMaterials,
+        texture::TilemapTexturesStorage,
     },
-    extract::ExtractedTilemap,
-    material::TilemapMaterial,
-    pipeline::EntiTilesPipeline,
-    resources::ExtractedTilemapMaterials,
-    texture::TilemapTexturesStorage,
+    tilemap::map::TilemapTextures,
 };
 
 #[cfg(feature = "atlas")]
-use super::buffer::TilemapTextureDescriptorBuffer;
+use crate::render::buffer::TilemapTextureDescriptorBuffer;
 
 #[derive(Component)]
 pub struct TilemapViewBindGroup {
@@ -85,7 +86,7 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
                 error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
                 return;
             };
-            
+
             #[cfg(feature = "atlas")]
             let Some(tex_desc) = tex_desc_bindings.get(tilemap) else {
                 error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");

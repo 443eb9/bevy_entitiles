@@ -11,14 +11,16 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{math::extension::DivToCeil, utils::mesh::clip_quad_mesh};
-
-use super::{
-    json::{
-        definitions::{EntityDef, TilesetRect},
-        level::EntityInstance,
+use crate::{
+    ldtk::{
+        json::{
+            definitions::{EntityDef, TilesetRect},
+            level::EntityInstance,
+        },
+        ENTITY_SPRITE_SHADER,
     },
-    ENTITY_SPRITE_SHADER,
+    math::extension::DivToCeil,
+    utils::mesh::clip_quad_mesh,
 };
 
 #[derive(ShaderType, Clone, Copy, Debug, Reflect)]

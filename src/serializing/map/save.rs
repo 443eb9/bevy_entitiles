@@ -13,6 +13,7 @@ use serde::Serialize;
 
 use crate::{
     render::material::TilemapMaterial,
+    serializing::map::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES},
     serializing::{pattern::TilemapPattern, save_object},
     tilemap::{
         chunking::storage::ChunkedStorage,
@@ -24,8 +25,6 @@ use crate::{
         tile::{Tile, TileBuilder},
     },
 };
-
-use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use crate::{algorithm::pathfinding::PathTilemaps, serializing::map::PATH_TILES};

@@ -14,6 +14,16 @@ use bevy::{
 };
 
 use crate::{
+    ldtk::{
+        components::{EntityIid, LayerIid, LdtkLoadedLevel, LdtkTempTransform, LevelIid},
+        json::{
+            field::FieldInstance,
+            level::{EntityInstance, LayerInstance, Level, TileInstance},
+        },
+        resources::{LdtkAssets, LdtkLoadConfig, LdtkPatterns},
+        traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
+        LdtkLoaderMode,
+    },
     math::aabb::IAabb2d,
     render::material::StandardTilemapMaterial,
     serializing::pattern::TilemapPattern,
@@ -27,17 +37,6 @@ use crate::{
         tile::{TileBuilder, TileFlip, TileLayer, TileTexture},
     },
     DEFAULT_CHUNK_SIZE,
-};
-
-use super::{
-    components::{EntityIid, LayerIid, LdtkLoadedLevel, LdtkTempTransform, LevelIid},
-    json::{
-        field::FieldInstance,
-        level::{EntityInstance, LayerInstance, Level, TileInstance},
-    },
-    resources::{LdtkAssets, LdtkLoadConfig, LdtkPatterns},
-    traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
-    LdtkLoaderMode,
 };
 
 #[cfg(feature = "algorithm")]

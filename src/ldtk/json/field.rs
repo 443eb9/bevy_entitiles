@@ -4,9 +4,10 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 
-use crate::{ldtk::json::LdtkColor, match_field, match_field_enum, transfer_field, unwrap_field};
-
-use super::{definitions::TilesetRect, EntityRef, GridPoint};
+use crate::{
+    ldtk::json::{definitions::TilesetRect, EntityRef, GridPoint, LdtkColor},
+    match_field, match_field_enum, transfer_field, unwrap_field,
+};
 
 #[derive(Serialize, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]

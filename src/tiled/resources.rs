@@ -22,18 +22,20 @@ use bevy::{
 
 use crate::{
     math::{aabb::Aabb2d, extension::F32Integerize},
+    tiled::{
+        components::{TiledLoader, TiledUnloader},
+        sprite::{SpriteUniform, TiledSpriteMaterial},
+        xml::{
+            layer::TiledLayer, property::Components, tileset::TiledTileset, MapOrientation,
+            TiledGroup, TiledTilemap,
+        },
+    },
     tilemap::{
         coordinates,
         map::{TilemapAnimations, TilemapTexture, TilemapTextureDescriptor, TilemapTextures},
         tile::{RawTileAnimation, TileAnimation},
     },
     utils::asset::AssetPath,
-};
-
-use super::{
-    components::{TiledLoader, TiledUnloader},
-    sprite::{SpriteUniform, TiledSpriteMaterial},
-    xml::{layer::TiledLayer, tileset::TiledTileset, MapOrientation, TiledGroup, TiledTilemap, property::Components},
 };
 
 /// Configuration for loading tiled tilemaps.
@@ -360,11 +362,14 @@ impl TiledAssets {
                                 animated_tiles.insert(atlas_index, anim);
                             }
                             // Tiles with custom properties
-                            if ! tile.ty.is_empty() {
-                                custom_properties_tiles.insert(atlas_index, TiledCustomTileInstance {
-                                    properties: tile.properties.unwrap_or_default(),
-                                    ty: tile.ty,
-                                });
+                            if !tile.ty.is_empty() {
+                                custom_properties_tiles.insert(
+                                    atlas_index,
+                                    TiledCustomTileInstance {
+                                        properties: tile.properties.unwrap_or_default(),
+                                        ty: tile.ty,
+                                    },
+                                );
                             }
                         });
 

@@ -17,7 +17,16 @@ use bevy::{
 
 use crate::{
     render::material::StandardTilemapMaterial,
-    tiled::traits::{TiledObjectRegistry, TiledCustomTileRegistry},
+    tiled::{
+        components::{TiledLoadedTilemap, TiledLoader, TiledUnloadLayer, TiledUnloader},
+        resources::{PackedTiledTilemap, TiledAssets, TiledLoadConfig, TiledTilemapManger, TiledCustomTileInstance},
+        sprite::TiledSpriteMaterial,
+        traits::{TiledObjectRegistry, TiledCustomTileRegistry},
+        xml::{
+            layer::{ColorTileLayerData, TiledLayer},
+            MapOrientation, TiledGroup,
+        },
+    },
     tilemap::{
         buffers::TileBuilderBuffer,
         bundles::StandardTilemapBundle,
@@ -27,16 +36,6 @@ use crate::{
         },
     },
     DEFAULT_CHUNK_SIZE,
-};
-
-use self::{
-    components::{TiledLoadedTilemap, TiledLoader, TiledUnloadLayer, TiledUnloader},
-    resources::{PackedTiledTilemap, TiledAssets, TiledLoadConfig, TiledTilemapManger, TiledCustomTileInstance},
-    sprite::TiledSpriteMaterial,
-    xml::{
-        layer::{ColorTileLayerData, TiledLayer},
-        MapOrientation, TiledGroup,
-    },
 };
 
 pub mod app_ext;

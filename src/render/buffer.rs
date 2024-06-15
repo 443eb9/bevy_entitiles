@@ -13,9 +13,10 @@ use bevy::{
     },
 };
 
-use crate::tilemap::map::TilemapType;
-
-use super::{extract::ExtractedTilemap, material::TilemapMaterial};
+use crate::{
+    render::{extract::ExtractedTilemap, material::TilemapMaterial},
+    tilemap::map::TilemapType,
+};
 
 pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static> {
     fn insert(&mut self, extracted: &E) -> DynamicOffsetComponent<U>;

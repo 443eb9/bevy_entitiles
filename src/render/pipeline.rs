@@ -18,12 +18,13 @@ use bevy::{
     },
 };
 
-use crate::tilemap::map::TilemapType;
-
-use super::{buffer::TilemapUniform, material::TilemapMaterial};
+use crate::{
+    render::{buffer::TilemapUniform, material::TilemapMaterial},
+    tilemap::map::TilemapType,
+};
 
 #[cfg(feature = "atlas")]
-use super::buffer::GpuTilemapTextureDescriptor;
+use crate::render::buffer::GpuTilemapTextureDescriptor;
 
 use bevy::render::render_resource::binding_types as binding;
 
