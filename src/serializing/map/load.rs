@@ -14,15 +14,16 @@ use serde::de::DeserializeOwned;
 
 use crate::{
     render::material::TilemapMaterial,
-    serializing::load_object,
+    serializing::{
+        load_object,
+        map::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES},
+    },
     tilemap::{
         chunking::storage::{ChunkedStorage, TileBuilderChunkedStorage},
         map::{TilemapStorage, TilemapTexture, TilemapTextures},
         tile::Tile,
     },
 };
-
-use super::{SerializedTilemap, TilemapLayer, TILEMAP_META, TILES};
 
 #[cfg(feature = "algorithm")]
 use crate::{

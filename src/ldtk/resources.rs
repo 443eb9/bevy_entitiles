@@ -19,18 +19,17 @@ use bevy::{
 };
 
 use crate::{
+    ldtk::{
+        components::{EntityIid, LayerIid},
+        json::{definitions::EntityDef, EntityRef, LdtkJson, TocInstance},
+        sprite::{AtlasRect, LdtkEntityMaterial},
+        LdtkLoader, LdtkLoaderMode, LdtkUnloader,
+    },
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
         map::{TilemapTexture, TilemapTextureDescriptor},
         tile::RawTileAnimation,
     },
-};
-
-use super::{
-    components::{EntityIid, LayerIid},
-    json::{definitions::EntityDef, EntityRef, LdtkJson, TocInstance},
-    sprite::{AtlasRect, LdtkEntityMaterial},
-    LdtkLoader, LdtkLoaderMode, LdtkUnloader,
 };
 
 /// All the patterns loaded from the LDtk file.

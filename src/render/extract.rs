@@ -12,6 +12,12 @@ use bevy::{
 
 use crate::{
     math::CameraAabb2d,
+    render::{
+        chunk::{ChunkUnload, RenderChunkSort, UnloadRenderChunk},
+        cull::FrustumCulling,
+        material::TilemapMaterial,
+        resources::{ExtractedTilemapMaterials, TilemapInstances},
+    },
     tilemap::{
         despawn::{DespawnedTile, DespawnedTilemap},
         map::{
@@ -21,13 +27,6 @@ use crate::{
         },
         tile::Tile,
     },
-};
-
-use super::{
-    chunk::{ChunkUnload, RenderChunkSort, UnloadRenderChunk},
-    cull::FrustumCulling,
-    material::TilemapMaterial,
-    resources::{ExtractedTilemapMaterials, TilemapInstances},
 };
 
 #[derive(Component, Debug)]

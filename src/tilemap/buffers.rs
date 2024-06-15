@@ -2,9 +2,10 @@ use std::fmt::Debug;
 
 use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
 
-use crate::math::aabb::IAabb2d;
-
-use super::tile::{Tile, TileBuilder};
+use crate::{
+    math::aabb::IAabb2d,
+    tilemap::tile::{Tile, TileBuilder},
+};
 
 /// A marker trait
 pub trait Tiles: Debug + Clone + Reflect {}
@@ -58,7 +59,7 @@ impl<T: Tiles> TileBuffer<T> {
     }
 
     /// Recalculate the aabb of this tile buffer.
-    /// 
+    ///
     /// This method can be expensive when the tile buffer is large.
     pub fn recalculate_aabb(&mut self) {
         self.aabb = IAabb2d::default();

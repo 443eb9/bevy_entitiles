@@ -3,7 +3,7 @@ use bevy::{
     ecs::{entity::EntityHashMap, system::Resource},
 };
 
-use super::{extract::ExtractedTilemap, material::TilemapMaterial};
+use crate::render::{extract::ExtractedTilemap, material::TilemapMaterial};
 
 #[derive(Resource)]
 pub struct TilemapInstances<M: TilemapMaterial>(pub EntityHashMap<ExtractedTilemap<M>>);

@@ -10,11 +10,14 @@ use bevy_xpbd_2d::{
     plugins::collision::Collider,
 };
 
-use crate::math::{aabb::IAabb2d, TileArea};
-
-use super::{
-    buffers::{PackedPhysicsTileBuffer, PhysicsTileBuffer, Tiles},
-    chunking::storage::{ChunkedStorage, EntityChunkedStorage, PackedPhysicsTileChunkedStorage},
+use crate::{
+    math::{aabb::IAabb2d, TileArea},
+    tilemap::{
+        buffers::{PackedPhysicsTileBuffer, PhysicsTileBuffer, Tiles},
+        chunking::storage::{
+            ChunkedStorage, EntityChunkedStorage, PackedPhysicsTileChunkedStorage,
+        },
+    },
 };
 
 pub mod systems;

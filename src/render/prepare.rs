@@ -10,23 +10,24 @@ use bevy::{
     time::Time,
 };
 
-use crate::tilemap::{
-    despawn::{DespawnedTile, DespawnedTilemap},
-    map::TilemapTextures,
-};
-
-use super::{
-    binding::TilemapBindGroups,
-    buffer::{
-        PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
+use crate::{
+    render::{
+        binding::TilemapBindGroups,
+        buffer::{
+            PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
+        },
+        chunk::{RenderChunkSort, UnloadRenderChunk},
+        extract::{ExtractedTile, TilemapInstance},
+        material::TilemapMaterial,
+        pipeline::EntiTilesPipeline,
+        resources::{ExtractedTilemapMaterials, TilemapInstances},
+        texture::TilemapTexturesStorage,
+        RenderChunkStorage,
     },
-    chunk::{RenderChunkSort, UnloadRenderChunk},
-    extract::{ExtractedTile, TilemapInstance},
-    material::TilemapMaterial,
-    pipeline::EntiTilesPipeline,
-    resources::{ExtractedTilemapMaterials, TilemapInstances},
-    texture::TilemapTexturesStorage,
-    RenderChunkStorage,
+    tilemap::{
+        despawn::{DespawnedTile, DespawnedTilemap},
+        map::TilemapTextures,
+    },
 };
 
 #[cfg(feature = "atlas")]

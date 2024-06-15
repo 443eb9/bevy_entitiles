@@ -1,10 +1,15 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use bevy::{math::{IVec2, UVec2}, prelude::Vec2, reflect::Reflect, render::render_resource::ShaderType};
+use bevy::{
+    math::{IVec2, UVec2, Vec2},
+    reflect::Reflect,
+    render::render_resource::ShaderType,
+};
 
-use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
-
-use super::{extension::Vec2Integerize, TileArea};
+use crate::{
+    math::{extension::Vec2Integerize, TileArea},
+    tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType},
+};
 
 macro_rules! declare_aabb {
     ($aabb_ty: ident, $data_ty: ty) => {

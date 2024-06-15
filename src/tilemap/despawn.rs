@@ -8,7 +8,7 @@ use bevy::{
     math::IVec2,
 };
 
-use super::{map::TilemapStorage, tile::Tile};
+use crate::tilemap::{map::TilemapStorage, tile::Tile};
 
 /// Marks an tilemap/tile/physics_tilemap to be despawned.
 #[derive(Component)]

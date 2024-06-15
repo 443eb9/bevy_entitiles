@@ -18,17 +18,16 @@ use rayon::iter::ParallelIterator;
 
 use crate::{
     math::{aabb::Aabb2d, extension::DivToFloor},
+    render::{
+        extract::{ExtractedTile, ExtractedTilemap},
+        material::TilemapMaterial,
+        TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
+    },
     tilemap::{
         map::{TilemapTextures, TilemapType},
         tile::{Tile, TileTexture},
     },
     MAX_LAYER_COUNT,
-};
-
-use super::{
-    extract::{ExtractedTile, ExtractedTilemap},
-    material::TilemapMaterial,
-    TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
 };
 
 #[cfg(feature = "atlas")]

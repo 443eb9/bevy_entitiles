@@ -6,7 +6,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use super::{
+use crate::ldtk::{
     json::{field::FieldInstance, level::EntityInstance},
     resources::LdtkAssets,
 };

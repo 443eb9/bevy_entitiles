@@ -14,7 +14,7 @@ use bevy::{
 
 use crate::{
     math::extension::ChunkIndex,
-    serializing::{load_object, map::TilemapLayer},
+    serializing::{chunk::TILE_CHUNKS_FOLDER, load_object, map::TilemapLayer},
     tilemap::{
         buffers::TileBuilderBuffer,
         map::{TilemapName, TilemapStorage},
@@ -22,21 +22,17 @@ use crate::{
     },
 };
 
-use super::TILE_CHUNKS_FOLDER;
-
 #[cfg(feature = "algorithm")]
 use crate::{
     algorithm::pathfinding::PathTilemaps, serializing::chunk::PATH_TILE_CHUNKS_FOLDER,
     tilemap::buffers::PathTileBuffer,
 };
+
 #[cfg(feature = "physics")]
 use crate::{
     serializing::chunk::PHYSICS_TILE_CHUNKS_FOLDER,
     tilemap::{buffers::PackedPhysicsTileBuffer, physics::PhysicsTilemap},
 };
-
-#[cfg(any(feature = "algorithm", feature = "physics"))]
-use bevy::log::error;
 
 #[derive(Component)]
 pub struct ScheduledLoadChunks;
@@ -181,12 +177,12 @@ pub fn load_path_layer(
 
             #[cfg(feature = "multi-threaded")]
             let Some(path_tilemap) = path_tilemaps.lock(entity) else {
-                error!("PathTilemap not found for entity: {:?}, skipping.", entity);
+                bevy::log::error!("PathTilemap not found for entity: {:?}, skipping.", entity);
                 return;
             };
             #[cfg(not(feature = "multi-threaded"))]
             let Some(path_tilemap) = path_tilemaps.get(entity) else {
-                error!("PathTilemap not found for entity: {:?}, skipping.", entity);
+                bevy::log::error!("PathTilemap not found for entity: {:?}, skipping.", entity);
                 return;
             };
 

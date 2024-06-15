@@ -1,4 +1,4 @@
-use super::TiledColor;
+use crate::tiled::xml::TiledColor;
 
 pub(crate) fn default_onef() -> f32 {
     1.

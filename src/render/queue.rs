@@ -13,16 +13,17 @@ use bevy::{
     utils::FloatOrd,
 };
 
-use crate::tilemap::map::TilemapTextures;
-
-use super::{
-    binding::{TilemapBindGroups, TilemapViewBindGroup},
-    draw::{DrawTilemapNonTextured, DrawTilemapTextured},
-    extract::TilemapInstance,
-    material::TilemapMaterial,
-    pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
-    resources::TilemapInstances,
-    texture::TilemapTexturesStorage,
+use crate::{
+    render::{
+        binding::{TilemapBindGroups, TilemapViewBindGroup},
+        draw::{DrawTilemapNonTextured, DrawTilemapTextured},
+        extract::TilemapInstance,
+        material::TilemapMaterial,
+        pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
+        resources::TilemapInstances,
+        texture::TilemapTexturesStorage,
+    },
+    tilemap::map::TilemapTextures,
 };
 
 pub fn queue<M: TilemapMaterial>(

@@ -1,6 +1,6 @@
 use bevy::math::{IVec2, UVec2, Vec2};
 
-use super::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
+use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 /// Get the world position of the pivot of a slot.
 pub fn index_to_world(

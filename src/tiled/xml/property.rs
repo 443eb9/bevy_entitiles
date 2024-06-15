@@ -4,7 +4,7 @@ use serde::{
     Deserialize, Serialize,
 };
 
-use super::TiledColor;
+use crate::tiled::xml::TiledColor;
 
 #[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize)]
 pub struct Components {

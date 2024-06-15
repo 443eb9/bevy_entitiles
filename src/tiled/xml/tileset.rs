@@ -1,6 +1,7 @@
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
-use super::property::Components;
+
+use crate::tiled::xml::property::Components;
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

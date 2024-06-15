@@ -7,7 +7,7 @@ use bevy::{
     },
 };
 
-use self::{
+use crate::serializing::chunk::{
     load::{ChunkLoadCache, ChunkLoadConfig, ScheduledLoadChunks},
     save::{ChunkSaveCache, ChunkSaveConfig, ScheduledSaveChunks},
 };

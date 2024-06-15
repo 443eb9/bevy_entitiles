@@ -4,12 +4,13 @@ use bevy::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::ldtk::resources::LdtkAssets;
-
-use super::{
-    definitions::{LayerType, TilesetRect},
-    field::FieldInstance,
-    LdtkColor,
+use crate::ldtk::{
+    json::{
+        definitions::{LayerType, TilesetRect},
+        field::FieldInstance,
+        LdtkColor,
+    },
+    resources::LdtkAssets,
 };
 
 /*
@@ -124,7 +125,7 @@ pub struct Neighbour {
     /// `<` (neighbour depth is lower),
     /// `>` (neighbour depth is greater)
     /// or `o` (levels overlap and share the same world depth).
-    /// 
+    ///
     /// Since 1.5.3, this value can also be `nw`,`ne`,`sw` or `se` for levels
     /// only touching corners.
     pub dir: NeighbourDirection,
@@ -246,7 +247,7 @@ pub struct LayerInstance {
     /// which contains the total offset value
     pub px_offset_x: i32,
 
-    /// Y offset in pixels to render this layer, usually 0 
+    /// Y offset in pixels to render this layer, usually 0
     /// ## IMPORTANT:
     /// this should be added to the `LayerDef` optional offset,
     /// so you should probably prefer using `__pxTotalOffsetX`

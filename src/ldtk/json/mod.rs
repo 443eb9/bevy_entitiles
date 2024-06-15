@@ -1,7 +1,7 @@
 use bevy::{math::Vec4, reflect::Reflect, render::color::Color, utils::HashMap};
 use serde::{de::Visitor, Deserialize, Serialize};
 
-use self::{definitions::Definitions, level::Level};
+use crate::ldtk::json::{definitions::Definitions, level::Level};
 
 pub mod definitions;
 pub mod field;

@@ -6,7 +6,7 @@ use bevy::{
     utils::HashMap,
 };
 
-use super::{
+use crate::tiled::{
     resources::{TiledAssets, TiledCustomTileInstance},
     xml::{layer::TiledObjectInstance, property::ClassInstance},
 };
