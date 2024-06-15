@@ -18,10 +18,7 @@ use rand::{
 };
 
 use crate::{
-    algorithm::pathfinding::PathTilemaps,
-    math::{extension::TileIndex, TileArea},
-    serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
-    tilemap::{
+    algorithm::pathfinding::PathTilemaps, math::{extension::TileIndex, TileArea}, render::material::StandardTilemapMaterial, serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern}, tilemap::{
         algorithm::path::PathTilemap,
         bundles::StandardPureColorTilemapBundle,
         map::{
@@ -29,8 +26,7 @@ use crate::{
             TilemapTexture, TilemapTextures, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
-    },
-    DEFAULT_CHUNK_SIZE,
+    }, DEFAULT_CHUNK_SIZE
 };
 
 #[cfg(feature = "physics")]
@@ -723,6 +719,7 @@ pub fn wfc_applier(
     )>,
     mut path_tilemaps: ResMut<PathTilemaps>,
     mut textures_assets: ResMut<Assets<TilemapTextures>>,
+    mut materials: ResMut<Assets<StandardTilemapMaterial>>,
     #[cfg(feature = "physics")] mut physics_tilemaps_query: Query<
         &mut crate::tilemap::physics::PhysicsTilemap,
     >,
@@ -804,6 +801,7 @@ pub fn wfc_applier(
                             name: TilemapName(layer.label.clone().unwrap()),
                             ty: TilemapType::Square,
                             storage: TilemapStorage::new(DEFAULT_CHUNK_SIZE, layer_entity),
+                            material: materials.add(StandardTilemapMaterial::default()),
                             ..Default::default()
                         };
 

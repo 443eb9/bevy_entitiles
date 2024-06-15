@@ -82,6 +82,7 @@ impl Plugin for EntiTilesRendererPlugin {
                 .after(bevy::render::view::check_visibility),
         )
         .init_resource::<FrustumCulling>()
+        .init_resource::<RenderChunkSort>()
         .register_type::<UnloadRenderChunk>()
         .add_event::<ChunkUnload>()
         .add_plugins(RenderAssetPlugin::<TilemapTextures, ()>::default());
