@@ -1,14 +1,14 @@
 use bevy::math::Vec2;
 
-use crate::math::aabb::Aabb2d;
-
 // TODO adapt this to all kinds of quads
 /// **WARNING** This method is not suitable for all cases. It should only be used for quads in LDtk.
-pub fn clip_quad_mesh(vertices: &mut Vec<Vec2>, uvs: &mut Vec<Vec2>, valid_rect: Aabb2d) {
+/// 
+/// `valid_rect`: [min, max]`
+pub fn clip_quad_mesh(vertices: &mut Vec<Vec2>, uvs: &mut Vec<Vec2>, valid_rect: [Vec2; 2]) {
     let size = vertices[2] - vertices[0];
     vertices
         .iter_mut()
-        .for_each(|v| *v = v.clamp(valid_rect.min, valid_rect.max));
+        .for_each(|v| *v = v.clamp(valid_rect[0], valid_rect[1]));
     let clipped_size = vertices[2] - vertices[0];
     let clipped_ratio = clipped_size / size;
     let uv_size_clipped = (uvs[2] - uvs[0]) * clipped_ratio;

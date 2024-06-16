@@ -66,7 +66,7 @@ debug = ["bevy/bevy_gizmos"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 multi-threaded = ["bevy/multi_threaded"]
 physics = ["dep:bevy_xpbd_2d"]
-serializing = ["dep:ron", "dep:serde"]
+serializing = ["dep:ron", "dep:serde", "bevy/serialize"]
 tiled = ["dep:serde", "dep:quick-xml", "dep:bevy_entitiles_derive", "atlas"]
 
 [[example]]

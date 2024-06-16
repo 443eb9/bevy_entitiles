@@ -7,7 +7,7 @@ use bevy::{
         system::{Commands, Query, Res},
     },
     log::warn,
-    math::{IVec2, UVec2, Vec2, Vec4, Vec4Swizzles},
+    math::{IRect, IVec2, UVec2, Vec2, Vec4, Vec4Swizzles},
     reflect::Reflect,
     render::{
         render_asset::RenderAssetUsages,
@@ -17,7 +17,6 @@ use bevy::{
 };
 
 use crate::{
-    math::aabb::IAabb2d,
     tilemap::{
         map::{
             TileRenderSize, TilemapLayerOpacities, TilemapSlotSize, TilemapStorage, TilemapTexture,
@@ -65,7 +64,7 @@ pub fn tilemap_baker(
         &mut tilemaps_query
     {
         let chunk_size = storage.storage.chunk_size as i32;
-        let mut tilemap_aabb = IAabb2d::default();
+        let mut tilemap_aabb = IRect::default();
 
         let tiles = storage
             .storage
@@ -92,7 +91,7 @@ pub fn tilemap_baker(
                     return None;
                 };
 
-                tilemap_aabb.expand_to_contain(tile_index);
+                tilemap_aabb = tilemap_aabb.union_point(tile_index);
                 Some((tile_index, tile))
             })
             .collect::<Vec<_>>();
@@ -230,7 +229,7 @@ fn set_tile_tint(
     bake_target: &mut Vec<u8>,
     tint: LinearRgba,
 ) {
-    let tint= tint.to_vec4();
+    let tint = tint.to_vec4();
 
     for y in 0..tile_size.y {
         for x in 0..tile_size.x {

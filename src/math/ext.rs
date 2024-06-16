@@ -1,9 +1,9 @@
 use bevy::{
-    math::IVec2,
+    math::{IRect, IVec2, Rect, URect},
     prelude::{UVec2, Vec2},
 };
 
-use crate::tilemap::map::TilemapType;
+use crate::tilemap::map::{TilemapAxisFlip, TilemapTransform, TilemapType};
 
 pub trait F32Integerize {
     fn round_to_i32(self) -> i32;
@@ -277,6 +277,142 @@ impl ChunkIndex for IVec2 {
         format!("{}_{}", self.x, self.y)
     }
 }
+
+pub trait RectFromTilemap {
+    fn from_tilemap(
+        chunk_index: IVec2,
+        chunk_size: u32,
+        ty: TilemapType,
+        tile_pivot: Vec2,
+        axis_flip: TilemapAxisFlip,
+        slot_size: Vec2,
+        transform: TilemapTransform,
+    ) -> Rect;
+}
+
+impl RectFromTilemap for Rect {
+    fn from_tilemap(
+        chunk_index: IVec2,
+        chunk_size: u32,
+        ty: TilemapType,
+        tile_pivot: Vec2,
+        axis_flip: TilemapAxisFlip,
+        slot_size: Vec2,
+        transform: TilemapTransform,
+    ) -> Rect {
+        let pivot_offset = tile_pivot * slot_size;
+        let chunk_index = chunk_index.as_vec2();
+        let axis = axis_flip.as_vec2();
+        let flipped = (axis - 1.) / 2.;
+        let chunk_size = chunk_size as f32;
+
+        transform.transform_rect(match ty {
+            TilemapType::Square => {
+                let chunk_render_size = slot_size * chunk_size;
+                Rect::from_corners(
+                    (chunk_index * chunk_render_size - pivot_offset) * axis,
+                    ((chunk_index + 1.) * chunk_render_size - pivot_offset) * axis,
+                )
+            }
+            TilemapType::Isometric => {
+                let chunk_index = chunk_index * axis;
+                let half_chunk_render_size = chunk_size * slot_size / 2.;
+                let center_x = (chunk_index.x - chunk_index.y) * half_chunk_render_size.x;
+                let center_y = (chunk_index.x + chunk_index.y + 1.) * half_chunk_render_size.y;
+
+                let flip_offset = Vec2 {
+                    x: if axis_flip.is_all() {
+                        0.5
+                    } else {
+                        flipped.x * (chunk_size / 2. - 1.) - flipped.y * chunk_size / 2.
+                    },
+                    y: (flipped.x + flipped.y) * chunk_size / 2.,
+                } * slot_size;
+
+                let center = Vec2 {
+                    x: center_x,
+                    y: center_y,
+                } - pivot_offset
+                    + flip_offset;
+
+                Rect::from_corners(
+                    center - half_chunk_render_size,
+                    center + half_chunk_render_size,
+                )
+            }
+            TilemapType::Hexagonal(c) => {
+                /*
+                 * MATHEMATICAL MAGIC!!!!!!!
+                 */
+                let Vec2 { x: a, y: b } = slot_size;
+                let c = c as f32;
+                let Vec2 { x, y } = chunk_index * axis;
+                let n = chunk_size;
+
+                let min = Vec2 {
+                    x: a * n * (x - y / 2.) - (n / 2. - 0.5) * a,
+                    y: (b + c) / 2. * y * n,
+                };
+                let max = Vec2 {
+                    x: a * n * (x - y / 2. + 1.),
+                    y: (b + c) / 2. * (y * n + n) - c / 2. + b / 2.,
+                };
+
+                let flip_offset = Vec2 {
+                    x: ((flipped.x - flipped.y / 2.) * (chunk_size - 1.)) * a,
+                    y: (b + c) / 2. * flipped.y * (chunk_size - 1.),
+                } - (1. - axis) / 2. * slot_size;
+
+                Rect::from_corners(
+                    min - pivot_offset + flip_offset,
+                    max - pivot_offset + flip_offset,
+                )
+            }
+        })
+    }
+}
+
+pub trait RectTransformation<T> {
+    fn with_translation(self, x: T) -> Self;
+    fn translate(&mut self, x: T);
+    fn with_scale(self, x: T, pivot: T) -> Self;
+    fn scale(&mut self, x: T, pivot: T);
+}
+
+macro_rules! impl_rect_transformation {
+    ($rect_ty: ident, $data_ty: ident) => {
+        impl RectTransformation<$data_ty> for $rect_ty {
+            #[inline]
+            fn with_translation(mut self, x: $data_ty) -> Self {
+                self.translate(x);
+                self
+            }
+
+            #[inline]
+            fn translate(&mut self, x: $data_ty) {
+                self.min += x;
+                self.max += x;
+            }
+
+            #[inline]
+            fn with_scale(mut self, x: $data_ty, pivot: $data_ty) -> Self {
+                self.scale(x, pivot);
+                self
+            }
+
+            #[inline]
+            fn scale(&mut self, x: $data_ty, pivot: $data_ty) {
+                let offset = pivot * (self.size() * ($data_ty::ONE - x));
+                self.min += offset;
+                self.max += offset;
+            }
+        }
+    };
+}
+
+impl_rect_transformation!(Rect, Vec2);
+impl_rect_transformation!(IRect, IVec2);
+impl_rect_transformation!(URect, UVec2);
 
 #[cfg(test)]
 mod test {

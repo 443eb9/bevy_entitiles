@@ -10,7 +10,7 @@ use bevy::{
         system::{Commands, Resource},
     },
     log::{error, warn},
-    math::{UVec2, Vec2, Vec4},
+    math::{Rect, UVec2, Vec2, Vec4},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
@@ -21,7 +21,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{aabb::Aabb2d, extension::F32Integerize},
+    math::ext::F32Integerize,
     tiled::{
         components::{TiledLoader, TiledUnloader},
         sprite::{SpriteUniform, TiledSpriteMaterial},
@@ -498,10 +498,7 @@ impl TiledAssets {
                         material_assets.add(TiledSpriteMaterial {
                             image: image.clone(),
                             data: SpriteUniform {
-                                atlas: Aabb2d {
-                                    min: Vec2::ZERO,
-                                    max: Vec2::ONE,
-                                },
+                                atlas: [Vec2::ZERO, Vec2::ONE],
                                 tint: Vec4::new(
                                     layer.tint.r,
                                     layer.tint.g,
@@ -544,7 +541,7 @@ impl TiledAssets {
                     }
                     _ => Vec2::ZERO,
                 };
-                let map_area = Aabb2d {
+                let map_area = Rect {
                     min: Vec2::new(map_origin.x, map_origin.y - map_size.y),
                     max: Vec2::new(map_origin.x + map_size.x, map_origin.y - map_origin.y),
                 };
@@ -755,12 +752,13 @@ impl TiledAssets {
                 let gid = object.gid.unwrap() & 0x3FFF_FFFF;
                 let (tileset, meta) = &self.get_tileset(gid, &map.name);
                 // TODO support animation and flipping
+                let aabb = tileset.texture.get_atlas_rect(gid - meta.first_gid);
                 (
                     object.id,
                     material_assets.add(TiledSpriteMaterial {
                         image: tileset.texture.texture.clone(),
                         data: SpriteUniform {
-                            atlas: tileset.texture.get_atlas_rect(gid - meta.first_gid),
+                            atlas: [aabb.min, aabb.max],
                             tint: (*tint).into(),
                         },
                     }),

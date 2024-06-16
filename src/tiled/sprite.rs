@@ -1,6 +1,6 @@
 use bevy::{
     asset::{Asset, Handle},
-    math::Vec4,
+    math::{Vec2, Vec4},
     reflect::Reflect,
     render::{
         render_resource::{AsBindGroup, ShaderType},
@@ -9,11 +9,12 @@ use bevy::{
     sprite::Material2d,
 };
 
-use crate::{math::aabb::Aabb2d, tiled::TILED_SPRITE_SHADER};
+use crate::tiled::TILED_SPRITE_SHADER;
 
 #[derive(ShaderType, Debug, Clone, Reflect)]
 pub struct SpriteUniform {
-    pub atlas: Aabb2d,
+    /// min max
+    pub atlas: [Vec2; 2],
     pub tint: Vec4,
 }
 

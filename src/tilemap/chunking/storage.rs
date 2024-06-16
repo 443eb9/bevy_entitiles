@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use bevy::{ecs::entity::Entity, math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{
-    math::extension::DivToFloor,
+    math::ext::DivToFloor,
     tilemap::tile::{Tile, TileBuilder},
     DEFAULT_CHUNK_SIZE,
 };

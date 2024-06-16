@@ -6,17 +6,16 @@ use bevy::{
         query::{Added, Changed, Or},
         system::{Commands, Query},
     },
-    math::{IVec2, Vec3Swizzles},
+    math::{IRect, IVec2, Rect, Vec2, Vec3Swizzles},
     prelude::UVec2,
     reflect::Reflect,
     render::camera::{Camera, OrthographicProjection},
     transform::components::Transform,
 };
 
-use crate::math::aabb::{Aabb2d, IAabb2d};
+use crate::math::ext::RectTransformation;
 
-pub mod aabb;
-pub mod extension;
+pub mod ext;
 
 pub struct EntiTilesMathPlugin;
 
@@ -24,14 +23,13 @@ impl Plugin for EntiTilesMathPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, (camera_aabb_adder, camera_aabb_updater));
 
-        app.register_type::<Aabb2d>()
-            .register_type::<TileArea>()
+        app.register_type::<TileArea>()
             .register_type::<CameraAabb2d>();
     }
 }
 
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
-pub struct CameraAabb2d(pub Aabb2d);
+pub struct CameraAabb2d(pub Rect);
 
 pub fn camera_aabb_adder(mut commands: Commands, cameras_query: Query<Entity, Added<Camera>>) {
     cameras_query.iter().for_each(|e| {
@@ -56,16 +54,16 @@ pub fn camera_aabb_updater(
     cameras_query.iter_mut().for_each(|(entity, proj, trans)| {
         #[cfg(feature = "debug")]
         commands.entity(entity).insert(CameraAabb2d(
-            Aabb2d {
+            Rect {
                 min: proj.area.min,
                 max: proj.area.max,
             }
             .with_translation(trans.translation.xy())
-            .with_scale(camera_aabb_scale.0, bevy::math::Vec2::splat(0.5)),
+            .with_scale(camera_aabb_scale.0, Vec2::splat(0.5)),
         ));
         #[cfg(not(feature = "debug"))]
         commands.entity(entity).insert(CameraAabb2d(
-            Aabb2d {
+            Rect {
                 min: proj.area.min,
                 max: proj.area.max,
             }
@@ -107,8 +105,8 @@ impl TileArea {
     }
 
     #[inline]
-    pub fn aabb(&self) -> IAabb2d {
-        IAabb2d {
+    pub fn rect(&self) -> IRect {
+        IRect {
             min: self.origin,
             max: self.dest,
         }

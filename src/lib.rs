@@ -34,7 +34,7 @@ pub mod prelude {
     };
     #[cfg(feature = "ldtk")]
     pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager};
-    pub use crate::math::{aabb::Aabb2d, TileArea};
+    pub use crate::math::TileArea;
     #[cfg(feature = "serializing")]
     pub use crate::serializing::{
         chunk::{

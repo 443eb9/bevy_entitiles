@@ -1,18 +1,24 @@
 use std::{cmp::Ordering, marker::PhantomData};
 
 use bevy::{
-    asset::Handle, color::ColorToComponents, ecs::{component::Component, entity::EntityHashMap, event::Event}, math::{IVec2, IVec4}, prelude::{Entity, Mesh, Resource, Vec3, Vec4}, reflect::Reflect, render::{
+    asset::Handle,
+    color::ColorToComponents,
+    ecs::{component::Component, entity::EntityHashMap, event::Event},
+    math::{IVec2, IVec4, Rect},
+    prelude::{Entity, Mesh, Resource, Vec3, Vec4},
+    reflect::Reflect,
+    render::{
         mesh::{BaseMeshPipelineKey, GpuBufferInfo, GpuMesh, Indices, MeshVertexBufferLayouts},
         render_asset::RenderAssetUsages,
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
-    }
+    },
 };
 use indexmap::{map::Entry, IndexMap};
 use rayon::iter::ParallelIterator;
 
 use crate::{
-    math::{aabb::Aabb2d, extension::DivToFloor},
+    math::ext::{DivToFloor, RectFromTilemap},
     render::{
         extract::{ExtractedTile, ExtractedTilemap},
         material::TilemapMaterial,
@@ -75,7 +81,7 @@ pub struct TilemapRenderChunk<M: TilemapMaterial> {
     pub tiles: Vec<Option<MeshTileData>>,
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
-    pub aabb: Aabb2d,
+    pub aabb: Rect,
     pub marker: PhantomData<M>,
 }
 
@@ -94,7 +100,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             ),
             gpu_mesh: None,
             dirty_mesh: true,
-            aabb: Aabb2d::from_tilemap(
+            aabb: Rect::from_tilemap(
                 index,
                 tilemap.chunk_size,
                 tilemap.ty,

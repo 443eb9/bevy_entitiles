@@ -6,7 +6,7 @@ use bevy::{
         entity::Entity,
         system::{Commands, EntityCommands},
     },
-    math::{IVec2, Vec2},
+    math::{IRect, IVec2, Vec2},
     prelude::SpatialBundle,
     sprite::SpriteBundle,
     transform::components::Transform,
@@ -24,7 +24,6 @@ use crate::{
         traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
         LdtkLoaderMode,
     },
-    math::aabb::IAabb2d,
     render::material::StandardTilemapMaterial,
     serializing::pattern::TilemapPattern,
     tilemap::{
@@ -234,7 +233,7 @@ impl LdtkLayers {
             return;
         }
 
-        let aabb = IAabb2d {
+        let aabb = IRect {
             min: IVec2::new(0, -layer.c_hei + 1),
             max: IVec2::new(layer.c_wid - 1, 0),
         };

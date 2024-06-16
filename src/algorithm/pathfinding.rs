@@ -12,7 +12,7 @@ use bevy::{
 };
 
 use crate::{
-    math::extension::{ManhattanDistance, TileIndex},
+    math::ext::{ManhattanDistance, TileIndex},
     tilemap::{algorithm::path::PathTilemap, map::TilemapType},
 };
 

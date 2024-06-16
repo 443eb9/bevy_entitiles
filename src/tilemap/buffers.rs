@@ -1,11 +1,12 @@
 use std::fmt::Debug;
 
-use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
-
-use crate::{
-    math::aabb::IAabb2d,
-    tilemap::tile::{Tile, TileBuilder},
+use bevy::{
+    math::{IRect, IVec2},
+    reflect::Reflect,
+    utils::HashMap,
 };
+
+use crate::tilemap::tile::{Tile, TileBuilder};
 
 /// A marker trait
 pub trait Tiles: Debug + Clone + Reflect {}
@@ -24,14 +25,14 @@ pub type PackedPhysicsTileBuffer = TileBuffer<super::physics::PackedPhysicsTile>
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuffer<T: Tiles> {
     pub(crate) tiles: HashMap<IVec2, T>,
-    pub(crate) aabb: IAabb2d,
+    pub(crate) aabb: IRect,
 }
 
 impl<T: Tiles> TileBuffer<T> {
     pub fn new() -> Self {
         Self {
             tiles: HashMap::new(),
-            aabb: IAabb2d::default(),
+            aabb: IRect::default(),
         }
     }
 
@@ -39,13 +40,13 @@ impl<T: Tiles> TileBuffer<T> {
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: T) {
         self.tiles.insert(index, tile);
-        self.aabb.expand_to_contain(index);
+        self.aabb.union_point(index);
     }
 
     /// Warning: this method will cause aabb to be recalculated.
     pub fn remove(&mut self, index: IVec2) {
         self.tiles.remove(&index);
-        self.recalculate_aabb();
+        self.recalculate_rect();
     }
 
     #[inline]
@@ -61,10 +62,10 @@ impl<T: Tiles> TileBuffer<T> {
     /// Recalculate the aabb of this tile buffer.
     ///
     /// This method can be expensive when the tile buffer is large.
-    pub fn recalculate_aabb(&mut self) {
-        self.aabb = IAabb2d::default();
+    pub fn recalculate_rect(&mut self) {
+        self.aabb = IRect::default();
         for (index, _) in self.tiles.iter() {
-            self.aabb.expand_to_contain(*index);
+            self.aabb = self.aabb.union_point(*index);
         }
     }
 
@@ -74,7 +75,7 @@ impl<T: Tiles> TileBuffer<T> {
     }
 
     #[inline]
-    pub fn aabb(&self) -> IAabb2d {
+    pub fn aabb(&self) -> IRect {
         self.aabb
     }
 }

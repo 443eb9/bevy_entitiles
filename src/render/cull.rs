@@ -34,7 +34,7 @@ pub fn cull_tilemaps(
 
     cameras.iter().for_each(|camera| {
         tilemaps.par_iter_mut().for_each(|(aabbs, mut visibility)| {
-            if aabbs.world_aabb.is_intersected(camera.0) {
+            if !aabbs.world_aabb.intersect(camera.0).is_empty() {
                 visibility.set();
             }
         });
@@ -68,7 +68,7 @@ pub fn cull_chunks<M: TilemapMaterial>(
                 .value
                 .values_mut()
                 .for_each(|c| {
-                    if c.aabb.is_intersected(cam_aabb.0) {
+                    if !c.aabb.intersect(cam_aabb.0).is_empty() {
                         c.visible = true;
                     }
                 });

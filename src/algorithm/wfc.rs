@@ -18,7 +18,7 @@ use rand::{
 };
 
 use crate::{
-    algorithm::pathfinding::PathTilemaps, math::{extension::TileIndex, TileArea}, render::material::StandardTilemapMaterial, serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern}, tilemap::{
+    algorithm::pathfinding::PathTilemaps, math::{ext::TileIndex, TileArea}, render::material::StandardTilemapMaterial, serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern}, tilemap::{
         algorithm::path::PathTilemap,
         bundles::StandardPureColorTilemapBundle,
         map::{
