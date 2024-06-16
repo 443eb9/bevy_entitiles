@@ -23,7 +23,7 @@ bevy = { version = "0.14.0-rc", default-features = false, features = [
     "png",
 ] }
 bevy_entitiles_derive = { version = "0.5", optional = true, path = "macros" }
-# bevy_xpbd_2d = { git = "https://github.com/Jondolf/bevy_xpbd.git", rev = "4063a05", optional = true }
+bevy_xpbd_2d = { git = "https://github.com/Jondolf/bevy_xpbd.git", branch = "bevy-0.14", optional = true }
 bitflags = "2"
 futures-lite = { version = "2", optional = true }
 hashbrown = { version = "0.14", features = ["rayon"] }
@@ -65,7 +65,7 @@ baking = ["atlas"]
 debug = ["bevy/bevy_gizmos"]
 ldtk = ["serializing", "dep:serde_json", "dep:bevy_entitiles_derive"]
 multi-threaded = ["bevy/multi_threaded"]
-# physics = ["dep:bevy_xpbd_2d"]
+physics = ["dep:bevy_xpbd_2d"]
 serializing = ["dep:ron", "dep:serde"]
 tiled = ["dep:serde", "dep:quick-xml", "dep:bevy_entitiles_derive", "atlas"]
 
