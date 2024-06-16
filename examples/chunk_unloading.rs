@@ -75,7 +75,7 @@ fn main() {
         .insert_resource(FrustumCulling(false))
         // Scale the camera aabb or it will be hard to see the chunk while disappearing/appearing.
         .insert_resource(CameraAabbScale(Vec2::splat(0.3)))
-        .insert_gizmo_group(PhysicsGizmos::all(), GizmoConfig::default())
+        .insert_gizmo_config(PhysicsGizmos::all(), GizmoConfig::default())
         .run();
 }
 

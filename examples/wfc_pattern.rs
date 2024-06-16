@@ -1,13 +1,13 @@
 use bevy::{
     app::{App, Startup},
     asset::Assets,
+    color::LinearRgba,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         entity::Entity,
         system::{Commands, ResMut},
     },
     math::{IVec2, UVec2, Vec2},
-    render::color::Color,
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -86,7 +86,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMat
                         },
                         TileBuilder::new()
                             .with_layer(0, TileLayer::no_flip(0))
-                            .with_tint(Color::rgba_linear(
+                            .with_tint(LinearRgba::new(
                                 pixel[0] as f32 / 255.,
                                 pixel[1] as f32 / 255.,
                                 pixel[2] as f32 / 255.,
@@ -114,6 +114,9 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMat
     // If you are running this example for the first time,
     // you need to comment the code below and run it once.
     // So the patterns are generated and saved to disk.
+    bevy::log::info!("=============================");
+    bevy::log::info!("Program panicked? Look here!!");
+    bevy::log::info!("=============================");
 
     let entity = commands.spawn_empty().id();
 

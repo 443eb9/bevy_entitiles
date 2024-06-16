@@ -6,7 +6,7 @@ use bevy::{
         render_asset::RenderAssets,
         render_resource::{BindGroup, BindGroupEntries, BindGroupLayout},
         renderer::RenderDevice,
-        texture::{FallbackImage, Image},
+        texture::{FallbackImage, GpuImage},
     },
     utils::HashMap,
 };
@@ -119,7 +119,7 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
         &mut self,
         layout: &BindGroupLayout,
         render_device: &RenderDevice,
-        images: &RenderAssets<Image>,
+        images: &RenderAssets<GpuImage>,
         fallback_image: &FallbackImage,
         extracted_materials: &ExtractedTilemapMaterials<M>,
     ) {

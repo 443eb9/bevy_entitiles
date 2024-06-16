@@ -5,7 +5,7 @@ use bevy::{
     render::{
         render_asset::RenderAssets,
         renderer::{RenderDevice, RenderQueue},
-        texture::{FallbackImage, Image},
+        texture::{FallbackImage, GpuImage},
     },
     time::Time,
 };
@@ -44,7 +44,7 @@ pub fn prepare_tilemaps_a<M: TilemapMaterial>(
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
     time: Res<Time>,
     tilemap_instances: Res<TilemapInstances<M>>,
-    images: Res<RenderAssets<Image>>,
+    images: Res<RenderAssets<GpuImage>>,
     fallback_image: Res<FallbackImage>,
     extracted_materials: Res<ExtractedTilemapMaterials<M>>,
 ) {

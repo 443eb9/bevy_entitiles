@@ -1,12 +1,10 @@
-#![allow(dead_code)]
-use std::{fmt::Debug, time::Duration};
+use std::time::Duration;
 
 use bevy::{
     prelude::{default, Color, Commands, IntoSystemConfigs, Plugin, Startup, TextBundle, Update},
     text::{TextSection, TextStyle},
     time::common_conditions::on_real_timer,
 };
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 // use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use crate::helpers::camera_movement::camera_control;
@@ -41,9 +39,9 @@ impl Plugin for EntiTilesHelpersPlugin {
 
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
 
-        if self.inspector {
-            app.add_plugins(WorldInspectorPlugin::default());
-        }
+        // if self.inspector {
+        //     app.add_plugins(WorldInspectorPlugin::default());
+        // }
 
         app.init_resource::<CameraControl>();
     }
@@ -75,32 +73,4 @@ pub fn debug_startup(mut commands: Commands) {
             ),
         ]),
     ));
-}
-
-pub fn validate_heap<K: PartialOrd + Debug, V: Debug>(tree: &Vec<Option<(K, V)>>, asc: bool) {
-    for i in 1..tree.len() {
-        if let Some((k1, _)) = &tree[i] {
-            let left = i * 2;
-            let right = i * 2 + 1;
-            if left < tree.len() {
-                if let Some((k2, _)) = &tree[left] {
-                    if asc {
-                        assert!(k1 <= k2, "heap validation failed at index {}", i);
-                    } else {
-                        assert!(k1 >= k2, "heap validation failed at index {}", i);
-                    }
-                }
-            }
-            if right < tree.len() {
-                if let Some((k2, _)) = &tree[right] {
-                    if asc {
-                        assert!(k1 <= k2, "heap validation failed at index {}", i);
-                    } else {
-                        assert!(k1 >= k2, "heap validation failed at index {}", i);
-                    }
-                }
-            }
-        }
-    }
-    println!("heap validated √");
 }

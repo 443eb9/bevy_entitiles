@@ -33,7 +33,7 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
                           * tilemap.tile_render_size + mesh_origin;
     var position_world = vec4<f32>((tilemap.rot_mat * position_model) + tilemap.translation, 0., 1.);
 
-    output.position = view.view_proj * position_world;
+    output.position = view.clip_from_world * position_world;
     output.tint = input.tint;
 
 #ifndef PURE_COLOR

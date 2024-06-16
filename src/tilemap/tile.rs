@@ -1,9 +1,10 @@
 use bevy::{
+    color::LinearRgba,
     ecs::system::{ParallelCommands, Query},
     math::IVec2,
     prelude::{Component, Entity},
     reflect::Reflect,
-    render::{color::Color, render_resource::ShaderType},
+    render::render_resource::ShaderType,
 };
 
 use crate::tilemap::{buffers::Tiles, map::TilemapStorage};
@@ -126,7 +127,7 @@ pub struct LayerUpdater {
 #[derive(Default, Component, Clone, Reflect)]
 pub struct TileUpdater {
     pub layer: Option<LayerUpdater>,
-    pub tint: Option<Color>,
+    pub tint: Option<LinearRgba>,
 }
 
 bitflags::bitflags! {
@@ -152,7 +153,7 @@ impl Default for TileFlip {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuilder {
     pub(crate) texture: TileTexture,
-    pub(crate) tint: Color,
+    pub(crate) tint: LinearRgba,
 }
 
 impl Tiles for TileBuilder {}
@@ -162,12 +163,12 @@ impl TileBuilder {
     pub fn new() -> Self {
         Self {
             texture: TileTexture::Static(Vec::new()),
-            tint: Color::WHITE,
+            tint: LinearRgba::WHITE,
         }
     }
 
     /// Set the tint of the entire tile. Default is white.
-    pub fn with_tint(mut self, tint: Color) -> Self {
+    pub fn with_tint(mut self, tint: LinearRgba) -> Self {
         self.tint = tint;
         self
     }
@@ -252,7 +253,7 @@ pub struct Tile {
     pub in_chunk_index: usize,
     pub index: IVec2,
     pub texture: TileTexture,
-    pub tint: Color,
+    pub tint: LinearRgba,
 }
 
 impl Tiles for Tile {}

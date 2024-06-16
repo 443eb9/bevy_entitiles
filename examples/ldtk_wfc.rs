@@ -1,5 +1,6 @@
 use bevy::{
     app::{App, Startup, Update},
+    color::Color,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         component::Component,
@@ -10,7 +11,7 @@ use bevy::{
     input::{keyboard::KeyCode, ButtonInput},
     math::{IVec2, UVec2, Vec2, Vec3Swizzles},
     reflect::Reflect,
-    render::{color::Color, render_resource::FilterMode},
+    render::render_resource::FilterMode,
     sprite::{Sprite, SpriteBundle},
     transform::components::Transform,
     utils::HashMap,
@@ -79,7 +80,7 @@ fn main() {
             }),
             ..Default::default()
         })
-        .insert_gizmo_group(PhysicsGizmos::all(), GizmoConfig::default())
+        .insert_gizmo_config(PhysicsGizmos::all(), GizmoConfig::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (player_control, load_level))
         .register_type::<Player>()

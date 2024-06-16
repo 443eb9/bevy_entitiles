@@ -1,6 +1,7 @@
 use bevy::{
     app::{FixedUpdate, Update},
     asset::Assets,
+    color::Color,
     ecs::{
         component::Component,
         event::EventReader,
@@ -10,7 +11,7 @@ use bevy::{
     input::{keyboard::KeyCode, ButtonInput},
     math::{primitives::Circle, IVec2, Vec3},
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::{color::Color, mesh::Mesh, render_resource::FilterMode},
+    render::{mesh::Mesh, render_resource::FilterMode},
     sprite::{ColorMaterial, ColorMesh2dBundle},
     transform::components::Transform,
     utils::HashMap,

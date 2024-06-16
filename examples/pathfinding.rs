@@ -54,6 +54,10 @@ fn setup(
     mut materials: ResMut<Assets<StandardTilemapMaterial>>,
     mut textures: ResMut<Assets<TilemapTextures>>,
 ) {
+    bevy::log::info!("===================================");
+    bevy::log::info!("Loading tilemap, please be patient.");
+    bevy::log::info!("===================================");
+
     commands.spawn(Camera2dBundle::default());
 
     let entity = commands.spawn_empty().id();

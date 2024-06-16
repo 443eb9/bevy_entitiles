@@ -3,11 +3,11 @@ use std::marker::PhantomData;
 use bevy::{
     app::{App, Plugin},
     asset::{Asset, AssetApp},
+    color::LinearRgba,
     core_pipeline::core_2d::Transparent2d,
     ecs::schedule::IntoSystemConfigs,
     reflect::TypePath,
     render::{
-        color::Color,
         render_phase::AddRenderCommand,
         render_resource::{
             AsBindGroup, RenderPipelineDescriptor, ShaderRef, ShaderType,
@@ -65,7 +65,7 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                 Render,
                 prepare::sort_chunks::<M>.in_set(RenderSet::PrepareResources),
             )
-            .add_systems(Render, queue::queue::<M>.in_set(RenderSet::Queue))
+            .add_systems(Render, queue::queue_tilemaps::<M>.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkStorage<M>>()
             .init_resource::<TilemapUniformBuffer<M>>()
             .init_resource::<TilemapBindGroups<M>>()
@@ -99,7 +99,7 @@ pub trait TilemapMaterial: Default + Asset + AsBindGroup + TypePath + Clone {
 
 #[derive(ShaderType)]
 pub struct StandardTilemapUniform {
-    pub tint: Color,
+    pub tint: LinearRgba,
 }
 
 impl From<&StandardTilemapMaterial> for StandardTilemapUniform {
@@ -112,7 +112,7 @@ impl From<&StandardTilemapMaterial> for StandardTilemapUniform {
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 #[uniform(0, StandardTilemapUniform)]
 pub struct StandardTilemapMaterial {
-    pub tint: Color,
+    pub tint: LinearRgba,
 }
 
 impl TilemapMaterial for StandardTilemapMaterial {

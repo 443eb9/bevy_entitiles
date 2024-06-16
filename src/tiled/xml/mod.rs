@@ -1,9 +1,9 @@
 use std::fmt::Formatter;
 
 use bevy::{
+    color::Color,
     math::{Vec2, Vec4},
     reflect::Reflect,
-    render::color::Color,
 };
 use serde::{de::Visitor, Deserialize, Serialize};
 
@@ -205,7 +205,7 @@ impl From<String> for TiledColor {
 
 impl Into<Color> for TiledColor {
     fn into(self) -> Color {
-        Color::rgba(self.r, self.g, self.b, self.a)
+        Color::srgba(self.r, self.g, self.b, self.a)
     }
 }
 

@@ -14,7 +14,7 @@ pub trait TiledApp {
 impl TiledApp for App {
     fn register_tiled_object<T: TiledObject + Bundle>(&mut self, ident: &str) -> &mut Self {
         match self
-            .world
+            .world_mut()
             .get_non_send_resource_mut::<TiledObjectRegistry>()
         {
             Some(mut registry) => {
@@ -22,7 +22,7 @@ impl TiledApp for App {
                 self
             }
             None => {
-                self.world
+                self.world_mut()
                     .insert_non_send_resource(TiledObjectRegistry::default());
                 self.register_tiled_object::<T>(ident)
             }
@@ -34,7 +34,7 @@ impl TiledApp for App {
         ident: &str,
     ) -> &mut Self {
         match self
-            .world
+            .world_mut()
             .get_non_send_resource_mut::<TiledCustomTileRegistry>()
         {
             Some(mut registry) => {
@@ -45,7 +45,7 @@ impl TiledApp for App {
                 self
             }
             None => {
-                self.world
+                self.world_mut()
                     .insert_non_send_resource(TiledCustomTileRegistry::default());
                 self.register_tiled_custom_tile::<T>(ident)
             }

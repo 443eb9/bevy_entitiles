@@ -1,4 +1,4 @@
-use bevy::{reflect::Reflect, render::color::Color, utils::HashMap};
+use bevy::{color::Color, reflect::Reflect, utils::HashMap};
 use serde::{
     de::{IgnoredAny, Visitor},
     Deserialize, Serialize,
@@ -66,7 +66,10 @@ impl<'de> Deserialize<'de> for ClassInstance {
                             );
                         }
                         "@value" => {
-                            panic!("Primitive properties are not allowed in ClassInstance (name={})", name.unwrap_or("UNK".to_owned()));
+                            panic!(
+                                "Primitive properties are not allowed in ClassInstance (name={})",
+                                name.unwrap_or("UNK".to_owned())
+                            );
                         }
                         _ => panic!("Unknown key for ClassInstance: {}", key),
                     }

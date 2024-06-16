@@ -4,8 +4,7 @@ use bevy::{
     ecs::schedule::IntoSystemConfigs,
     prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute, render_asset::RenderAssetPlugin, render_resource::VertexFormat,
-        view::VisibilitySystems, ExtractSchedule, RenderApp,
+        mesh::MeshVertexAttribute, render_asset::RenderAssetPlugin, render_resource::VertexFormat, view::VisibilitySystems, ExtractSchedule, Render, RenderApp, RenderSet
     },
 };
 
@@ -79,7 +78,7 @@ impl Plugin for EntiTilesRendererPlugin {
             PostUpdate,
             cull::cull_tilemaps
                 .in_set(VisibilitySystems::CheckVisibility)
-                .after(bevy::render::view::check_visibility),
+                .after(bevy::render::view::check_visibility::<()>),
         )
         .init_resource::<FrustumCulling>()
         .init_resource::<RenderChunkSort>()
@@ -110,6 +109,7 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_despawned_tiles,
                 ),
             )
+            .add_systems(Render, queue::queue_textures.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkSort>()
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapAnimationBuffer>();

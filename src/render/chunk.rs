@@ -1,17 +1,12 @@
 use std::{cmp::Ordering, marker::PhantomData};
 
 use bevy::{
-    asset::Handle,
-    ecs::{component::Component, entity::EntityHashMap, event::Event},
-    math::{IVec2, IVec4},
-    prelude::{Entity, Mesh, Resource, Vec3, Vec4},
-    reflect::Reflect,
-    render::{
-        mesh::{GpuBufferInfo, GpuMesh, Indices},
+    asset::Handle, color::ColorToComponents, ecs::{component::Component, entity::EntityHashMap, event::Event}, math::{IVec2, IVec4}, prelude::{Entity, Mesh, Resource, Vec3, Vec4}, reflect::Reflect, render::{
+        mesh::{BaseMeshPipelineKey, GpuBufferInfo, GpuMesh, Indices, MeshVertexBufferLayouts},
         render_asset::RenderAssetUsages,
         render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
         renderer::RenderDevice,
-    },
+    }
 };
 use indexmap::{map::Entry, IndexMap};
 use rayon::iter::ParallelIterator;
@@ -211,8 +206,10 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             vertex_count: mesh_vert_count,
             morph_targets: None,
             buffer_info,
-            primitive_topology: PrimitiveTopology::TriangleList,
-            layout: self.mesh.get_mesh_vertex_buffer_layout(),
+            layout: self
+                .mesh
+                .get_mesh_vertex_buffer_layout(&mut MeshVertexBufferLayouts::default()),
+            key_bits: BaseMeshPipelineKey::from_primitive_topology(PrimitiveTopology::TriangleList),
         });
 
         self.dirty_mesh = false;
@@ -263,7 +260,7 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
             #[cfg(feature = "atlas")]
             texture_indices,
             atlas_indices,
-            tint: tile.tint.rgba_linear_to_vec4(),
+            tint: tile.tint.to_vec4(),
         });
         self.dirty_mesh = true;
     }

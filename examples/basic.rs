@@ -1,6 +1,7 @@
 use bevy::{
     app::{PluginGroup, Update},
     asset::Assets,
+    color::{palettes::css::TOMATO, LinearRgba},
     ecs::{
         query::With,
         system::{Query, ResMut},
@@ -8,7 +9,7 @@ use bevy::{
     input::{keyboard::KeyCode, ButtonInput},
     math::IVec2,
     prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::{color::Color, render_resource::FilterMode, view::Visibility},
+    render::{render_resource::FilterMode, view::Visibility},
     window::{PresentMode, Window, WindowPlugin},
     DefaultPlugins,
 };
@@ -85,7 +86,7 @@ fn setup(
         TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(1))
-            .with_tint(Color::rgba(0.8, 1., 0.8, 0.5)),
+            .with_tint(LinearRgba::new(0.8, 1., 0.8, 0.5)),
     );
 
     tilemap.storage.set(
@@ -93,7 +94,7 @@ fn setup(
         IVec2 { x: 18, y: 8 },
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
-            .with_tint(Color::BLUE),
+            .with_tint(LinearRgba::BLUE),
     );
 
     tilemap.storage.set(
@@ -136,7 +137,7 @@ fn setup(
         ty: TilemapType::Isometric,
         storage: TilemapStorage::new(32, entity),
         material: materials.add(StandardTilemapMaterial {
-            tint: Color::TOMATO,
+            tint: TOMATO.into(),
         }),
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
@@ -180,7 +181,7 @@ fn setup(
         TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
-            .with_tint(Color::rgba(1., 1., 0., 1.)),
+            .with_tint(LinearRgba::new(1., 1., 0., 1.)),
     );
 
     commands.entity(entity).insert(tilemap);

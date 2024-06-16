@@ -1,6 +1,7 @@
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
     asset::{AssetServer, Assets},
+    color::{palettes::css::ORANGE_RED, LinearRgba},
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         entity::Entity,
@@ -8,7 +9,6 @@ use bevy::{
     },
     math::{IVec2, UVec2, Vec2, Vec4},
     render::{
-        color::Color,
         render_resource::FilterMode,
         texture::{Image, ImagePlugin},
     },
@@ -100,7 +100,12 @@ fn setup(
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0, 0))
             .with_layer(1, TileLayer::flip_h(0, 1))
-            .with_tint(Color::rgba_u8(68, 62, 185, 64)),
+            .with_tint(LinearRgba::new(
+                68. / 255.,
+                62. / 255.,
+                185. / 255.,
+                64. / 255.,
+            )),
     );
 
     tilemap.storage.fill_rect(
@@ -111,7 +116,7 @@ fn setup(
             .with_layer(1, TileLayer::no_flip(0, 1))
             .with_layer(2, TileLayer::no_flip(0, 2))
             .with_layer(3, TileLayer::no_flip(0, 3))
-            .with_tint(Color::ORANGE_RED),
+            .with_tint(ORANGE_RED.into()),
     );
 
     tilemap.storage.fill_rect(

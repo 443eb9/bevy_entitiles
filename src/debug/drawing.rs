@@ -1,4 +1,9 @@
-use bevy::{ecs::system::Query, gizmos::gizmos::Gizmos, math::Vec2, render::color::Color};
+use bevy::{
+    color::palettes::css::{BLUE, GREEN, RED},
+    ecs::system::Query,
+    gizmos::gizmos::Gizmos,
+    math::Vec2,
+};
 
 use crate::{
     math::{aabb::Aabb2d, CameraAabb2d},
@@ -37,7 +42,7 @@ pub fn draw_chunk_aabb(
                 aabb.center(),
                 0.,
                 Vec2::new(aabb.width(), aabb.height()),
-                Color::GREEN,
+                GREEN,
             );
         });
     }
@@ -49,7 +54,7 @@ pub fn draw_tilemap_aabb(mut gizmos: Gizmos, tilemaps: Query<&TilemapAabbs>) {
             aabb.world_aabb.center(),
             0.,
             Vec2::new(aabb.world_aabb.width(), aabb.world_aabb.height()),
-            Color::RED,
+            RED,
         );
     });
 }
@@ -78,15 +83,15 @@ pub fn draw_path(
                     slot_size.0,
                 ),
                 10.,
-                Color::YELLOW_GREEN,
+                bevy::color::palettes::css::GREEN_YELLOW,
             );
         }
     }
 }
 
 pub fn draw_axis(mut gizmos: Gizmos) {
-    gizmos.line_2d(Vec2::NEG_X * 1e10, Vec2::X * 1e10, Color::RED);
-    gizmos.line_2d(Vec2::NEG_Y * 1e10, Vec2::Y * 1e10, Color::GREEN);
+    gizmos.line_2d(Vec2::NEG_X * 1e10, Vec2::X * 1e10, RED);
+    gizmos.line_2d(Vec2::NEG_Y * 1e10, Vec2::Y * 1e10, GREEN);
 }
 
 pub fn draw_camera_aabb(mut gizmos: Gizmos, camera_aabb: Query<&CameraAabb2d>) {
@@ -95,7 +100,7 @@ pub fn draw_camera_aabb(mut gizmos: Gizmos, camera_aabb: Query<&CameraAabb2d>) {
             aabb.0.center(),
             0.,
             Vec2::new(aabb.0.width(), aabb.0.height()),
-            Color::BLUE,
+            BLUE,
         );
     });
 }
@@ -120,13 +125,13 @@ pub fn draw_updater_aabbs(
             detect_aabb.center(),
             0.,
             Vec2::new(detect_aabb.width(), detect_aabb.height()),
-            Color::FUCHSIA,
+            bevy::color::palettes::css::FUCHSIA,
         );
         gizmos.rect_2d(
             update_aabb.center(),
             0.,
             Vec2::new(update_aabb.width(), update_aabb.height()),
-            Color::SILVER,
+            bevy::color::palettes::css::SILVER,
         );
     });
 }

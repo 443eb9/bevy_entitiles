@@ -115,7 +115,7 @@ impl TilemapTexturesStorage {
                 texture,
                 texture_view,
                 sampler,
-                size: bevy::math::Vec2::new(desc.tile_size.x as f32, desc.tile_size.y as f32),
+                size: desc.tile_size,
             };
 
             self.textures.insert(textures_handle.clone(), gpu_image);
@@ -192,7 +192,7 @@ impl TilemapTexturesStorage {
                 texture,
                 texture_view,
                 sampler,
-                size: textures.max_size.as_vec2(),
+                size: textures.max_size,
             };
 
             self.textures.insert(textures_handle.clone(), gpu_image);
@@ -206,7 +206,7 @@ impl TilemapTexturesStorage {
         &mut self,
         render_device: &RenderDevice,
         render_queue: &RenderQueue,
-        render_images: &RenderAssets<Image>,
+        render_images: &RenderAssets<GpuImage>,
         textures_assets: &RenderAssets<TilemapTextures>,
     ) {
         if self.queue_queue.is_empty() {
@@ -285,7 +285,7 @@ impl TilemapTexturesStorage {
         &mut self,
         render_device: &RenderDevice,
         render_queue: &RenderQueue,
-        render_images: &mut RenderAssets<Image>,
+        render_images: &mut RenderAssets<GpuImage>,
         textures_assets: &RenderAssets<TilemapTextures>,
     ) {
         if self.queue_queue.is_empty() {

@@ -1,10 +1,8 @@
-/*
- * The icon set finalbossblues-icons_full_16 is not allowed to be redistributed.
- * So all those icons in the map will be white.
- *
- * If you are using the LDtk maps from the tutorials, you need to delete the internal
- * icons tileset. Otherwise the program will panic due to the missing asset.
- */
+// The icon set finalbossblues-icons_full_16 is not allowed to be redistributed.
+// So all those icons in the map will be white.
+// If you are using the LDtk maps from the tutorials, you need to delete the internal
+// icons tileset. Otherwise the program will panic due to the missing asset.
+
 
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
@@ -115,7 +113,7 @@ fn main() {
             }),
             ..Default::default()
         })
-        .insert_gizmo_group(PhysicsGizmos::all(), GizmoConfig::default())
+        .insert_gizmo_config(PhysicsGizmos::all(), GizmoConfig::default())
         .register_ldtk_entity::<Item>("Item")
         .register_ldtk_entity::<Player>("Player")
         .register_ldtk_entity::<Teleport>("Teleport")

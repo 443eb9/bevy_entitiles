@@ -1,3 +1,7 @@
+// To be honest, this crate is NOT suitable for 3d isometric tilemaps.
+// Chunk sizes are must be n^2, so in this case, it must be 1^2, which is really
+// inefficient. Maybe in the future, it will be allowed to set non-squre chunk sizes.
+
 use bevy::{
     app::{App, Startup},
     asset::{AssetServer, Assets},

@@ -11,7 +11,7 @@ use bevy::{
     prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
     reflect::Reflect,
     render::{
-        render_asset::{PrepareAssetError, RenderAsset, RenderAssetUsages},
+        render_asset::{PrepareAssetError, RenderAsset},
         render_resource::FilterMode,
     },
     sprite::TextureAtlasLayout,
@@ -201,19 +201,15 @@ pub struct TilemapTextures {
 }
 
 impl RenderAsset for TilemapTextures {
-    type PreparedAsset = Self;
+    type SourceAsset = Self;
 
     type Param = ();
 
-    fn asset_usage(&self) -> RenderAssetUsages {
-        RenderAssetUsages::all()
-    }
-
     fn prepare_asset(
-        self,
+        source_asset: Self::SourceAsset,
         _param: &mut SystemParamItem<Self::Param>,
-    ) -> Result<Self::PreparedAsset, PrepareAssetError<Self>> {
-        Ok(self)
+    ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
+        Ok(source_asset)
     }
 }
 
@@ -302,11 +298,11 @@ impl TilemapTexture {
 
     pub fn as_atlas_layout(&self) -> TextureAtlasLayout {
         TextureAtlasLayout::from_grid(
-            self.desc.tile_size.as_vec2(),
-            self.desc.size.x as usize,
-            self.desc.size.y as usize,
-            Some(Vec2::ZERO),
-            Some(Vec2::ZERO),
+            self.desc.tile_size,
+            self.desc.size.x,
+            self.desc.size.y,
+            Some(UVec2::ZERO),
+            Some(UVec2::ZERO),
         )
     }
 
@@ -439,7 +435,6 @@ impl TilemapAabbs {
 
 /// The tilemap's storage. It stores all the tiles in entity form.
 #[derive(Component, Debug, Clone, Reflect)]
-#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapStorage {
     pub(crate) tilemap: Entity,
     pub(crate) storage: EntityChunkedStorage,

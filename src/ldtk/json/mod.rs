@@ -1,4 +1,4 @@
-use bevy::{math::Vec4, reflect::Reflect, render::color::Color, utils::HashMap};
+use bevy::{color::Color, math::Vec4, reflect::Reflect, utils::HashMap};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::ldtk::json::{definitions::Definitions, level::Level};
@@ -26,7 +26,7 @@ impl From<String> for LdtkColor {
 
 impl Into<Color> for LdtkColor {
     fn into(self) -> Color {
-        Color::rgb(self.r, self.g, self.b)
+        Color::srgb(self.r, self.g, self.b)
     }
 }
 

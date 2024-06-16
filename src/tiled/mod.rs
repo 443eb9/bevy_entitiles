@@ -1,18 +1,9 @@
 use bevy::{
-    app::{Plugin, PreStartup, Update},
-    asset::{load_internal_asset, AssetServer, Assets, Handle},
-    ecs::{
+    app::{Plugin, PreStartup, Update}, asset::{load_internal_asset, AssetServer, Assets, Handle}, color::Color, ecs::{
         entity::Entity,
         query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
-    },
-    log::warn,
-    math::{IVec2, Vec2},
-    prelude::SpatialBundle,
-    render::{color::Color, mesh::Mesh, render_resource::Shader},
-    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
-    transform::components::Transform,
-    utils::HashMap,
+    }, log::warn, math::{IVec2, Vec2}, prelude::SpatialBundle, render::{mesh::Mesh, render_resource::Shader}, sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle}, transform::components::Transform, utils::HashMap
 };
 
 use crate::{
@@ -275,12 +266,12 @@ fn load_layer(
             let (textures, animations) = tiled_assets.get_tilemap_data(&loaded_map.name);
             let mut custom_properties_tiles: Vec<(IVec2,TiledCustomTileInstance)> = vec!();
 
-            let tint = Color::rgba(
+            let tint = Color::srgba(
                 layer.tint.r,
                 layer.tint.g,
                 layer.tint.b,
                 layer.tint.a * layer.opacity,
-            );
+            ).linear();
             let mut tilemap = StandardTilemapBundle {
                 name: TilemapName(layer.name.clone()),
                 slot_size: TilemapSlotSize(tile_size),

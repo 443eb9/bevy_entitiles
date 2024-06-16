@@ -1,5 +1,6 @@
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
+    color::Color,
     core_pipeline::core_2d::Camera2dBundle,
     ecs::{
         bundle::Bundle,
@@ -8,7 +9,7 @@ use bevy::{
     },
     input::{keyboard::KeyCode, ButtonInput},
     reflect::Reflect,
-    render::{color::Color, texture::ImagePlugin},
+    render::texture::ImagePlugin,
     DefaultPlugins,
 };
 use bevy_entitiles::{
@@ -19,7 +20,7 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use bevy_entitiles_derive::{TiledClass, TiledEnum, TiledObject, TiledCustomTile};
+use bevy_entitiles_derive::{TiledClass, TiledCustomTile, TiledEnum, TiledObject};
 use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 

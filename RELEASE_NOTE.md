@@ -1,5 +1,6 @@
 # What's New:
 
+- Migrated to Bevy `0.14.0`.
 - Added `RenderChunkSort`.
 - prevent panic when loading a .TSX file with custom properties #27
 - add a more explicit error message when trying to use primitive properties #29

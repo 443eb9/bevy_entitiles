@@ -1,5 +1,6 @@
 use bevy::{
     asset::{Assets, Handle},
+    color::{ColorToComponents, LinearRgba},
     ecs::{
         component::Component,
         entity::Entity,
@@ -9,7 +10,6 @@ use bevy::{
     math::{IVec2, UVec2, Vec2, Vec4, Vec4Swizzles},
     reflect::Reflect,
     render::{
-        color::Color,
         render_asset::RenderAssetUsages,
         render_resource::{Extent3d, TextureDimension, TextureFormat},
         texture::{BevyDefault, Image},
@@ -228,9 +228,9 @@ fn set_tile_tint(
     rel_index: UVec2,
     target_size: UVec2,
     bake_target: &mut Vec<u8>,
-    tint: Color,
+    tint: LinearRgba,
 ) {
-    let tint = tint.rgba_to_vec4();
+    let tint= tint.to_vec4();
 
     for y in 0..tile_size.y {
         for x in 0..tile_size.x {
