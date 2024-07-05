@@ -271,7 +271,7 @@ fn load_layer(
                 layer.tint.g,
                 layer.tint.b,
                 layer.tint.a * layer.opacity,
-            ).linear();
+            ).to_linear();
             let mut tilemap = StandardTilemapBundle {
                 name: TilemapName(layer.name.clone()),
                 slot_size: TilemapSlotSize(tile_size),
