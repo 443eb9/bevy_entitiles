@@ -13,7 +13,7 @@ use bevy::{
 };
 
 use crate::{
-    math::extension::ChunkIndex,
+    math::ext::ChunkIndex,
     serializing::{chunk::TILE_CHUNKS_FOLDER, load_object, map::TilemapLayer},
     tilemap::{
         buffers::TileBuilderBuffer,

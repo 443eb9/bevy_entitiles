@@ -13,7 +13,10 @@ use bevy::{
     utils::HashSet,
 };
 
-use crate::{math::CameraAabb2d, tilemap::map::TilemapStorage};
+use crate::{
+    math::{ext::RectTransformation, CameraAabb2d},
+    tilemap::map::TilemapStorage,
+};
 
 /// An event that is sent when a chunk is entered or left.
 #[derive(Event, Debug, Clone, Copy, Reflect)]
@@ -77,7 +80,7 @@ pub fn camera_chunk_update(
                     .reserved
                     .iter()
                     .filter_map(|(chunk_index, aabb)| {
-                        if detect_aabb.is_intersected(*aabb) {
+                        if !detect_aabb.intersect(*aabb).is_empty() {
                             Some(*chunk_index)
                         } else {
                             None
@@ -96,7 +99,7 @@ pub fn camera_chunk_update(
                 let mut cur_visible = HashSet::with_capacity(cam_updater.last_updation.len());
 
                 storage.reserved.iter().for_each(|(chunk_index, aabb)| {
-                    if update_aabb.is_intersected(*aabb) {
+                    if !update_aabb.intersect(*aabb).is_empty() {
                         if !cam_updater.last_updation.contains(chunk_index) {
                             updation_event.send(CameraChunkUpdation::Entered(entity, *chunk_index));
                         }

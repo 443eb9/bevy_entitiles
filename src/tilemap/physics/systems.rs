@@ -4,19 +4,15 @@ use bevy::{
         event::EventWriter,
         system::{ParallelCommands, Query},
     },
-    math::UVec2,
+    math::{IRect, UVec2},
 };
 
-use crate::{
-    math::aabb::IAabb2d,
-    tilemap::{
-        chunking::storage::ChunkedStorage,
-        coordinates,
-        map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
-        physics::{
-            DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn,
-            PhysicsTilemap,
-        },
+use crate::tilemap::{
+    chunking::storage::ChunkedStorage,
+    coordinates,
+    map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
+    physics::{
+        DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn, PhysicsTilemap,
     },
 };
 
@@ -135,7 +131,7 @@ pub fn data_physics_tilemap_analyzer(
                     }
 
                     aabbs.push((
-                        IAabb2d {
+                        IRect {
                             min: cur.as_ivec2() + data_tilemap.origin,
                             max: dst.as_ivec2() + data_tilemap.origin,
                         },

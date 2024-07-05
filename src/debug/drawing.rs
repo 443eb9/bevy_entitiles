@@ -2,11 +2,11 @@ use bevy::{
     color::palettes::css::{BLUE, GREEN, RED},
     ecs::system::Query,
     gizmos::gizmos::Gizmos,
-    math::Vec2,
+    math::{Rect, Vec2},
 };
 
 use crate::{
-    math::{aabb::Aabb2d, CameraAabb2d},
+    math::{ext::RectFromTilemap, CameraAabb2d},
     tilemap::map::{
         TilePivot, TilemapAabbs, TilemapAxisFlip, TilemapSlotSize, TilemapStorage,
         TilemapTransform, TilemapType,
@@ -15,6 +15,9 @@ use crate::{
 
 #[cfg(feature = "algorithm")]
 use crate::algorithm::pathfinding::Path;
+
+#[cfg(feature = "serializing")]
+use crate::math::ext::RectTransformation;
 
 pub fn draw_chunk_aabb(
     mut gizmos: Gizmos,
@@ -29,7 +32,7 @@ pub fn draw_chunk_aabb(
 ) {
     for (ty, tile_pivot, axis_flip, slot_size, transform, storage) in tilemaps.iter() {
         storage.storage.chunks.keys().for_each(|chunk| {
-            let aabb = Aabb2d::from_tilemap(
+            let aabb = Rect::from_tilemap(
                 *chunk,
                 storage.storage.chunk_size,
                 *ty,

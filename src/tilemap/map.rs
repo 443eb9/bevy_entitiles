@@ -7,7 +7,7 @@ use bevy::{
         query::Changed,
         system::{Query, SystemParamItem},
     },
-    math::{Mat2, Quat, Vec4},
+    math::{IRect, Mat2, Quat, Rect, URect, Vec4},
     prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
     reflect::Reflect,
     render::{
@@ -20,16 +20,12 @@ use bevy::{
 };
 
 use crate::{
-    math::{
-        aabb::{Aabb2d, IAabb2d, UAabb2d},
-        TileArea,
-    },
+    math::{ext::RectFromTilemap, TileArea},
     tilemap::{
         buffers::TileBuilderBuffer,
         chunking::storage::{ChunkedStorage, EntityChunkedStorage},
         despawn::DespawnMe,
-        tile::RawTileAnimation,
-        tile::{TileAnimation, TileBuilder, TileUpdater},
+        tile::{RawTileAnimation, TileAnimation, TileBuilder, TileUpdater},
     },
 };
 
@@ -102,15 +98,15 @@ impl TilemapTransform {
         self.apply_translation(self.apply_rotation(point))
     }
 
-    pub fn transform_aabb(&self, aabb: Aabb2d) -> Aabb2d {
+    pub fn transform_rect(&self, aabb: Rect) -> Rect {
         let min = self.transform_point(aabb.min);
         let max = self.transform_point(aabb.max);
 
         match self.rotation {
-            TilemapRotation::None => Aabb2d { min, max },
-            TilemapRotation::Cw90 => Aabb2d::new(max.x, min.y, min.x, max.y),
-            TilemapRotation::Cw180 => Aabb2d::new(max.x, max.y, min.x, min.y),
-            TilemapRotation::Cw270 => Aabb2d::new(min.x, max.y, max.x, min.y),
+            TilemapRotation::None => Rect { min, max },
+            TilemapRotation::Cw90 => Rect::new(max.x, min.y, min.x, max.y),
+            TilemapRotation::Cw180 => Rect::new(max.x, max.y, min.x, min.y),
+            TilemapRotation::Cw270 => Rect::new(min.x, max.y, max.x, min.y),
         }
     }
 
@@ -307,21 +303,21 @@ impl TilemapTexture {
     }
 
     /// Get the atlas rect of a tile in uv coordinates.
-    pub fn get_atlas_rect(&self, index: u32) -> Aabb2d {
+    pub fn get_atlas_rect(&self, index: u32) -> Rect {
         let tile_count = self.desc.size / self.desc.tile_size;
         let tile_index = Vec2::new((index % tile_count.x) as f32, (index / tile_count.x) as f32);
         let tile_size = self.desc.tile_size.as_vec2() / self.desc.size.as_vec2();
-        Aabb2d {
+        Rect {
             min: tile_index * tile_size,
             max: (tile_index + Vec2::ONE) * tile_size,
         }
     }
 
     /// Get the atlas rect of a tile in pixel coordinates.
-    pub fn get_atlas_urect(&self, index: u32) -> UAabb2d {
+    pub fn get_atlas_urect(&self, index: u32) -> URect {
         let tile_count = self.desc.size / self.desc.tile_size;
         let tile_index = UVec2::new(index % tile_count.x, index / tile_count.x);
-        UAabb2d {
+        URect {
             min: tile_index * self.desc.tile_size,
             max: (tile_index + 1) * self.desc.tile_size - 1,
         }
@@ -417,18 +413,18 @@ impl Default for TilemapLayerOpacities {
 /// The tilemap's aabb.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 pub struct TilemapAabbs {
-    pub(crate) chunk_aabb: IAabb2d,
-    pub(crate) world_aabb: Aabb2d,
+    pub(crate) chunk_aabb: IRect,
+    pub(crate) world_aabb: Rect,
 }
 
 impl TilemapAabbs {
     /// The aabb of the whole tilemap in chunk coordinates.
-    pub fn chunk_aabb(&self) -> IAabb2d {
+    pub fn chunk_rect(&self) -> IRect {
         self.chunk_aabb
     }
 
     /// The aabb of the whole tilemap in world coordinates.
-    pub fn world_aabb(&self) -> Aabb2d {
+    pub fn world_rect(&self) -> Rect {
         self.world_aabb
     }
 }
@@ -438,7 +434,7 @@ impl TilemapAabbs {
 pub struct TilemapStorage {
     pub(crate) tilemap: Entity,
     pub(crate) storage: EntityChunkedStorage,
-    pub(crate) reserved: HashMap<IVec2, Aabb2d>,
+    pub(crate) reserved: HashMap<IVec2, Rect>,
     pub(crate) calc_queue: HashSet<IVec2>,
 }
 
@@ -567,7 +563,7 @@ impl TilemapStorage {
 
     /// `reserve()` the chunk at `index` with the known `aabb`.
     #[inline]
-    pub fn reserve_with_aabb(&mut self, index: IVec2, aabb: Aabb2d) {
+    pub fn reserve_with_rect(&mut self, index: IVec2, aabb: Rect) {
         self.reserved.insert(index, aabb);
     }
 
@@ -581,7 +577,7 @@ impl TilemapStorage {
 
     /// `reserve_with_aabb()` all the chunks in the iterator with the known aabbs.
     #[inline]
-    pub fn reserve_many_with_aabbs(&mut self, indices: impl Iterator<Item = (IVec2, Aabb2d)>) {
+    pub fn reserve_many_with_rects(&mut self, indices: impl Iterator<Item = (IVec2, Rect)>) {
         self.reserved.extend(indices);
     }
 
@@ -809,7 +805,7 @@ pub fn queued_chunk_aabb_calculator(
                 .map(|i| {
                     (
                         i,
-                        Aabb2d::from_tilemap(
+                        Rect::from_tilemap(
                             i,
                             chunk_size,
                             *ty,
@@ -842,12 +838,12 @@ pub fn tilemap_aabb_calculator(
 ) {
     tilemaps_query.par_iter_mut().for_each(
         |(mut aabbs, storage, ty, tile_pivot, axis_direction, slot_size, transform)| {
-            let mut chunk_aabb: Option<IAabb2d> = None;
+            let mut chunk_aabb: Option<IRect> = None;
             storage.storage.chunks.keys().for_each(|chunk_index| {
                 if let Some(aabb) = &mut chunk_aabb {
-                    aabb.expand_to_contain(*chunk_index);
+                    *aabb = aabb.union_point(*chunk_index);
                 } else {
-                    chunk_aabb = Some(IAabb2d::splat(*chunk_index));
+                    chunk_aabb = Some(IRect::from_center_size(*chunk_index, IVec2::ZERO));
                 }
             });
 
@@ -855,7 +851,7 @@ pub fn tilemap_aabb_calculator(
                 return;
             };
 
-            let world_max = Aabb2d::from_tilemap(
+            let world_max = Rect::from_tilemap(
                 chunk_aabb.max,
                 storage.storage.chunk_size,
                 *ty,
@@ -864,7 +860,7 @@ pub fn tilemap_aabb_calculator(
                 slot_size.0,
                 *transform,
             );
-            let world_min = Aabb2d::from_tilemap(
+            let world_min = Rect::from_tilemap(
                 chunk_aabb.min,
                 storage.storage.chunk_size,
                 *ty,
@@ -875,7 +871,7 @@ pub fn tilemap_aabb_calculator(
             );
 
             aabbs.chunk_aabb = chunk_aabb;
-            aabbs.world_aabb = Aabb2d {
+            aabbs.world_aabb = Rect {
                 min: world_min.min,
                 max: world_max.max,
             };

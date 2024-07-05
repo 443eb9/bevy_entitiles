@@ -147,7 +147,7 @@ pub fn save<M: TilemapMaterial + Serialize>(
                 TilemapSaverMode::Tilemap => save_object(&map_path, TILES, &ser_tiles),
                 TilemapSaverMode::MapPattern => {
                     pattern.tiles.tiles = ser_tiles.into_mapper();
-                    pattern.tiles.recalculate_aabb();
+                    pattern.tiles.recalculate_rect();
                 }
             }
         }
@@ -171,7 +171,7 @@ pub fn save<M: TilemapMaterial + Serialize>(
                     }
                     TilemapSaverMode::MapPattern => {
                         pattern.path_tiles.tiles = path_tilemap.storage.clone().into_mapper();
-                        pattern.path_tiles.recalculate_aabb();
+                        pattern.path_tiles.recalculate_rect();
                     }
                 }
                 break;
@@ -199,7 +199,7 @@ pub fn save<M: TilemapMaterial + Serialize>(
                                 (index, tile)
                             })
                             .collect();
-                        buffer.recalculate_aabb();
+                        buffer.recalculate_rect();
                         pattern.physics_tiles = SerializablePhysicsSource::Buffer(buffer);
                     }
                 }

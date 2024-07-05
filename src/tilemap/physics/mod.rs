@@ -1,7 +1,7 @@
 use bevy::{
     app::{App, Plugin, Update},
     ecs::{component::Component, entity::Entity, event::Event, system::Commands},
-    math::{IVec2, UVec2, Vec2},
+    math::{IRect, IVec2, UVec2, Vec2},
     reflect::Reflect,
     utils::HashMap,
 };
@@ -11,7 +11,7 @@ use bevy_xpbd_2d::{
 };
 
 use crate::{
-    math::{aabb::IAabb2d, TileArea},
+    math::TileArea,
     tilemap::{
         buffers::{PackedPhysicsTileBuffer, PhysicsTileBuffer, Tiles},
         chunking::storage::{
@@ -237,7 +237,7 @@ impl DataPhysicsTilemap {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
     pub(crate) storage: EntityChunkedStorage,
-    pub(crate) spawn_queue: Vec<(IAabb2d, PhysicsTile, Option<i32>)>,
+    pub(crate) spawn_queue: Vec<(IRect, PhysicsTile, Option<i32>)>,
     pub(crate) data: PackedPhysicsTileChunkedStorage,
 }
 
@@ -271,7 +271,8 @@ impl PhysicsTilemap {
     /// Set a tile. This actually queues the tile and it will be spawned later.
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: PhysicsTile) {
-        self.spawn_queue.push((IAabb2d::splat(index), tile, None));
+        self.spawn_queue
+            .push((IRect::from_center_size(index, IVec2::ZERO), tile, None));
     }
 
     /// Remove a tile.
@@ -306,12 +307,19 @@ impl PhysicsTilemap {
     /// Set `concat` to true if you want to concat the adjacent tiles.
     pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
         if concat {
-            self.spawn_queue.push((area.into(), tile, None));
+            self.spawn_queue
+                .push((IRect::from_corners(area.origin, area.dest), tile, None));
         } else {
             self.spawn_queue.extend(
                 (area.origin.y..=area.dest.y)
                     .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
-                    .map(|index| (IAabb2d::splat(index), tile.clone(), None)),
+                    .map(|index| {
+                        (
+                            IRect::from_center_size(index, IVec2::ZERO),
+                            tile.clone(),
+                            None,
+                        )
+                    }),
             );
         }
     }
@@ -335,7 +343,11 @@ impl PhysicsTilemap {
                 } else {
                     index
                 }) {
-                    self.spawn_queue.push((IAabb2d::splat(index), tile, None));
+                    self.spawn_queue.push((
+                        IRect::from_center_size(index, IVec2::ZERO),
+                        tile,
+                        None,
+                    ));
                 }
             }
         }
@@ -343,20 +355,24 @@ impl PhysicsTilemap {
 
     /// Fill a rectangle area with tiles from a buffer. This can be faster than setting them one by one.
     pub fn fill_with_buffer(&mut self, origin: IVec2, buffer: PhysicsTileBuffer) {
-        self.spawn_queue.extend(
-            buffer
-                .tiles
-                .into_iter()
-                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile, None)),
-        );
+        self.spawn_queue
+            .extend(buffer.tiles.into_iter().map(|(index, tile)| {
+                (
+                    IRect::from_center_size(index + origin, IVec2::ZERO),
+                    tile,
+                    None,
+                )
+            }));
     }
 
     pub fn fill_with_buffer_packed(&mut self, origin: IVec2, buffer: PackedPhysicsTileBuffer) {
-        self.spawn_queue.extend(
-            buffer
-                .tiles
-                .into_iter()
-                .map(|(index, tile)| (IAabb2d::splat(index + origin), tile.into(), None)),
-        );
+        self.spawn_queue
+            .extend(buffer.tiles.into_iter().map(|(index, tile)| {
+                (
+                    IRect::from_center_size(index + origin, IVec2::ZERO),
+                    tile.into(),
+                    None,
+                )
+            }));
     }
 }
