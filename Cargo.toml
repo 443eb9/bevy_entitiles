@@ -27,7 +27,7 @@ bitflags = "2"
 futures-lite = { version = "2", optional = true }
 hashbrown = { version = "0.14", features = ["rayon"] }
 indexmap = { version = "2.2", features = ["rayon"] }
-quick-xml = { version = "0.35", optional = true, features = [
+quick-xml = { version = "0.36", optional = true, features = [
     "serialize",
     "overlapped-lists",
 ] }
@@ -46,13 +46,9 @@ bevy = { version = "0.14", default-features = false, features = [
     "trace_tracy",
     "x11",
     "wayland",
-    # # Bevy Issue #13734
-    # "ktx2",
-    # "zstd",
-    # "bevy_pbr",
 ] }
-# bevy-inspector-egui = "0.24"
-bevy_mod_debugdump = "0.10"
+bevy-inspector-egui = "0.25"
+bevy_mod_debugdump = "0.11"
 image = "0.25"
 rand = "0.8"
 
