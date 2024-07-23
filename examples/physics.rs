@@ -1,3 +1,7 @@
+use avian2d::{
+    prelude::{Collider, LinearVelocity, PhysicsDebugPlugin, RigidBody},
+    PhysicsPlugins,
+};
 use bevy::{
     app::{FixedUpdate, Update},
     asset::Assets,
@@ -30,10 +34,6 @@ use bevy_entitiles::{
         tile::{TileBuilder, TileLayer},
     },
     EntiTilesPlugin,
-};
-use bevy_xpbd_2d::{
-    components::{LinearVelocity, RigidBody},
-    plugins::{collision::Collider, PhysicsDebugPlugin, PhysicsPlugins},
 };
 use helpers::EntiTilesHelpersPlugin;
 

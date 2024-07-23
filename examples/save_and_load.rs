@@ -1,3 +1,4 @@
+use avian2d::{prelude::PhysicsDebugPlugin, PhysicsPlugins};
 use bevy::{
     app::Update,
     asset::Assets,
@@ -33,7 +34,6 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

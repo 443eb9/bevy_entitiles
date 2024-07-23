@@ -1,13 +1,10 @@
+use avian2d::prelude::{Collider, Friction, RigidBody};
 use bevy::{
     app::{App, Plugin, Update},
     ecs::{component::Component, entity::Entity, event::Event, system::Commands},
     math::{IRect, IVec2, UVec2, Vec2},
     reflect::Reflect,
     utils::HashMap,
-};
-use bevy_xpbd_2d::{
-    components::{Friction, RigidBody},
-    plugins::collision::Collider,
 };
 
 use crate::{

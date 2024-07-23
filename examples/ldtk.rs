@@ -3,7 +3,13 @@
 // If you are using the LDtk maps from the tutorials, you need to delete the internal
 // icons tileset. Otherwise the program will panic due to the missing asset.
 
-
+use avian2d::{
+    prelude::{
+        Collider, Friction, Gravity, LinearVelocity, Mass, PhysicsDebugPlugin, PhysicsGizmos,
+        RigidBody,
+    },
+    PhysicsPlugins,
+};
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
     asset::{AssetServer, Assets},
@@ -37,11 +43,6 @@ use bevy_entitiles::{
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEntityTag, LdtkEnum};
-use bevy_xpbd_2d::{
-    components::{Friction, LinearVelocity, Mass, RigidBody},
-    plugins::{collision::Collider, debug::PhysicsGizmos, PhysicsDebugPlugin, PhysicsPlugins},
-    resources::Gravity,
-};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

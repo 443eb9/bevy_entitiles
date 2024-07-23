@@ -24,7 +24,7 @@ use crate::{
 };
 
 #[cfg(feature = "physics")]
-use bevy_xpbd_2d::plugins::collision::Collider;
+use avian2d::collision::Collider;
 
 #[cfg(feature = "physics")]
 use std::f32::consts::PI;
