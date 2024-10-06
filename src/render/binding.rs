@@ -22,9 +22,6 @@ use crate::{
     tilemap::map::TilemapTextures,
 };
 
-#[cfg(feature = "atlas")]
-use crate::render::buffer::TilemapTextureDescriptorBuffer;
-
 #[derive(Component)]
 pub struct TilemapViewBindGroup {
     pub value: BindGroup,
@@ -63,52 +60,24 @@ pub fn bind_tilemap_buffers<M: TilemapMaterial>(
             continue;
         };
 
+        #[cfg(feature = "atlas")]
+        let Some(desc) = buffers.texture_desc.binding() else {
+            continue;
+        };
+
         bind_groups.storage_buffers.insert(
             *tilemap,
             render_device.create_bind_group(
                 "tilemap_storage_buffers_bind_group",
                 &entitiles_pipeline.storage_buffers_layout,
-                &BindGroupEntries::single(anim),
+                &BindGroupEntries::sequential((
+                    anim,
+                    #[cfg(feature = "atlas")]
+                    desc,
+                )),
             ),
         );
     }
-
-    // let anim_bindings = animation_buffers.bindings();
-    // #[cfg(feature = "atlas")]
-    // let tex_desc_bindings = texture_desc_buffers.bindings();
-
-    // for tilemap in anim_bindings.keys() {
-    //     let Some(anim) = anim_bindings.get(tilemap) else {
-    //         error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
-    //         return;
-    //     };
-
-    //     #[cfg(feature = "atlas")]
-    //     let Some(tex_desc) = tex_desc_bindings.get(tilemap) else {
-    //         error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
-    //         return;
-    //     };
-
-    //     #[cfg(not(feature = "atlas"))]
-    //     self.storage_buffers.insert(
-    //         *tilemap,
-    //         render_device.create_bind_group(
-    //             "tilemap_storage_buffers_bind_group",
-    //             &entitiles_pipeline.storage_buffers_layout,
-    //             &BindGroupEntries::single(anim.clone()),
-    //         ),
-    //     );
-
-    //     #[cfg(feature = "atlas")]
-    //     self.storage_buffers.insert(
-    //         *tilemap,
-    //         render_device.create_bind_group(
-    //             "tilemap_storage_buffers_bind_group",
-    //             &entitiles_pipeline.storage_buffers_layout,
-    //             &BindGroupEntries::sequential((anim.clone(), tex_desc.clone())),
-    //         ),
-    //     );
-    // }
 }
 
 pub fn bind_materials<M: TilemapMaterial>(

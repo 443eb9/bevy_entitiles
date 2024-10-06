@@ -105,7 +105,7 @@ where
     #[inline]
     fn prepare_asset(
         source_asset: Self::SourceAsset,
-        param: &mut SystemParamItem<Self::Param>,
+        _param: &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         Ok(ExtractedTilemapMaterialWrapper(source_asset))
     }

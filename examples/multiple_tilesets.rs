@@ -66,30 +66,36 @@ fn setup(
     };
 
     // Without `atlas` feature:
-    tilemap.storage.fill_rect(
-        &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2::splat(4)),
-        TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
-    );
+    #[cfg(not(feature = "atlas"))]
+    {
+        tilemap.storage.fill_rect(
+            &mut commands,
+            TileArea::new(IVec2::ZERO, UVec2::splat(4)),
+            TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
+        );
 
-    tilemap.storage.fill_rect(
-        &mut commands,
-        TileArea::new(IVec2::new(5, 0), UVec2::splat(4)),
-        TileBuilder::new().with_layer(0, TileLayer::no_flip(4)),
-    );
+        tilemap.storage.fill_rect(
+            &mut commands,
+            TileArea::new(IVec2::new(5, 0), UVec2::splat(4)),
+            TileBuilder::new().with_layer(0, TileLayer::no_flip(4)),
+        );
+    }
 
     // With `atlas` feature:
-    // tilemap.storage.fill_rect(
-    //     &mut commands,
-    //     TileArea::new(IVec2::ZERO, UVec2::splat(4)),
-    //     TileBuilder::new().with_layer(0, TileLayer::no_flip(0, 0)),
-    // );
+    #[cfg(feature = "atlas")]
+    {
+        tilemap.storage.fill_rect(
+            &mut commands,
+            TileArea::new(IVec2::ZERO, UVec2::splat(4)),
+            TileBuilder::new().with_layer(0, TileLayer::no_flip(0, 0)),
+        );
 
-    // tilemap.storage.fill_rect(
-    //     &mut commands,
-    //     TileArea::new(IVec2::new(5, 0), UVec2::splat(4)),
-    //     TileBuilder::new().with_layer(0, TileLayer::no_flip(1, 0)),
-    // );
+        tilemap.storage.fill_rect(
+            &mut commands,
+            TileArea::new(IVec2::new(5, 0), UVec2::splat(4)),
+            TileBuilder::new().with_layer(0, TileLayer::no_flip(1, 0)),
+        );
+    }
 
     commands.entity(entity).insert(tilemap);
 }

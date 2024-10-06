@@ -1,7 +1,7 @@
 use bevy::{
     ecs::entity::EntityHashMap,
     math::{Mat2, Vec4},
-    prelude::{Commands, Res, ResMut, Resource, Vec2},
+    prelude::{Res, ResMut, Resource, Vec2},
     render::{
         render_resource::{BufferUsages, DynamicUniformBuffer, RawBufferVec, ShaderType},
         renderer::{RenderDevice, RenderQueue},
@@ -25,43 +25,11 @@ pub struct TilemapUniform {
 }
 
 #[cfg(feature = "atlas")]
-#[derive(ShaderType)]
+#[derive(ShaderType, Clone)]
 pub struct GpuTilemapTextureDescriptor {
     pub tile_count: bevy::math::UVec2,
     pub tile_uv_size: Vec2,
     pub uv_scale: Vec2,
-}
-
-#[cfg(feature = "atlas")]
-#[derive(Resource, Default)]
-pub struct TilemapTextureDescriptorBuffer(
-    EntityHashMap<(
-        StorageBuffer<Vec<GpuTilemapTextureDescriptor>>,
-        Vec<GpuTilemapTextureDescriptor>,
-    )>,
-);
-
-#[cfg(feature = "atlas")]
-impl PerTilemapBuffersStorage<GpuTilemapTextureDescriptor> for TilemapTextureDescriptorBuffer {
-    #[inline]
-    fn get_mapper_mut(
-        &mut self,
-    ) -> &mut EntityHashMap<(
-        StorageBuffer<Vec<GpuTilemapTextureDescriptor>>,
-        Vec<GpuTilemapTextureDescriptor>,
-    )> {
-        &mut self.0
-    }
-
-    #[inline]
-    fn get_mapper(
-        &self,
-    ) -> &EntityHashMap<(
-        StorageBuffer<Vec<GpuTilemapTextureDescriptor>>,
-        Vec<GpuTilemapTextureDescriptor>,
-    )> {
-        &self.0
-    }
 }
 
 #[derive(Default)]
@@ -72,12 +40,16 @@ pub struct SharedTilemapBuffers {
 
 pub struct UnsharedTilemapBuffers {
     pub animation: RawBufferVec<i32>,
+    #[cfg(feature = "atlas")]
+    pub texture_desc: bevy::render::render_resource::GpuArrayBuffer<GpuTilemapTextureDescriptor>,
 }
 
-impl Default for UnsharedTilemapBuffers {
-    fn default() -> Self {
+impl UnsharedTilemapBuffers {
+    pub fn new(render_device: &RenderDevice) -> Self {
         Self {
             animation: RawBufferVec::new(BufferUsages::STORAGE),
+            #[cfg(feature = "atlas")]
+            texture_desc: bevy::render::render_resource::GpuArrayBuffer::new(render_device),
         }
     }
 }
@@ -89,13 +61,15 @@ pub struct TilemapBuffers {
 }
 
 pub fn prepare_tilemap_buffers(
-    mut commands: Commands,
     tilemap_instances: Res<TilemapInstances>,
     mut tilemap_buffers: ResMut<TilemapBuffers>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     // TODO switch to Time<Real>
     time: Res<Time>,
+    #[cfg(feature = "atlas")] textures_assets: Res<
+        bevy::render::render_asset::RenderAssets<crate::tilemap::map::TilemapTextures>,
+    >,
 ) {
     tilemap_buffers.shared.uniform.clear();
 
@@ -116,12 +90,34 @@ pub fn prepare_tilemap_buffers(
         });
         tilemap_buffers.shared.indices.insert(*entity, index);
 
-        let unshared = tilemap_buffers.unshared.entry(*entity).or_default();
+        let unshared = tilemap_buffers
+            .unshared
+            .entry(*entity)
+            .or_insert_with(|| UnsharedTilemapBuffers::new(&render_device));
         if let Some(anim) = &tilemap.changed_animations {
             *unshared.animation.values_mut() = anim.0.clone();
             unshared
                 .animation
                 .write_buffer(&render_device, &render_queue);
+        }
+
+        #[cfg(feature = "atlas")]
+        if let Some(handle) = &tilemap.texture {
+            if let Some(textures) = textures_assets.get(handle) {
+                unshared.texture_desc.clear();
+
+                for (i, t) in textures.textures.iter().enumerate() {
+                    unshared.texture_desc.push(GpuTilemapTextureDescriptor {
+                        tile_count: t.desc.size / t.desc.tile_size,
+                        tile_uv_size: t.desc.tile_size.as_vec2() / t.desc.size.as_vec2(),
+                        uv_scale: textures.uv_scales[i],
+                    });
+                }
+
+                unshared
+                    .texture_desc
+                    .write_buffer(&render_device, &render_queue);
+            }
         }
     }
 

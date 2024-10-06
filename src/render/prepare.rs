@@ -14,9 +14,6 @@ use crate::{
     tilemap::despawn::{DespawnedTile, DespawnedTilemap},
 };
 
-#[cfg(feature = "atlas")]
-use super::buffer::TilemapTextureDescriptorBuffer;
-
 pub fn prepare_tiles<M: TilemapMaterial>(
     extracted_tiles: Query<&mut ExtractedTile>,
     mut render_chunks: ResMut<RenderChunkStorage>,

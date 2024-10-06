@@ -124,10 +124,5 @@ impl Plugin for EntiTilesRendererPlugin {
             .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapBuffers>();
-
-        #[cfg(feature = "atlas")]
-        {
-            render_app.init_resource::<buffer::TilemapTextureDescriptorBuffer>();
-        }
     }
 }

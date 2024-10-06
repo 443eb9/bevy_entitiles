@@ -55,7 +55,7 @@ rand = "0.8"
 [features]
 default = ["multi-threaded"]
 # algorithm = ["dep:rand", "serializing", "dep:futures-lite"]
-# atlas = []
+atlas = []
 # baking = ["atlas"]
 # baking = []
 debug = ["bevy/bevy_gizmos"]

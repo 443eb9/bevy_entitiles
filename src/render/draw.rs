@@ -19,7 +19,7 @@ use bevy::{
 
 use crate::render::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
-    buffer::{TilemapBuffers, TilemapUniform},
+    buffer::TilemapBuffers,
     chunk::RenderChunkStorage,
     extract::{TilemapInstances, TilemapMaterialInstances},
     material::TilemapMaterial,
@@ -91,7 +91,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, tilemap_uniform_bind_group, &[*index]);
             RenderCommandResult::Success
         } else {
-            error!("Failed to get tilemap uniform bind group!");
+            error!("Failed to get tilemap uniform bind group! {}", item.entity);
             RenderCommandResult::Failure
         }
     }
@@ -104,7 +104,6 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 {
     type Param = (
         SRes<TilemapBindGroups<M>>,
-        SRes<TilemapInstances>,
         SRes<TilemapMaterialInstances<M>>,
     );
 
@@ -117,14 +116,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewQuery>,
         _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        (bind_groups, tilemaps, materials): SystemParamItem<'w, '_, Self::Param>,
+        (bind_groups, materials): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(inst) = tilemaps.get(&item.entity) else {
-            error!("Failed to get tilemap instance!");
-            return RenderCommandResult::Failure;
-        };
-
         if let Some(bind_group) = materials
             .get(&item.entity)
             .and_then(|id| bind_groups.into_inner().materials.get(id))
@@ -132,7 +126,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Failed to get material bind group!");
+            error!("Failed to get material bind group! {}", item.entity);
             RenderCommandResult::Failure
         }
     }
@@ -161,7 +155,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Failed to get storage bind group {}!", item.entity);
+            error!("Failed to get storage bind group! {}", item.entity);
             RenderCommandResult::Failure
         }
     }

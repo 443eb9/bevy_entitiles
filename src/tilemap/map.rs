@@ -248,10 +248,9 @@ impl TilemapTextures {
     }
 
     pub fn total_tile_count(&self) -> u32 {
-        self.textures.iter().fold(0, |acc, tex| {
-            let t = tex.desc.size / tex.desc.tile_size;
-            acc + t.x * t.y
-        })
+        self.textures
+            .iter()
+            .fold(0, |acc, tex| acc + tex.tile_count())
     }
 
     pub fn iter_packed(&self) -> impl Iterator<Item = (&TilemapTexture, u32)> {
