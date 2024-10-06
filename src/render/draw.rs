@@ -19,10 +19,10 @@ use bevy::{
 
 use crate::render::{
     binding::{TilemapBindGroups, TilemapViewBindGroup},
-    buffer::{DynamicOffsetComponent, TilemapUniform},
+    buffer::{TilemapBuffers, TilemapUniform},
     chunk::RenderChunkStorage,
+    extract::{TilemapInstances, TilemapMaterialInstances},
     material::TilemapMaterial,
-    resources::TilemapInstances,
 };
 
 pub type DrawTilemapTextured<M> = (
@@ -70,25 +70,25 @@ pub struct SetTilemapUniformBufferBindGroup<const I: usize, M: TilemapMaterial>(
 impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
     for SetTilemapUniformBufferBindGroup<I, M>
 {
-    type Param = SRes<TilemapBindGroups<M>>;
+    type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapBuffers>);
 
     type ViewQuery = ();
 
-    type ItemQuery = Read<DynamicOffsetComponent<TilemapUniform>>;
+    type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
-        _item: &Transparent2d,
+        item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewQuery>,
-        uniform_data: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        bind_groups: SystemParamItem<'w, '_, Self::Param>,
+        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
+        (bind_groups, tilemap_buffers): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let (Some(tilemap_uniform_bind_group), Some(uniform_data)) = (
+        if let (Some(tilemap_uniform_bind_group), Some(index)) = (
             bind_groups.into_inner().uniform_buffer.as_ref(),
-            uniform_data,
+            tilemap_buffers.shared.indices.get(&item.entity),
         ) {
-            pass.set_bind_group(I, tilemap_uniform_bind_group, &[uniform_data.index()]);
+            pass.set_bind_group(I, tilemap_uniform_bind_group, &[*index]);
             RenderCommandResult::Success
         } else {
             error!("Failed to get tilemap uniform bind group!");
@@ -102,7 +102,11 @@ pub struct SetTilemapMaterialBindGroup<const I: usize, M: TilemapMaterial>(Phant
 impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
     for SetTilemapMaterialBindGroup<I, M>
 {
-    type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapInstances<M>>);
+    type Param = (
+        SRes<TilemapBindGroups<M>>,
+        SRes<TilemapInstances>,
+        SRes<TilemapMaterialInstances<M>>,
+    );
 
     type ViewQuery = ();
 
@@ -113,16 +117,18 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewQuery>,
         _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
+        (bind_groups, tilemaps, materials): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(inst) = instances.0.get(&item.entity) else {
+        let Some(inst) = tilemaps.get(&item.entity) else {
             error!("Failed to get tilemap instance!");
             return RenderCommandResult::Failure;
         };
 
-        let id = inst.material.id();
-        if let Some(bind_group) = bind_groups.into_inner().materials.get(&id) {
+        if let Some(bind_group) = materials
+            .get(&item.entity)
+            .and_then(|id| bind_groups.into_inner().materials.get(id))
+        {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
@@ -166,7 +172,7 @@ pub struct SetTilemapColorTextureBindGroup<const I: usize, M: TilemapMaterial>(P
 impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
     for SetTilemapColorTextureBindGroup<I, M>
 {
-    type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapInstances<M>>);
+    type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapInstances>);
 
     type ViewQuery = ();
 
@@ -180,7 +186,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         (bind_groups, instances): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        let Some(textures) = instances.0.get(&item.entity).unwrap().texture.as_ref() else {
+        let Some(textures) = instances.get(&item.entity).unwrap().texture.as_ref() else {
             return RenderCommandResult::Success;
         };
 
@@ -197,7 +203,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 #[derive(Default)]
 pub struct DrawTileMesh<M: TilemapMaterial>(PhantomData<M>);
 impl<M: TilemapMaterial> RenderCommand<Transparent2d> for DrawTileMesh<M> {
-    type Param = SRes<RenderChunkStorage<M>>;
+    type Param = SRes<RenderChunkStorage>;
 
     type ViewQuery = ();
 

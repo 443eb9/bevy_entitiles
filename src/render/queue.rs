@@ -5,56 +5,24 @@ use bevy::{
     prelude::{Commands, Entity, Msaa, Query, Res, ResMut},
     render::{
         camera::ExtractedCamera,
-        render_asset::RenderAssets,
         render_phase::{DrawFunctions, PhaseItemExtraIndex, ViewSortedRenderPhases},
         render_resource::{BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
-        renderer::{RenderDevice, RenderQueue},
-        texture::GpuImage,
+        renderer::RenderDevice,
         view::ViewUniforms,
     },
 };
 
-use crate::{
-    render::{
-        binding::{TilemapBindGroups, TilemapViewBindGroup},
-        draw::{DrawTilemapNonTextured, DrawTilemapTextured},
-        extract::TilemapInstance,
-        material::TilemapMaterial,
-        pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
-        resources::TilemapInstances,
-        texture::TilemapTexturesStorage,
-    },
-    tilemap::map::TilemapTextures,
+use crate::render::{
+    binding::TilemapViewBindGroup,
+    draw::{DrawTilemapNonTextured, DrawTilemapTextured},
+    extract::TilemapInstances,
+    material::TilemapMaterial,
+    pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
 };
-
-pub fn queue_textures(
-    mut textures_storage: ResMut<TilemapTexturesStorage>,
-    render_device: Res<RenderDevice>,
-    render_queue: Res<RenderQueue>,
-    textures_assets: Res<RenderAssets<TilemapTextures>>,
-    #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<GpuImage>>,
-    #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<GpuImage>>,
-) {
-    // #[cfg(not(feature = "atlas"))]
-    // textures_storage.queue_textures(
-    //     &render_device,
-    //     &render_queue,
-    //     &render_images,
-    //     &textures_assets,
-    // );
-    #[cfg(feature = "atlas")]
-    textures_storage.queue_textures(
-        &render_device,
-        &render_queue,
-        &mut render_images,
-        &textures_assets,
-    );
-}
 
 pub fn queue_tilemaps<M: TilemapMaterial>(
     mut commands: Commands,
     mut views_query: Query<Entity, With<ExtractedCamera>>,
-    tilemaps_query: Query<Entity, With<TilemapInstance>>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline<M>>>,
@@ -62,7 +30,7 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
     msaa: Res<Msaa>,
-    tilemap_instances: Res<TilemapInstances<M>>,
+    tilemap_instances: Res<TilemapInstances>,
     mut transparent_phase: ResMut<ViewSortedRenderPhases<Transparent2d>>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
@@ -85,13 +53,11 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
             ),
         });
 
-        let mut tilemaps = tilemaps_query
-            .iter()
-            .filter_map(|t| tilemap_instances.0.get(&t))
-            .collect::<Vec<_>>();
-        radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
+        // TODO optimize this
+        let mut tilemaps = tilemap_instances.iter().collect::<Vec<_>>();
+        radsort::sort_by_key(&mut tilemaps, |(_, m)| m.transform.z_index);
 
-        for tilemap in tilemaps.iter() {
+        for (entity, tilemap) in tilemaps {
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
                 &entitiles_pipeline,
@@ -118,7 +84,7 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
 
             transparent_phase.add(Transparent2d {
                 sort_key: FloatOrd(tilemap.transform.z_index as f32),
-                entity: tilemap.id,
+                entity: *entity,
                 pipeline,
                 draw_function,
                 batch_range: 0..1,

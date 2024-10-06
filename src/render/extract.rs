@@ -1,15 +1,16 @@
 use bevy::{
-    asset::{AssetEvent, Assets, Handle},
+    asset::{AssetId, Handle},
     ecs::{
         entity::EntityHashMap,
         event::EventReader,
-        query::{Or, With},
-        system::{Res, ResMut},
+        query::QueryItem,
+        system::{lifetimeless::Read, Res},
     },
-    prelude::{
-        Changed, Commands, Component, Entity, Query, Vec2, Vec4, ViewVisibility, Visibility,
+    prelude::{Changed, Commands, Component, DetectChanges, Entity, Query, Ref, Vec2, Vec4},
+    render::{
+        extract_instances::{ExtractInstance, ExtractedInstances},
+        Extract,
     },
-    render::{view::InheritedVisibility, Extract},
 };
 
 use crate::{
@@ -17,8 +18,6 @@ use crate::{
     render::{
         chunk::{ChunkUnload, RenderChunkSort, UnloadRenderChunk},
         cull::FrustumCulling,
-        material::TilemapMaterial,
-        resources::{ExtractedTilemapMaterials, TilemapInstances},
     },
     tilemap::{
         despawn::{DespawnedTile, DespawnedTilemap},
@@ -31,12 +30,12 @@ use crate::{
     },
 };
 
-#[derive(Component, Debug)]
-pub struct TilemapInstance;
+pub type TilemapInstances = ExtractedInstances<ExtractedTilemap>;
+
+pub type TilemapMaterialInstances<M> = ExtractedInstances<AssetId<M>>;
 
 #[derive(Component, Debug)]
-pub struct ExtractedTilemap<M: TilemapMaterial> {
-    pub id: Entity,
+pub struct ExtractedTilemap {
     pub name: String,
     pub tile_render_size: Vec2,
     pub slot_size: Vec2,
@@ -45,53 +44,30 @@ pub struct ExtractedTilemap<M: TilemapMaterial> {
     pub layer_opacities: Vec4,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
-    pub material: Handle<M>,
     pub texture: Option<Handle<TilemapTextures>>,
-    pub animations: Option<TilemapAnimations>,
+    pub changed_animations: Option<TilemapAnimations>,
     pub chunk_size: u32,
 }
 
-pub type ExtractedTile = Tile;
+impl ExtractInstance for ExtractedTilemap {
+    type QueryData = (
+        Read<TilemapName>,
+        Read<TileRenderSize>,
+        Read<TilemapSlotSize>,
+        Read<TilemapType>,
+        Read<TilePivot>,
+        Read<TilemapLayerOpacities>,
+        Read<TilemapTransform>,
+        Read<TilemapAxisFlip>,
+        Read<TilemapStorage>,
+        Option<Read<Handle<TilemapTextures>>>,
+        Option<Ref<'static, TilemapAnimations>>,
+    );
 
-pub type ExtractedView = CameraAabb2d;
+    type QueryFilter = ();
 
-pub fn extract_changed_tilemaps<M: TilemapMaterial>(
-    tilemaps_query: Extract<
-        Query<
-            (
-                Entity,
-                &TilemapName,
-                &TileRenderSize,
-                &TilemapSlotSize,
-                &TilemapType,
-                &TilePivot,
-                &TilemapLayerOpacities,
-                &TilemapTransform,
-                &TilemapAxisFlip,
-                &TilemapStorage,
-                &Handle<M>,
-                Option<&Handle<TilemapTextures>>,
-                Option<&TilemapAnimations>,
-            ),
-            Or<(
-                Changed<TileRenderSize>,
-                Changed<TilemapSlotSize>,
-                Changed<TilemapType>,
-                Changed<TilePivot>,
-                Changed<TilemapLayerOpacities>,
-                Changed<TilemapTransform>,
-                Changed<TilemapAxisFlip>,
-                Changed<Handle<M>>,
-                Changed<Handle<TilemapTextures>>,
-                Changed<TilemapAnimations>,
-            )>,
-        >,
-    >,
-    mut instances: ResMut<TilemapInstances<M>>,
-) {
-    tilemaps_query.iter().for_each(
-        |(
-            entity,
+    fn extract(item: QueryItem<'_, Self::QueryData>) -> Option<Self> {
+        let (
             name,
             tile_render_size,
             slot_size,
@@ -101,56 +77,39 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
             transform,
             axis_flip,
             storage,
-            material,
             texture,
             animations,
-        )| {
-            assert_ne!(
-                storage.tilemap,
-                Entity::PLACEHOLDER,
-                "You are trying to spawn a tilemap that has a invalid storage! \
-                Did you use the default storage? If so, you have to assign the valid \
-                entity for the storage when creating."
-            );
-            instances.0.insert(
-                entity,
-                ExtractedTilemap {
-                    id: entity,
-                    name: name.0.clone(),
-                    tile_render_size: tile_render_size.0,
-                    slot_size: slot_size.0,
-                    ty: *ty,
-                    tile_pivot: tile_pivot.0,
-                    layer_opacities: layer_opacities.0,
-                    transform: *transform,
-                    axis_flip: *axis_flip,
-                    texture: texture.cloned(),
-                    material: material.clone(),
-                    animations: animations.cloned(),
-                    chunk_size: storage.storage.chunk_size,
-                },
-            );
-        },
-    );
+        ) = item;
+        assert_ne!(
+            storage.tilemap,
+            Entity::PLACEHOLDER,
+            "You are trying to spawn a tilemap that has a invalid storage! \
+            Did you use the default storage? If so, you have to assign the valid \
+            entity for the storage when creating."
+        );
+
+        Some(ExtractedTilemap {
+            name: name.0.clone(),
+            tile_render_size: tile_render_size.0,
+            slot_size: slot_size.0,
+            ty: *ty,
+            tile_pivot: tile_pivot.0,
+            layer_opacities: layer_opacities.0,
+            transform: *transform,
+            axis_flip: *axis_flip,
+            texture: texture.cloned(),
+            changed_animations: animations
+                .as_ref()
+                .is_some_and(|a| a.is_changed())
+                .then(|| animations.unwrap().clone()),
+            chunk_size: storage.storage.chunk_size,
+        })
+    }
 }
 
-pub fn extract_tilemaps(
-    mut commands: Commands,
-    tilemaps_query: Extract<Query<(Entity, &ViewVisibility), With<TilemapStorage>>>,
-) {
-    commands.insert_or_spawn_batch(
-        tilemaps_query
-            .iter()
-            .filter_map(|(entity, vis)| {
-                if vis.get() {
-                    Some((entity, TilemapInstance))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>(),
-    );
-}
+pub type ExtractedTile = Tile;
+
+pub type ExtractedView = CameraAabb2d;
 
 pub fn extract_tiles(
     mut commands: Commands,
@@ -174,31 +133,6 @@ pub fn extract_tiles(
             })
             .collect::<Vec<_>>(),
     );
-}
-
-pub fn extract_materials<M: TilemapMaterial>(
-    mut commands: Commands,
-    mut events: Extract<EventReader<AssetEvent<M>>>,
-    assets: Extract<Res<Assets<M>>>,
-) {
-    let mats = events
-        .read()
-        .fold(ExtractedTilemapMaterials::default(), |mut acc, ev| {
-            match ev {
-                AssetEvent::Added { id } | AssetEvent::Modified { id } => {
-                    if let Some(mat) = assets.get(*id) {
-                        acc.changed.push((id.clone(), mat.clone()));
-                    }
-                }
-                AssetEvent::Removed { id } => {
-                    acc.removed.push(*id);
-                }
-                AssetEvent::LoadedWithDependencies { .. } | AssetEvent::Unused { .. } => {}
-            };
-            acc
-        });
-
-    commands.insert_resource(mats);
 }
 
 pub fn extract_view(

@@ -20,7 +20,7 @@ use bevy::{
 };
 
 use crate::{
-    render::{material::TilemapMaterial, resources::TilemapInstances},
+    render::extract::TilemapInstances,
     tilemap::map::{TilemapTextures, WaitForTextureUsageChange},
 };
 
@@ -228,11 +228,11 @@ pub fn set_texture_usage(
     });
 }
 
-pub fn schedule_tilemap_texture_preparation<M: TilemapMaterial>(
-    tilemap_instances: Res<TilemapInstances<M>>,
+pub fn schedule_tilemap_texture_preparation(
+    tilemap_instances: Res<TilemapInstances>,
     mut texture_storage: ResMut<TilemapTexturesStorage>,
 ) {
-    for tilemap in tilemap_instances.0.values() {
+    for tilemap in tilemap_instances.values() {
         if let Some(handle) = &tilemap.texture {
             if !texture_storage.contains(handle) {
                 texture_storage.insert(handle.clone());
@@ -404,4 +404,3 @@ pub fn queue_tilemap_textures(
 
     render_queue.submit([command_encoder.finish()]);
 }
-

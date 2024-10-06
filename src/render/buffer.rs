@@ -1,9 +1,7 @@
-use std::marker::PhantomData;
-
 use bevy::{
-    ecs::entity::{Entity, EntityHashMap},
+    ecs::entity::EntityHashMap,
     math::{Mat2, Vec4},
-    prelude::{Commands, Component, Query, Res, ResMut, Resource, Vec2, With},
+    prelude::{Commands, Res, ResMut, Resource, Vec2},
     render::{
         render_resource::{BufferUsages, DynamicUniformBuffer, RawBufferVec, ShaderType},
         renderer::{RenderDevice, RenderQueue},
@@ -11,33 +9,7 @@ use bevy::{
     time::Time,
 };
 
-use crate::{
-    render::{extract::TilemapInstance, material::TilemapMaterial, resources::TilemapInstances},
-    tilemap::map::TilemapType,
-};
-
-#[derive(Component)]
-pub struct DynamicOffsetComponent<T>
-where
-    T: ShaderType,
-{
-    index: u32,
-    _marker: PhantomData<T>,
-}
-
-impl<T: ShaderType> DynamicOffsetComponent<T> {
-    pub fn new(index: u32) -> Self {
-        Self {
-            index,
-            _marker: PhantomData,
-        }
-    }
-
-    #[inline]
-    pub fn index(&self) -> u32 {
-        self.index
-    }
-}
+use crate::{render::extract::TilemapInstances, tilemap::map::TilemapType};
 
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
@@ -95,6 +67,7 @@ impl PerTilemapBuffersStorage<GpuTilemapTextureDescriptor> for TilemapTextureDes
 #[derive(Default)]
 pub struct SharedTilemapBuffers {
     pub uniform: DynamicUniformBuffer<TilemapUniform>,
+    pub indices: EntityHashMap<u32>,
 }
 
 pub struct UnsharedTilemapBuffers {
@@ -115,10 +88,9 @@ pub struct TilemapBuffers {
     pub unshared: EntityHashMap<UnsharedTilemapBuffers>,
 }
 
-pub fn prepare_tilemap_buffers<M: TilemapMaterial>(
+pub fn prepare_tilemap_buffers(
     mut commands: Commands,
-    extracted_tilemaps: Query<Entity, With<TilemapInstance>>,
-    tilemap_instances: Res<TilemapInstances<M>>,
+    tilemap_instances: Res<TilemapInstances>,
     mut tilemap_buffers: ResMut<TilemapBuffers>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
@@ -127,10 +99,7 @@ pub fn prepare_tilemap_buffers<M: TilemapMaterial>(
 ) {
     tilemap_buffers.shared.uniform.clear();
 
-    for tilemap in extracted_tilemaps
-        .iter()
-        .filter_map(|e| tilemap_instances.0.get(&e))
-    {
+    for (entity, tilemap) in tilemap_instances.iter() {
         let index = tilemap_buffers.shared.uniform.push(&TilemapUniform {
             translation: tilemap.transform.translation,
             rotation: tilemap.transform.get_rotation_matrix(),
@@ -145,12 +114,10 @@ pub fn prepare_tilemap_buffers<M: TilemapMaterial>(
             },
             time: time.elapsed_seconds(),
         });
-        commands
-            .entity(tilemap.id)
-            .insert(DynamicOffsetComponent::<TilemapUniform>::new(index));
+        tilemap_buffers.shared.indices.insert(*entity, index);
 
-        let unshared = tilemap_buffers.unshared.entry(tilemap.id).or_default();
-        if let Some(anim) = &tilemap.animations {
+        let unshared = tilemap_buffers.unshared.entry(*entity).or_default();
+        if let Some(anim) = &tilemap.changed_animations {
             *unshared.animation.values_mut() = anim.0.clone();
             unshared
                 .animation

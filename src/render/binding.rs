@@ -1,11 +1,10 @@
 use bevy::{
     asset::{AssetId, Handle},
-    ecs::{component::Component, entity::EntityHashMap, system::Resource},
-    log::error,
-    prelude::{Entity, Query, Res, ResMut, With},
+    ecs::entity::EntityHashMap,
+    prelude::{Component, Res, ResMut, Resource},
     render::{
         render_asset::RenderAssets,
-        render_resource::{BindGroup, BindGroupEntries, BindGroupLayout},
+        render_resource::{BindGroup, BindGroupEntries},
         renderer::RenderDevice,
         texture::{FallbackImage, GpuImage},
     },
@@ -15,10 +14,9 @@ use bevy::{
 use crate::{
     render::{
         buffer::TilemapBuffers,
-        extract::{ExtractedTilemap, TilemapInstance},
-        material::TilemapMaterial,
+        extract::{TilemapInstances, TilemapMaterialInstances},
+        material::{ExtractedTilemapMaterialWrapper, TilemapMaterial},
         pipeline::EntiTilesPipeline,
-        resources::{ExtractedTilemapMaterials, TilemapInstances},
         texture::TilemapTexturesStorage,
     },
     tilemap::map::TilemapTextures,
@@ -44,9 +42,9 @@ pub fn bind_tilemap_buffers<M: TilemapMaterial>(
     render_device: Res<RenderDevice>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     // #[cfg(feature = "atlas")] texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
-    tilemaps_query: Query<Entity, With<TilemapInstance>>,
     tilemap_buffers: Res<TilemapBuffers>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
+    tilemap_instances: Res<TilemapInstances>,
 ) {
     if let Some(uniform_buffer) = tilemap_buffers.shared.uniform.binding() {
         bind_groups.uniform_buffer = Some(render_device.create_bind_group(
@@ -56,8 +54,8 @@ pub fn bind_tilemap_buffers<M: TilemapMaterial>(
         ));
     }
 
-    for tilemap in &tilemaps_query {
-        let Some(buffers) = tilemap_buffers.unshared.get(&tilemap) else {
+    for tilemap in tilemap_instances.keys() {
+        let Some(buffers) = tilemap_buffers.unshared.get(tilemap) else {
             continue;
         };
 
@@ -66,7 +64,7 @@ pub fn bind_tilemap_buffers<M: TilemapMaterial>(
         };
 
         bind_groups.storage_buffers.insert(
-            tilemap,
+            *tilemap,
             render_device.create_bind_group(
                 "tilemap_storage_buffers_bind_group",
                 &entitiles_pipeline.storage_buffers_layout,
@@ -118,13 +116,12 @@ pub fn bind_materials<M: TilemapMaterial>(
     render_device: Res<RenderDevice>,
     images: Res<RenderAssets<GpuImage>>,
     fallback_image: Res<FallbackImage>,
-    extracted_materials: Res<ExtractedTilemapMaterials<M>>,
+    extracted_materials: Res<TilemapMaterialInstances<M>>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
+    material_assets: Res<RenderAssets<ExtractedTilemapMaterialWrapper<M>>>,
 ) {
-    extracted_materials
-        .changed
-        .iter()
-        .for_each(|(id, material)| {
+    for id in extracted_materials.values() {
+        if let Some(material) = material_assets.get(*id) {
             let bind_group = material
                 .as_bind_group(
                     &pipeline.material_layout,
@@ -134,17 +131,18 @@ pub fn bind_materials<M: TilemapMaterial>(
                 )
                 .unwrap();
             bind_groups.materials.insert(*id, bind_group.bind_group);
-        });
+        }
+    }
 }
 
 pub fn bind_textures<M: TilemapMaterial>(
-    tilemap_instances: Res<TilemapInstances<M>>,
+    tilemap_instances: Res<TilemapInstances>,
     render_device: Res<RenderDevice>,
     textures_storage: Res<TilemapTexturesStorage>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
 ) {
-    for tilemap in tilemap_instances.0.values() {
+    for tilemap in tilemap_instances.values() {
         let Some((handle, texture)) = tilemap
             .texture
             .as_ref()

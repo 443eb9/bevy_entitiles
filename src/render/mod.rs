@@ -31,7 +31,6 @@ pub mod material;
 pub mod pipeline;
 pub mod prepare;
 pub mod queue;
-pub mod resources;
 pub mod texture;
 
 pub const SQUARE: Handle<Shader> = Handle::weak_from_u128(54311635145631);
@@ -101,7 +100,6 @@ impl Plugin for EntiTilesRendererPlugin {
             .add_systems(
                 ExtractSchedule,
                 (
-                    extract::extract_tilemaps,
                     extract::extract_tiles,
                     extract::extract_view,
                     extract::extract_unloaded_chunks,
@@ -115,12 +113,15 @@ impl Plugin for EntiTilesRendererPlugin {
                 (
                     texture::prepare_tilemap_textures,
                     texture::queue_tilemap_textures,
+                    cull::cull_chunks,
+                    buffer::prepare_tilemap_buffers,
+                    texture::schedule_tilemap_texture_preparation,
                 )
                     .chain()
                     .in_set(RenderSet::Prepare),
             )
-            .add_systems(Render, queue::queue_textures.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkSort>()
+            .init_resource::<RenderChunkStorage>()
             .init_resource::<TilemapTexturesStorage>()
             .init_resource::<TilemapBuffers>();
 

@@ -8,8 +8,7 @@ use crate::{
     math::CameraAabb2d,
     render::{
         chunk::RenderChunkStorage,
-        extract::{ExtractedTilemap, ExtractedView},
-        material::TilemapMaterial,
+        extract::{ExtractedView, TilemapInstances},
     },
     tilemap::map::TilemapAabbs,
 };
@@ -41,9 +40,9 @@ pub fn cull_tilemaps(
     });
 }
 
-pub fn cull_chunks<M: TilemapMaterial>(
-    tilemaps: Query<&ExtractedTilemap<M>>,
-    mut render_chunk_storage: ResMut<RenderChunkStorage<M>>,
+pub fn cull_chunks(
+    tilemaps: Res<TilemapInstances>,
+    mut render_chunk_storage: ResMut<RenderChunkStorage>,
     cameras: Query<&ExtractedView>,
     culling: Res<FrustumCulling>,
 ) {
@@ -51,27 +50,27 @@ pub fn cull_chunks<M: TilemapMaterial>(
         return;
     }
 
-    tilemaps.iter().for_each(|tilemap| {
-        render_chunk_storage
-            .get_or_insert_chunks(tilemap.id)
-            .value
-            .values_mut()
-            .for_each(|c| {
-                c.visible = false;
-            });
-    });
+    // tilemaps.keys().for_each(|tilemap| {
+    //     render_chunk_storage
+    //         .get_or_insert_chunks(*tilemap)
+    //         .value
+    //         .values_mut()
+    //         .for_each(|c| {
+    //             c.visible = false;
+    //         });
+    // });
 
-    cameras.iter().for_each(|cam_aabb| {
-        tilemaps.iter().for_each(|tilemap| {
-            render_chunk_storage
-                .get_or_insert_chunks(tilemap.id)
-                .value
-                .values_mut()
-                .for_each(|c| {
-                    if !c.aabb.intersect(cam_aabb.0).is_empty() {
-                        c.visible = true;
-                    }
-                });
-        });
-    });
+    // cameras.iter().for_each(|cam_aabb| {
+    //     tilemaps.keys().for_each(|tilemap| {
+    //         render_chunk_storage
+    //             .get_or_insert_chunks(*tilemap)
+    //             .value
+    //             .values_mut()
+    //             .for_each(|c| {
+    //                 if !c.aabb.intersect(cam_aabb.0).is_empty() {
+    //                     c.visible = true;
+    //                 }
+    //             });
+    //     });
+    // });
 }

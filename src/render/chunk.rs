@@ -20,9 +20,8 @@ use rayon::iter::ParallelIterator;
 use crate::{
     math::ext::{DivToFloor, RectFromTilemap},
     render::{
-        extract::{ExtractedTile, ExtractedTilemap},
+        extract::{ExtractedTile, ExtractedTilemap, TilemapInstances},
         material::TilemapMaterial,
-        resources::TilemapInstances,
         TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
     },
     tilemap::{
@@ -72,7 +71,7 @@ pub struct MeshTileData {
 }
 
 #[derive(Clone)]
-pub struct TilemapRenderChunk<M: TilemapMaterial> {
+pub struct TilemapRenderChunk {
     pub visible: bool,
     pub index: IVec2,
     pub dirty_mesh: bool,
@@ -83,11 +82,10 @@ pub struct TilemapRenderChunk<M: TilemapMaterial> {
     pub mesh: Mesh,
     pub gpu_mesh: Option<GpuMesh>,
     pub aabb: Rect,
-    pub marker: PhantomData<M>,
 }
 
-impl<M: TilemapMaterial> TilemapRenderChunk<M> {
-    pub fn from_index(index: IVec2, tilemap: &ExtractedTilemap<M>) -> Self {
+impl TilemapRenderChunk {
+    pub fn from_index(index: IVec2, tilemap: &ExtractedTilemap) -> Self {
         TilemapRenderChunk {
             visible: true,
             index: index.div_to_floor(IVec2::splat(tilemap.chunk_size as i32)),
@@ -110,7 +108,6 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
                 tilemap.slot_size,
                 tilemap.transform,
             ),
-            marker: PhantomData,
         }
     }
 
@@ -274,13 +271,13 @@ impl<M: TilemapMaterial> TilemapRenderChunk<M> {
 }
 
 #[derive(Resource)]
-pub struct TilemapRenderChunks<M: TilemapMaterial> {
+pub struct TilemapRenderChunks {
     pub tilemap: Entity,
-    pub value: IndexMap<IVec2, TilemapRenderChunk<M>>,
+    pub value: IndexMap<IVec2, TilemapRenderChunk>,
     pub is_dirty: bool,
 }
 
-impl<M: TilemapMaterial> TilemapRenderChunks<M> {
+impl TilemapRenderChunks {
     pub fn new(tilemap: Entity) -> Self {
         Self {
             tilemap,
@@ -290,7 +287,7 @@ impl<M: TilemapMaterial> TilemapRenderChunks<M> {
     }
 
     #[inline]
-    pub fn try_add_chunk(&mut self, chunk_index: IVec2, tilemap: &ExtractedTilemap<M>) {
+    pub fn try_add_chunk(&mut self, chunk_index: IVec2, tilemap: &ExtractedTilemap) {
         match self.value.entry(chunk_index) {
             Entry::Occupied(_) => {}
             Entry::Vacant(e) => {
@@ -301,7 +298,7 @@ impl<M: TilemapMaterial> TilemapRenderChunks<M> {
     }
 
     #[inline]
-    pub fn remove_chunk(&mut self, index: IVec2) -> Option<TilemapRenderChunk<M>> {
+    pub fn remove_chunk(&mut self, index: IVec2) -> Option<TilemapRenderChunk> {
         self.value.shift_remove(&index)
     }
 
@@ -329,11 +326,11 @@ impl<M: TilemapMaterial> TilemapRenderChunks<M> {
 }
 
 #[derive(Resource)]
-pub struct RenderChunkStorage<M: TilemapMaterial> {
-    pub(crate) value: EntityHashMap<TilemapRenderChunks<M>>,
+pub struct RenderChunkStorage {
+    pub(crate) value: EntityHashMap<TilemapRenderChunks>,
 }
 
-impl<M: TilemapMaterial> Default for RenderChunkStorage<M> {
+impl Default for RenderChunkStorage {
     fn default() -> Self {
         Self {
             value: Default::default(),
@@ -341,7 +338,7 @@ impl<M: TilemapMaterial> Default for RenderChunkStorage<M> {
     }
 }
 
-impl<M: TilemapMaterial> RenderChunkStorage<M> {
+impl RenderChunkStorage {
     // /// Update the mesh for all chunks of a tilemap.
     // pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap<M>, render_device: &RenderDevice) {
     //     if let Some(chunks) = self.value.get_mut(&tilemap.id) {
@@ -353,19 +350,19 @@ impl<M: TilemapMaterial> RenderChunkStorage<M> {
     // }
 
     #[inline]
-    pub fn get_chunks(&self, tilemap: Entity) -> Option<&TilemapRenderChunks<M>> {
+    pub fn get_chunks(&self, tilemap: Entity) -> Option<&TilemapRenderChunks> {
         self.value.get(&tilemap)
     }
 
     #[inline]
-    pub fn get_or_insert_chunks(&mut self, tilemap: Entity) -> &mut TilemapRenderChunks<M> {
+    pub fn get_or_insert_chunks(&mut self, tilemap: Entity) -> &mut TilemapRenderChunks {
         self.value
             .entry(tilemap)
             .or_insert_with(|| TilemapRenderChunks::new(tilemap))
     }
 
     #[inline]
-    pub fn remove_tilemap(&mut self, tilemap: Entity) -> Option<TilemapRenderChunks<M>> {
+    pub fn remove_tilemap(&mut self, tilemap: Entity) -> Option<TilemapRenderChunks> {
         self.value.remove(&tilemap)
     }
 
@@ -376,11 +373,11 @@ impl<M: TilemapMaterial> RenderChunkStorage<M> {
 }
 
 pub fn prepare_chunks<M: TilemapMaterial>(
-    tilemap_instances: Res<TilemapInstances<M>>,
+    tilemap_instances: Res<TilemapInstances>,
     render_device: Res<RenderDevice>,
-    mut render_chunks: ResMut<RenderChunkStorage<M>>,
+    mut render_chunks: ResMut<RenderChunkStorage>,
 ) {
-    for tilemap in tilemap_instances.0.keys() {
+    for tilemap in tilemap_instances.keys() {
         if let Some(chunks) = render_chunks.value.get_mut(tilemap) {
             chunks
                 .value
