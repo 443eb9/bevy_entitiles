@@ -8,13 +8,13 @@ use bevy::{
         query::With,
         system::{Commands, Query, Res, ResMut, Resource},
     },
-    math::{IRect, IVec2},
+    math::{IVec2, UVec2},
     reflect::Reflect,
     utils::HashMap,
 };
 
 use crate::{
-    math::ext::ChunkIndex,
+    math::{ext::ChunkIndex, TileArea},
     render::chunk::{ChunkUnload, UnloadRenderChunk},
     serializing::{chunk::TILE_CHUNKS_FOLDER, map::TilemapLayer, save_object},
     tilemap::{
@@ -166,10 +166,7 @@ pub fn save_color_layer(
                     format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                     &TileBuilderBuffer {
                         tiles,
-                        aabb: IRect {
-                            min: IVec2::ZERO,
-                            max: IVec2::splat(storage.storage.chunk_size as i32 - 1),
-                        },
+                        aabb: TileArea::new(IVec2::ZERO, UVec2::splat(storage.storage.chunk_size)),
                     },
                 );
 
@@ -243,10 +240,10 @@ pub fn save_path_layer(
                 format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                 &PathTileBuffer {
                     tiles,
-                    aabb: IRect {
-                        min: IVec2::ZERO,
-                        max: IVec2::splat(path_tilemap.storage.chunk_size as i32 - 1),
-                    },
+                    aabb: TileArea::from_min_max(
+                        IVec2::ZERO,
+                        IVec2::splat(path_tilemap.storage.chunk_size as i32),
+                    ),
                 },
             );
 
@@ -309,10 +306,10 @@ pub fn save_physics_layer(
                     format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                     &PackedPhysicsTileBuffer {
                         tiles,
-                        aabb: IRect {
-                            min: IVec2::ZERO,
-                            max: IVec2::splat(physics_tilemap.storage.chunk_size as i32 - 1),
-                        },
+                        aabb: TileArea::from_min_max(
+                            IVec2::ZERO,
+                            IVec2::splat(physics_tilemap.storage.chunk_size as i32),
+                        ),
                     },
                 );
 

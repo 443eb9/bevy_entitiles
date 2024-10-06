@@ -2,7 +2,7 @@ use avian2d::prelude::{Collider, Friction, RigidBody};
 use bevy::{
     app::{App, Plugin, Update},
     ecs::{component::Component, entity::Entity, event::Event, system::Commands},
-    math::{IRect, IVec2, UVec2, Vec2},
+    math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
     utils::HashMap,
 };
@@ -234,7 +234,7 @@ impl DataPhysicsTilemap {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
     pub(crate) storage: EntityChunkedStorage,
-    pub(crate) spawn_queue: Vec<(IRect, PhysicsTile, Option<i32>)>,
+    pub(crate) spawn_queue: Vec<(TileArea, PhysicsTile, Option<i32>)>,
     pub(crate) data: PackedPhysicsTileChunkedStorage,
 }
 
@@ -268,14 +268,8 @@ impl PhysicsTilemap {
     /// Set a tile. This actually queues the tile and it will be spawned later.
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: PhysicsTile) {
-        self.spawn_queue.push((
-            IRect {
-                min: index,
-                max: index + 1,
-            },
-            tile,
-            None,
-        ));
+        self.spawn_queue
+            .push((TileArea::from_min_max(index, index), tile, None));
     }
 
     /// Remove a tile.
@@ -310,22 +304,12 @@ impl PhysicsTilemap {
     /// Set `concat` to true if you want to concat the adjacent tiles.
     pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
         if concat {
-            self.spawn_queue
-                .push((IRect::from_corners(area.origin, area.dest), tile, None));
+            self.spawn_queue.push((area, tile, None));
         } else {
             self.spawn_queue.extend(
                 (area.origin.y..=area.dest.y)
                     .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
-                    .map(|index| {
-                        (
-                            IRect {
-                                min: index,
-                                max: index + 1,
-                            },
-                            tile.clone(),
-                            None,
-                        )
-                    }),
+                    .map(|index| (TileArea::from_min_max(index, index), tile.clone(), None)),
             );
         }
     }
@@ -349,14 +333,8 @@ impl PhysicsTilemap {
                 } else {
                     index
                 }) {
-                    self.spawn_queue.push((
-                        IRect {
-                            min: index,
-                            max: index + 1,
-                        },
-                        tile,
-                        None,
-                    ));
+                    self.spawn_queue
+                        .push((TileArea::from_min_max(index, index), tile, None));
                 }
             }
         }
@@ -367,10 +345,7 @@ impl PhysicsTilemap {
         self.spawn_queue
             .extend(buffer.tiles.into_iter().map(|(index, tile)| {
                 (
-                    IRect {
-                        min: index + origin,
-                        max: index + origin + 1,
-                    },
+                    TileArea::from_min_max(index + origin, index + origin),
                     tile,
                     None,
                 )
@@ -381,10 +356,7 @@ impl PhysicsTilemap {
         self.spawn_queue
             .extend(buffer.tiles.into_iter().map(|(index, tile)| {
                 (
-                    IRect {
-                        min: index + origin,
-                        max: index + origin + 1,
-                    },
+                    TileArea::from_min_max(index + origin, index + origin),
                     tile.into(),
                     None,
                 )

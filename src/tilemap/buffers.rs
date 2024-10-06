@@ -1,12 +1,11 @@
 use std::fmt::Debug;
 
-use bevy::{
-    math::{IRect, IVec2},
-    reflect::Reflect,
-    utils::HashMap,
-};
+use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
 
-use crate::tilemap::tile::{Tile, TileBuilder};
+use crate::{
+    math::TileArea,
+    tilemap::tile::{Tile, TileBuilder},
+};
 
 /// A marker trait
 pub trait Tiles: Debug + Clone + Reflect {}
@@ -14,25 +13,25 @@ pub trait Tiles: Debug + Clone + Reflect {}
 pub type ColorTileBuffer = TileBuffer<Tile>;
 pub type TileBuilderBuffer = TileBuffer<TileBuilder>;
 #[cfg(feature = "algorithm")]
-pub type PathTileBuffer = TileBuffer<super::algorithm::path::PathTile>;
+pub type PathTileBuffer = TileBuffer<crate::tilemap::algorithm::path::PathTile>;
 #[cfg(feature = "physics")]
-pub type PhysicsTileBuffer = TileBuffer<super::physics::PhysicsTile>;
+pub type PhysicsTileBuffer = TileBuffer<crate::tilemap::physics::PhysicsTile>;
 #[cfg(feature = "physics")]
-pub type PackedPhysicsTileBuffer = TileBuffer<super::physics::PackedPhysicsTile>;
+pub type PackedPhysicsTileBuffer = TileBuffer<crate::tilemap::physics::PackedPhysicsTile>;
 
 /// A buffer of tiles.
 #[derive(Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuffer<T: Tiles> {
     pub(crate) tiles: HashMap<IVec2, T>,
-    pub(crate) aabb: IRect,
+    pub(crate) aabb: TileArea,
 }
 
 impl<T: Tiles> TileBuffer<T> {
     pub fn new() -> Self {
         Self {
             tiles: HashMap::new(),
-            aabb: IRect::default(),
+            aabb: TileArea::default(),
         }
     }
 
@@ -63,7 +62,7 @@ impl<T: Tiles> TileBuffer<T> {
     ///
     /// This method can be expensive when the tile buffer is large.
     pub fn recalculate_rect(&mut self) {
-        self.aabb = IRect::default();
+        self.aabb = TileArea::default();
         for (index, _) in self.tiles.iter() {
             self.aabb = self.aabb.union_point(*index);
         }
@@ -75,7 +74,7 @@ impl<T: Tiles> TileBuffer<T> {
     }
 
     #[inline]
-    pub fn aabb(&self) -> IRect {
+    pub fn aabb(&self) -> TileArea {
         self.aabb
     }
 }

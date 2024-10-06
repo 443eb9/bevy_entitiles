@@ -1,15 +1,19 @@
 use bevy::{
     ecs::{entity::Entity, event::EventWriter, system::Query},
-    math::{IRect, UVec2},
+    math::UVec2,
     prelude::Commands,
 };
 
-use crate::tilemap::{
-    chunking::storage::ChunkedStorage,
-    coordinates,
-    map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
-    physics::{
-        DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn, PhysicsTilemap,
+use crate::{
+    math::TileArea,
+    tilemap::{
+        chunking::storage::ChunkedStorage,
+        coordinates,
+        map::{TilePivot, TilemapSlotSize, TilemapTransform, TilemapType},
+        physics::{
+            DataPhysicsTilemap, PackedPhysicsTile, PhysicsCollider, PhysicsTileSpawn,
+            PhysicsTilemap,
+        },
     },
 };
 
@@ -34,16 +38,16 @@ pub fn spawn_colliders(
 
         for (aabb, physics_tile, maybe_int_repr) in spawn_queue.drain(..) {
             let vertices = coordinates::get_tile_collider_world(
-                aabb.min,
+                aabb.origin,
                 *ty,
-                aabb.size().as_uvec2(),
+                aabb.extent,
                 transform,
                 tile_pivot.0,
                 slot_size.0,
             );
 
             let packed_tile = PackedPhysicsTile {
-                parent: aabb.min,
+                parent: aabb.origin,
                 collider: match ty {
                     TilemapType::Square | TilemapType::Isometric => {
                         PhysicsCollider::Convex(vertices)
@@ -60,8 +64,8 @@ pub fn spawn_colliders(
                 int_repr: maybe_int_repr,
             });
 
-            storage.set_elem(aabb.min, tile_entity);
-            data.set_elem(aabb.min, packed_tile);
+            storage.set_elem(aabb.origin, tile_entity);
+            data.set_elem(aabb.origin, packed_tile);
         }
     }
 }
@@ -123,10 +127,10 @@ pub fn data_physics_tilemap_analyzer(
                 }
 
                 aabbs.push((
-                    IRect {
-                        min: cur.as_ivec2() + data_tilemap.origin,
-                        max: dst.as_ivec2() + data_tilemap.origin,
-                    },
+                    TileArea::from_min_max(
+                        cur.as_ivec2() + data_tilemap.origin,
+                        dst.as_ivec2() + data_tilemap.origin,
+                    ),
                     data_tilemap.get_tile(cur_i).unwrap_or_default(),
                     Some(cur_i),
                 ));

@@ -1,3 +1,7 @@
+use avian2d::{
+    prelude::{PhysicsDebugPlugin, PhysicsGizmos},
+    PhysicsPlugins,
+};
 use bevy::{
     app::{App, Startup, Update},
     color::Color,
@@ -29,7 +33,6 @@ use bevy_entitiles::{
     tilemap::{map::TilemapType, physics::PhysicsTile},
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::plugins::{debug::PhysicsGizmos, PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

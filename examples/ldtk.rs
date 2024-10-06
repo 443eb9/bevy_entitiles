@@ -84,6 +84,9 @@ fn main() {
             animation_mapper: HashMap::from([(
                 470,
                 RawTileAnimation {
+                    #[cfg(feature = "atlas")]
+                    sequence: vec![(0, 469), (0, 446), (0, 447)],
+                    #[cfg(not(feature = "atlas"))]
                     sequence: vec![469, 446, 447],
                     fps: 3,
                 },

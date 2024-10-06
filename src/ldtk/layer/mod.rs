@@ -2,12 +2,11 @@ use bevy::{
     asset::{AssetServer, Assets},
     color::LinearRgba,
     ecs::{
-        component::Component,
         entity::Entity,
         system::{Commands, EntityCommands},
     },
-    math::{IRect, IVec2, Vec2},
-    prelude::SpatialBundle,
+    math::{IVec2, Vec2},
+    prelude::{Component, SpatialBundle},
     sprite::SpriteBundle,
     transform::components::Transform,
     utils::HashMap,
@@ -24,6 +23,7 @@ use crate::{
         traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
         LdtkLoaderMode,
     },
+    math::TileArea,
     render::material::StandardTilemapMaterial,
     serializing::pattern::TilemapPattern,
     tilemap::{
@@ -233,10 +233,10 @@ impl LdtkLayers {
             return;
         }
 
-        let aabb = IRect {
-            min: IVec2::new(0, -layer.c_hei + 1),
-            max: IVec2::new(layer.c_wid - 1, 0),
-        };
+        let aabb = TileArea::from_min_max(
+            IVec2::new(0, -layer.c_hei + 1),
+            IVec2::new(layer.c_wid - 1, 0),
+        );
 
         self.layers[layer_index] = Some((
             TilemapPattern {

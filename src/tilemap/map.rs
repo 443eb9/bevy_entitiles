@@ -7,7 +7,7 @@ use bevy::{
         query::Changed,
         system::{Query, SystemParamItem},
     },
-    math::{IRect, Mat2, Quat, Rect, URect, Vec4},
+    math::{Mat2, Quat, Rect, URect, Vec4},
     prelude::{Commands, Entity, IVec2, Image, UVec2, Vec2},
     reflect::Reflect,
     render::{
@@ -412,13 +412,13 @@ impl Default for TilemapLayerOpacities {
 /// The tilemap's aabb.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 pub struct TilemapAabbs {
-    pub(crate) chunk_aabb: IRect,
+    pub(crate) chunk_aabb: TileArea,
     pub(crate) world_aabb: Rect,
 }
 
 impl TilemapAabbs {
     /// The aabb of the whole tilemap in chunk coordinates.
-    pub fn chunk_rect(&self) -> IRect {
+    pub fn chunk_rect(&self) -> TileArea {
         self.chunk_aabb
     }
 
@@ -844,12 +844,12 @@ pub fn tilemap_aabb_calculator(
 ) {
     tilemaps_query.par_iter_mut().for_each(
         |(mut aabbs, storage, ty, tile_pivot, axis_direction, slot_size, transform)| {
-            let mut chunk_aabb: Option<IRect> = None;
+            let mut chunk_aabb: Option<TileArea> = None;
             storage.storage.chunks.keys().for_each(|chunk_index| {
                 if let Some(aabb) = &mut chunk_aabb {
                     *aabb = aabb.union_point(*chunk_index);
                 } else {
-                    chunk_aabb = Some(IRect::from_center_size(*chunk_index, IVec2::ZERO));
+                    chunk_aabb = Some(TileArea::from_min_max(*chunk_index, *chunk_index));
                 }
             });
 
@@ -858,7 +858,7 @@ pub fn tilemap_aabb_calculator(
             };
 
             let world_max = Rect::from_tilemap(
-                chunk_aabb.max,
+                chunk_aabb.dest,
                 storage.storage.chunk_size,
                 *ty,
                 tile_pivot.0,
@@ -867,7 +867,7 @@ pub fn tilemap_aabb_calculator(
                 *transform,
             );
             let world_min = Rect::from_tilemap(
-                chunk_aabb.min,
+                chunk_aabb.origin,
                 storage.storage.chunk_size,
                 *ty,
                 tile_pivot.0,

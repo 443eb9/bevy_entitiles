@@ -73,13 +73,26 @@ pub fn camera_aabb_updater(
 }
 
 #[derive(Debug, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileArea {
     pub origin: IVec2,
     pub extent: UVec2,
     pub dest: IVec2,
 }
 
+impl Default for TileArea {
+    fn default() -> Self {
+        Self::EMPTY
+    }
+}
+
 impl TileArea {
+    pub const EMPTY: Self = Self {
+        origin: IVec2::MAX,
+        extent: UVec2::ZERO,
+        dest: IVec2::MIN,
+    };
+
     /// Define a new fill area without checking if the area is out of the tilemap.
     #[inline]
     pub fn new(origin: IVec2, extent: UVec2) -> Self {
@@ -105,10 +118,52 @@ impl TileArea {
     }
 
     #[inline]
-    pub fn rect(&self) -> IRect {
+    pub fn contains(&self, p: IVec2) -> bool {
+        (self.origin.cmple(p) & self.dest.cmpge(p)).all()
+    }
+
+    #[inline]
+    pub fn union_point(&self, other: IVec2) -> Self {
+        let origin = self.origin.min(other);
+        let dest = self.dest.max(other);
+        Self::from_min_max(origin, dest)
+    }
+
+    /// Convert the area into rect, but with exclusive max value.
+    #[inline]
+    pub fn into_rect(&self) -> IRect {
         IRect {
             min: self.origin,
             max: self.dest,
+        }
+    }
+
+    /// Convert the area into rect, and with inclusive max value.
+    #[inline]
+    pub fn into_rect_inclusive(&self) -> IRect {
+        IRect {
+            min: self.origin,
+            max: self.dest + 1,
+        }
+    }
+
+    /// Convert the rect into area, but with exclusive max value.
+    #[inline]
+    pub fn from_rect(rect: IRect) -> Self {
+        Self {
+            origin: rect.min,
+            extent: rect.size().as_uvec2(),
+            dest: rect.max,
+        }
+    }
+
+    /// Convert the rect into area, and with inclusive max value.
+    #[inline]
+    pub fn from_rect_inclusive(rect: IRect) -> Self {
+        Self {
+            origin: rect.min,
+            extent: rect.size().as_uvec2() + 1,
+            dest: rect.max + 1,
         }
     }
 }

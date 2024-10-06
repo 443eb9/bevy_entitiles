@@ -14,7 +14,7 @@ use crate::tilemap::buffers::PathTileBuffer;
 use crate::tilemap::physics::SerializablePhysicsSource;
 
 /// A pattern of tiles.
-/// 
+///
 /// This includes the tiles, animations, and other data.
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 pub struct TilemapPattern {
@@ -59,13 +59,13 @@ impl PatternsLayer {
     ) -> Self {
         patterns.iter().enumerate().for_each(|(i, p)| {
             assert_eq!(
-                p.tiles.aabb.size(),
-                pattern_size.as_ivec2(),
+                p.tiles.aabb.extent,
+                pattern_size,
                 "Pattern size mismatch! Pattern No.{}[label = {:?}]'s size is {}, \
                 but the pattern_size is {}",
                 i,
-                p.label.clone().unwrap_or("No label".to_string()),
-                p.tiles.aabb.size(),
+                p.label.clone().unwrap_or("None".to_string()),
+                p.tiles.aabb.extent,
                 pattern_size
             )
         });

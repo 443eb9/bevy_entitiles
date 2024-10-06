@@ -1,7 +1,7 @@
 use bevy::{
     asset::{AssetId, Handle},
     ecs::entity::EntityHashMap,
-    prelude::{Component, Res, ResMut, Resource},
+    prelude::{Res, ResMut, Resource},
     render::{
         render_asset::RenderAssets,
         render_resource::{BindGroup, BindGroupEntries},

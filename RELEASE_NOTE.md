@@ -7,4 +7,3 @@
 # What's Fixed:
 
 - Crashes when targeting WASM platforms, as `StorageBuffer` was used in versions in the past.
-- Wrong `IRect` size causes crash when using physics tiles.

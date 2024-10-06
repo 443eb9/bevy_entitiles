@@ -18,7 +18,11 @@ use rand::{
 };
 
 use crate::{
-    algorithm::pathfinding::PathTilemaps, math::{ext::TileIndex, TileArea}, render::material::StandardTilemapMaterial, serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern}, tilemap::{
+    algorithm::pathfinding::PathTilemaps,
+    math::{ext::TileIndex, TileArea},
+    render::material::StandardTilemapMaterial,
+    serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
+    tilemap::{
         algorithm::path::PathTilemap,
         bundles::StandardPureColorTilemapBundle,
         map::{
@@ -26,7 +30,8 @@ use crate::{
             TilemapTexture, TilemapTextures, TilemapTransform, TilemapType,
         },
         tile::{TileBuilder, TileLayer},
-    }, DEFAULT_CHUNK_SIZE
+    },
+    DEFAULT_CHUNK_SIZE,
 };
 
 #[cfg(feature = "physics")]
@@ -233,7 +238,7 @@ impl WfcSource {
         }
 
         Self::MapPattern(PatternsLayer {
-            pattern_size: patterns[0].tiles.aabb.size().as_uvec2(),
+            pattern_size: patterns[0].tiles.aabb.extent,
             patterns,
             texture,
             label: Some(prefix),
@@ -753,7 +758,7 @@ pub fn wfc_applier(
                 wfc_data.data.iter().enumerate().for_each(|(i, e)| {
                     let p = &patterns.get(*e as usize);
                     let origin =
-                        (wfc_data.elem_idx_to_grid(i) + wfc_data.area.origin) * p.tiles.aabb.size();
+                        (wfc_data.elem_idx_to_grid(i) + wfc_data.area.origin) * p.tiles.aabb.extent.as_ivec2();
                     tilemap.fill_with_buffer(&mut commands, origin, p.tiles.clone());
 
                     if let Some(tilemap) = path_tilemaps.get_mut(entity) {
