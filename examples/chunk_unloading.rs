@@ -1,4 +1,8 @@
 #![allow(unused_imports)]
+use avian2d::{
+    prelude::{PhysicsDebugPlugin, PhysicsGizmos},
+    PhysicsPlugins,
+};
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
     asset::{AssetServer, Assets},
@@ -38,7 +42,6 @@ use bevy_entitiles::{
     },
     EntiTilesPlugin,
 };
-use bevy_xpbd_2d::plugins::{debug::PhysicsGizmos, PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

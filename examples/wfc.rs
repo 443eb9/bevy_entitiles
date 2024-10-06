@@ -47,7 +47,10 @@ fn setup(
     let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
 
     commands.entity(entity).insert((
+        #[cfg(not(feature = "atlas"))]
         WfcSource::from_atlas_indices(&rules),
+        #[cfg(feature = "atlas")]
+        WfcSource::from_atlas_indices(&rules, 0),
         WfcRunner::new(
             TilemapType::Square,
             rules,

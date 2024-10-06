@@ -268,8 +268,14 @@ impl PhysicsTilemap {
     /// Set a tile. This actually queues the tile and it will be spawned later.
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: PhysicsTile) {
-        self.spawn_queue
-            .push((IRect::from_center_size(index, IVec2::ZERO), tile, None));
+        self.spawn_queue.push((
+            IRect {
+                min: index,
+                max: index + 1,
+            },
+            tile,
+            None,
+        ));
     }
 
     /// Remove a tile.
@@ -312,7 +318,10 @@ impl PhysicsTilemap {
                     .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
                     .map(|index| {
                         (
-                            IRect::from_center_size(index, IVec2::ZERO),
+                            IRect {
+                                min: index,
+                                max: index + 1,
+                            },
                             tile.clone(),
                             None,
                         )
@@ -341,7 +350,10 @@ impl PhysicsTilemap {
                     index
                 }) {
                     self.spawn_queue.push((
-                        IRect::from_center_size(index, IVec2::ZERO),
+                        IRect {
+                            min: index,
+                            max: index + 1,
+                        },
                         tile,
                         None,
                     ));
@@ -355,7 +367,10 @@ impl PhysicsTilemap {
         self.spawn_queue
             .extend(buffer.tiles.into_iter().map(|(index, tile)| {
                 (
-                    IRect::from_center_size(index + origin, IVec2::ZERO),
+                    IRect {
+                        min: index + origin,
+                        max: index + origin + 1,
+                    },
                     tile,
                     None,
                 )
@@ -366,7 +381,10 @@ impl PhysicsTilemap {
         self.spawn_queue
             .extend(buffer.tiles.into_iter().map(|(index, tile)| {
                 (
-                    IRect::from_center_size(index + origin, IVec2::ZERO),
+                    IRect {
+                        min: index + origin,
+                        max: index + origin + 1,
+                    },
                     tile.into(),
                     None,
                 )

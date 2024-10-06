@@ -168,7 +168,7 @@ impl WfcSource {
             .map(|atlas_index| {
                 TileBuilder::new().with_layer(
                     0,
-                    TileLayer::no_flip(texture_index as i32, atlas_index as i32),
+                    TileLayer::no_flip_at(texture_index as i32, atlas_index as i32),
                 )
             })
             .collect();

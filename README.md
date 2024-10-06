@@ -85,6 +85,7 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 
 | Bevy ver | EntiTiles ver | LDtk ver      | Tiled ver     |
 | -------- | ------------- | ------------- | ------------- |
+| 0.14.x   | 0.10.0        | 1.5.3         | 1.11.0        |
 | 0.13.x   | 0.6.0-0.9.0   | 1.5.3         | 1.10.2        |
 | 0.12.x   | 0.4.0-0.5.0   | 1.5.3         | 1.10.2        |
 | 0.12.x   | 0.3.0         | 1.5.3         | Not supported |
