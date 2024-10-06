@@ -111,14 +111,14 @@ impl Plugin for EntiTilesRendererPlugin {
             .add_systems(
                 Render,
                 (
+                    texture::schedule_tilemap_texture_preparation,
                     texture::prepare_tilemap_textures,
                     texture::queue_tilemap_textures,
-                    cull::cull_chunks,
                     buffer::prepare_tilemap_buffers,
-                    texture::schedule_tilemap_texture_preparation,
+                    cull::cull_chunks,
                 )
                     .chain()
-                    .in_set(RenderSet::Prepare),
+                    .in_set(RenderSet::PrepareResources),
             )
             .init_resource::<RenderChunkSort>()
             .init_resource::<RenderChunkStorage>()

@@ -18,7 +18,6 @@ use crate::render::{
 };
 
 pub fn queue_tilemaps<M: TilemapMaterial>(
-    mut commands: Commands,
     mut views_query: Query<Entity, With<ExtractedCamera>>,
     pipeline_cache: Res<PipelineCache>,
     draw_functions: Res<DrawFunctions<Transparent2d>>,

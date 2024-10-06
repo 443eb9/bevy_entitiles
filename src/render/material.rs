@@ -51,13 +51,18 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                     prepare::prepare_unloaded_chunks::<M>,
                     prepare::prepare_despawned_tilemaps::<M>,
                     prepare::prepare_despawned_tiles::<M>,
-                    //
+                    chunk::prepare_chunks::<M>,
+                )
+                    .in_set(RenderSet::PrepareResources),
+            )
+            .add_systems(
+                Render,
+                (
                     binding::bind_tilemap_buffers::<M>,
                     binding::bind_materials::<M>,
                     binding::bind_textures::<M>,
-                    chunk::prepare_chunks::<M>,
                 )
-                    .in_set(RenderSet::Prepare),
+                    .in_set(RenderSet::PrepareBindGroups),
             )
             .add_systems(
                 Render,
