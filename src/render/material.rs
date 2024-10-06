@@ -18,8 +18,8 @@ use bevy::{
 };
 
 use crate::render::{
-    binding::TilemapBindGroups,
-    buffer::TilemapUniformBuffer,
+    binding::{self, TilemapBindGroups},
+    buffer,
     chunk::RenderChunkStorage,
     cull,
     draw::{DrawTilemapNonTextured, DrawTilemapTextured},
@@ -58,6 +58,9 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                     prepare::prepare_despawned_tilemaps::<M>,
                     prepare::prepare_despawned_tiles::<M>,
                     cull::cull_chunks::<M>,
+                    //
+                    buffer::prepare_tilemap_buffers::<M>,
+                    binding::bind_tilemap_buffers::<M>,
                 )
                     .in_set(RenderSet::Prepare),
             )
@@ -67,7 +70,7 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
             )
             .add_systems(Render, queue::queue_tilemaps::<M>.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkStorage<M>>()
-            .init_resource::<TilemapUniformBuffer<M>>()
+            // .init_resource::<TilemapUniformBuffer<M>>()
             .init_resource::<TilemapBindGroups<M>>()
             .init_resource::<TilemapInstances<M>>()
             .init_resource::<ExtractedTilemapMaterials<M>>()

@@ -13,9 +13,7 @@ use bevy::{
 use crate::{
     render::{
         binding::TilemapBindGroups,
-        buffer::{
-            PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
-        },
+        buffer::{PerTilemapBuffersStorage, TilemapBuffers, UniformBuffer},
         chunk::{RenderChunkSort, UnloadRenderChunk},
         extract::{ExtractedTile, TilemapInstance},
         material::TilemapMaterial,
@@ -39,7 +37,8 @@ pub fn prepare_tilemaps_a<M: TilemapMaterial>(
     render_queue: Res<RenderQueue>,
     extracted_tilemaps: Query<Entity, With<TilemapInstance>>,
     mut render_chunks: ResMut<RenderChunkStorage<M>>,
-    mut uniform_buffers: ResMut<TilemapUniformBuffer<M>>,
+    // mut uniform_buffers: ResMut<TilemapUniformBuffer<M>>,
+    mut tilemap_buffers: ResMut<TilemapBuffers>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
     time: Res<Time>,
@@ -48,21 +47,17 @@ pub fn prepare_tilemaps_a<M: TilemapMaterial>(
     fallback_image: Res<FallbackImage>,
     extracted_materials: Res<ExtractedTilemapMaterials<M>>,
 ) {
-    uniform_buffers.clear();
+    // uniform_buffers.clear();
 
     extracted_tilemaps
         .iter()
         .filter_map(|tilemap| tilemap_instances.0.get(&tilemap))
         .for_each(|tilemap| {
-            commands
-                .entity(tilemap.id)
-                .insert(uniform_buffers.insert(&(tilemap, time.elapsed_seconds())));
-
             render_chunks.prepare_chunks(tilemap, &render_device);
         });
 
-    uniform_buffers.write(&render_device, &render_queue);
-    bind_groups.bind_uniform_buffers(&render_device, &mut uniform_buffers, &entitiles_pipeline);
+    // uniform_buffers.write(&render_device, &render_queue);
+    bind_groups.bind_uniform_buffers(&render_device, &mut tilemap_buffers, &entitiles_pipeline);
     bind_groups.prepare_material_bind_groups(
         &entitiles_pipeline.material_layout,
         &render_device,
@@ -76,7 +71,7 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
     extracted_tilemaps: Query<Entity, With<TilemapInstance>>,
-    mut animation_buffers: ResMut<TilemapAnimationBuffer>,
+    // mut animation_buffers: ResMut<TilemapAnimationBuffer>,
     mut textures_storage: ResMut<TilemapTexturesStorage>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
@@ -84,7 +79,7 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
     textures_assets: Res<RenderAssets<TilemapTextures>>,
     #[cfg(feature = "atlas")] mut texture_desc_buffers: ResMut<TilemapTextureDescriptorBuffer>,
 ) {
-    animation_buffers.clear();
+    // animation_buffers.clear();
     #[cfg(feature = "atlas")]
     texture_desc_buffers.clear();
 
@@ -94,9 +89,9 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
         .filter(|tilemap| tilemap.texture.is_some())
         .for_each(|tilemap| {
             let textures_handle = tilemap.texture.as_ref().unwrap();
-            animation_buffers
-                .get_or_insert_buffer(tilemap.id)
-                .extend(&tilemap.animations.as_ref().unwrap().0);
+            // animation_buffers
+            //     .get_or_insert_buffer(tilemap.id)
+            //     .extend(&tilemap.animations.as_ref().unwrap().0);
 
             let Some(_textures) = textures_assets.get(textures_handle) else {
                 return;
@@ -120,16 +115,16 @@ pub fn prepare_tilemaps_b<M: TilemapMaterial>(
 
     #[cfg(feature = "atlas")]
     texture_desc_buffers.write(&render_device, &render_queue);
-    animation_buffers.write(&render_device, &render_queue);
+    // animation_buffers.write(&render_device, &render_queue);
 
     textures_storage.prepare_textures(&render_device, &textures_assets);
-    bind_groups.bind_tilemap_storage_buffers(
-        &render_device,
-        &mut animation_buffers,
-        &entitiles_pipeline,
-        #[cfg(feature = "atlas")]
-        &mut texture_desc_buffers,
-    );
+    // bind_groups.bind_tilemap_storage_buffers(
+    //     &render_device,
+    //     &mut animation_buffers,
+    //     &entitiles_pipeline,
+    //     #[cfg(feature = "atlas")]
+    //     &mut texture_desc_buffers,
+    // );
 }
 
 pub fn prepare_tiles<M: TilemapMaterial>(
@@ -161,13 +156,13 @@ pub fn prepare_unloaded_chunks<M: TilemapMaterial>(
 
 pub fn prepare_despawned_tilemaps<M: TilemapMaterial>(
     mut render_chunks: ResMut<RenderChunkStorage<M>>,
-    mut storage_buffers: ResMut<TilemapAnimationBuffer>,
+    // mut storage_buffers: ResMut<TilemapAnimationBuffer>,
     mut tilemap_instaces: ResMut<TilemapInstances<M>>,
     tilemaps_query: Query<&DespawnedTilemap>,
 ) {
     tilemaps_query.iter().for_each(|map| {
         render_chunks.remove_tilemap(map.0);
-        storage_buffers.remove(map.0);
+        // storage_buffers.remove(map.0);
         tilemap_instaces.0.remove(&map.0);
     });
 }

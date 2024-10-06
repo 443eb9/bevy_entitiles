@@ -4,13 +4,14 @@ use bevy::{
     ecs::schedule::IntoSystemConfigs,
     prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute, render_asset::RenderAssetPlugin, render_resource::VertexFormat, view::VisibilitySystems, ExtractSchedule, Render, RenderApp, RenderSet
+        mesh::MeshVertexAttribute, render_asset::RenderAssetPlugin, render_resource::VertexFormat,
+        view::VisibilitySystems, ExtractSchedule, Render, RenderApp, RenderSet,
     },
 };
 
 use crate::{
     render::{
-        buffer::TilemapAnimationBuffer,
+        buffer::TilemapBuffers,
         chunk::{ChunkUnload, RenderChunkSort, RenderChunkStorage, UnloadRenderChunk},
         cull::FrustumCulling,
         texture::TilemapTexturesStorage,
@@ -112,7 +113,7 @@ impl Plugin for EntiTilesRendererPlugin {
             .add_systems(Render, queue::queue_textures.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkSort>()
             .init_resource::<TilemapTexturesStorage>()
-            .init_resource::<TilemapAnimationBuffer>();
+            .init_resource::<TilemapBuffers>();
 
         #[cfg(feature = "atlas")]
         {

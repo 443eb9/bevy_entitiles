@@ -6,7 +6,9 @@ use bevy::{
         query::{Or, With},
         system::{Res, ResMut},
     },
-    prelude::{Changed, Commands, Component, Entity, Query, Vec2, Vec4},
+    prelude::{
+        Changed, Commands, Component, Entity, Query, Vec2, Vec4, ViewVisibility, Visibility,
+    },
     render::{view::InheritedVisibility, Extract},
 };
 
@@ -134,13 +136,13 @@ pub fn extract_changed_tilemaps<M: TilemapMaterial>(
 
 pub fn extract_tilemaps(
     mut commands: Commands,
-    tilemaps_query: Extract<Query<(Entity, &InheritedVisibility), With<TilemapStorage>>>,
+    tilemaps_query: Extract<Query<(Entity, &ViewVisibility), With<TilemapStorage>>>,
 ) {
     commands.insert_or_spawn_batch(
         tilemaps_query
             .iter()
-            .filter_map(|(entity, inherited_visibility)| {
-                if inherited_visibility.get() {
+            .filter_map(|(entity, vis)| {
+                if vis.get() {
                     Some((entity, TilemapInstance))
                 } else {
                     None

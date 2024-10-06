@@ -745,9 +745,16 @@ impl TilemapStorage {
 /// If `atlas` feature is enabled, then the format is
 ///
 /// `[fps, texture_index_1, atlas_index_1, ..., texture_index_n, atlas_index_n, fps, texture_index_1, atlas_index_1, ..., texture_index_n, atlas_index_n, ...]`
-#[derive(Component, Default, Debug, Clone, Reflect)]
+#[derive(Component, Debug, Clone, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TilemapAnimations(pub(crate) Vec<i32>);
+
+impl Default for TilemapAnimations {
+    fn default() -> Self {
+        // Dummy data to ensure the binding resource can be created.
+        Self(vec![0])
+    }
+}
 
 impl TilemapAnimations {
     /// Register a tile animation so you can use it in `TileBuilder::with_animation`.

@@ -2,6 +2,7 @@ use bevy::{
     asset::{AssetId, Handle},
     ecs::{component::Component, entity::EntityHashMap, system::Resource},
     log::error,
+    prelude::{Entity, Query, Res, ResMut, With},
     render::{
         render_asset::RenderAssets,
         render_resource::{BindGroup, BindGroupEntries, BindGroupLayout},
@@ -13,10 +14,8 @@ use bevy::{
 
 use crate::{
     render::{
-        buffer::{
-            PerTilemapBuffersStorage, TilemapAnimationBuffer, TilemapUniformBuffer, UniformBuffer,
-        },
-        extract::ExtractedTilemap,
+        buffer::{PerTilemapBuffersStorage, TilemapBuffers, UniformBuffer},
+        extract::{ExtractedTilemap, TilemapInstance},
         material::TilemapMaterial,
         pipeline::EntiTilesPipeline,
         resources::ExtractedTilemapMaterials,
@@ -53,13 +52,14 @@ impl<M: TilemapMaterial> Default for TilemapBindGroups<M> {
 }
 
 impl<M: TilemapMaterial> TilemapBindGroups<M> {
+    // TODO merge this method
     pub fn bind_uniform_buffers(
         &mut self,
         render_device: &RenderDevice,
-        uniform_buffers: &mut TilemapUniformBuffer<M>,
+        uniform_buffers: &mut TilemapBuffers,
         entitiles_pipeline: &EntiTilesPipeline<M>,
     ) {
-        let Some(uniform_buffer) = uniform_buffers.binding() else {
+        let Some(uniform_buffer) = uniform_buffers.shared.uniform.binding() else {
             return;
         };
 
@@ -70,50 +70,50 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
         ));
     }
 
-    pub fn bind_tilemap_storage_buffers(
-        &mut self,
-        render_device: &RenderDevice,
-        animation_buffers: &mut TilemapAnimationBuffer,
-        entitiles_pipeline: &EntiTilesPipeline<M>,
-        #[cfg(feature = "atlas")] texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
-    ) {
-        let anim_bindings = animation_buffers.bindings();
-        #[cfg(feature = "atlas")]
-        let tex_desc_bindings = texture_desc_buffers.bindings();
+    // pub fn bind_tilemap_storage_buffers(
+    //     &mut self,
+    //     render_device: &RenderDevice,
+    //     animation_buffers: &mut TilemapAnimationBuffer,
+    //     entitiles_pipeline: &EntiTilesPipeline<M>,
+    //     #[cfg(feature = "atlas")] texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
+    // ) {
+    //     let anim_bindings = animation_buffers.bindings();
+    //     #[cfg(feature = "atlas")]
+    //     let tex_desc_bindings = texture_desc_buffers.bindings();
 
-        for tilemap in anim_bindings.keys() {
-            let Some(anim) = anim_bindings.get(tilemap) else {
-                error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
-                return;
-            };
+    //     for tilemap in anim_bindings.keys() {
+    //         let Some(anim) = anim_bindings.get(tilemap) else {
+    //             error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
+    //             return;
+    //         };
 
-            #[cfg(feature = "atlas")]
-            let Some(tex_desc) = tex_desc_bindings.get(tilemap) else {
-                error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
-                return;
-            };
+    //         #[cfg(feature = "atlas")]
+    //         let Some(tex_desc) = tex_desc_bindings.get(tilemap) else {
+    //             error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
+    //             return;
+    //         };
 
-            #[cfg(not(feature = "atlas"))]
-            self.storage_buffers.insert(
-                *tilemap,
-                render_device.create_bind_group(
-                    "tilemap_storage_buffers_bind_group",
-                    &entitiles_pipeline.storage_buffers_layout,
-                    &BindGroupEntries::single(anim.clone()),
-                ),
-            );
+    //         #[cfg(not(feature = "atlas"))]
+    //         self.storage_buffers.insert(
+    //             *tilemap,
+    //             render_device.create_bind_group(
+    //                 "tilemap_storage_buffers_bind_group",
+    //                 &entitiles_pipeline.storage_buffers_layout,
+    //                 &BindGroupEntries::single(anim.clone()),
+    //             ),
+    //         );
 
-            #[cfg(feature = "atlas")]
-            self.storage_buffers.insert(
-                *tilemap,
-                render_device.create_bind_group(
-                    "tilemap_storage_buffers_bind_group",
-                    &entitiles_pipeline.storage_buffers_layout,
-                    &BindGroupEntries::sequential((anim.clone(), tex_desc.clone())),
-                ),
-            );
-        }
-    }
+    //         #[cfg(feature = "atlas")]
+    //         self.storage_buffers.insert(
+    //             *tilemap,
+    //             render_device.create_bind_group(
+    //                 "tilemap_storage_buffers_bind_group",
+    //                 &entitiles_pipeline.storage_buffers_layout,
+    //                 &BindGroupEntries::sequential((anim.clone(), tex_desc.clone())),
+    //             ),
+    //         );
+    //     }
+    // }
 
     pub fn prepare_material_bind_groups(
         &mut self,
@@ -163,4 +163,69 @@ impl<M: TilemapMaterial> TilemapBindGroups<M> {
 
         false
     }
+}
+
+pub fn bind_tilemap_buffers<M: TilemapMaterial>(
+    render_device: Res<RenderDevice>,
+    entitiles_pipeline: Res<EntiTilesPipeline<M>>,
+    // #[cfg(feature = "atlas")] texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
+    tilemaps_query: Query<Entity, With<TilemapInstance>>,
+    tilemap_buffers: Res<TilemapBuffers>,
+    mut bind_groups: ResMut<TilemapBindGroups<M>>,
+) {
+    for tilemap in &tilemaps_query {
+        let Some(buffers) = tilemap_buffers.unshared.get(&tilemap) else {
+            continue;
+        };
+
+        let Some(anim) = buffers.animation.binding() else {
+            continue;
+        };
+
+        bind_groups.storage_buffers.insert(
+            tilemap,
+            render_device.create_bind_group(
+                "tilemap_storage_buffers_bind_group",
+                &entitiles_pipeline.storage_buffers_layout,
+                &BindGroupEntries::single(anim),
+            ),
+        );
+    }
+
+    // let anim_bindings = animation_buffers.bindings();
+    // #[cfg(feature = "atlas")]
+    // let tex_desc_bindings = texture_desc_buffers.bindings();
+
+    // for tilemap in anim_bindings.keys() {
+    //     let Some(anim) = anim_bindings.get(tilemap) else {
+    //         error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
+    //         return;
+    //     };
+
+    //     #[cfg(feature = "atlas")]
+    //     let Some(tex_desc) = tex_desc_bindings.get(tilemap) else {
+    //         error!("It seems that there are some tilemaps that have textures but no `TilemapAnimations`, which is not allowed");
+    //         return;
+    //     };
+
+    //     #[cfg(not(feature = "atlas"))]
+    //     self.storage_buffers.insert(
+    //         *tilemap,
+    //         render_device.create_bind_group(
+    //             "tilemap_storage_buffers_bind_group",
+    //             &entitiles_pipeline.storage_buffers_layout,
+    //             &BindGroupEntries::single(anim.clone()),
+    //         ),
+    //     );
+
+    //     #[cfg(feature = "atlas")]
+    //     self.storage_buffers.insert(
+    //         *tilemap,
+    //         render_device.create_bind_group(
+    //             "tilemap_storage_buffers_bind_group",
+    //             &entitiles_pipeline.storage_buffers_layout,
+    //             &BindGroupEntries::sequential((anim.clone(), tex_desc.clone())),
+    //         ),
+    //     );
+    // }
 }
