@@ -188,7 +188,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Filed to get color texture bind group!");
+            error!("Filed to get color texture bind group! {}", item.entity);
             RenderCommandResult::Failure
         }
     }

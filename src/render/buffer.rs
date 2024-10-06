@@ -3,43 +3,18 @@ use std::marker::PhantomData;
 use bevy::{
     ecs::entity::{Entity, EntityHashMap},
     math::{Mat2, Vec4},
-    prelude::{Commands, Component, IntoSystem, Query, Res, ResMut, Resource, Vec2, With},
+    prelude::{Commands, Component, Query, Res, ResMut, Resource, Vec2, With},
     render::{
-        render_resource::{
-            encase::internal::WriteInto, BindingResource, BufferUsages, BufferVec,
-            DynamicUniformBuffer, RawBufferVec, ShaderSize, ShaderType, StorageBuffer,
-        },
+        render_resource::{BufferUsages, DynamicUniformBuffer, RawBufferVec, ShaderType},
         renderer::{RenderDevice, RenderQueue},
     },
-    time::{Real, Time},
+    time::Time,
 };
 
 use crate::{
-    render::{
-        extract::{ExtractedTilemap, TilemapInstance},
-        material::TilemapMaterial,
-        resources::TilemapInstances,
-    },
+    render::{extract::TilemapInstance, material::TilemapMaterial, resources::TilemapInstances},
     tilemap::map::TilemapType,
 };
-
-pub trait UniformBuffer<E, U: ShaderType + WriteInto + 'static> {
-    fn insert(&mut self, extracted: &E) -> DynamicOffsetComponent<U>;
-
-    fn binding(&mut self) -> Option<BindingResource> {
-        self.buffer().binding()
-    }
-
-    fn clear(&mut self) {
-        self.buffer().clear();
-    }
-
-    fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        self.buffer().write_buffer(render_device, render_queue);
-    }
-
-    fn buffer(&mut self) -> &mut DynamicUniformBuffer<U>;
-}
 
 #[derive(Component)]
 pub struct DynamicOffsetComponent<T>
@@ -62,48 +37,6 @@ impl<T: ShaderType> DynamicOffsetComponent<T> {
     pub fn index(&self) -> u32 {
         self.index
     }
-}
-
-pub trait PerTilemapBuffersStorage<U: ShaderType + WriteInto + ShaderSize + 'static> {
-    #[inline]
-    fn get_or_insert_buffer(&mut self, tilemap: Entity) -> &mut Vec<U> {
-        &mut self.get_mapper_mut().entry(tilemap).or_default().1
-    }
-
-    fn bindings(&mut self) -> EntityHashMap<BindingResource> {
-        self.get_mapper_mut()
-            .iter()
-            .filter_map(|(tilemap, (buffer, _))| buffer.binding().map(|res| (*tilemap, res)))
-            .collect()
-    }
-
-    #[inline]
-    fn remove(&mut self, tilemap: Entity) {
-        self.get_mapper_mut().remove(&tilemap);
-    }
-
-    #[inline]
-    fn clear(&mut self) {
-        self.get_mapper_mut()
-            .values_mut()
-            .for_each(|(_, buffer)| buffer.clear());
-    }
-
-    fn write(&mut self, render_device: &RenderDevice, render_queue: &RenderQueue) {
-        for (buffer, data) in self.get_mapper_mut().values_mut() {
-            buffer.set(std::mem::take(data));
-            buffer.write_buffer(render_device, render_queue);
-        }
-    }
-
-    #[inline]
-    fn len(&self) -> usize {
-        self.get_mapper().len()
-    }
-
-    fn get_mapper_mut(&mut self) -> &mut EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
-
-    fn get_mapper(&self) -> &EntityHashMap<(StorageBuffer<Vec<U>>, Vec<U>)>;
 }
 
 #[derive(ShaderType, Clone, Copy)]

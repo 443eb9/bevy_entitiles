@@ -110,6 +110,15 @@ impl Plugin for EntiTilesRendererPlugin {
                     extract::extract_despawned_tiles,
                 ),
             )
+            .add_systems(
+                Render,
+                (
+                    texture::prepare_tilemap_textures,
+                    texture::queue_tilemap_textures,
+                )
+                    .chain()
+                    .in_set(RenderSet::Prepare),
+            )
             .add_systems(Render, queue::queue_textures.in_set(RenderSet::Queue))
             .init_resource::<RenderChunkSort>()
             .init_resource::<TilemapTexturesStorage>()

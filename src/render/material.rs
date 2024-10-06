@@ -20,13 +20,14 @@ use bevy::{
 use crate::render::{
     binding::{self, TilemapBindGroups},
     buffer,
-    chunk::RenderChunkStorage,
+    chunk::{self, RenderChunkStorage},
     cull,
     draw::{DrawTilemapNonTextured, DrawTilemapTextured},
     extract,
     pipeline::EntiTilesPipeline,
     prepare, queue,
     resources::{ExtractedTilemapMaterials, TilemapInstances},
+    texture,
 };
 
 #[derive(Default)]
@@ -51,8 +52,7 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                 (
                     // Splitting into 2 systems because there're
                     // too many parameters for Bevy to handle
-                    prepare::prepare_tilemaps_a::<M>,
-                    prepare::prepare_tilemaps_b::<M>,
+                    // prepare::prepare_tilemaps_b::<M>,
                     prepare::prepare_tiles::<M>,
                     prepare::prepare_unloaded_chunks::<M>,
                     prepare::prepare_despawned_tilemaps::<M>,
@@ -63,6 +63,8 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                     binding::bind_tilemap_buffers::<M>,
                     binding::bind_materials::<M>,
                     binding::bind_textures::<M>,
+                    chunk::prepare_chunks::<M>,
+                    texture::schedule_tilemap_texture_preparation::<M>,
                 )
                     .in_set(RenderSet::Prepare),
             )

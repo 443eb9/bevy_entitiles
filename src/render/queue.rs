@@ -35,13 +35,13 @@ pub fn queue_textures(
     #[cfg(not(feature = "atlas"))] render_images: Res<RenderAssets<GpuImage>>,
     #[cfg(feature = "atlas")] mut render_images: ResMut<RenderAssets<GpuImage>>,
 ) {
-    #[cfg(not(feature = "atlas"))]
-    textures_storage.queue_textures(
-        &render_device,
-        &render_queue,
-        &render_images,
-        &textures_assets,
-    );
+    // #[cfg(not(feature = "atlas"))]
+    // textures_storage.queue_textures(
+    //     &render_device,
+    //     &render_queue,
+    //     &render_images,
+    //     &textures_assets,
+    // );
     #[cfg(feature = "atlas")]
     textures_storage.queue_textures(
         &render_device,
@@ -61,11 +61,9 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
     view_uniforms: Res<ViewUniforms>,
     render_device: Res<RenderDevice>,
-    mut bind_groups: ResMut<TilemapBindGroups<M>>,
     msaa: Res<Msaa>,
     tilemap_instances: Res<TilemapInstances<M>>,
     mut transparent_phase: ResMut<ViewSortedRenderPhases<Transparent2d>>,
-    textures_storage: Res<TilemapTexturesStorage>,
 ) {
     let Some(view_binding) = view_uniforms.uniforms.binding() else {
         return;
@@ -75,6 +73,7 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
         let Some(transparent_phase) = transparent_phase.get_mut(&view_entity) else {
             continue;
         };
+
         commands.entity(view_entity).insert(TilemapViewBindGroup {
             value: render_device.create_bind_group(
                 "tilemap_view_bind_group",
@@ -93,13 +92,6 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
         for tilemap in tilemaps.iter() {
-            // let is_pure_color = bind_groups.queue_textures(
-            //     &tilemap,
-            //     &render_device,
-            //     &textures_storage,
-            //     &entitiles_pipeline,
-            // );
-
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
                 &entitiles_pipeline,

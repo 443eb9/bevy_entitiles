@@ -14,7 +14,7 @@ use bevy::{
 
 use crate::{
     render::{
-        buffer::{PerTilemapBuffersStorage, TilemapBuffers, UniformBuffer},
+        buffer::TilemapBuffers,
         extract::{ExtractedTilemap, TilemapInstance},
         material::TilemapMaterial,
         pipeline::EntiTilesPipeline,

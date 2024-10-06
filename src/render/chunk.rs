@@ -5,7 +5,7 @@ use bevy::{
     color::ColorToComponents,
     ecs::{component::Component, entity::EntityHashMap, event::Event},
     math::{IVec2, IVec4, Rect},
-    prelude::{Entity, Mesh, Resource, Vec3, Vec4},
+    prelude::{Entity, Mesh, Res, ResMut, Resource, Vec3, Vec4},
     reflect::Reflect,
     render::{
         mesh::{BaseMeshPipelineKey, GpuBufferInfo, GpuMesh, Indices, MeshVertexBufferLayouts},
@@ -22,6 +22,7 @@ use crate::{
     render::{
         extract::{ExtractedTile, ExtractedTilemap},
         material::TilemapMaterial,
+        resources::TilemapInstances,
         TILEMAP_MESH_ATTR_ATLAS_INDICES, TILEMAP_MESH_ATTR_COLOR, TILEMAP_MESH_ATTR_INDEX,
     },
     tilemap::{
@@ -341,15 +342,15 @@ impl<M: TilemapMaterial> Default for RenderChunkStorage<M> {
 }
 
 impl<M: TilemapMaterial> RenderChunkStorage<M> {
-    /// Update the mesh for all chunks of a tilemap.
-    pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap<M>, render_device: &RenderDevice) {
-        if let Some(chunks) = self.value.get_mut(&tilemap.id) {
-            chunks
-                .value
-                .values_mut()
-                .for_each(|c| c.try_update_mesh(render_device));
-        }
-    }
+    // /// Update the mesh for all chunks of a tilemap.
+    // pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap<M>, render_device: &RenderDevice) {
+    //     if let Some(chunks) = self.value.get_mut(&tilemap.id) {
+    //         chunks
+    //             .value
+    //             .values_mut()
+    //             .for_each(|c| c.try_update_mesh(render_device));
+    //     }
+    // }
 
     #[inline]
     pub fn get_chunks(&self, tilemap: Entity) -> Option<&TilemapRenderChunks<M>> {
@@ -371,5 +372,20 @@ impl<M: TilemapMaterial> RenderChunkStorage<M> {
     #[inline]
     pub fn sort(&mut self, f: impl Fn(IVec2, IVec2) -> Ordering + Sync + Send + Copy) {
         self.value.par_values_mut().for_each(|c| c.try_sort(f));
+    }
+}
+
+pub fn prepare_chunks<M: TilemapMaterial>(
+    tilemap_instances: Res<TilemapInstances<M>>,
+    render_device: Res<RenderDevice>,
+    mut render_chunks: ResMut<RenderChunkStorage<M>>,
+) {
+    for tilemap in tilemap_instances.0.keys() {
+        if let Some(chunks) = render_chunks.value.get_mut(tilemap) {
+            chunks
+                .value
+                .values_mut()
+                .for_each(|c| c.try_update_mesh(&render_device));
+        }
     }
 }
