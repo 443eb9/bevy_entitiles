@@ -12,7 +12,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::TileArea,
+    math::GridRect,
     render::{chunk::RenderChunkSort, material::StandardTilemapMaterial},
     tilemap::{
         bundles::StandardTilemapBundle,
@@ -70,7 +70,7 @@ fn setup(
 
     tilemap.storage.fill_rect_custom(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2::splat(8)),
+        GridRect::new(IVec2::ZERO, UVec2::splat(8)),
         |index| Some(TileBuilder::new().with_layer(0, TileLayer::no_flip(index.x % 2))),
         false,
     );

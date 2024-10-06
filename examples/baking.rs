@@ -17,7 +17,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::TileArea,
+    math::GridRect,
     render::{
         bake::{BakedTilemap, TilemapBaker},
         material::StandardTilemapMaterial,
@@ -90,13 +90,13 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::from_min_max(IVec2::ZERO, IVec2::splat(4)),
+        GridRect::from_min_max(IVec2::ZERO, IVec2::splat(4)),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0, 0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::from_min_max(IVec2::new(5, 0), IVec2::new(9, 4)),
+        GridRect::from_min_max(IVec2::new(5, 0), IVec2::new(9, 4)),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0, 0))
             .with_layer(1, TileLayer::flip_h(0, 1))
@@ -110,7 +110,7 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::new(10, 0), UVec2::splat(5)),
+        GridRect::new(IVec2::new(10, 0), UVec2::splat(5)),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0, 0))
             .with_layer(1, TileLayer::no_flip(0, 1))
@@ -121,7 +121,7 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::new(0, 10), UVec2::splat(10)),
+        GridRect::new(IVec2::new(0, 10), UVec2::splat(10)),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(1, 2)),
     );
 

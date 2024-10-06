@@ -131,13 +131,13 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+        bevy_entitiles::math::GridRect::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     let mut physics_tilemap = PhysicsTilemap::new_with_chunk_size(16);
     physics_tilemap.fill_rect_custom(
-        bevy_entitiles::math::TileArea::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
+        bevy_entitiles::math::GridRect::new(IVec2 { x: -100, y: -100 }, UVec2 { x: 200, y: 200 }),
         |_| {
             if rand::random::<u32>() % 10 == 0 {
                 Some(PhysicsTile {

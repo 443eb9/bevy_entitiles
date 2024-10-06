@@ -29,7 +29,7 @@ use bevy_entitiles::{
             LdtkAdditionalLayers, LdtkLevelManager, LdtkLoadConfig, LdtkPatterns, LdtkWfcManager,
         },
     },
-    math::TileArea,
+    math::GridRect,
     tilemap::{map::TilemapType, physics::PhysicsTile},
     EntiTilesPlugin,
 };
@@ -106,7 +106,7 @@ fn setup(mut commands: Commands) {
         WfcRunner::new(
             TilemapType::Square,
             rules,
-            TileArea::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
+            GridRect::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
         // you can also switch this to MultiMap mode

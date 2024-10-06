@@ -8,7 +8,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
@@ -70,13 +70,13 @@ fn setup(
     {
         tilemap.storage.fill_rect(
             &mut commands,
-            TileArea::new(IVec2::ZERO, UVec2::splat(4)),
+            GridRect::new(IVec2::ZERO, UVec2::splat(4)),
             TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
         );
 
         tilemap.storage.fill_rect(
             &mut commands,
-            TileArea::new(IVec2::new(5, 0), UVec2::splat(4)),
+            GridRect::new(IVec2::new(5, 0), UVec2::splat(4)),
             TileBuilder::new().with_layer(0, TileLayer::no_flip(4)),
         );
     }
@@ -86,13 +86,13 @@ fn setup(
     {
         tilemap.storage.fill_rect(
             &mut commands,
-            TileArea::new(IVec2::ZERO, UVec2::splat(4)),
+            GridRect::new(IVec2::ZERO, UVec2::splat(4)),
             TileBuilder::new().with_layer(0, TileLayer::no_flip_at(0, 0)),
         );
 
         tilemap.storage.fill_rect(
             &mut commands,
-            TileArea::new(IVec2::new(5, 0), UVec2::splat(4)),
+            GridRect::new(IVec2::new(5, 0), UVec2::splat(4)),
             TileBuilder::new().with_layer(0, TileLayer::no_flip_at(1, 0)),
         );
     }

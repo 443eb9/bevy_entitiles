@@ -15,7 +15,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     algorithm::pathfinding::PathTilemaps,
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     serializing::map::{
         load::TilemapLoader,
@@ -86,18 +86,18 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
+        GridRect::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     let mut path_tilemap = PathTilemap::new();
-    path_tilemap.fill_path_rect_custom(TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }), |_| {
+    path_tilemap.fill_path_rect_custom(GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }), |_| {
         Some(PathTile {
             cost: rand::random::<u32>() % 10,
         })
@@ -113,7 +113,7 @@ fn setup(
         },
     );
     physics_tilemap.fill_rect(
-        TileArea::new(IVec2 { x: 3, y: 4 }, UVec2 { x: 5, y: 4 }),
+        GridRect::new(IVec2 { x: 3, y: 4 }, UVec2 { x: 5, y: 4 }),
         PhysicsTile {
             rigid_body: false,
             friction: None,

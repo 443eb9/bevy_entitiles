@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use crate::{
-    math::TileArea,
+    math::GridRect,
     tilemap::{
         chunking::storage::ChunkedStorage,
         coordinates,
@@ -127,7 +127,7 @@ pub fn data_physics_tilemap_analyzer(
                 }
 
                 aabbs.push((
-                    TileArea::from_min_max(
+                    GridRect::from_min_max(
                         cur.as_ivec2() + data_tilemap.origin,
                         dst.as_ivec2() + data_tilemap.origin,
                     ),

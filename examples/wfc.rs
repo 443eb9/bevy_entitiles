@@ -8,7 +8,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
@@ -54,7 +54,7 @@ fn setup(
         WfcRunner::new(
             TilemapType::Square,
             rules,
-            TileArea::new(IVec2::ZERO, UVec2 { x: 16, y: 16 }),
+            GridRect::new(IVec2::ZERO, UVec2 { x: 16, y: 16 }),
             Some(0),
         )
         // use weights OR custom_sampler

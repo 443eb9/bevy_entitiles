@@ -22,7 +22,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
@@ -75,7 +75,7 @@ fn setup(
     // );
 
     physics_tilemap.fill_rect(
-        TileArea::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 5, y: 5 }),
         PhysicsTile {
             rigid_body: true,
             friction: Some(0.8),
@@ -104,7 +104,7 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 

@@ -23,7 +23,7 @@ impl Plugin for EntiTilesMathPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, (camera_aabb_adder, camera_aabb_updater));
 
-        app.register_type::<TileArea>()
+        app.register_type::<GridRect>()
             .register_type::<CameraAabb2d>();
     }
 }
@@ -74,19 +74,19 @@ pub fn camera_aabb_updater(
 
 #[derive(Debug, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
-pub struct TileArea {
+pub struct GridRect {
     pub origin: IVec2,
     pub extent: UVec2,
     pub dest: IVec2,
 }
 
-impl Default for TileArea {
+impl Default for GridRect {
     fn default() -> Self {
         Self::EMPTY
     }
 }
 
-impl TileArea {
+impl GridRect {
     pub const EMPTY: Self = Self {
         origin: IVec2::MAX,
         extent: UVec2::ZERO,

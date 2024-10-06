@@ -14,7 +14,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
@@ -77,13 +77,13 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
+        GridRect::new(IVec2 { x: 2, y: 2 }, UVec2 { x: 10, y: 7 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(1))
             .with_tint(LinearRgba::new(0.8, 1., 0.8, 0.5)),
@@ -117,7 +117,7 @@ fn setup(
 
     tilemap.storage.update_rect(
         &mut commands,
-        TileArea::new(IVec2 { x: 1, y: 3 }, UVec2 { x: 3, y: 3 }),
+        GridRect::new(IVec2 { x: 1, y: 3 }, UVec2 { x: 3, y: 3 }),
         TileUpdater {
             layer: Some(LayerUpdater {
                 position: TileLayerPosition::Top,
@@ -155,7 +155,7 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
@@ -178,7 +178,7 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 10 }),
         TileBuilder::new()
             .with_layer(0, TileLayer::no_flip(0))
             .with_tint(LinearRgba::new(1., 1., 0., 1.)),

@@ -14,7 +14,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{ext::ChunkIndex, TileArea},
+    math::{ext::ChunkIndex, GridRect},
     render::chunk::{ChunkUnload, UnloadRenderChunk},
     serializing::{chunk::TILE_CHUNKS_FOLDER, map::TilemapLayer, save_object},
     tilemap::{
@@ -166,7 +166,7 @@ pub fn save_color_layer(
                     format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                     &TileBuilderBuffer {
                         tiles,
-                        aabb: TileArea::new(IVec2::ZERO, UVec2::splat(storage.storage.chunk_size)),
+                        aabb: GridRect::new(IVec2::ZERO, UVec2::splat(storage.storage.chunk_size)),
                     },
                 );
 
@@ -240,7 +240,7 @@ pub fn save_path_layer(
                 format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                 &PathTileBuffer {
                     tiles,
-                    aabb: TileArea::from_min_max(
+                    aabb: GridRect::from_min_max(
                         IVec2::ZERO,
                         IVec2::splat(path_tilemap.storage.chunk_size as i32),
                     ),
@@ -306,7 +306,7 @@ pub fn save_physics_layer(
                     format!("{}.ron", chunk_index.chunk_file_name()).as_str(),
                     &PackedPhysicsTileBuffer {
                         tiles,
-                        aabb: TileArea::from_min_max(
+                        aabb: GridRect::from_min_max(
                             IVec2::ZERO,
                             IVec2::splat(physics_tilemap.storage.chunk_size as i32),
                         ),

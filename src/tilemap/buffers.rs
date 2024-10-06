@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
 
 use crate::{
-    math::TileArea,
+    math::GridRect,
     tilemap::tile::{Tile, TileBuilder},
 };
 
@@ -24,14 +24,14 @@ pub type PackedPhysicsTileBuffer = TileBuffer<crate::tilemap::physics::PackedPhy
 #[cfg_attr(feature = "serializing", derive(serde::Serialize, serde::Deserialize))]
 pub struct TileBuffer<T: Tiles> {
     pub(crate) tiles: HashMap<IVec2, T>,
-    pub(crate) aabb: TileArea,
+    pub(crate) aabb: GridRect,
 }
 
 impl<T: Tiles> TileBuffer<T> {
     pub fn new() -> Self {
         Self {
             tiles: HashMap::new(),
-            aabb: TileArea::default(),
+            aabb: GridRect::default(),
         }
     }
 
@@ -62,7 +62,7 @@ impl<T: Tiles> TileBuffer<T> {
     ///
     /// This method can be expensive when the tile buffer is large.
     pub fn recalculate_rect(&mut self) {
-        self.aabb = TileArea::default();
+        self.aabb = GridRect::default();
         for (index, _) in self.tiles.iter() {
             self.aabb = self.aabb.union_point(*index);
         }
@@ -74,7 +74,7 @@ impl<T: Tiles> TileBuffer<T> {
     }
 
     #[inline]
-    pub fn aabb(&self) -> TileArea {
+    pub fn aabb(&self) -> GridRect {
         self.aabb
     }
 }

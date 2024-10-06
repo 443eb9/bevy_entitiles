@@ -16,7 +16,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     algorithm::pathfinding::{PathFinder, PathFindingQueue, PathGrid, PathTilemaps},
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     tilemap::{
         algorithm::path::{PathTile, PathTilemap},
@@ -76,13 +76,13 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 500, y: 500 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 500, y: 500 }),
         TileBuilder::new().with_layer(0, TileLayer::no_flip(0)),
     );
 
     let mut path_tilemap = PathTilemap::new();
     path_tilemap.fill_path_rect_custom(
-        TileArea::new(IVec2::ZERO, UVec2 { x: 100, y: 100 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 100, y: 100 }),
         |_| {
             Some(PathTile {
                 cost: rand::random::<u32>() % 10,

@@ -23,7 +23,7 @@ use crate::{
         traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
         LdtkLoaderMode,
     },
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     serializing::pattern::TilemapPattern,
     tilemap::{
@@ -233,7 +233,7 @@ impl LdtkLayers {
             return;
         }
 
-        let aabb = TileArea::from_min_max(
+        let aabb = GridRect::from_min_max(
             IVec2::new(0, -layer.c_hei + 1),
             IVec2::new(layer.c_wid - 1, 0),
         );

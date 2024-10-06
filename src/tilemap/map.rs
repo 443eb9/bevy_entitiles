@@ -20,7 +20,7 @@ use bevy::{
 };
 
 use crate::{
-    math::{ext::RectFromTilemap, TileArea},
+    math::{ext::RectFromTilemap, GridRect},
     tilemap::{
         buffers::TileBuilderBuffer,
         chunking::storage::{ChunkedStorage, EntityChunkedStorage},
@@ -412,13 +412,13 @@ impl Default for TilemapLayerOpacities {
 /// The tilemap's aabb.
 #[derive(Component, Default, Debug, Clone, Copy, Reflect)]
 pub struct TilemapAabbs {
-    pub(crate) chunk_aabb: TileArea,
+    pub(crate) chunk_aabb: GridRect,
     pub(crate) world_aabb: Rect,
 }
 
 impl TilemapAabbs {
     /// The aabb of the whole tilemap in chunk coordinates.
-    pub fn chunk_rect(&self) -> TileArea {
+    pub fn chunk_rect(&self) -> GridRect {
         self.chunk_aabb
     }
 
@@ -608,7 +608,7 @@ impl TilemapStorage {
     pub fn fill_rect(
         &mut self,
         commands: &mut Commands,
-        area: TileArea,
+        area: GridRect,
         tile_builder: TileBuilder,
     ) {
         let mut tile_batch = Vec::with_capacity(area.size());
@@ -635,7 +635,7 @@ impl TilemapStorage {
     pub fn fill_rect_custom(
         &mut self,
         commands: &mut Commands,
-        area: TileArea,
+        area: GridRect,
         mut tile_builder: impl FnMut(IVec2) -> Option<TileBuilder>,
         relative_index: bool,
     ) {
@@ -694,7 +694,7 @@ impl TilemapStorage {
     }
 
     /// Simlar to `TilemapStorage::fill_rect()`.
-    pub fn update_rect(&mut self, commands: &mut Commands, area: TileArea, updater: TileUpdater) {
+    pub fn update_rect(&mut self, commands: &mut Commands, area: GridRect, updater: TileUpdater) {
         let mut batch = Vec::with_capacity(area.size());
 
         for y in area.origin.y..=area.dest.y {
@@ -712,7 +712,7 @@ impl TilemapStorage {
     pub fn update_rect_custom(
         &mut self,
         commands: &mut Commands,
-        area: TileArea,
+        area: GridRect,
         mut updater: impl FnMut(IVec2) -> TileUpdater,
         relative_index: bool,
     ) {
@@ -844,12 +844,12 @@ pub fn tilemap_aabb_calculator(
 ) {
     tilemaps_query.par_iter_mut().for_each(
         |(mut aabbs, storage, ty, tile_pivot, axis_direction, slot_size, transform)| {
-            let mut chunk_aabb: Option<TileArea> = None;
+            let mut chunk_aabb: Option<GridRect> = None;
             storage.storage.chunks.keys().for_each(|chunk_index| {
                 if let Some(aabb) = &mut chunk_aabb {
                     *aabb = aabb.union_point(*chunk_index);
                 } else {
-                    chunk_aabb = Some(TileArea::from_min_max(*chunk_index, *chunk_index));
+                    chunk_aabb = Some(GridRect::from_min_max(*chunk_index, *chunk_index));
                 }
             });
 

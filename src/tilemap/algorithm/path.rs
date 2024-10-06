@@ -1,7 +1,7 @@
 use bevy::{ecs::component::Component, math::IVec2, reflect::Reflect};
 
 use crate::{
-    math::TileArea,
+    math::GridRect,
     tilemap::{
         buffers::{PathTileBuffer, Tiles},
         chunking::storage::{ChunkedStorage, PathTileChunkedStorage},
@@ -60,7 +60,7 @@ impl PathTilemap {
     /// Set path-finding data using a custom function.
     pub fn fill_path_rect_custom(
         &mut self,
-        area: TileArea,
+        area: GridRect,
         path_tile: impl Fn(IVec2) -> Option<PathTile>,
     ) {
         for y in area.origin.y..=area.dest.y {
@@ -74,7 +74,7 @@ impl PathTilemap {
     }
 
     /// Fill path-finding data using the same `PathTile`.
-    pub fn fill_path_rect(&mut self, area: TileArea, path_tile: PathTile) {
+    pub fn fill_path_rect(&mut self, area: GridRect, path_tile: PathTile) {
         for y in area.origin.y..=area.dest.y {
             for x in area.origin.x..=area.dest.x {
                 self.set(IVec2 { x, y }, path_tile);

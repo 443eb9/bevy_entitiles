@@ -2,7 +2,7 @@ use bevy::{
     core_pipeline::core_2d::Transparent2d,
     ecs::query::With,
     math::FloatOrd,
-    prelude::{Commands, Entity, Msaa, Query, Res, ResMut},
+    prelude::{Entity, Msaa, Query, Res, ResMut},
     render::{
         camera::ExtractedCamera,
         render_phase::{DrawFunctions, PhaseItemExtraIndex, ViewSortedRenderPhases},

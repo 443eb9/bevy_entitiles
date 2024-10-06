@@ -12,7 +12,7 @@ use bevy::{
 };
 use bevy_entitiles::{
     algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     serializing::map::{
         save::{TilemapSaver, TilemapSaverMode},
@@ -127,7 +127,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMat
         WfcRunner::new(
             TilemapType::Square,
             rules,
-            TileArea::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
+            GridRect::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
             Some(0),
         ),
         StandardPureColorTilemapBundle {

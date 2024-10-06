@@ -8,7 +8,7 @@ use bevy::{
     DefaultPlugins,
 };
 use bevy_entitiles::{
-    math::TileArea,
+    math::GridRect,
     render::material::StandardTilemapMaterial,
     tilemap::{
         bundles::StandardTilemapBundle,
@@ -77,13 +77,13 @@ fn setup(
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 20, y: 20 }),
         TileBuilder::new().with_animation(anim_a),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
-        TileArea::new(IVec2::ZERO, UVec2 { x: 10, y: 10 }),
+        GridRect::new(IVec2::ZERO, UVec2 { x: 10, y: 10 }),
         TileBuilder::new().with_animation(anim_b),
     );
 

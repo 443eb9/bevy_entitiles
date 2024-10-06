@@ -19,7 +19,7 @@ use rand::{
 
 use crate::{
     algorithm::pathfinding::PathTilemaps,
-    math::{ext::TileIndex, TileArea},
+    math::{ext::TileIndex, GridRect},
     render::material::StandardTilemapMaterial,
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
@@ -254,14 +254,14 @@ pub struct WfcRunner {
     ty: TilemapType,
     sampler: Option<Box<dyn Fn(&WfcElement, &mut StdRng) -> u8 + Send + Sync>>,
     seed: Option<u64>,
-    area: TileArea,
+    area: GridRect,
     max_retrace_factor: u32,
     max_retrace_time: u32,
     max_history: usize,
 }
 
 impl WfcRunner {
-    pub fn new(ty: TilemapType, rules: WfcRules, area: TileArea, seed: Option<u64>) -> Self {
+    pub fn new(ty: TilemapType, rules: WfcRules, area: GridRect, seed: Option<u64>) -> Self {
         let size = area.size();
         Self {
             conn_rules: rules.0,
@@ -354,11 +354,11 @@ impl WfcRunner {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct WfcData {
     pub(crate) data: Vec<u8>,
-    pub(crate) area: TileArea,
+    pub(crate) area: GridRect,
 }
 
 impl WfcData {
-    pub(crate) fn new(area: TileArea) -> Self {
+    pub(crate) fn new(area: GridRect) -> Self {
         Self {
             data: vec![0; area.size()],
             area,
@@ -435,7 +435,7 @@ pub struct WfcHistory {
 pub struct WfcGrid {
     mode: WfcMode,
     ty: TilemapType,
-    area: TileArea,
+    area: GridRect,
     rng: StdRng,
     conn_rules: Vec<Vec<u128>>,
     uncollapsed: HashSet<(u8, UVec2)>,

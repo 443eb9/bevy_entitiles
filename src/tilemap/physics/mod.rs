@@ -8,7 +8,7 @@ use bevy::{
 };
 
 use crate::{
-    math::TileArea,
+    math::GridRect,
     tilemap::{
         buffers::{PackedPhysicsTileBuffer, PhysicsTileBuffer, Tiles},
         chunking::storage::{
@@ -234,7 +234,7 @@ impl DataPhysicsTilemap {
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct PhysicsTilemap {
     pub(crate) storage: EntityChunkedStorage,
-    pub(crate) spawn_queue: Vec<(TileArea, PhysicsTile, Option<i32>)>,
+    pub(crate) spawn_queue: Vec<(GridRect, PhysicsTile, Option<i32>)>,
     pub(crate) data: PackedPhysicsTileChunkedStorage,
 }
 
@@ -269,7 +269,7 @@ impl PhysicsTilemap {
     #[inline]
     pub fn set(&mut self, index: IVec2, tile: PhysicsTile) {
         self.spawn_queue
-            .push((TileArea::from_min_max(index, index), tile, None));
+            .push((GridRect::from_min_max(index, index), tile, None));
     }
 
     /// Remove a tile.
@@ -302,14 +302,14 @@ impl PhysicsTilemap {
     /// Fill a rectangle area with the same tile.
     ///
     /// Set `concat` to true if you want to concat the adjacent tiles.
-    pub fn fill_rect(&mut self, area: TileArea, tile: PhysicsTile, concat: bool) {
+    pub fn fill_rect(&mut self, area: GridRect, tile: PhysicsTile, concat: bool) {
         if concat {
             self.spawn_queue.push((area, tile, None));
         } else {
             self.spawn_queue.extend(
                 (area.origin.y..=area.dest.y)
                     .flat_map(|y| (area.origin.x..=area.dest.x).map(move |x| IVec2 { x, y }))
-                    .map(|index| (TileArea::from_min_max(index, index), tile.clone(), None)),
+                    .map(|index| (GridRect::from_min_max(index, index), tile.clone(), None)),
             );
         }
     }
@@ -320,7 +320,7 @@ impl PhysicsTilemap {
     /// Set `relative_index` to true if your function takes index relative to the area origin.
     pub fn fill_rect_custom(
         &mut self,
-        area: TileArea,
+        area: GridRect,
         physics_tile: impl Fn(IVec2) -> Option<PhysicsTile>,
         relative_index: bool,
     ) {
@@ -334,7 +334,7 @@ impl PhysicsTilemap {
                     index
                 }) {
                     self.spawn_queue
-                        .push((TileArea::from_min_max(index, index), tile, None));
+                        .push((GridRect::from_min_max(index, index), tile, None));
                 }
             }
         }
@@ -345,7 +345,7 @@ impl PhysicsTilemap {
         self.spawn_queue
             .extend(buffer.tiles.into_iter().map(|(index, tile)| {
                 (
-                    TileArea::from_min_max(index + origin, index + origin),
+                    GridRect::from_min_max(index + origin, index + origin),
                     tile,
                     None,
                 )
@@ -356,7 +356,7 @@ impl PhysicsTilemap {
         self.spawn_queue
             .extend(buffer.tiles.into_iter().map(|(index, tile)| {
                 (
-                    TileArea::from_min_max(index + origin, index + origin),
+                    GridRect::from_min_max(index + origin, index + origin),
                     tile.into(),
                     None,
                 )
