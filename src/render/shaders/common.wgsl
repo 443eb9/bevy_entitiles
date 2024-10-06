@@ -1,4 +1,5 @@
 #define_import_path bevy_entitiles::common
+#import bevy_render::view::View
 
 struct TilemapVertexInput {
     @builtin(vertex_index) v_index: u32,
@@ -47,20 +48,23 @@ struct StandardTilemapUniform {
     color: vec4f,
 }
 
-@group(1) @binding(0)
+@group(0) @binding(0)
 var<uniform> tilemap: Tilemap;
 
-@group(2) @binding(0)
+@group(0) @binding(1)
+var<uniform> view: View;
+
+@group(1) @binding(0)
 var<uniform> material: StandardTilemapUniform;
 
 #ifndef PURE_COLOR
-@group(3) @binding(0)
+@group(2) @binding(0)
 var color_texture: texture_2d_array<f32>;
 
-@group(3) @binding(1)
+@group(2) @binding(1)
 var color_texture_sampler: sampler;
 
-@group(4) @binding(0)
+@group(3) @binding(0)
 var<storage> anim_seqs: array<i32>;
 
 #ifdef ATLAS
@@ -70,7 +74,7 @@ struct TilemapTextureDescriptor {
     uv_scale: vec2f,
 }
 
-@group(4) @binding(1)
+@group(3) @binding(1)
 var<storage> texture_descs: array<TilemapTextureDescriptor>;
 #endif
 #endif

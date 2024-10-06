@@ -30,7 +30,6 @@ use bevy::render::render_resource::binding_types as binding;
 
 #[derive(Resource)]
 pub struct EntiTilesPipeline<M: TilemapMaterial> {
-    pub view_layout: BindGroupLayout,
     pub uniform_buffers_layout: BindGroupLayout,
     pub texture_layout: BindGroupLayout,
     pub storage_buffers_layout: BindGroupLayout,
@@ -52,19 +51,14 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
         let asset_server = world.resource::<AssetServer>();
         let render_device = world.get_resource::<RenderDevice>().unwrap();
 
-        let view_layout = render_device.create_bind_group_layout(
-            "tilemap_view_layout",
-            &BindGroupLayoutEntries::single(
-                ShaderStages::VERTEX_FRAGMENT,
-                binding::uniform_buffer::<ViewUniform>(true),
-            ),
-        );
-
         let uniform_buffers_layout = render_device.create_bind_group_layout(
             "uniform_buffers_layout",
-            &BindGroupLayoutEntries::single(
+            &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX_FRAGMENT,
-                binding::uniform_buffer::<TilemapUniform>(true),
+                (
+                    binding::uniform_buffer::<TilemapUniform>(true),
+                    binding::uniform_buffer::<ViewUniform>(true),
+                ),
             ),
         );
 
@@ -101,7 +95,6 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
         );
 
         Self {
-            view_layout,
             uniform_buffers_layout,
             texture_layout,
             storage_buffers_layout,
@@ -166,17 +159,15 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
 
         let mut layout = vec![
             // group(0)
-            self.view_layout.clone(),
-            // group(1)
             self.uniform_buffers_layout.clone(),
-            // group(2)
+            // group(1)
             self.material_layout.clone(),
         ];
 
         if !key.is_pure_color {
-            // group(3)
+            // group(2)
             layout.push(self.texture_layout.clone());
-            // group(4)
+            // group(3)
             layout.push(self.storage_buffers_layout.clone());
         }
 

@@ -1,7 +1,7 @@
 #import bevy_entitiles::common::{
-    TilemapVertexInput, TilemapVertexOutput, tilemap, atlas_uvs, anim_seqs, material, texture_descs
+    TilemapVertexInput, TilemapVertexOutput, tilemap, view, atlas_uvs,
+    anim_seqs, material, texture_descs
 }
-#import bevy_sprite::mesh2d_view_bindings::view
 
 // Here the three different imports are for the three different tilemap types.
 // They calculates the tile_pivot for each tile.

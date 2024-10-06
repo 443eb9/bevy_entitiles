@@ -6,14 +6,11 @@ use bevy::{
     render::{
         camera::ExtractedCamera,
         render_phase::{DrawFunctions, PhaseItemExtraIndex, ViewSortedRenderPhases},
-        render_resource::{BindGroupEntry, PipelineCache, SpecializedRenderPipelines},
-        renderer::RenderDevice,
-        view::ViewUniforms,
+        render_resource::{PipelineCache, SpecializedRenderPipelines},
     },
 };
 
 use crate::render::{
-    binding::TilemapViewBindGroup,
     draw::{DrawTilemapNonTextured, DrawTilemapTextured},
     extract::TilemapInstances,
     material::TilemapMaterial,
@@ -27,31 +24,14 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
     draw_functions: Res<DrawFunctions<Transparent2d>>,
     mut sp_entitiles_pipeline: ResMut<SpecializedRenderPipelines<EntiTilesPipeline<M>>>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
-    view_uniforms: Res<ViewUniforms>,
-    render_device: Res<RenderDevice>,
     msaa: Res<Msaa>,
     tilemap_instances: Res<TilemapInstances>,
     mut transparent_phase: ResMut<ViewSortedRenderPhases<Transparent2d>>,
 ) {
-    let Some(view_binding) = view_uniforms.uniforms.binding() else {
-        return;
-    };
-
     for view_entity in views_query.iter_mut() {
         let Some(transparent_phase) = transparent_phase.get_mut(&view_entity) else {
             continue;
         };
-
-        commands.entity(view_entity).insert(TilemapViewBindGroup {
-            value: render_device.create_bind_group(
-                "tilemap_view_bind_group",
-                &entitiles_pipeline.view_layout,
-                &[BindGroupEntry {
-                    binding: 0,
-                    resource: view_binding.clone(),
-                }],
-            ),
-        });
 
         // TODO optimize this
         let mut tilemaps = tilemap_instances.iter().collect::<Vec<_>>();

@@ -7,6 +7,7 @@ use bevy::{
         render_resource::{BindGroup, BindGroupEntries},
         renderer::RenderDevice,
         texture::{FallbackImage, GpuImage},
+        view::ViewUniforms,
     },
     utils::HashMap,
 };
@@ -22,11 +23,6 @@ use crate::{
     tilemap::map::TilemapTextures,
 };
 
-#[derive(Component)]
-pub struct TilemapViewBindGroup {
-    pub value: BindGroup,
-}
-
 #[derive(Resource, Default)]
 pub struct TilemapBindGroups<M: TilemapMaterial> {
     pub uniform_buffer: Option<BindGroup>,
@@ -38,16 +34,19 @@ pub struct TilemapBindGroups<M: TilemapMaterial> {
 pub fn bind_tilemap_buffers<M: TilemapMaterial>(
     render_device: Res<RenderDevice>,
     entitiles_pipeline: Res<EntiTilesPipeline<M>>,
-    // #[cfg(feature = "atlas")] texture_desc_buffers: &mut TilemapTextureDescriptorBuffer,
     tilemap_buffers: Res<TilemapBuffers>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
     tilemap_instances: Res<TilemapInstances>,
+    view_uniforms: Res<ViewUniforms>,
 ) {
-    if let Some(uniform_buffer) = tilemap_buffers.shared.uniform.binding() {
+    if let (Some(uniform_buffer), Some(view_binding)) = (
+        tilemap_buffers.shared.uniform.binding(),
+        view_uniforms.uniforms.binding(),
+    ) {
         bind_groups.uniform_buffer = Some(render_device.create_bind_group(
             Some("tilemap_uniform_buffers_bind_group"),
             &entitiles_pipeline.uniform_buffers_layout,
-            &BindGroupEntries::single(uniform_buffer),
+            &BindGroupEntries::sequential((uniform_buffer, view_binding)),
         ));
     }
 

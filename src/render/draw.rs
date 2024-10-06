@@ -18,7 +18,7 @@ use bevy::{
 };
 
 use crate::render::{
-    binding::{TilemapBindGroups, TilemapViewBindGroup},
+    binding::TilemapBindGroups,
     buffer::TilemapBuffers,
     chunk::RenderChunkStorage,
     extract::{TilemapInstances, TilemapMaterialInstances},
@@ -27,43 +27,19 @@ use crate::render::{
 
 pub type DrawTilemapTextured<M> = (
     SetItemPipeline,
-    SetTilemapViewBindGroup<0>,
-    SetTilemapUniformBufferBindGroup<1, M>,
-    SetTilemapMaterialBindGroup<2, M>,
-    SetTilemapColorTextureBindGroup<3, M>,
-    SetTilemapStorageBufferBindGroup<4, M>,
+    SetTilemapUniformBufferBindGroup<0, M>,
+    SetTilemapMaterialBindGroup<1, M>,
+    SetTilemapColorTextureBindGroup<2, M>,
+    SetTilemapStorageBufferBindGroup<3, M>,
     DrawTileMesh<M>,
 );
 
 pub type DrawTilemapNonTextured<M> = (
     SetItemPipeline,
-    SetTilemapViewBindGroup<0>,
-    SetTilemapUniformBufferBindGroup<1, M>,
-    SetTilemapMaterialBindGroup<2, M>,
+    SetTilemapUniformBufferBindGroup<0, M>,
+    SetTilemapMaterialBindGroup<1, M>,
     DrawTileMesh<M>,
 );
-
-pub struct SetTilemapViewBindGroup<const I: usize>;
-impl<const I: usize> RenderCommand<Transparent2d> for SetTilemapViewBindGroup<I> {
-    type Param = ();
-
-    type ViewQuery = (Read<ViewUniformOffset>, Read<TilemapViewBindGroup>);
-
-    type ItemQuery = ();
-
-    #[inline]
-    fn render<'w>(
-        _item: &Transparent2d,
-        (view_uniform_offset, view_bind_group): ROQueryItem<'w, Self::ViewQuery>,
-        _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        _param: SystemParamItem<'w, '_, Self::Param>,
-        pass: &mut TrackedRenderPass<'w>,
-    ) -> RenderCommandResult {
-        pass.set_bind_group(I, &view_bind_group.value, &[view_uniform_offset.offset]);
-
-        RenderCommandResult::Success
-    }
-}
 
 #[derive(Default)]
 pub struct SetTilemapUniformBufferBindGroup<const I: usize, M: TilemapMaterial>(PhantomData<M>);
@@ -72,14 +48,14 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 {
     type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapBuffers>);
 
-    type ViewQuery = ();
+    type ViewQuery = Read<ViewUniformOffset>;
 
     type ItemQuery = ();
 
     #[inline]
     fn render<'w>(
         item: &Transparent2d,
-        _view: ROQueryItem<'w, Self::ViewQuery>,
+        view_uniform_offset: ROQueryItem<'w, Self::ViewQuery>,
         _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
         (bind_groups, tilemap_buffers): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
@@ -88,7 +64,11 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             bind_groups.into_inner().uniform_buffer.as_ref(),
             tilemap_buffers.shared.indices.get(&item.entity),
         ) {
-            pass.set_bind_group(I, tilemap_uniform_bind_group, &[*index]);
+            pass.set_bind_group(
+                I,
+                tilemap_uniform_bind_group,
+                &[*index, view_uniform_offset.offset],
+            );
             RenderCommandResult::Success
         } else {
             error!("Failed to get tilemap uniform bind group! {}", item.entity);
