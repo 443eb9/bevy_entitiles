@@ -61,6 +61,8 @@ impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
                     //
                     buffer::prepare_tilemap_buffers::<M>,
                     binding::bind_tilemap_buffers::<M>,
+                    binding::bind_materials::<M>,
+                    binding::bind_textures::<M>,
                 )
                     .in_set(RenderSet::Prepare),
             )

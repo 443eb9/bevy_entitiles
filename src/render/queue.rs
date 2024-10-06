@@ -93,12 +93,12 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
         radsort::sort_by_key(&mut tilemaps, |m| m.transform.z_index);
 
         for tilemap in tilemaps.iter() {
-            let is_pure_color = bind_groups.queue_textures(
-                &tilemap,
-                &render_device,
-                &textures_storage,
-                &entitiles_pipeline,
-            );
+            // let is_pure_color = bind_groups.queue_textures(
+            //     &tilemap,
+            //     &render_device,
+            //     &textures_storage,
+            //     &entitiles_pipeline,
+            // );
 
             let pipeline = sp_entitiles_pipeline.specialize(
                 &pipeline_cache,
@@ -106,12 +106,12 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
                 EntiTilesPipelineKey {
                     msaa: msaa.samples(),
                     map_type: tilemap.ty,
-                    is_pure_color,
+                    is_pure_color: tilemap.texture.is_none(),
                 },
             );
 
             let draw_function = {
-                if is_pure_color {
+                if tilemap.texture.is_none() {
                     draw_functions
                         .read()
                         .get_id::<DrawTilemapNonTextured<M>>()

@@ -57,14 +57,14 @@ pub fn prepare_tilemaps_a<M: TilemapMaterial>(
         });
 
     // uniform_buffers.write(&render_device, &render_queue);
-    bind_groups.bind_uniform_buffers(&render_device, &mut tilemap_buffers, &entitiles_pipeline);
-    bind_groups.prepare_material_bind_groups(
-        &entitiles_pipeline.material_layout,
-        &render_device,
-        &images,
-        &fallback_image,
-        &extracted_materials,
-    );
+    // bind_groups.bind_uniform_buffers(&render_device, &mut tilemap_buffers, &entitiles_pipeline);
+    // bind_groups.prepare_material_bind_groups(
+    //     &entitiles_pipeline.material_layout,
+    //     &render_device,
+    //     &images,
+    //     &fallback_image,
+    //     &extracted_materials,
+    // );
 }
 
 pub fn prepare_tilemaps_b<M: TilemapMaterial>(
