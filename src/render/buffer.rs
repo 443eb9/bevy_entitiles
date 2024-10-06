@@ -65,7 +65,6 @@ pub fn prepare_tilemap_buffers(
     mut tilemap_buffers: ResMut<TilemapBuffers>,
     render_device: Res<RenderDevice>,
     render_queue: Res<RenderQueue>,
-    // TODO switch to Time<Real>
     time: Res<Time>,
     #[cfg(feature = "atlas")] textures_assets: Res<
         bevy::render::render_asset::RenderAssets<crate::tilemap::map::TilemapTextures>,

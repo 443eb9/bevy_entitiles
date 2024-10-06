@@ -34,12 +34,13 @@ impl Default for TileLayer {
     }
 }
 
-#[cfg(not(feature = "atlas"))]
 impl TileLayer {
     #[inline]
     pub fn no_flip(atlas_index: i32) -> Self {
         Self {
             atlas_index,
+            #[cfg(feature = "atlas")]
+            texture_index: 0,
             flip: TileFlip::NONE,
         }
     }
@@ -48,6 +49,8 @@ impl TileLayer {
     pub fn flip_h(atlas_index: i32) -> Self {
         Self {
             atlas_index,
+            #[cfg(feature = "atlas")]
+            texture_index: 0,
             flip: TileFlip::HORIZONTAL,
         }
     }
@@ -56,6 +59,8 @@ impl TileLayer {
     pub fn flip_v(atlas_index: i32) -> Self {
         Self {
             atlas_index,
+            #[cfg(feature = "atlas")]
+            texture_index: 0,
             flip: TileFlip::VERTICAL,
         }
     }
@@ -64,6 +69,8 @@ impl TileLayer {
     pub fn flip_both(atlas_index: i32) -> Self {
         Self {
             atlas_index,
+            #[cfg(feature = "atlas")]
+            texture_index: 0,
             flip: TileFlip::BOTH,
         }
     }
@@ -72,7 +79,7 @@ impl TileLayer {
 #[cfg(feature = "atlas")]
 impl TileLayer {
     #[inline]
-    pub fn no_flip(texture_index: i32, atlas_index: i32) -> Self {
+    pub fn no_flip_at(texture_index: i32, atlas_index: i32) -> Self {
         Self {
             texture_index,
             atlas_index,
@@ -81,7 +88,7 @@ impl TileLayer {
     }
 
     #[inline]
-    pub fn flip_h(texture_index: i32, atlas_index: i32) -> Self {
+    pub fn flip_h_at(texture_index: i32, atlas_index: i32) -> Self {
         Self {
             texture_index,
             atlas_index,
@@ -90,7 +97,7 @@ impl TileLayer {
     }
 
     #[inline]
-    pub fn flip_v(texture_index: i32, atlas_index: i32) -> Self {
+    pub fn flip_v_at(texture_index: i32, atlas_index: i32) -> Self {
         Self {
             texture_index,
             atlas_index,
@@ -99,7 +106,7 @@ impl TileLayer {
     }
 
     #[inline]
-    pub fn flip_both(texture_index: i32, atlas_index: i32) -> Self {
+    pub fn flip_both_at(texture_index: i32, atlas_index: i32) -> Self {
         Self {
             texture_index,
             atlas_index,

@@ -62,11 +62,17 @@ fn setup(
 
     let anim_a = tilemap.animations.register(RawTileAnimation {
         fps: 2,
+        #[cfg(not(feature = "atlas"))]
         sequence: vec![0, 1, 2, 3],
+        #[cfg(feature = "atlas")]
+        sequence: vec![(0, 0), (0, 1), (0, 2), (0, 3)],
     });
     let anim_b = tilemap.animations.register(RawTileAnimation {
         fps: 3,
+        #[cfg(not(feature = "atlas"))]
         sequence: vec![0, 1, 2],
+        #[cfg(feature = "atlas")]
+        sequence: vec![(0, 0), (0, 1), (0, 2)],
     });
 
     tilemap.storage.fill_rect(
