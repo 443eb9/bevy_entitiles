@@ -71,7 +71,10 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             );
             RenderCommandResult::Success
         } else {
-            error!("Failed to get tilemap uniform bind group! {}", item.entity);
+            error!(
+                "Failed to draw tilemap {}: Failed to get tilemap uniform bind group!",
+                item.entity
+            );
             RenderCommandResult::Failure
         }
     }
@@ -106,7 +109,10 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Failed to get material bind group! {}", item.entity);
+            error!(
+                "Failed to draw tilemap {}: Failed to get material bind group!",
+                item.entity
+            );
             RenderCommandResult::Failure
         }
     }
@@ -135,7 +141,10 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Failed to get storage bind group! {}", item.entity);
+            error!(
+                "Failed to draw tilemap {}: Failed to get storage bind group!",
+                item.entity
+            );
             RenderCommandResult::Failure
         }
     }
@@ -164,6 +173,10 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             .get(&item.entity)
             .and_then(|inst| inst.texture.as_ref())
         else {
+            error!(
+                "Failed to draw tilemap {}: Failed to get tilemap instance.",
+                item.entity
+            );
             return RenderCommandResult::Failure;
         };
 
@@ -171,7 +184,10 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!("Filed to get color texture bind group! {}", item.entity);
+            error!(
+                "Failed to draw tilemap {}: Failed to get color texture bind group!",
+                item.entity
+            );
             RenderCommandResult::Failure
         }
     }

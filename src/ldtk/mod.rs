@@ -366,7 +366,6 @@ fn load_levels(
             return;
         }
         Entry::Vacant(e) => {
-            dbg!(&loader.level);
             e.insert(level_entity);
         }
     }
