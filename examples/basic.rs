@@ -35,6 +35,7 @@ fn main() {
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
+                    #[cfg(not(target_arch = "wasm32"))]
                     present_mode: PresentMode::Immediate,
                     ..Default::default()
                 }),

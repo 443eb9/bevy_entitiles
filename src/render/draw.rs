@@ -135,6 +135,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let Some(bind_group) = bind_groups.into_inner().array_buffers.get(&item.entity) {
+            #[cfg(target_arch = "wasm32")]
+            pass.set_bind_group(I, bind_group, &[0]);
+            #[cfg(not(target_arch = "wasm32"))]
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {

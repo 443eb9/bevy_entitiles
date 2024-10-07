@@ -1,5 +1,7 @@
 # Bevy EntiTiles 🗺️
 
+# NO WASM SUPPORT *SO FAR*!
+
 A 2d tilemap library for bevy. With many useful algorithms/tools built in.
 
 It's **NOT** recommended to use the code in the `dev` branch! There's full of incomplete code and even errors in it! But the `master` branch would be ok if you can't wait to try out new features.

@@ -1,6 +1,6 @@
 [package]
 name = "bevy_entitiles"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/443eb9/bevy_entitiles"
@@ -21,7 +21,7 @@ bevy = { version = "0.14", default-features = false, features = [
     "bevy_sprite",
     "png",
 ] }
-bevy_entitiles_derive = { version = "0.5", optional = true, path = "macros" }
+bevy_entitiles_derive = { version = "0.6", optional = true, path = "macros" }
 avian2d = { version = "0.1", optional = true }
 bitflags = "2"
 futures-lite = { version = "2", optional = true }
@@ -44,14 +44,21 @@ bevy = { version = "0.14", default-features = false, features = [
     "bevy_ui",
     "bevy_winit",
     "default_font",
-    "trace_tracy",
     "x11",
     "wayland",
 ] }
-bevy-inspector-egui = "0.26"
 bevy_mod_debugdump = "0.11"
 image = "0.25"
 rand = "0.8"
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+bevy = { version = "0.14", default-features = false, features = ["webgl2"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+bevy = { version = "0.14", default-features = false, features = [
+    "trace_tracy",
+] }
+bevy-inspector-egui = "0.26"
 
 [features]
 default = ["multi-threaded"]

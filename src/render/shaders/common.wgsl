@@ -1,6 +1,12 @@
 #define_import_path bevy_entitiles::common
 #import bevy_render::view::View
 
+struct TilemapTextureDescriptor {
+    tile_count: vec2u,
+    tile_uv_size: vec2f,
+    uv_scale: vec2f,
+}
+
 struct TilemapVertexInput {
     @builtin(vertex_index) v_index: u32,
     @location(0) position: vec3f,
@@ -27,8 +33,8 @@ struct TilemapVertexOutput {
     @location(3) anim_flag: i32,
 #ifdef ATLAS
     @location(4) texture_indices: vec4i,
-#endif
-#endif
+#endif // ATLAS
+#endif // PURE_COLOR
 }
 
 struct Tilemap {
@@ -64,17 +70,22 @@ var color_texture: texture_2d_array<f32>;
 @group(2) @binding(1)
 var color_texture_sampler: sampler;
 
+#ifdef WASM
+@group(3) @binding(0)
+var<uniform> anim_seqs: array<vec4i, 256>;
+#else // WASM
 @group(3) @binding(0)
 var<storage> anim_seqs: array<i32>;
+#endif // WASM
 
 #ifdef ATLAS
-struct TilemapTextureDescriptor {
-    tile_count: vec2u,
-    tile_uv_size: vec2f,
-    uv_scale: vec2f,
-}
-
+#ifdef WASM
+@group(3) @binding(1)
+var<uniform> texture_descs: array<TilemapTextureDescriptor, 256>;
+#else // WASM
 @group(3) @binding(1)
 var<storage> texture_descs: array<TilemapTextureDescriptor>;
-#endif
-#endif
+#endif // WASM
+#endif // ATLAS
+
+#endif // PURE_COLOR

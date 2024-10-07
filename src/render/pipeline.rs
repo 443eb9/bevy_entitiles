@@ -7,10 +7,11 @@ use bevy::{
     render::{
         render_resource::{
             BindGroupLayout, BindGroupLayoutEntries, BlendState, ColorTargetState, ColorWrites,
-            Face, FragmentState, FrontFace, MultisampleState, PolygonMode, PrimitiveState,
-            PrimitiveTopology, RenderPipelineDescriptor, SamplerBindingType, Shader, ShaderDefVal,
-            ShaderRef, ShaderStages, SpecializedRenderPipeline, TextureFormat, TextureSampleType,
-            VertexBufferLayout, VertexFormat, VertexState, VertexStepMode,
+            Face, FragmentState, FrontFace, GpuArrayBuffer, MultisampleState, PolygonMode,
+            PrimitiveState, PrimitiveTopology, RenderPipelineDescriptor, SamplerBindingType,
+            Shader, ShaderDefVal, ShaderRef, ShaderStages, SpecializedRenderPipeline,
+            TextureFormat, TextureSampleType, VertexBufferLayout, VertexFormat, VertexState,
+            VertexStepMode,
         },
         renderer::RenderDevice,
         texture::BevyDefault,
@@ -32,7 +33,7 @@ use bevy::render::render_resource::binding_types as binding;
 pub struct EntiTilesPipeline<M: TilemapMaterial> {
     pub uniform_buffers_layout: BindGroupLayout,
     pub texture_layout: BindGroupLayout,
-    pub storage_buffers_layout: BindGroupLayout,
+    pub array_buffers_layout: BindGroupLayout,
     pub material_layout: BindGroupLayout,
     pub vertex_shader: Handle<Shader>,
     pub fragment_shader: Handle<Shader>,
@@ -63,22 +64,22 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
         );
 
         #[cfg(not(feature = "atlas"))]
-        let storage_buffers_layout = render_device.create_bind_group_layout(
+        let array_buffers_layout = render_device.create_bind_group_layout(
             "animation_buffer_layout",
             &BindGroupLayoutEntries::single(
                 ShaderStages::VERTEX_FRAGMENT,
-                binding::storage_buffer_read_only::<i32>(false),
+                GpuArrayBuffer::<i32>::binding_layout(&render_device),
             ),
         );
 
         #[cfg(feature = "atlas")]
-        let storage_buffers_layout = render_device.create_bind_group_layout(
+        let array_buffers_layout = render_device.create_bind_group_layout(
             "animation_buffer_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX_FRAGMENT,
                 (
-                    binding::storage_buffer_read_only::<i32>(false),
-                    binding::storage_buffer_read_only::<Vec<GpuTilemapTextureDescriptor>>(false),
+                    GpuArrayBuffer::<i32>::binding_layout(&render_device),
+                    GpuArrayBuffer::<GpuTilemapTextureDescriptor>::binding_layout(&render_device),
                 ),
             ),
         );
@@ -97,7 +98,7 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
         Self {
             uniform_buffers_layout,
             texture_layout,
-            storage_buffers_layout,
+            array_buffers_layout,
             material_layout: M::bind_group_layout(render_device),
             vertex_shader: match M::vertex_shader() {
                 ShaderRef::Default => panic!("You must provide a valid custom vertex shader!"),
@@ -133,6 +134,8 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
         );
         #[cfg(feature = "atlas")]
         shader_defs.push("ATLAS".into());
+        #[cfg(target_arch = "wasm32")]
+        shader_defs.push("WASM".into());
 
         let mut vtx_fmt = vec![
             // position
@@ -168,7 +171,7 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
             // group(2)
             layout.push(self.texture_layout.clone());
             // group(3)
-            layout.push(self.storage_buffers_layout.clone());
+            layout.push(self.array_buffers_layout.clone());
         }
 
         let mut desc = RenderPipelineDescriptor {

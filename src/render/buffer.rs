@@ -3,7 +3,7 @@ use bevy::{
     math::{Mat2, Vec4},
     prelude::{Res, ResMut, Resource, Vec2},
     render::{
-        render_resource::{BufferUsages, DynamicUniformBuffer, RawBufferVec, ShaderType},
+        render_resource::{DynamicUniformBuffer, GpuArrayBuffer, ShaderType},
         renderer::{RenderDevice, RenderQueue},
     },
     time::Time,
@@ -39,17 +39,17 @@ pub struct SharedTilemapBuffers {
 }
 
 pub struct UnsharedTilemapBuffers {
-    pub animation: RawBufferVec<i32>,
+    pub animation: GpuArrayBuffer<i32>,
     #[cfg(feature = "atlas")]
-    pub texture_desc: bevy::render::render_resource::GpuArrayBuffer<GpuTilemapTextureDescriptor>,
+    pub texture_desc: GpuArrayBuffer<GpuTilemapTextureDescriptor>,
 }
 
 impl UnsharedTilemapBuffers {
     pub fn new(render_device: &RenderDevice) -> Self {
         Self {
-            animation: RawBufferVec::new(BufferUsages::STORAGE),
+            animation: GpuArrayBuffer::new(render_device),
             #[cfg(feature = "atlas")]
-            texture_desc: bevy::render::render_resource::GpuArrayBuffer::new(render_device),
+            texture_desc: GpuArrayBuffer::new(render_device),
         }
     }
 }
@@ -94,7 +94,9 @@ pub fn prepare_tilemap_buffers(
             .entry(*entity)
             .or_insert_with(|| UnsharedTilemapBuffers::new(&render_device));
         if let Some(anim) = &tilemap.changed_animations {
-            *unshared.animation.values_mut() = anim.0.clone();
+            for data in &anim.0 {
+                unshared.animation.push(*data);
+            }
             unshared
                 .animation
                 .write_buffer(&render_device, &render_queue);

@@ -42,14 +42,14 @@ pub const COMMON: Handle<Shader> = Handle::weak_from_u128(1321023135616351);
 pub const TILEMAP_SHADER: Handle<Shader> = Handle::weak_from_u128(89646584153215);
 
 pub const TILEMAP_MESH_ATTR_INDEX: MeshVertexAttribute =
-    MeshVertexAttribute::new("GridIndex", 14513156146, VertexFormat::Sint32x4);
+    MeshVertexAttribute::new("GridIndex", 51541631, VertexFormat::Sint32x4);
 pub const TILEMAP_MESH_ATTR_COLOR: MeshVertexAttribute =
-    MeshVertexAttribute::new("Color", 14513156147, VertexFormat::Float32x4);
+    MeshVertexAttribute::new("Color", 51541632, VertexFormat::Float32x4);
 pub const TILEMAP_MESH_ATTR_ATLAS_INDICES: MeshVertexAttribute =
-    MeshVertexAttribute::new("AtlasIndex", 14513156148, VertexFormat::Sint32x4);
+    MeshVertexAttribute::new("AtlasIndex", 51541633, VertexFormat::Sint32x4);
 #[cfg(feature = "atlas")]
 pub const TILEMAP_MESH_ATTR_TEX_INDICES: MeshVertexAttribute =
-    MeshVertexAttribute::new("TextureIndex", 14513156149, VertexFormat::Sint32x4);
+    MeshVertexAttribute::new("TextureIndex", 51541634, VertexFormat::Sint32x4);
 
 #[derive(Default)]
 pub struct EntiTilesRendererPlugin;

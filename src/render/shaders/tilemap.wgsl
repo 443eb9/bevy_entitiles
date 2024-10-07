@@ -61,14 +61,27 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
         let length = input.index.w;
         // The number before the start index is the fps.
         // See `register` function in TilemapAnimations.
+#ifdef WASM
+        let fps = f32(anim_seqs[start - 1][0]);
+        var frame = i32(tilemap.time * fps) % length;
+#ifdef ATLAS
+        output.texture_indices[0] = anim_seqs[start + frame * 2][0];
+        output.atlas_indices[0] = anim_seqs[start + frame * 2 + 1][0];
+#else // ATLAS
+        output.atlas_indices[0] = anim_seqs[start + frame][0];
+#endif // ATLAS
+
+#else // WASM
         let fps = f32(anim_seqs[start - 1]);
         var frame = i32(tilemap.time * fps) % length;
+
 #ifdef ATLAS
         output.texture_indices[0] = anim_seqs[start + frame * 2];
         output.atlas_indices[0] = anim_seqs[start + frame * 2 + 1];
 #else // ATLAS
         output.atlas_indices[0] = anim_seqs[start + frame];
 #endif // ATLAS
+#endif // WASM
     } else {
         output.atlas_indices = input.atlas_indices;
 #ifdef ATLAS

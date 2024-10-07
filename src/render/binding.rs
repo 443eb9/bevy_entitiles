@@ -68,7 +68,7 @@ pub fn bind_tilemap_buffers<M: TilemapMaterial>(
             *tilemap,
             render_device.create_bind_group(
                 "tilemap_storage_buffers_bind_group",
-                &entitiles_pipeline.storage_buffers_layout,
+                &entitiles_pipeline.array_buffers_layout,
                 &BindGroupEntries::sequential((
                     anim,
                     #[cfg(feature = "atlas")]

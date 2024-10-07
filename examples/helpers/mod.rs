@@ -5,8 +5,6 @@ use bevy::{
     text::{TextSection, TextStyle},
     time::common_conditions::on_real_timer,
 };
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-// use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use crate::helpers::camera_movement::camera_control;
 
@@ -19,6 +17,7 @@ pub mod camera_movement;
 pub mod common;
 
 pub struct EntiTilesHelpersPlugin {
+    #[allow(unused)]
     pub inspector: bool,
 }
 
@@ -40,8 +39,9 @@ impl Plugin for EntiTilesHelpersPlugin {
 
         app.add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin);
 
+        #[cfg(not(target_arch = "wasm32"))]
         if self.inspector {
-            app.add_plugins(WorldInspectorPlugin::default());
+            app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::default());
         }
 
         app.init_resource::<CameraControl>();
