@@ -108,7 +108,7 @@ pub fn tilemap_baker(
 
         tiles.into_iter().for_each(|(tile_index, tile)| {
             let mut rel_index = (tile_index - tilemap_aabb.min).as_uvec2();
-            rel_index.y = tilemap_aabb.size().y as u32 - rel_index.y - 1;
+            rel_index.y = tilemap_aabb.size().y as u32 - rel_index.y;
 
             match &tile.texture {
                 TileTexture::Static(layers) => layers

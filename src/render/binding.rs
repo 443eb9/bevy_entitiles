@@ -26,7 +26,7 @@ use crate::{
 #[derive(Resource, Default)]
 pub struct TilemapBindGroups<M: TilemapMaterial> {
     pub uniform_buffer: Option<BindGroup>,
-    pub storage_buffers: EntityHashMap<BindGroup>,
+    pub array_buffers: EntityHashMap<BindGroup>,
     pub textures: HashMap<Handle<TilemapTextures>, BindGroup>,
     pub materials: HashMap<AssetId<M>, BindGroup>,
 }
@@ -64,7 +64,7 @@ pub fn bind_tilemap_buffers<M: TilemapMaterial>(
             continue;
         };
 
-        bind_groups.storage_buffers.insert(
+        bind_groups.array_buffers.insert(
             *tilemap,
             render_device.create_bind_group(
                 "tilemap_storage_buffers_bind_group",

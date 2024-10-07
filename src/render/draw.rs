@@ -30,7 +30,7 @@ pub type DrawTilemapTextured<M> = (
     SetTilemapUniformBufferBindGroup<0, M>,
     SetTilemapMaterialBindGroup<1, M>,
     SetTilemapColorTextureBindGroup<2, M>,
-    SetTilemapStorageBufferBindGroup<3, M>,
+    SetTilemapArrayBufferBindGroup<3, M>,
     DrawTileMesh<M>,
 );
 
@@ -116,9 +116,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
 }
 
 #[derive(Default)]
-pub struct SetTilemapStorageBufferBindGroup<const I: usize, M: TilemapMaterial>(PhantomData<M>);
+pub struct SetTilemapArrayBufferBindGroup<const I: usize, M: TilemapMaterial>(PhantomData<M>);
 impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
-    for SetTilemapStorageBufferBindGroup<I, M>
+    for SetTilemapArrayBufferBindGroup<I, M>
 {
     type Param = SRes<TilemapBindGroups<M>>;
 
@@ -134,7 +134,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(bind_group) = bind_groups.into_inner().storage_buffers.get(&item.entity) {
+        if let Some(bind_group) = bind_groups.into_inner().array_buffers.get(&item.entity) {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
