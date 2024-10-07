@@ -4,7 +4,7 @@ use bevy::{asset::AssetId, ecs::event::Event, math::Vec2, reflect::Reflect};
 
 use crate::ldtk::{components::LevelIid, json::LdtkJson};
 
-#[derive(Event)]
+#[derive(Event, Clone)]
 pub enum LdtkLevelEvent {
     Load(LdtkLevelLoader),
     Unload(LdtkLevelUnloader),
@@ -26,7 +26,7 @@ pub struct LdtkLevelLoader {
     pub trans_ovrd: Option<Vec2>,
 }
 
-#[derive(Reflect)]
+#[derive(Reflect, Clone)]
 pub struct LdtkLevelUnloader {
     pub json: AssetId<LdtkJson>,
     pub level: LdtkLevel,

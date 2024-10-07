@@ -4,7 +4,8 @@
 - Switched to `avian2d` for physics.
 - If `atlas` feature is enabled, add `no_flip_at`, `flip_h_at`, `flip_v_at` and `flip_both_at` for `TileLayer` , instead of adding one extra parameter.
 - Renamed `TileArea` into `GridRect` .
-- Use `AssetServer` for LDtk level loading.
+- Use `AssetServer` for level loading. (`ldtk` and `tiled`)
+- Use events for level loading and unloading. (`ldtk` ans `tiled`)
 
 # What's Fixed:
 

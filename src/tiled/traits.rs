@@ -20,7 +20,6 @@ pub trait TiledObject {
         components: &HashMap<String, ClassInstance>,
         asset_server: &AssetServer,
         tiled_assets: &TiledAssets,
-        tiled_map: String,
     );
 }
 
@@ -44,7 +43,6 @@ pub trait PhantomTiledObjectTrait {
         components: &HashMap<String, ClassInstance>,
         asset_server: &AssetServer,
         tiled_assets: &TiledAssets,
-        tiled_map: String,
     );
 }
 
@@ -56,7 +54,6 @@ impl<T: TiledObject + Bundle> PhantomTiledObjectTrait for PhantomTiledObject<T> 
         components: &HashMap<String, ClassInstance>,
         asset_server: &AssetServer,
         tiled_assets: &TiledAssets,
-        tiled_map: String,
     ) {
         T::initialize(
             commands,
@@ -64,7 +61,6 @@ impl<T: TiledObject + Bundle> PhantomTiledObjectTrait for PhantomTiledObject<T> 
             components,
             asset_server,
             tiled_assets,
-            tiled_map,
         );
     }
 }
@@ -78,7 +74,6 @@ pub trait TiledCustomTile {
         components: &HashMap<String, ClassInstance>,
         asset_server: &AssetServer,
         tiled_assets: &TiledAssets,
-        tiled_map: String,
     );
 }
 
@@ -102,7 +97,6 @@ pub trait PhantomTiledCustomTileTrait {
         components: &HashMap<String, ClassInstance>,
         asset_server: &AssetServer,
         tiled_assets: &TiledAssets,
-        tiled_map: String,
     );
 }
 
@@ -114,7 +108,6 @@ impl<T: TiledCustomTile + Bundle> PhantomTiledCustomTileTrait for PhantomTiledCu
         components: &HashMap<String, ClassInstance>,
         asset_server: &AssetServer,
         tiled_assets: &TiledAssets,
-        tiled_map: String,
     ) {
         T::initialize(
             commands,
@@ -122,7 +115,6 @@ impl<T: TiledCustomTile + Bundle> PhantomTiledCustomTileTrait for PhantomTiledCu
             components,
             asset_server,
             tiled_assets,
-            tiled_map,
         );
     }
 }

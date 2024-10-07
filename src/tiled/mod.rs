@@ -1,20 +1,35 @@
 use bevy::{
-    app::{Plugin, PreStartup, Update}, asset::{load_internal_asset, AssetServer, Assets, Handle}, color::Color, ecs::{
+    app::{Plugin, Update},
+    asset::{load_internal_asset, AssetApp, AssetEvent, AssetServer, Assets, Handle},
+    color::Color,
+    ecs::{
         entity::Entity,
         query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
-    }, log::warn, math::{IVec2, Vec2}, prelude::SpatialBundle, render::{mesh::Mesh, render_resource::Shader}, sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle}, transform::components::Transform, utils::HashMap
+    },
+    log::{error, info, warn},
+    math::{IVec2, Vec2},
+    prelude::{EventReader, Local, SpatialBundle},
+    render::{mesh::Mesh, render_resource::Shader},
+    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
+    transform::components::Transform,
+    utils::HashMap,
 };
 
 use crate::{
     render::material::StandardTilemapMaterial,
     tiled::{
-        components::{TiledLoadedTilemap, TiledLoader, TiledUnloadLayer, TiledUnloader},
-        resources::{PackedTiledTilemap, TiledAssets, TiledLoadConfig, TiledTilemapManger, TiledCustomTileInstance},
+        components::{TiledLoadedTilemap, TiledUnloadLayer},
+        events::TiledMapEvent,
+        resources::{
+            PackedTiledTilemap, TiledAssets, TiledCustomTileInstance, TiledLoadConfig,
+            TiledLoadedMaps, TiledTilemapLoader, TiledTilemapToAssets, TiledTilesetLoader,
+        },
         sprite::TiledSpriteMaterial,
-        traits::{TiledObjectRegistry, TiledCustomTileRegistry},
+        traits::{TiledCustomTileRegistry, TiledObjectRegistry},
         xml::{
             layer::{ColorTileLayerData, TiledLayer},
+            tileset::TiledTileset,
             MapOrientation, TiledGroup,
         },
     },
@@ -31,6 +46,7 @@ use crate::{
 
 pub mod app_ext;
 pub mod components;
+pub mod events;
 pub mod resources;
 pub mod sprite;
 pub mod traits;
@@ -49,40 +65,85 @@ impl Plugin for EntiTilesTiledPlugin {
             Shader::from_wgsl
         );
 
-        app.add_plugins(Material2dPlugin::<TiledSpriteMaterial>::default());
-
-        app.add_systems(PreStartup, parse_tiled_xml);
-
-        app.init_resource::<TiledLoadConfig>()
-            .init_resource::<TiledAssets>()
-            .init_resource::<TiledTilemapManger>();
-
-        app.register_type::<TiledLoadConfig>()
+        app.add_plugins(Material2dPlugin::<TiledSpriteMaterial>::default())
+            .add_event::<TiledMapEvent>()
+            .init_asset::<PackedTiledTilemap>()
+            .init_asset_loader::<TiledTilemapLoader>()
+            .init_asset::<TiledTileset>()
+            .init_asset_loader::<TiledTilesetLoader>()
+            .init_asset::<TiledAssets>()
+            .init_resource::<TiledLoadConfig>()
+            .init_resource::<TiledTilemapToAssets>()
+            .init_resource::<TiledLoadedMaps>()
+            .register_type::<TiledLoadConfig>()
             .register_type::<TiledAssets>()
-            .register_type::<TiledTilemapManger>();
-
-        app.add_systems(
-            Update,
-            (unload_tiled_layer, unload_tiled_tilemap, load_tiled_xml),
-        );
-
-        app.init_non_send_resource::<TiledObjectRegistry>();
-        app.init_non_send_resource::<TiledCustomTileRegistry>();
+            .add_systems(
+                Update,
+                (
+                    tiled_asset_event_handler,
+                    unload_tiled_layer,
+                    unload_tiled_tilemap,
+                    load_tiled_xml,
+                ),
+            )
+            .init_non_send_resource::<TiledObjectRegistry>()
+            .init_non_send_resource::<TiledCustomTileRegistry>();
     }
 }
 
-fn parse_tiled_xml(mut manager: ResMut<TiledTilemapManger>, config: Res<TiledLoadConfig>) {
-    manager.reload_xml(&config);
+pub fn tiled_asset_event_handler(
+    mut asset_event: EventReader<AssetEvent<PackedTiledTilemap>>,
+    xmls: Res<Assets<PackedTiledTilemap>>,
+    mut assets: ResMut<Assets<TiledAssets>>,
+    mut map_to_assets: ResMut<TiledTilemapToAssets>,
+    asset_server: Res<AssetServer>,
+    mut material_assets: ResMut<Assets<TiledSpriteMaterial>>,
+    mut textures_assets: ResMut<Assets<TilemapTextures>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    tileset_assets: Res<Assets<TiledTileset>>,
+) {
+    for ev in asset_event.read() {
+        match ev {
+            AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+                let map = xmls.get(*id).unwrap();
+                let asset = TiledAssets::new(
+                    map,
+                    &asset_server,
+                    &tileset_assets,
+                    &mut material_assets,
+                    &mut textures_assets,
+                    &mut mesh_assets,
+                );
+                map_to_assets.0.insert(*id, assets.add(asset));
+            }
+            AssetEvent::Removed { id } => {
+                map_to_assets.0.remove(id);
+            }
+            AssetEvent::Unused { .. } | AssetEvent::LoadedWithDependencies { .. } => {}
+        }
+    }
 }
 
 fn unload_tiled_tilemap(
     mut commands: Commands,
-    tilemaps_query: Query<(Entity, &TiledLoadedTilemap), With<TiledUnloader>>,
+    tilemaps_query: Query<&TiledLoadedTilemap>,
+    mut map_events: EventReader<TiledMapEvent>,
+    mut loaded_maps: ResMut<TiledLoadedMaps>,
 ) {
-    tilemaps_query.iter().for_each(|(entity, tilemap)| {
+    for ev in map_events.read() {
+        let TiledMapEvent::Unload(unloader) = ev else {
+            continue;
+        };
+
+        let entity = loaded_maps.0.remove(&unloader.map);
+        let Some(tilemap) = entity.and_then(|e| tilemaps_query.get(e).ok()) else {
+            error!("Failed to unload map: Failed to find the corresponding entity.");
+            continue;
+        };
+
         tilemap.unload(&mut commands);
-        commands.entity(entity).despawn();
-    });
+        commands.entity(entity.unwrap()).despawn();
+    }
 }
 
 fn unload_tiled_layer(
@@ -100,69 +161,89 @@ fn unload_tiled_layer(
 
 fn load_tiled_xml(
     mut commands: Commands,
-    loaders_query: Query<(Entity, &TiledLoader)>,
-    mut manager: ResMut<TiledTilemapManger>,
     config: Res<TiledLoadConfig>,
-    mut tiled_assets: ResMut<TiledAssets>,
+    tiled_assets: Res<Assets<TiledAssets>>,
+    tiled_maps: Res<Assets<PackedTiledTilemap>>,
     asset_server: Res<AssetServer>,
-    mut sprite_material_assets: ResMut<Assets<TiledSpriteMaterial>>,
     mut tilemap_material_assets: ResMut<Assets<StandardTilemapMaterial>>,
-    mut textures_assets: ResMut<Assets<TilemapTextures>>,
-    mut mesh_assets: ResMut<Assets<Mesh>>,
     object_registry: NonSend<TiledObjectRegistry>,
     custom_tiles_registry: NonSend<TiledCustomTileRegistry>,
+    mut map_events: EventReader<TiledMapEvent>,
+    map_to_assets: Res<TiledTilemapToAssets>,
+    mut loaded_maps: ResMut<TiledLoadedMaps>,
+    mut retry_queue: Local<Vec<TiledMapEvent>>,
 ) {
-    for (entity, loader) in &loaders_query {
-        tiled_assets.initialize(
-            &manager,
-            &config,
-            &asset_server,
-            &mut sprite_material_assets,
-            &mut textures_assets,
-            &mut mesh_assets,
-        );
+    let mut retry = Vec::new();
 
+    for ev in map_events.read().chain(retry_queue.into_iter()) {
+        let TiledMapEvent::Load(loader) = ev else {
+            continue;
+        };
+
+        let Some(map_data) = tiled_maps.get(loader.map) else {
+            warn!("Failed to load map: Xml haven't parsed yet. Retrying next frame.");
+            retry.push(ev.clone());
+            continue;
+        };
+
+        let Some(tiled_assets) = map_to_assets
+            .get(&loader.map)
+            .and_then(|h| tiled_assets.get(h))
+        else {
+            warn!(
+                "Failed to load map: Assets haven't read yet. Retrying next frame. {}",
+                map_data.name,
+            );
+            retry.push(ev.clone());
+            continue;
+        };
+
+        if loaded_maps.contains_key(&loader.map) {
+            error!("Failed to load map: Map already loaded. {}", map_data.name);
+            continue;
+        }
+
+        let map_entity = commands.spawn_empty().id();
         load_tiled_tilemap(
             &mut commands,
-            &mut manager,
             &config,
             &tiled_assets,
             &asset_server,
-            &loader,
+            &map_data,
             &object_registry,
             &custom_tiles_registry,
-            entity,
+            map_entity,
             &mut tilemap_material_assets,
         );
-
-        commands.entity(entity).remove::<TiledLoader>();
+        info!("Successfully loaded map. {}", map_data.name);
+        loaded_maps.0.insert(loader.map, map_entity);
     }
+
+    *retry_queue = retry;
 }
 
 fn load_tiled_tilemap(
     commands: &mut Commands,
-    manager: &mut TiledTilemapManger,
     config: &TiledLoadConfig,
     tiled_assets: &TiledAssets,
     asset_server: &AssetServer,
-    loader: &TiledLoader,
+    map_data: &PackedTiledTilemap,
     object_registry: &TiledObjectRegistry,
     custom_tiles_registry: &TiledCustomTileRegistry,
     map_entity: Entity,
     tilemap_material_assets: &mut Assets<StandardTilemapMaterial>,
 ) {
-    let tiled_data = manager.get_cached_data().get(&loader.map).unwrap();
     let mut loaded_map = TiledLoadedTilemap {
-        name: tiled_data.name.clone(),
+        name: map_data.name.clone(),
         layers: HashMap::default(),
         objects: HashMap::default(),
     };
     let mut z = config.z_index;
 
-    tiled_data.xml.layers.iter().for_each(|layer| {
+    map_data.xml.layers.iter().for_each(|layer| {
         load_layer(
             commands,
-            tiled_data,
+            map_data,
             &mut z,
             layer,
             tiled_assets,
@@ -175,10 +256,10 @@ fn load_tiled_tilemap(
         )
     });
 
-    tiled_data.xml.groups.iter().for_each(|group| {
+    map_data.xml.groups.iter().for_each(|group| {
         load_group(
             commands,
-            tiled_data,
+            map_data,
             &mut z,
             group,
             tiled_assets,
@@ -263,15 +344,16 @@ fn load_layer(
             );
             let layer_size = IVec2::new(layer.width as i32, layer.height as i32);
             let entity = commands.spawn_empty().id();
-            let (textures, animations) = tiled_assets.get_tilemap_data(&loaded_map.name);
-            let mut custom_properties_tiles: Vec<(IVec2,TiledCustomTileInstance)> = vec!();
+            let (textures, animations) = tiled_assets.get_tilemap_data();
+            let mut custom_properties_tiles: Vec<(IVec2, TiledCustomTileInstance)> = vec![];
 
             let tint = Color::srgba(
                 layer.tint.r,
                 layer.tint.g,
                 layer.tint.b,
                 layer.tint.a * layer.opacity,
-            ).to_linear();
+            )
+            .to_linear();
             let mut tilemap = StandardTilemapBundle {
                 name: TilemapName(layer.name.clone()),
                 slot_size: TilemapSlotSize(tile_size),
@@ -314,7 +396,7 @@ fn load_layer(
                 ColorTileLayerData::Tiles(tiles) => {
                     tiles
                         .content
-                        .iter_decoded(layer_size, &loaded_map.name, tiled_assets, &tiled_data)
+                        .iter_decoded(layer_size, tiled_assets, &tiled_data)
                         .for_each(|(index, builder, trs, custom_tile)| {
                             buffer.set(index, builder);
                             if let Some(t) = tile_render_size {
@@ -337,7 +419,7 @@ fn load_layer(
 
                         chunk
                             .tiles
-                            .iter_decoded(size, &loaded_map.name, tiled_assets, &tiled_data)
+                            .iter_decoded(size, tiled_assets, &tiled_data)
                             .for_each(|(index, builder, trs, _)| {
                                 buffer.set(index + offset, builder);
                                 if let Some(t) = tile_render_size {
@@ -369,38 +451,42 @@ fn load_layer(
             tilemap
                 .storage
                 .fill_with_buffer(commands, IVec2::ZERO, buffer);
-            
 
             // Tiles entity have been spawned: add custom properties to the ones we registered
-            custom_properties_tiles.iter().for_each(|(index, custom_tile_instance)| {
-                if let Some(entity) = tilemap.storage.get(*index) {
-                    let Some(phantom) = custom_tiles_registry.get(&custom_tile_instance.ty) else {
-                        if config.ignore_unregisterd_custom_tiles {
-                            return;
-                        }
-                        panic!(
-                            "Could not find component type with custom class identifier: {}! \
-                        You need to register it using App::register_tiled_custom_tile::<T>() first!",
-                            custom_tile_instance.ty
-                        )
-                    };
-                    
-                    let mut entity = commands.entity(entity);
-                    phantom.initialize(
-                        &mut entity,
-                        custom_tile_instance,
-                        &custom_tile_instance
-                            .properties
-                            .instances
-                            .iter()
-                            .map(|inst| (inst.ty.clone(), inst.clone()))
-                            .collect(),
-                        asset_server,
-                        tiled_assets,
-                        tiled_data.name.clone(),
-                    );
-                }
-            });
+            custom_properties_tiles
+                .iter()
+                .for_each(|(index, custom_tile_instance)| {
+                    if let Some(entity) = tilemap.storage.get(*index) {
+                        let Some(phantom) = custom_tiles_registry.get(&custom_tile_instance.ty)
+                        else {
+                            if config.ignore_unregisterd_custom_tiles {
+                                return;
+                            }
+
+                            // TODO formatter stopped working if I place the method directly in the string literal.
+                            //      really weird. :/
+                            panic!(
+                                "Could not find component type with custom class identifier: {}! \
+                                You need to register it using {} first!",
+                                custom_tile_instance.ty, "App::register_tiled_custom_tile::<T>()"
+                            )
+                        };
+
+                        let mut entity = commands.entity(entity);
+                        phantom.initialize(
+                            &mut entity,
+                            custom_tile_instance,
+                            &custom_tile_instance
+                                .properties
+                                .instances
+                                .iter()
+                                .map(|inst| (inst.ty.clone(), inst.clone()))
+                                .collect(),
+                            asset_server,
+                            tiled_assets,
+                        );
+                    }
+                });
             commands.entity(entity).insert(tilemap);
             loaded_map.layers.insert(layer.id, entity);
         }
@@ -434,7 +520,6 @@ fn load_layer(
                             .collect(),
                         asset_server,
                         tiled_assets,
-                        tiled_data.name.clone(),
                     );
                     entity.insert(SpatialBundle {
                         transform: Transform::from_xyz(
@@ -450,8 +535,8 @@ fn load_layer(
         }
         TiledLayer::Image(layer) => {
             let ((mesh, z), material) = (
-                tiled_assets.clone_image_layer_mesh_handle(&tiled_data.name, layer.id),
-                tiled_assets.clone_image_layer_material_handle(&tiled_data.name, layer.id),
+                tiled_assets.clone_image_layer_mesh_handle(layer.id),
+                tiled_assets.clone_image_layer_material_handle(layer.id),
             );
 
             let entity = commands

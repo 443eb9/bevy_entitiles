@@ -15,7 +15,7 @@ pub fn expand_tiled_custom_tiles_derive(input: syn::DeriveInput) -> proc_macro::
                 syn::Meta::List(meta) => {
                     let func = &meta.tokens;
                     quote::quote!(
-                        #func(commands, custom_tile_instance, components, asset_server, tiled_assets, tiled_map);
+                        #func(commands, custom_tile_instance, components, asset_server, tiled_assets);
                     )
                 }
                 _ => {
@@ -78,7 +78,6 @@ pub fn expand_tiled_custom_tiles_derive(input: syn::DeriveInput) -> proc_macro::
                 >,
                 asset_server: &bevy::prelude::AssetServer,
                 tiled_assets: &bevy_entitiles::tiled::resources::TiledAssets,
-                tiled_map: String,
             ) {
                 #callback
 

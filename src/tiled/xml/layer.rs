@@ -280,7 +280,6 @@ impl Tiles {
     pub fn iter_decoded<'a>(
         &'a self,
         size: IVec2,
-        tiled_tilemap_name: &'a str,
         tiled_assets: &'a TiledAssets,
         tiled_data: &'a PackedTiledTilemap,
     ) -> impl Iterator<
@@ -305,8 +304,7 @@ impl Tiles {
                 let flip = *tile_id >> 30;
                 let tile_id = tile_id & 0x3FFF_FFFF;
 
-                let (tileset, tileset_meta) =
-                    tiled_assets.get_tileset(tile_id, &tiled_tilemap_name);
+                let (tileset, tileset_meta) = tiled_assets.get_tileset(tile_id);
                 let atlas_index = tile_id - tileset_meta.first_gid;
 
                 layer.flip = TileFlip::from_bits(flip).unwrap();
@@ -566,12 +564,11 @@ impl TiledObjectInstance {
         &self,
         commands: &mut EntityCommands,
         tiled_assets: &TiledAssets,
-        tiled_map: &str,
     ) {
         if self.visible {
             commands.insert(MaterialMesh2dBundle {
-                material: tiled_assets.clone_object_material_handle(&tiled_map, self.id),
-                mesh: Mesh2dHandle(tiled_assets.clone_object_mesh_handle(&tiled_map, self.id)),
+                material: tiled_assets.clone_object_material_handle(self.id),
+                mesh: Mesh2dHandle(tiled_assets.clone_object_mesh_handle(self.id)),
                 ..Default::default()
             });
         }

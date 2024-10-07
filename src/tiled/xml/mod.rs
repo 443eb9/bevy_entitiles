@@ -19,7 +19,7 @@ pub mod tileset;
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub struct TiledTilemap {
+pub struct TiledXml {
     /// The TMX format version. Was “1.0” so far,
     /// and will be incremented to match minor
     /// Tiled releases.
@@ -358,7 +358,7 @@ mod test {
 
     #[test]
     fn test_parse() {
-        let map = quick_xml::de::from_str::<TiledTilemap>(
+        let map = quick_xml::de::from_str::<TiledXml>(
             std::fs::read_to_string("assets/tiled/tilemaps/isometric.tmx")
                 .unwrap()
                 .as_str(),

@@ -37,7 +37,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
     let spawn_sprite = {
         if spawn_sprite_attr.is_some() {
             quote::quote!(
-                object_instance.spawn_sprite(commands, tiled_assets, &tiled_map);
+                object_instance.spawn_sprite(commands, tiled_assets);
             )
         } else {
             quote::quote!()
@@ -123,7 +123,6 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
                 >,
                 asset_server: &bevy::prelude::AssetServer,
                 tiled_assets: &bevy_entitiles::tiled::resources::TiledAssets,
-                tiled_map: String,
             ) {
                 #callback
                 #spawn_sprite

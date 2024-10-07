@@ -1,9 +1,9 @@
-use bevy::reflect::Reflect;
+use bevy::{asset::Asset, reflect::Reflect};
 use serde::{Deserialize, Serialize};
 
 use crate::tiled::xml::property::Components;
 
-#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+#[derive(Asset, Debug, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub struct TiledTileset {
     /// The name of this tileset.

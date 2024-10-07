@@ -1,17 +1,7 @@
 use bevy::{
     ecs::{component::Component, entity::Entity, system::Commands},
-    math::Vec2,
     utils::HashMap,
 };
-
-#[derive(Component, Debug, Clone)]
-pub struct TiledLoader {
-    pub map: String,
-    pub trans_ovrd: Option<Vec2>,
-}
-
-#[derive(Component, Debug, Clone)]
-pub struct TiledUnloader;
 
 #[derive(Component, Debug, Clone)]
 pub struct TiledUnloadLayer;
@@ -35,7 +25,7 @@ impl TiledLoadedTilemap {
 }
 
 /// A component that is used to mark a tilemap as a global object.
-/// 
+///
 /// Global objects means objects that are not attached to any tilemap.
 /// So they won't be unloaded when the tilemap is unloaded.
 #[derive(Component, Debug, Clone)]

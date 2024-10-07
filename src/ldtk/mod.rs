@@ -207,7 +207,7 @@ pub fn unload_ldtk_level(
     query: Query<(Entity, &LdtkLoadedLevel)>,
     global_entities: Res<LdtkGlobalEntityRegistry>,
     mut level_events: EventReader<LdtkLevelEvent>,
-    loaded_levels: Res<LdtkLoadedLevels>,
+    mut loaded_levels: ResMut<LdtkLoadedLevels>,
     identifier_to_iid: Res<LdtkLevelIdentifierToIid>,
 ) {
     for ev in level_events.read() {
@@ -216,15 +216,16 @@ pub fn unload_ldtk_level(
         };
 
         let entity = loaded_levels
-            .get(&unloader.json)
+            .0
+            .get_mut(&unloader.json)
             .and_then(|entities| match &unloader.level {
                 LdtkLevel::Identifier(ident) => identifier_to_iid
                     .get(&unloader.json)
-                    .and_then(|mapper| mapper.get(ident).and_then(|iid| entities.get(iid))),
-                LdtkLevel::Iid(iid) => entities.get(iid),
+                    .and_then(|mapper| mapper.get(ident).and_then(|iid| entities.remove(iid))),
+                LdtkLevel::Iid(iid) => entities.remove(iid),
             });
 
-        let Some((entity, level)) = entity.and_then(|e| query.get(*e).ok()) else {
+        let Some((entity, level)) = entity.and_then(|e| query.get(e).ok()) else {
             error!(
                 "Failed to unload level: Failed to find the corresponding entity. {}",
                 unloader.level
@@ -278,9 +279,11 @@ pub fn load_ldtk_level(
     ldtk_assets: Res<Assets<LdtkAssets>>,
     json_to_assets: Res<LdtkJsonToAssets>,
     mut loaded_levels: ResMut<LdtkLoadedLevels>,
-    mut retry_queue: Local<Vec<LdtkLevelLoader>>,
+    mut retry_queue: Local<Vec<LdtkLevelEvent>>,
 ) {
-    for ev in level_events.read() {
+    let mut retry = Vec::new();
+
+    for ev in level_events.read().chain(retry_queue.into_iter()) {
         let LdtkLevelEvent::Load(loader) = ev else {
             continue;
         };
@@ -290,7 +293,7 @@ pub fn load_ldtk_level(
                 "Failed to load level: Json haven't parsed yet. Retrying next frame. {}",
                 loader.level
             );
-            retry_queue.push(loader.clone());
+            retry.push(ev.clone());
             continue;
         };
 
@@ -300,7 +303,7 @@ pub fn load_ldtk_level(
                 "Failed to load level: Assets haven't read yet. Retrying next frame. {}",
                 loader.level
             );
-            retry_queue.push(loader.clone());
+            retry.push(ev.clone());
             continue;
         };
 
@@ -321,6 +324,8 @@ pub fn load_ldtk_level(
         );
         info!("Successfully loaded level. {}", loader.level);
     }
+
+    *retry_queue = retry;
 }
 
 fn load_levels(

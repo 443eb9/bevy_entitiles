@@ -1,23 +1,11 @@
 use avian2d::prelude::*;
-use bevy::{
-    app::{App, PluginGroup, Startup, Update},
-    color::Color,
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        bundle::Bundle,
-        component::Component,
-        system::{Commands, Res, ResMut},
-    },
-    input::{keyboard::KeyCode, ButtonInput},
-    reflect::Reflect,
-    render::texture::ImagePlugin,
-    DefaultPlugins,
-};
+use bevy::{prelude::*, utils::HashMap};
 use bevy_entitiles::{
     render::chunk::RenderChunkSort,
     tiled::{
         app_ext::TiledApp,
-        resources::{TiledLoadConfig, TiledTilemapManger},
+        events::{TiledMapEvent, TiledMapLoader},
+        resources::{PackedTiledTilemap, TiledLoadConfig, TiledLoadedMaps},
     },
     EntiTilesPlugin,
 };
@@ -38,13 +26,6 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, switching)
         .insert_resource(TiledLoadConfig {
-            map_path: vec![
-                "assets/tiled/tilemaps/hexagonal.tmx".to_string(),
-                "assets/tiled/tilemaps/infinite.tmx".to_string(),
-                "assets/tiled/tilemaps/orthogonal.tmx".to_string(),
-                "assets/tiled/tilemaps/isometric.tmx".to_string(),
-                "assets/tiled/tilemaps/isometricCube.tmx".to_string(),
-            ],
             ignore_unregisterd_objects: true,
             ignore_unregisterd_custom_tiles: true,
             z_index: 0.,
@@ -60,28 +41,60 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+#[derive(Resource, Deref)]
+pub struct TiledMaps(HashMap<&'static str, Handle<PackedTiledTilemap>>);
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
+
+    commands.insert_resource(TiledMaps(
+        [
+            (
+                "hexagonal",
+                asset_server.load("tiled/tilemaps/hexagonal.tmx"),
+            ),
+            ("infinite", asset_server.load("tiled/tilemaps/infinite.tmx")),
+            (
+                "orthogonal",
+                asset_server.load("tiled/tilemaps/orthogonal.tmx"),
+            ),
+            (
+                "isometric",
+                asset_server.load("tiled/tilemaps/isometric.tmx"),
+            ),
+            (
+                "isometricCube",
+                asset_server.load("tiled/tilemaps/isometricCube.tmx"),
+            ),
+        ]
+        .into(),
+    ));
 }
 
 macro_rules! map_switching {
-    ($key:ident, $map:expr, $input:expr, $manager:expr, $commands:expr) => {
+    ($key:ident, $map:expr, $input:expr, $loaded_maps:expr, $event:expr, $tiled_maps: expr) => {
         if $input.just_pressed(KeyCode::$key) {
-            $manager.switch_to(&mut $commands, $map.to_string(), None);
+            $loaded_maps.unload_all(&mut $event);
+            $event.send(TiledMapEvent::Load(TiledMapLoader {
+                map: $tiled_maps[$map].id(),
+                trans_ovrd: None,
+            }));
         }
     };
 }
 
 fn switching(
-    mut commands: Commands,
-    mut manager: ResMut<TiledTilemapManger>,
     input: Res<ButtonInput<KeyCode>>,
+    mut event: EventWriter<TiledMapEvent>,
+    loaded_maps: Res<TiledLoadedMaps>,
+    tiled_maps: Res<TiledMaps>,
 ) {
-    map_switching!(Digit1, "hexagonal", input, manager, commands);
-    map_switching!(Digit2, "infinite", input, manager, commands);
-    map_switching!(Digit3, "orthogonal", input, manager, commands);
-    map_switching!(Digit4, "isometric", input, manager, commands);
-    map_switching!(Digit5, "isometricCube", input, manager, commands);
+    map_switching!(Digit1, "hexagonal", input, loaded_maps, event, tiled_maps);
+    map_switching!(Digit2, "infinite", input, loaded_maps, event, tiled_maps);
+    map_switching!(Digit3, "orthogonal", input, loaded_maps, event, tiled_maps);
+    map_switching!(Digit4, "isometric", input, loaded_maps, event, tiled_maps);
+    #[rustfmt::skip] // Looks awful :/
+    map_switching!(Digit5, "isometricCube", input, loaded_maps, event, tiled_maps);
 }
 
 /*
