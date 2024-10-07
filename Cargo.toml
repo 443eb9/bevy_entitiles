@@ -37,6 +37,7 @@ rayon = "1.10"
 ron = { version = "0.8", optional = true }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
+thiserror = "1.0.64"
 
 [dev-dependencies]
 bevy = { version = "0.14", default-features = false, features = [

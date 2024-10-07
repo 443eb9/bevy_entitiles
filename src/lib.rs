@@ -30,10 +30,18 @@ pub mod prelude {
     #[cfg(feature = "algorithm")]
     pub use crate::algorithm::{
         pathfinding::{Path, PathFinder},
-        wfc::WfcRunner,
+        wfc::{WfcRules, WfcRunner, WfcSource},
     };
     #[cfg(feature = "ldtk")]
-    pub use crate::ldtk::resources::{LdtkAssets, LdtkLevelManager};
+    pub use crate::ldtk::{
+        app_ext::LdtkApp,
+        components::{EntityIid, LayerIid, LevelIid, WorldIid},
+        events::{
+            LdtkLevel, LdtkLevelEvent, LdtkLevelLoader, LdtkLevelLoaderMode, LdtkLevelUnloader,
+        },
+        json::LdtkJson,
+        resources::{LdtkAssets, LdtkLevelConfig, LdtkLoadedLevels},
+    };
     pub use crate::math::GridRect;
     #[cfg(feature = "serializing")]
     pub use crate::serializing::{
@@ -46,7 +54,9 @@ pub mod prelude {
     #[cfg(feature = "tiled")]
     pub use crate::tiled::resources::{TiledLoadConfig, TiledTilemapManger};
     #[cfg(feature = "physics")]
-    pub use crate::tilemap::physics::{DataPhysicsTilemap, PhysicsTile, PhysicsTilemap};
+    pub use crate::tilemap::physics::{
+        DataPhysicsTilemap, PhysicsTile, PhysicsTileSpawn, PhysicsTilemap,
+    };
     pub use crate::tilemap::{
         bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
@@ -57,6 +67,7 @@ pub mod prelude {
         },
         tile::{RawTileAnimation, TileBuilder, TileLayer, TileUpdater},
     };
+    pub use crate::EntiTilesPlugin;
 }
 
 pub struct EntiTilesPlugin;

@@ -2,36 +2,14 @@ use avian2d::{
     prelude::{PhysicsDebugPlugin, PhysicsGizmos},
     PhysicsPlugins,
 };
-use bevy::{
-    app::{App, Startup, Update},
-    color::Color,
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        component::Component,
-        entity::Entity,
-        system::{Commands, Query, Res, ResMut},
-    },
-    gizmos::{config::GizmoConfig, AppGizmoBuilder},
-    input::{keyboard::KeyCode, ButtonInput},
-    math::{IVec2, UVec2, Vec2, Vec3Swizzles},
-    reflect::Reflect,
-    render::render_resource::FilterMode,
-    sprite::{Sprite, SpriteBundle},
-    transform::components::Transform,
-    utils::HashMap,
-    DefaultPlugins,
-};
+use bevy::{prelude::*, render::render_resource::FilterMode, utils::HashMap};
 use bevy_entitiles::{
-    algorithm::wfc::{LdtkWfcMode, WfcRules, WfcRunner, WfcSource},
+    algorithm::wfc::LdtkWfcMode,
     ldtk::{
         layer::physics::LdtkPhysicsLayer,
-        resources::{
-            LdtkAdditionalLayers, LdtkLevelManager, LdtkLoadConfig, LdtkPatterns, LdtkWfcManager,
-        },
+        resources::{LdtkAdditionalLayers, LdtkPatterns, LdtkWfcManager},
     },
-    math::GridRect,
-    tilemap::{map::TilemapType, physics::PhysicsTile},
-    EntiTilesPlugin,
+    prelude::*,
 };
 use helpers::EntiTilesHelpersPlugin;
 
@@ -53,8 +31,7 @@ fn main() {
                 .collect(),
             UVec2::splat(16),
         ))
-        .insert_resource(LdtkLoadConfig {
-            file_path: "assets/ldtk/wfc_source.ldtk".to_string(),
+        .insert_resource(LdtkLevelConfig {
             asset_path_prefix: "ldtk/".to_string(),
             filter_mode: FilterMode::Nearest,
             ..Default::default()
@@ -90,6 +67,9 @@ fn main() {
         .run();
 }
 
+#[derive(Resource, Deref)]
+struct LdtkFile(Handle<LdtkJson>);
+
 #[derive(Component, Reflect)]
 struct Player {
     pub level: IVec2,
@@ -98,8 +78,9 @@ struct Player {
 #[derive(Component, Reflect)]
 struct LevelChange(UVec2);
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
+    let file = asset_server.load("ldtk/wfc_source.ldtk");
 
     let rules = WfcRules::from_file("examples/ldtk_wfc_config.ron", TilemapType::Square);
     commands.spawn((
@@ -111,7 +92,10 @@ fn setup(mut commands: Commands) {
         ),
         // you can also switch this to MultiMap mode
         // which will apply the result on a single tilemap
-        WfcSource::LdtkMapPattern(LdtkWfcMode::SingleMap),
+        WfcSource::LdtkMapPattern {
+            json: file.id(),
+            mode: LdtkWfcMode::SingleMap,
+        },
     ));
 
     commands.spawn((
@@ -128,6 +112,7 @@ fn setup(mut commands: Commands) {
     ));
 
     commands.spawn(LevelChange(UVec2::ZERO));
+    commands.insert_resource(LdtkFile(file));
 }
 
 // The rest of the code is used to control the player and load the level.
@@ -167,16 +152,20 @@ fn player_control(
 fn load_level(
     mut commands: Commands,
     query: Query<(Entity, &LevelChange)>,
-    mut level_manager: ResMut<LdtkLevelManager>,
+    loaded_levels: Res<LdtkLoadedLevels>,
     wfc_manager: Res<LdtkWfcManager>,
+    mut event: EventWriter<LdtkLevelEvent>,
+    file: Res<LdtkFile>,
 ) {
     query.iter().for_each(|(e, l)| {
         if let Some(ident) = wfc_manager.get_ident(l.0) {
-            level_manager.switch_to(
-                &mut commands,
-                ident,
-                Some(wfc_manager.get_translation(l.0.as_ivec2(), Vec2::splat(8.))),
-            );
+            loaded_levels.unload_all_at(file.id(), &mut event);
+            event.send(LdtkLevelEvent::Load(LdtkLevelLoader {
+                json: file.id(),
+                level: LdtkLevel::Identifier(ident),
+                mode: LdtkLevelLoaderMode::Tilemap,
+                trans_ovrd: Some(wfc_manager.get_translation(l.0.as_ivec2(), Vec2::splat(8.))),
+            }));
         }
         commands.entity(e).despawn();
     });

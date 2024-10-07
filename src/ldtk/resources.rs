@@ -1,13 +1,11 @@
-use std::{fs::read_to_string, path::Path};
+use std::path::Path;
 
 use bevy::{
-    asset::{AssetServer, Assets, Handle},
-    ecs::{
-        entity::Entity,
-        system::{Commands, Resource},
-    },
+    asset::{io::Reader, Asset, AssetId, AssetLoader, AssetServer, Assets, Handle, LoadContext},
+    ecs::{entity::Entity, system::Resource},
     log::error,
     math::{IVec2, UVec2, Vec2},
+    prelude::{Deref, DerefMut, EventWriter},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
@@ -17,14 +15,16 @@ use bevy::{
     sprite::{Mesh2dHandle, SpriteBundle, TextureAtlasLayout},
     utils::HashMap,
 };
+use futures_lite::AsyncReadExt;
+use thiserror::Error;
 
 use crate::{
     ldtk::{
-        components::{EntityIid, LayerIid},
+        components::{EntityIid, LayerIid, LevelIid},
         json::{definitions::EntityDef, EntityRef, LdtkJson, TocInstance},
         sprite::{AtlasRect, LdtkEntityMaterial},
-        LdtkLoader, LdtkLoaderMode, LdtkUnloader,
     },
+    prelude::{LdtkLevel, LdtkLevelEvent, LdtkLevelUnloader},
     serializing::pattern::{PackedPatternLayers, PatternsLayer, TilemapPattern},
     tilemap::{
         map::{TilemapTexture, TilemapTextureDescriptor},
@@ -125,12 +125,19 @@ impl LdtkPatterns {
     }
 }
 
+#[derive(Resource, Default, Deref)]
+pub struct LdtkJsonToAssets(pub(crate) HashMap<AssetId<LdtkJson>, Handle<LdtkAssets>>);
+
+#[derive(Resource, Default, Deref)]
+pub struct LdtkLevelIdentifierToIid(
+    pub(crate) HashMap<AssetId<LdtkJson>, HashMap<String, LevelIid>>,
+);
+
 /// All the tilemaps loaded from the LDtk file.
 ///
 /// This includes tilesets, entity meshes/materials etc.
-#[derive(Resource, Default, Reflect)]
+#[derive(Asset, Default, Reflect)]
 pub struct LdtkAssets {
-    pub(crate) associated_file: String,
     /// tileset iid to texture
     pub(crate) tilesets: HashMap<i32, TilemapTexture>,
     /// tileset iid to texture atlas handle
@@ -168,28 +175,27 @@ impl LdtkAssets {
     ///
     /// You need to call this after you changed something like the size of an entity,
     /// or maybe the identifier of an entity.
-    pub fn initialize(
-        &mut self,
-        config: &LdtkLoadConfig,
-        manager: &LdtkLevelManager,
+    pub fn new(
+        config: &LdtkLevelConfig,
+        ldtk_data: &LdtkJson,
         asset_server: &AssetServer,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,
         material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
-    ) {
-        self.associated_file = config.file_path.clone();
-        self.load_texture(config, manager, asset_server, atlas_layouts);
-        self.load_entities(config, manager, material_assets, mesh_assets);
+    ) -> Self {
+        let mut instance = Self::default();
+        instance.load_texture(config, ldtk_data, asset_server, atlas_layouts);
+        instance.load_entities(config, ldtk_data, material_assets, mesh_assets);
+        instance
     }
 
     fn load_texture(
         &mut self,
-        config: &LdtkLoadConfig,
-        manager: &LdtkLevelManager,
+        config: &LdtkLevelConfig,
+        ldtk_data: &LdtkJson,
         asset_server: &AssetServer,
         atlas_layouts: &mut Assets<TextureAtlasLayout>,
     ) {
-        let ldtk_data = manager.get_cached_data();
         ldtk_data.defs.tilesets.iter().for_each(|tileset| {
             let Some(path) = tileset.rel_path.as_ref() else {
                 return;
@@ -216,12 +222,11 @@ impl LdtkAssets {
 
     fn load_entities(
         &mut self,
-        config: &LdtkLoadConfig,
-        manager: &LdtkLevelManager,
+        config: &LdtkLevelConfig,
+        ldtk_data: &LdtkJson,
         material_assets: &mut Assets<LdtkEntityMaterial>,
         mesh_assets: &mut Assets<Mesh>,
     ) {
-        let ldtk_data = manager.get_cached_data();
         ldtk_data.defs.entities.iter().for_each(|entity| {
             self.entity_defs
                 .insert(entity.identifier.clone(), entity.clone());
@@ -343,8 +348,7 @@ pub struct LdtkAdditionalLayers {
 
 /// Configuration for loading the LDtk file.
 #[derive(Resource, Default, Reflect)]
-pub struct LdtkLoadConfig {
-    pub file_path: String,
+pub struct LdtkLevelConfig {
     pub asset_path_prefix: String,
     #[reflect(ignore)]
     pub filter_mode: FilterMode,
@@ -355,156 +359,69 @@ pub struct LdtkLoadConfig {
     pub ignore_unregistered_entity_tags: bool,
 }
 
-#[derive(Resource, Default, Reflect)]
-pub struct LdtkLevelManager {
-    pub(crate) ldtk_json: Option<LdtkJson>,
-    pub(crate) loaded_levels: HashMap<String, Entity>,
-}
+#[derive(Resource, Default, Deref)]
+pub struct LdtkLoadedLevels(pub(crate) HashMap<AssetId<LdtkJson>, HashMap<LevelIid, Entity>>);
 
-impl LdtkLevelManager {
-    /// Reloads the LDtk file and refresh the level cache.
-    pub fn reload_json(&mut self, config: &LdtkLoadConfig) {
-        if config.file_path.is_empty() {
-            error!("No specified LDtk level file path!");
-            return;
+impl LdtkLoadedLevels {
+    /// Quick utility to unload all levels in all files.
+    pub fn unload_all(&self, event_writer: &mut EventWriter<LdtkLevelEvent>) {
+        event_writer.send_batch(self.iter().flat_map(|(id, file)| {
+            file.keys().map(|iid| {
+                LdtkLevelEvent::Unload(LdtkLevelUnloader {
+                    json: *id,
+                    level: LdtkLevel::Iid(iid.clone()),
+                })
+            })
+        }));
+    }
+
+    /// Quick utility to unload all levels in the specific file.
+    #[inline]
+    pub fn unload_all_at(
+        &self,
+        json: AssetId<LdtkJson>,
+        event_writer: &mut EventWriter<LdtkLevelEvent>,
+    ) {
+        if let Some(file) = self.get(&json) {
+            event_writer.send_batch(file.keys().map(|iid| {
+                LdtkLevelEvent::Unload(LdtkLevelUnloader {
+                    json,
+                    level: LdtkLevel::Iid(iid.clone()),
+                })
+            }));
         }
-
-        let path = std::env::current_dir().unwrap().join(&config.file_path);
-        let str_raw = match read_to_string(&path) {
-            Ok(data) => data,
-            Err(e) => panic!("Could not read file at path: {:?}!\n{}", path, e),
-        };
-
-        self.ldtk_json = match serde_json::from_str::<LdtkJson>(&str_raw) {
-            Ok(data) => Some(data),
-            Err(e) => panic!("Could not parse file at path: {}!\n{}", config.file_path, e),
-        };
-    }
-
-    pub fn get_cached_data(&self) -> &LdtkJson {
-        self.check_initialized();
-        self.ldtk_json.as_ref().unwrap()
-    }
-
-    pub fn load(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
-        self.check_initialized();
-
-        if self.loaded_levels.contains_key(&level) {
-            error!("Trying to load {:?} that is already loaded!", level);
-        } else {
-            let entity = commands.spawn(LdtkLoader {
-                level: level.clone(),
-                mode: LdtkLoaderMode::Tilemap,
-                trans_ovrd,
-            });
-            self.loaded_levels.insert(level.clone(), entity.id());
-        }
-    }
-
-    pub fn load_all_patterns(&mut self, commands: &mut Commands) {
-        self.check_initialized();
-
-        self.ldtk_json
-            .as_ref()
-            .unwrap()
-            .levels
-            .iter()
-            .for_each(|level| {
-                if self.loaded_levels.contains_key(&level.identifier) {
-                    error!("Trying to load {:?} that is already loaded!", level);
-                } else {
-                    commands.spawn(LdtkLoader {
-                        level: level.identifier.clone(),
-                        mode: LdtkLoaderMode::MapPattern,
-                        trans_ovrd: None,
-                    });
-                }
-            });
-    }
-
-    pub fn switch_to(&mut self, commands: &mut Commands, level: String, trans_ovrd: Option<Vec2>) {
-        self.check_initialized();
-        if self.loaded_levels.contains_key(&level) {
-            error!("Trying to load {:?} that is already loaded!", level);
-        } else {
-            self.unload_all(commands);
-            self.load(commands, level, trans_ovrd);
-        }
-    }
-
-    pub fn unload(&mut self, commands: &mut Commands, level: String) {
-        if let Some(l) = self.loaded_levels.get(&level) {
-            commands.entity(*l).insert(LdtkUnloader);
-            self.loaded_levels.remove(&level);
-        } else {
-            error!("Trying to unload {:?} that is not loaded!", level);
-        }
-    }
-
-    pub fn unload_all(&mut self, commands: &mut Commands) {
-        for (_, l) in self.loaded_levels.iter() {
-            commands.entity(*l).insert(LdtkUnloader);
-        }
-        self.loaded_levels.clear();
-    }
-
-    pub fn is_loaded(&self, level: String) -> bool {
-        self.loaded_levels.contains_key(&level)
-    }
-
-    pub fn is_initialized(&self) -> bool {
-        self.ldtk_json.is_some()
-    }
-
-    fn check_initialized(&self) {
-        assert!(
-            self.is_initialized(),
-            "LdtkLevelManager is not initialized!"
-        );
     }
 }
 
-#[derive(Resource, Default, Reflect)]
+#[derive(Error, Debug)]
+pub enum LdtkJsonLoadError {
+    #[error("Io error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Json error: {0}")]
+    Json(#[from] serde_json::Error),
+}
+
+#[derive(Default)]
+pub struct LdtkJsonLoader;
+
+impl AssetLoader for LdtkJsonLoader {
+    type Asset = LdtkJson;
+
+    type Settings = ();
+
+    type Error = LdtkJsonLoadError;
+
+    async fn load<'a>(
+        &'a self,
+        reader: &'a mut Reader<'_>,
+        _settings: &'a Self::Settings,
+        _load_context: &'a mut LoadContext<'_>,
+    ) -> Result<Self::Asset, Self::Error> {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf).await?;
+        serde_json::from_slice(&buf).map_err(Into::into)
+    }
+}
+
+#[derive(Resource, Default, Reflect, Deref, DerefMut)]
 pub struct LdtkGlobalEntityRegistry(pub(crate) HashMap<EntityIid, Entity>);
-
-impl LdtkGlobalEntityRegistry {
-    #[inline]
-    pub fn register(&mut self, iid: EntityIid, entity: Entity) {
-        self.0.insert(iid, entity);
-    }
-
-    #[inline]
-    pub fn contains(&self, iid: &EntityIid) -> bool {
-        self.0.contains_key(iid)
-    }
-
-    #[inline]
-    pub fn get(&self, iid: &EntityIid) -> Option<Entity> {
-        self.0.get(iid).cloned()
-    }
-
-    #[inline]
-    pub fn remove(&mut self, iid: &EntityIid) -> Option<Entity> {
-        self.0.remove(iid)
-    }
-
-    #[inline]
-    pub fn remove_all(&mut self) {
-        self.0.clear();
-    }
-
-    #[inline]
-    pub fn despawn(&mut self, commands: &mut Commands, iid: &EntityIid) {
-        if let Some(entity) = self.remove(iid) {
-            commands.entity(entity).despawn();
-        }
-    }
-
-    #[inline]
-    pub fn despawn_all(&mut self, commands: &mut Commands) {
-        self.0.iter().for_each(|(_, entity)| {
-            commands.entity(*entity).despawn();
-        });
-        self.remove_all();
-    }
-}

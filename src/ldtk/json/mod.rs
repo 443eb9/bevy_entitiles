@@ -1,4 +1,4 @@
-use bevy::{color::Color, math::Vec4, reflect::Reflect, utils::HashMap};
+use bevy::{asset::Asset, color::Color, math::Vec4, reflect::Reflect, utils::HashMap};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::ldtk::json::{definitions::Definitions, level::Level};
@@ -61,7 +61,7 @@ impl<'de> Deserialize<'de> for LdtkColor {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[derive(Serialize, Deserialize, Asset, Debug, Clone, Reflect)]
 #[serde(rename_all = "camelCase")]
 pub struct LdtkJson {
     /// Project background color

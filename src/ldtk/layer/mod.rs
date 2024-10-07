@@ -1,5 +1,5 @@
 use bevy::{
-    asset::{AssetServer, Assets},
+    asset::{AssetId, AssetServer, Assets},
     color::LinearRgba,
     ecs::{
         entity::Entity,
@@ -15,13 +15,13 @@ use bevy::{
 use crate::{
     ldtk::{
         components::{EntityIid, LayerIid, LdtkLoadedLevel, LdtkTempTransform, LevelIid},
+        events::LdtkLevelLoaderMode,
         json::{
             field::FieldInstance,
             level::{EntityInstance, LayerInstance, Level, TileInstance},
         },
-        resources::{LdtkAssets, LdtkLoadConfig, LdtkPatterns},
+        resources::{LdtkAssets, LdtkLevelConfig, LdtkPatterns},
         traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
-        LdtkLoaderMode,
     },
     math::GridRect,
     render::material::StandardTilemapMaterial,
@@ -68,7 +68,7 @@ impl PackedLdtkEntity {
         commands: &mut EntityCommands,
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
-        config: &LdtkLoadConfig,
+        config: &LdtkLevelConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
     ) {
@@ -113,7 +113,8 @@ pub type LayerOpacity = f32;
 
 #[derive(Component)]
 pub struct LdtkLayers {
-    pub ty: LdtkLoaderMode,
+    pub assets_id: AssetId<LdtkAssets>,
+    pub ty: LdtkLevelLoaderMode,
     pub level_entity: Entity,
     pub level: Level,
     pub layers: Vec<Option<(TilemapPattern, TilemapTexture, LayerIid, LayerOpacity)>>,
@@ -136,13 +137,15 @@ impl LdtkLayers {
         level_entity: Entity,
         level: &Level,
         total_layers: usize,
+        assets_id: AssetId<LdtkAssets>,
         ldtk_assets: &LdtkAssets,
         translation: Vec2,
         base_z_index: f32,
-        ty: LdtkLoaderMode,
+        ty: LdtkLevelLoaderMode,
         background: SpriteBundle,
     ) -> Self {
         Self {
+            assets_id,
             level_entity,
             level: level.clone(),
             layers: vec![None; total_layers],
@@ -164,9 +167,9 @@ impl LdtkLayers {
         layer_index: usize,
         layer: &LayerInstance,
         tile: &TileInstance,
-        config: &LdtkLoadConfig,
+        config: &LdtkLevelConfig,
         patterns: &LdtkPatterns,
-        mode: &LdtkLoaderMode,
+        mode: &LdtkLevelLoaderMode,
     ) {
         self.try_create_new_layer(layer_index, layer);
 
@@ -175,8 +178,8 @@ impl LdtkLayers {
         let tile_index = IVec2 {
             x: tile.px[0] / tile_size.x as i32,
             y: match mode {
-                LdtkLoaderMode::Tilemap => -tile.px[1] / tile_size.y as i32 - 1,
-                LdtkLoaderMode::MapPattern => {
+                LdtkLevelLoaderMode::Tilemap => -tile.px[1] / tile_size.y as i32 - 1,
+                LdtkLevelLoaderMode::MapPattern => {
                     patterns.pattern_size.y as i32 - tile.px[1] / tile_size.y as i32 - 1
                 }
             },
@@ -269,7 +272,7 @@ impl LdtkLayers {
         ldtk_patterns: &mut LdtkPatterns,
         entity_registry: &LdtkEntityRegistry,
         entity_tag_registry: &LdtkEntityTagRegistry,
-        config: &LdtkLoadConfig,
+        config: &LdtkLevelConfig,
         ldtk_assets: &LdtkAssets,
         asset_server: &AssetServer,
         material_assets: &mut Assets<StandardTilemapMaterial>,
@@ -277,7 +280,7 @@ impl LdtkLayers {
         #[cfg(feature = "algorithm")] path_tilemaps: &mut PathTilemaps,
     ) {
         match self.ty {
-            LdtkLoaderMode::Tilemap => {
+            LdtkLevelLoaderMode::Tilemap => {
                 let mut layers = HashMap::with_capacity(self.layers.len());
                 let mut entities = HashMap::with_capacity(self.entities.len());
 
@@ -376,7 +379,7 @@ impl LdtkLayers {
                     LevelIid(self.level.iid.clone()),
                 ));
             }
-            LdtkLoaderMode::MapPattern => {
+            LdtkLevelLoaderMode::MapPattern => {
                 self.layers
                     .drain(..)
                     .enumerate()

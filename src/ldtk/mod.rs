@@ -1,38 +1,40 @@
 use std::path::Path;
 
 use bevy::{
-    app::{Plugin, Startup, Update},
-    asset::{load_internal_asset, AssetServer, Assets, Handle},
+    app::{Plugin, Update},
+    asset::{load_internal_asset, AssetApp, AssetEvent, AssetId, AssetServer, Assets, Handle},
     ecs::{
         entity::Entity,
-        event::EventWriter,
         query::{Added, With},
         system::{Commands, NonSend, ParallelCommands, Query, Res, ResMut},
     },
+    log::{error, info, warn},
     math::{UVec2, Vec2},
+    prelude::{EventReader, Local},
     render::{mesh::Mesh, render_resource::Shader},
     sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlasLayout},
     transform::components::Transform,
+    utils::Entry,
 };
 
 use crate::{
     ldtk::{
         components::{
-            EntityIid, GlobalEntity, LayerIid, LdtkLoadedLevel, LdtkLoader, LdtkLoaderMode,
-            LdtkTempTransform, LdtkUnloadLayer, LdtkUnloader, LevelIid, WorldIid,
+            EntityIid, GlobalEntity, LayerIid, LdtkLoadedLevel, LdtkTempTransform, LdtkUnloadLayer,
+            LevelIid, WorldIid,
         },
-        events::{LdtkEvent, LevelEvent},
+        events::{LdtkLevel, LdtkLevelEvent, LdtkLevelLoader},
         json::{
             definitions::LayerType,
             field::FieldInstance,
-            level::{EntityInstance, ImagePosition, Neighbour, TileInstance},
-            level::{LayerInstance, Level},
+            level::{EntityInstance, ImagePosition, LayerInstance, Level, Neighbour, TileInstance},
             EntityRef, GridPoint, LdtkColor, LdtkJson, Toc, World, WorldLayout,
         },
         layer::{LdtkLayers, PackedLdtkEntity},
         resources::{
-            LdtkAdditionalLayers, LdtkAssets, LdtkGlobalEntityRegistry, LdtkLevelManager,
-            LdtkLoadConfig, LdtkPatterns, LdtkTocs,
+            LdtkAdditionalLayers, LdtkAssets, LdtkGlobalEntityRegistry, LdtkJsonLoader,
+            LdtkJsonToAssets, LdtkLevelConfig, LdtkLevelIdentifierToIid, LdtkLoadedLevels,
+            LdtkPatterns, LdtkTocs,
         },
         sprite::{AtlasRect, LdtkEntityMaterial, NineSliceBorders, SpriteMesh},
         traits::{LdtkEntityRegistry, LdtkEntityTagRegistry},
@@ -66,49 +68,43 @@ impl Plugin for EntiTilesLdtkPlugin {
             Shader::from_wgsl
         );
 
-        app.add_plugins(Material2dPlugin::<LdtkEntityMaterial>::default());
-
-        app.add_systems(Startup, parse_ldtk_json);
-        app.add_systems(
-            Update,
-            (
-                load_ldtk_json,
-                unload_ldtk_level,
-                unload_ldtk_layer,
-                global_entity_registerer,
-                ldtk_temp_tranform_applier,
-                apply_ldtk_layers,
-            ),
-        );
-
-        app.insert_non_send_resource(LdtkEntityRegistry::default());
-
-        app.init_resource::<LdtkLevelManager>()
-            .init_resource::<LdtkLoadConfig>()
+        app.add_plugins(Material2dPlugin::<LdtkEntityMaterial>::default())
+            .add_systems(
+                Update,
+                (
+                    ldtk_asset_events_handler,
+                    load_ldtk_level,
+                    unload_ldtk_level,
+                    unload_ldtk_layer,
+                    global_entity_registerer,
+                    ldtk_temp_tranform_applier,
+                    apply_ldtk_layers,
+                ),
+            )
+            .insert_non_send_resource(LdtkEntityRegistry::default())
+            .init_asset::<LdtkJson>()
+            .init_asset::<LdtkAssets>()
+            .init_asset_loader::<LdtkJsonLoader>()
+            .init_resource::<LdtkLoadedLevels>()
+            .init_resource::<LdtkLevelConfig>()
             .init_resource::<LdtkAdditionalLayers>()
-            .init_resource::<LdtkAssets>()
+            .init_resource::<LdtkJsonToAssets>()
             .init_resource::<LdtkPatterns>()
             .init_resource::<LdtkTocs>()
-            .init_resource::<LdtkGlobalEntityRegistry>();
-
-        app.add_event::<LdtkEvent>();
-
-        app.register_type::<LdtkLoadedLevel>()
+            .init_resource::<LdtkGlobalEntityRegistry>()
+            .init_resource::<LdtkLevelIdentifierToIid>()
+            .add_event::<LdtkLevelEvent>()
+            .register_type::<LdtkLoadedLevel>()
             .register_type::<GlobalEntity>()
             .register_type::<EntityIid>()
             .register_type::<LayerIid>()
             .register_type::<LevelIid>()
             .register_type::<WorldIid>()
-            .register_type::<LevelEvent>()
-            .register_type::<LdtkLoader>()
-            .register_type::<LdtkUnloader>()
-            .register_type::<LdtkLoaderMode>()
             .register_type::<AtlasRect>()
             .register_type::<LdtkEntityMaterial>()
             .register_type::<NineSliceBorders>()
-            .register_type::<SpriteMesh>();
-
-        app.register_type::<FieldInstance>()
+            .register_type::<SpriteMesh>()
+            .register_type::<FieldInstance>()
             .register_type::<Level>()
             .register_type::<ImagePosition>()
             .register_type::<Neighbour>()
@@ -120,10 +116,8 @@ impl Plugin for EntiTilesLdtkPlugin {
             .register_type::<Toc>()
             .register_type::<World>()
             .register_type::<EntityRef>()
-            .register_type::<GridPoint>();
-
-        app.register_type::<LdtkLevelManager>()
-            .register_type::<LdtkLoadConfig>()
+            .register_type::<GridPoint>()
+            .register_type::<LdtkLevelConfig>()
             .register_type::<LdtkAdditionalLayers>()
             .register_type::<LdtkAssets>()
             .register_type::<LdtkPatterns>()
@@ -131,9 +125,8 @@ impl Plugin for EntiTilesLdtkPlugin {
 
         #[cfg(feature = "algorithm")]
         {
-            app.init_resource::<resources::LdtkWfcManager>();
-
-            app.register_type::<resources::LdtkWfcManager>();
+            app.init_resource::<resources::LdtkWfcManager>()
+                .register_type::<resources::LdtkWfcManager>();
         }
 
         #[cfg(feature = "physics")]
@@ -143,16 +136,12 @@ impl Plugin for EntiTilesLdtkPlugin {
     }
 }
 
-fn parse_ldtk_json(mut manager: ResMut<LdtkLevelManager>, config: Res<LdtkLoadConfig>) {
-    manager.reload_json(&config);
-}
-
 fn global_entity_registerer(
     mut registry: ResMut<LdtkGlobalEntityRegistry>,
     query: Query<(Entity, &EntityIid), Added<GlobalEntity>>,
 ) {
     query.iter().for_each(|(entity, iid)| {
-        registry.register(iid.clone(), entity);
+        registry.insert(iid.clone(), entity);
     });
 }
 
@@ -170,20 +159,82 @@ fn ldtk_temp_tranform_applier(
         });
 }
 
+pub fn ldtk_asset_events_handler(
+    mut asset_event: EventReader<AssetEvent<LdtkJson>>,
+    mut assets: ResMut<Assets<LdtkAssets>>,
+    jsons: Res<Assets<LdtkJson>>,
+    mut json_to_assets: ResMut<LdtkJsonToAssets>,
+    config: Res<LdtkLevelConfig>,
+    asset_server: Res<AssetServer>,
+    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut material_assets: ResMut<Assets<LdtkEntityMaterial>>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut identifier_to_id: ResMut<LdtkLevelIdentifierToIid>,
+) {
+    for ev in asset_event.read() {
+        match ev {
+            AssetEvent::Added { id } | AssetEvent::Modified { id } => {
+                let json = jsons.get(*id).unwrap();
+                let asset = assets.add(LdtkAssets::new(
+                    &config,
+                    json,
+                    &asset_server,
+                    &mut atlas_layouts,
+                    &mut material_assets,
+                    &mut mesh_assets,
+                ));
+                json_to_assets.0.insert(*id, asset);
+                identifier_to_id.0.insert(
+                    *id,
+                    json.levels
+                        .iter()
+                        .map(|level| (level.identifier.clone(), LevelIid(level.iid.clone())))
+                        .collect(),
+                );
+            }
+            AssetEvent::Removed { id } => {
+                if let Some(asset) = json_to_assets.get(id) {
+                    assets.remove(asset);
+                }
+            }
+            AssetEvent::Unused { .. } | AssetEvent::LoadedWithDependencies { .. } => {}
+        }
+    }
+}
+
 pub fn unload_ldtk_level(
     mut commands: Commands,
-    mut query: Query<(Entity, &LdtkLoadedLevel, &LevelIid), With<LdtkUnloader>>,
-    mut ldtk_events: EventWriter<LdtkEvent>,
+    query: Query<(Entity, &LdtkLoadedLevel)>,
     global_entities: Res<LdtkGlobalEntityRegistry>,
+    mut level_events: EventReader<LdtkLevelEvent>,
+    loaded_levels: Res<LdtkLoadedLevels>,
+    identifier_to_iid: Res<LdtkLevelIdentifierToIid>,
 ) {
-    query.iter_mut().for_each(|(entity, level, iid)| {
-        ldtk_events.send(LdtkEvent::LevelUnloaded(LevelEvent {
-            identifier: level.identifier.clone(),
-            iid: iid.0.clone(),
-        }));
+    for ev in level_events.read() {
+        let LdtkLevelEvent::Unload(unloader) = ev else {
+            continue;
+        };
+
+        let entity = loaded_levels
+            .get(&unloader.json)
+            .and_then(|entities| match &unloader.level {
+                LdtkLevel::Identifier(ident) => identifier_to_iid
+                    .get(&unloader.json)
+                    .and_then(|mapper| mapper.get(ident).and_then(|iid| entities.get(iid))),
+                LdtkLevel::Iid(iid) => entities.get(iid),
+            });
+
+        let Some((entity, level)) = entity.and_then(|e| query.get(*e).ok()) else {
+            error!(
+                "Failed to unload level: Failed to find the corresponding entity. {}",
+                unloader.level
+            );
+            continue;
+        };
+
         level.unload(&mut commands, &global_entities);
         commands.entity(entity).despawn();
-    });
+    }
 }
 
 #[cfg(not(feature = "physics"))]
@@ -215,69 +266,110 @@ pub fn unload_ldtk_layer(
     });
 }
 
-pub fn load_ldtk_json(
+pub fn load_ldtk_level(
     mut commands: Commands,
-    loader_query: Query<(Entity, &LdtkLoader)>,
     asset_server: Res<AssetServer>,
-    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-    config: Res<LdtkLoadConfig>,
-    mut manager: ResMut<LdtkLevelManager>,
+    config: Res<LdtkLevelConfig>,
     addi_layers: Res<LdtkAdditionalLayers>,
-    mut ldtk_assets: ResMut<LdtkAssets>,
-    mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
-    mut mesh_assets: ResMut<Assets<Mesh>>,
     mut patterns: ResMut<LdtkPatterns>,
     global_entities: Res<LdtkGlobalEntityRegistry>,
+    mut level_events: EventReader<LdtkLevelEvent>,
+    ldtk_jsons: Res<Assets<LdtkJson>>,
+    ldtk_assets: Res<Assets<LdtkAssets>>,
+    json_to_assets: Res<LdtkJsonToAssets>,
+    mut loaded_levels: ResMut<LdtkLoadedLevels>,
+    mut retry_queue: Local<Vec<LdtkLevelLoader>>,
 ) {
-    for (entity, loader) in loader_query.iter() {
-        ldtk_assets.initialize(
-            &config,
-            &manager,
-            &asset_server,
-            &mut atlas_layouts,
-            &mut entity_material_assets,
-            &mut mesh_assets,
-        );
+    for ev in level_events.read() {
+        let LdtkLevelEvent::Load(loader) = ev else {
+            continue;
+        };
 
+        let Some(ldtk_data) = ldtk_jsons.get(loader.json) else {
+            warn!(
+                "Failed to load level: Json haven't parsed yet. Retrying next frame. {}",
+                loader.level
+            );
+            retry_queue.push(loader.clone());
+            continue;
+        };
+
+        let assets_handle = json_to_assets.get(&loader.json);
+        let Some(ldtk_assets) = assets_handle.and_then(|h| ldtk_assets.get(h)) else {
+            warn!(
+                "Failed to load level: Assets haven't read yet. Retrying next frame. {}",
+                loader.level
+            );
+            retry_queue.push(loader.clone());
+            continue;
+        };
+
+        let level_entity = commands.spawn_empty().id();
         load_levels(
             &mut commands,
             &config,
-            &mut manager,
+            &ldtk_data,
             &addi_layers,
             loader,
             &asset_server,
-            entity,
-            &mut ldtk_assets,
+            level_entity,
+            assets_handle.unwrap().id(),
+            &ldtk_assets,
             &mut patterns,
             &global_entities,
+            &mut loaded_levels,
         );
-
-        commands.entity(entity).remove::<LdtkLoader>();
+        info!("Successfully loaded level. {}", loader.level);
     }
 }
 
 fn load_levels(
     commands: &mut Commands,
-    config: &LdtkLoadConfig,
-    manager: &mut LdtkLevelManager,
+    config: &LdtkLevelConfig,
+    ldtk_data: &LdtkJson,
     addi_layers: &LdtkAdditionalLayers,
-    loader: &LdtkLoader,
+    loader: &LdtkLevelLoader,
     asset_server: &AssetServer,
     level_entity: Entity,
-    ldtk_assets: &mut LdtkAssets,
+    assets_id: AssetId<LdtkAssets>,
+    ldtk_assets: &LdtkAssets,
     patterns: &mut LdtkPatterns,
     global_entities: &LdtkGlobalEntityRegistry,
+    loaded_levels: &mut LdtkLoadedLevels,
 ) {
-    let ldtk_data = manager.get_cached_data();
-
-    let Some((level_index, level)) = ldtk_data
-        .levels
-        .iter()
-        .enumerate()
-        .find(|(_, level)| level.identifier == loader.level)
-    else {
+    let Some((level_index, level)) = (match &loader.level {
+        LdtkLevel::Identifier(ident) => ldtk_data
+            .levels
+            .iter()
+            .enumerate()
+            .find(|(_, level)| level.identifier == *ident),
+        LdtkLevel::Iid(iid) => ldtk_data
+            .levels
+            .iter()
+            .enumerate()
+            .find(|(_, level)| level.iid == **iid),
+    }) else {
+        error!(
+            "Failed to load level: Level doesn't exist. {}",
+            loader.level
+        );
         return;
     };
+
+    let loaded_levels = loaded_levels.0.entry(loader.json).or_default();
+    match loaded_levels.entry(LevelIid(level.iid.clone())) {
+        Entry::Occupied(_) => {
+            error!(
+                "Failed to load level: Level already loaded. {}",
+                loader.level
+            );
+            return;
+        }
+        Entry::Vacant(e) => {
+            dbg!(&loader.level);
+            e.insert(level_entity);
+        }
+    }
 
     let translation = loader
         .trans_ovrd
@@ -294,6 +386,7 @@ fn load_levels(
         level_entity,
         level,
         level.layer_instances.len(),
+        assets_id,
         &ldtk_assets,
         translation,
         config.z_index,
@@ -346,7 +439,7 @@ fn load_background(
     translation: Vec2,
     level_px: UVec2,
     asset_server: &AssetServer,
-    config: &LdtkLoadConfig,
+    config: &LdtkLevelConfig,
 ) -> SpriteBundle {
     let texture = level
         .bg_rel_path
@@ -374,10 +467,10 @@ fn load_layer(
     layer: &LayerInstance,
     ldtk_layers: &mut LdtkLayers,
     translation: Vec2,
-    config: &LdtkLoadConfig,
+    config: &LdtkLevelConfig,
     global_entities: &LdtkGlobalEntityRegistry,
     patterns: &LdtkPatterns,
-    loader: &LdtkLoader,
+    loader: &LdtkLevelLoader,
 ) {
     match layer.ty {
         LayerType::IntGrid | LayerType::AutoLayer => {
@@ -388,7 +481,7 @@ fn load_layer(
         LayerType::Entities => {
             for (order, entity_instance) in layer.entity_instances.iter().enumerate() {
                 let iid = EntityIid(entity_instance.iid.clone());
-                if global_entities.contains(&iid) {
+                if global_entities.contains_key(&iid) {
                     continue;
                 }
 
@@ -436,17 +529,17 @@ fn apply_ldtk_layers(
     mut ldtk_patterns: ResMut<LdtkPatterns>,
     entity_registry: Option<NonSend<LdtkEntityRegistry>>,
     entity_tag_registry: Option<NonSend<LdtkEntityTagRegistry>>,
-    config: Res<LdtkLoadConfig>,
-    ldtk_assets: Res<LdtkAssets>,
+    config: Res<LdtkLevelConfig>,
+    ldtk_assets: Res<Assets<LdtkAssets>>,
     asset_server: Res<AssetServer>,
     mut material_assets: ResMut<Assets<StandardTilemapMaterial>>,
     mut textures_assets: ResMut<Assets<TilemapTextures>>,
-    mut ldtk_events: EventWriter<LdtkEvent>,
     #[cfg(feature = "algorithm")] mut path_tilemaps: ResMut<PathTilemaps>,
 ) {
     for (entity, mut ldtk_layers) in &mut ldtk_layers_query {
         let entity_registry = entity_registry.as_ref().map(|r| &**r);
         let entity_tag_registry = entity_tag_registry.as_ref().map(|r| &**r);
+        let ldtk_assets = ldtk_assets.get(ldtk_layers.assets_id).unwrap();
 
         ldtk_layers.apply_all(
             &mut commands,
@@ -454,18 +547,13 @@ fn apply_ldtk_layers(
             &entity_registry.unwrap_or(&LdtkEntityRegistry::default()),
             &entity_tag_registry.unwrap_or(&LdtkEntityTagRegistry::default()),
             &config,
-            &ldtk_assets,
+            ldtk_assets,
             &asset_server,
             &mut material_assets,
             &mut textures_assets,
             #[cfg(feature = "algorithm")]
             &mut path_tilemaps,
         );
-
-        ldtk_events.send(LdtkEvent::LevelLoaded(LevelEvent {
-            identifier: ldtk_layers.level.identifier.clone(),
-            iid: ldtk_layers.level.iid.clone(),
-        }));
 
         commands.entity(entity).remove::<LdtkLayers>();
     }

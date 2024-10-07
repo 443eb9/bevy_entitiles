@@ -3,44 +3,17 @@
 // If you are using the LDtk maps from the tutorials, you need to delete the internal
 // icons tileset. Otherwise the program will panic due to the missing asset.
 
-use avian2d::{
-    prelude::{
-        Collider, Friction, Gravity, LinearVelocity, Mass, PhysicsDebugPlugin, PhysicsGizmos,
-        RigidBody,
-    },
-    PhysicsPlugins,
-};
+use avian2d::prelude::*;
 use bevy::{
-    app::{App, PluginGroup, Startup, Update},
-    asset::{AssetServer, Assets},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        component::Component,
-        event::EventReader,
-        query::With,
-        system::{Commands, EntityCommands, Query, Res, ResMut},
-    },
-    gizmos::{config::GizmoConfig, AppGizmoBuilder},
-    input::{keyboard::KeyCode, ButtonInput},
-    math::Vec2,
-    reflect::Reflect,
-    render::{mesh::Mesh, render_resource::FilterMode, texture::ImagePlugin, view::Msaa},
-    sprite::TextureAtlasLayout,
-    utils::HashMap,
-    DefaultPlugins,
+    ecs::system::EntityCommands, prelude::*, render::render_resource::FilterMode, utils::HashMap,
 };
-use bevy_entitiles::tilemap::{physics::PhysicsTileSpawn, tile::RawTileAnimation};
 use bevy_entitiles::{
     ldtk::{
-        app_ext::LdtkApp,
-        events::LdtkEvent,
-        json::{field::FieldInstance, level::EntityInstance, EntityRef},
+        json::{field::FieldInstance, level::EntityInstance},
         layer::physics::LdtkPhysicsLayer,
-        resources::{LdtkAdditionalLayers, LdtkAssets, LdtkLevelManager, LdtkLoadConfig},
-        sprite::LdtkEntityMaterial,
+        resources::LdtkAdditionalLayers,
     },
-    tilemap::physics::PhysicsTile,
-    EntiTilesPlugin,
+    prelude::*,
 };
 use bevy_entitiles_derive::{LdtkEntity, LdtkEntityTag, LdtkEnum};
 use helpers::EntiTilesHelpersPlugin;
@@ -61,8 +34,7 @@ fn main() {
             Update,
             (
                 load,
-                level_events,
-                hot_reload,
+                // hot_reload,
                 player_control,
                 physics_tile_events,
             ),
@@ -73,11 +45,7 @@ fn main() {
         // turn off msaa to avoid the white lines between tiles
         .insert_resource(Msaa::Off)
         .insert_resource(Gravity(Vec2::new(0., -98.)))
-        .insert_resource(LdtkLoadConfig {
-            // replace the filename with grid_vania.ldtk before running
-            // this file uses finalbossblues-icons_full_16 and it only exists
-            // in my local disk.
-            file_path: "assets/ldtk/ignore grid_vania.ldtk".to_string(),
+        .insert_resource(LdtkLevelConfig {
             asset_path_prefix: "ldtk/".to_string(),
             filter_mode: FilterMode::Nearest,
             ignore_unregistered_entities: true,
@@ -129,80 +97,76 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
+#[derive(Resource, Deref)]
+struct LdtkFile(Handle<LdtkJson>);
+
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
+    commands.insert_resource(LdtkFile(asset_server.load("ldtk/ignore grid_vania.ldtk")));
 }
 
 macro_rules! level_control {
-    ($key:ident, $level:expr, $input:expr, $manager:expr, $commands:expr) => {
+    ($key:ident, $level:expr, $input:expr, $file:expr, $event:expr) => {
         if $input.pressed(KeyCode::ControlLeft) {
             if $input.just_pressed(KeyCode::$key) {
-                $manager.unload(&mut $commands, $level.to_string());
+                $event.send(LdtkLevelEvent::Unload(LdtkLevelUnloader {
+                    json: $file.id(),
+                    level: LdtkLevel::Identifier($level.into()),
+                }));
             }
         } else if $input.just_pressed(KeyCode::$key) {
-            $manager.switch_to(&mut $commands, $level.to_string(), None);
+            $event.send(LdtkLevelEvent::Load(LdtkLevelLoader {
+                json: $file.id(),
+                level: LdtkLevel::Identifier($level.into()),
+                mode: LdtkLevelLoaderMode::Tilemap,
+                trans_ovrd: None,
+            }));
         }
     };
 }
 
 fn load(
-    mut commands: Commands,
     input: Res<ButtonInput<KeyCode>>,
-    mut manager: ResMut<LdtkLevelManager>,
+    mut event: EventWriter<LdtkLevelEvent>,
+    file: Res<LdtkFile>,
+    loaded_level: Res<LdtkLoadedLevels>,
 ) {
-    level_control!(Digit1, "Entrance", input, manager, commands);
-    level_control!(Digit2, "Cross_roads", input, manager, commands);
-    level_control!(Digit3, "Water_supply", input, manager, commands);
-    level_control!(Digit4, "Ossuary", input, manager, commands);
-    level_control!(Digit5, "Garden", input, manager, commands);
-    level_control!(Digit6, "Shop_entrance", input, manager, commands);
-    level_control!(Digit7, "phantom level", input, manager, commands);
+    level_control!(Digit1, "Entrance", input, file, event);
+    level_control!(Digit2, "Cross_roads", input, file, event);
+    level_control!(Digit3, "Water_supply", input, file, event);
+    level_control!(Digit4, "Ossuary", input, file, event);
+    level_control!(Digit5, "Garden", input, file, event);
+    level_control!(Digit6, "Shop_entrance", input, file, event);
+    level_control!(Digit7, "phantom level", input, file, event);
 
     if input.just_pressed(KeyCode::Space) {
-        manager.unload_all(&mut commands);
-    }
-
-    if input.just_pressed(KeyCode::Digit8) {
-        manager.load(&mut commands, "Entrance".to_string(), None);
+        loaded_level.unload_all_at(file.id(), &mut event);
     }
 }
 
-fn hot_reload(
-    input: Res<ButtonInput<KeyCode>>,
-    mut manager: ResMut<LdtkLevelManager>,
-    config: Res<LdtkLoadConfig>,
-    mut assets: ResMut<LdtkAssets>,
-    asset_server: Res<AssetServer>,
-    mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-    mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
-    mut mesh_assets: ResMut<Assets<Mesh>>,
-) {
-    if input.just_pressed(KeyCode::Enter) {
-        manager.reload_json(&config);
-        assets.initialize(
-            &config,
-            &manager,
-            &asset_server,
-            &mut atlas_layouts,
-            &mut entity_material_assets,
-            &mut mesh_assets,
-        );
-        println!("Hot reloaded!")
-    }
-}
-
-fn level_events(mut ldtk_events: EventReader<LdtkEvent>) {
-    for event in ldtk_events.read() {
-        match event {
-            LdtkEvent::LevelLoaded(level) => {
-                println!("Level loaded: {}", level.identifier);
-            }
-            LdtkEvent::LevelUnloaded(level) => {
-                println!("Level unloaded: {}", level.identifier);
-            }
-        }
-    }
-}
+// fn hot_reload(
+//     input: Res<ButtonInput<KeyCode>>,
+//     mut manager: ResMut<LdtkLevelManager>,
+//     config: Res<LdtkLevelConfig>,
+//     mut assets: ResMut<LdtkAssets>,
+//     asset_server: Res<AssetServer>,
+//     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+//     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
+//     mut mesh_assets: ResMut<Assets<Mesh>>,
+// ) {
+//     if input.just_pressed(KeyCode::Enter) {
+//         manager.reload_json(&config);
+//         assets.initialize(
+//             &config,
+//             &manager,
+//             &asset_server,
+//             &mut atlas_layouts,
+//             &mut entity_material_assets,
+//             &mut mesh_assets,
+//         );
+//         println!("Hot reloaded!")
+//     }
+// }
 
 fn player_control(
     mut query: Query<&mut LinearVelocity, With<Player>>,
@@ -333,7 +297,7 @@ pub struct Item {
 #[derive(Component, LdtkEntity, Reflect)]
 #[spawn_sprite]
 pub struct Teleport {
-    pub destination: EntityRef,
+    pub destination: bevy_entitiles::ldtk::json::EntityRef,
 }
 
 // Marker components for generated physics tiles.

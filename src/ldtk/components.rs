@@ -1,28 +1,12 @@
 use bevy::{
     ecs::{component::Component, entity::Entity, system::Commands},
     math::Vec2,
+    prelude::Deref,
     reflect::Reflect,
     utils::HashMap,
 };
 
 use crate::ldtk::resources::LdtkGlobalEntityRegistry;
-
-#[derive(Reflect, Default, Clone, Copy, PartialEq, Eq)]
-pub enum LdtkLoaderMode {
-    #[default]
-    Tilemap,
-    MapPattern,
-}
-
-#[derive(Component, Reflect, Default)]
-pub struct LdtkLoader {
-    pub(crate) level: String,
-    pub(crate) mode: LdtkLoaderMode,
-    pub(crate) trans_ovrd: Option<Vec2>,
-}
-
-#[derive(Component, Reflect, Default)]
-pub struct LdtkUnloader;
 
 #[derive(Component)]
 pub struct LdtkUnloadLayer;
@@ -42,7 +26,7 @@ impl LdtkLoadedLevel {
         });
         self.entities
             .iter()
-            .filter(|(iid, _)| !global_entities.contains(iid))
+            .filter(|(iid, _)| !global_entities.contains_key(*iid))
             .for_each(|(_, e)| {
                 commands.entity(*e).despawn();
             });
@@ -59,14 +43,14 @@ pub struct LdtkTempTransform {
 #[derive(Component, Reflect)]
 pub struct GlobalEntity;
 
-#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone)]
+#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone, Deref)]
 pub struct EntityIid(pub String);
 
-#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone)]
+#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone, Deref)]
 pub struct LayerIid(pub String);
 
-#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone)]
+#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone, Deref)]
 pub struct LevelIid(pub String);
 
-#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone)]
+#[derive(Component, Debug, Reflect, Hash, Eq, PartialEq, Clone, Deref)]
 pub struct WorldIid(pub String);

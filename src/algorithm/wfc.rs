@@ -159,7 +159,10 @@ pub enum WfcSource {
     MapPattern(PatternsLayer),
     MultiLayerMapPattern(PackedPatternLayers),
     #[cfg(feature = "ldtk")]
-    LdtkMapPattern(LdtkWfcMode),
+    LdtkMapPattern {
+        json: bevy::asset::AssetId<crate::ldtk::json::LdtkJson>,
+        mode: LdtkWfcMode,
+    },
 }
 
 impl WfcSource {
@@ -883,18 +886,37 @@ pub fn ldtk_wfc_helper(
     mut commands: Commands,
     mut tilemaps_query: Query<(Entity, &WfcData, &WfcSource)>,
     ldtk_patterns: Option<bevy::ecs::system::Res<crate::ldtk::resources::LdtkPatterns>>,
-    mut ldtk_manager: bevy::ecs::system::ResMut<crate::ldtk::resources::LdtkLevelManager>,
+    mut level_events: bevy::prelude::EventWriter<crate::ldtk::events::LdtkLevelEvent>,
+    ldtk_jsons: bevy::prelude::Res<Assets<crate::ldtk::json::LdtkJson>>,
 ) {
-    tilemaps_query
-        .iter_mut()
-        .for_each(|(entity, data, source)| match source {
-            WfcSource::LdtkMapPattern(mode) => {
+    for (entity, data, source) in &mut tilemaps_query {
+        match source {
+            WfcSource::LdtkMapPattern {
+                json: json_id,
+                mode,
+            } => {
                 let Some(patterns) = &ldtk_patterns else {
-                    return;
+                    continue;
                 };
-                if !patterns.is_ready() && ldtk_manager.is_initialized() {
-                    ldtk_manager.load_all_patterns(&mut commands);
-                    return;
+
+                if !patterns.is_ready() {
+                    if let Some(json) = ldtk_jsons.get(*json_id) {
+                        level_events.send_batch(json.levels.iter().map(|level| {
+                            crate::ldtk::events::LdtkLevelEvent::Load(
+                                crate::ldtk::events::LdtkLevelLoader {
+                                    json: *json_id,
+                                    level: crate::ldtk::events::LdtkLevel::Iid(
+                                        crate::ldtk::components::LevelIid(level.iid.clone()),
+                                    ),
+                                    mode: crate::ldtk::events::LdtkLevelLoaderMode::MapPattern,
+                                    trans_ovrd: None,
+                                },
+                            )
+                        }));
+                    } else {
+                        bevy::log::error!("Failed to get LDtk json for WFC. Have you loaded it with `AssetServer::load` ?");
+                    }
+                    continue;
                 }
 
                 match mode {
@@ -925,5 +947,6 @@ pub fn ldtk_wfc_helper(
                 };
             }
             _ => {}
-        });
+        }
+    }
 }
