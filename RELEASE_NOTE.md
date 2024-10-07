@@ -6,6 +6,7 @@
 - Renamed `TileArea` into `GridRect` .
 - Use `AssetServer` for level loading. (`ldtk` and `tiled`)
 - Use events for level loading and unloading. (`ldtk` ans `tiled`)
+- Material bind groups are switched to `1` instead of `2` .
 
 # What's Fixed:
 

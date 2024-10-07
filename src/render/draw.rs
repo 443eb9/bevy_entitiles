@@ -21,7 +21,7 @@ use crate::render::{
     binding::TilemapBindGroups,
     buffer::TilemapBuffers,
     chunk::RenderChunkStorage,
-    extract::{TilemapInstances, TilemapMaterialInstances},
+    extract::{TilemapInstances, TilemapMaterialIds},
     material::TilemapMaterial,
 };
 
@@ -85,10 +85,7 @@ pub struct SetTilemapMaterialBindGroup<const I: usize, M: TilemapMaterial>(Phant
 impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
     for SetTilemapMaterialBindGroup<I, M>
 {
-    type Param = (
-        SRes<TilemapBindGroups<M>>,
-        SRes<TilemapMaterialInstances<M>>,
-    );
+    type Param = (SRes<TilemapBindGroups<M>>, SRes<TilemapMaterialIds<M>>);
 
     type ViewQuery = ();
 
@@ -99,10 +96,10 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         item: &Transparent2d,
         _view: ROQueryItem<'w, Self::ViewQuery>,
         _entity: Option<ROQueryItem<'w, Self::ItemQuery>>,
-        (bind_groups, materials): SystemParamItem<'w, '_, Self::Param>,
+        (bind_groups, material_ids): SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(bind_group) = materials
+        if let Some(bind_group) = material_ids
             .get(&item.entity)
             .and_then(|id| bind_groups.into_inner().materials.get(id))
         {

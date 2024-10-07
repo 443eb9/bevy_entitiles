@@ -91,15 +91,15 @@ fn setup(
     tilemap.storage.fill_rect(
         &mut commands,
         GridRect::from_min_max(IVec2::ZERO, IVec2::splat(4)),
-        TileBuilder::new().with_layer(0, TileLayer::no_flip(0, 0)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip_at(0, 0)),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         GridRect::from_min_max(IVec2::new(5, 0), IVec2::new(9, 4)),
         TileBuilder::new()
-            .with_layer(0, TileLayer::no_flip(0, 0))
-            .with_layer(1, TileLayer::flip_h(0, 1))
+            .with_layer(0, TileLayer::no_flip_at(0, 0))
+            .with_layer(1, TileLayer::flip_h_at(0, 1))
             .with_tint(LinearRgba::new(
                 68. / 255.,
                 62. / 255.,
@@ -112,17 +112,17 @@ fn setup(
         &mut commands,
         GridRect::new(IVec2::new(10, 0), UVec2::splat(5)),
         TileBuilder::new()
-            .with_layer(0, TileLayer::no_flip(0, 0))
-            .with_layer(1, TileLayer::no_flip(0, 1))
-            .with_layer(2, TileLayer::no_flip(0, 2))
-            .with_layer(3, TileLayer::no_flip(0, 3))
+            .with_layer(0, TileLayer::no_flip_at(0, 0))
+            .with_layer(1, TileLayer::no_flip_at(0, 1))
+            .with_layer(2, TileLayer::no_flip_at(0, 2))
+            .with_layer(3, TileLayer::no_flip_at(0, 3))
             .with_tint(ORANGE_RED.into()),
     );
 
     tilemap.storage.fill_rect(
         &mut commands,
         GridRect::new(IVec2::new(0, 10), UVec2::splat(10)),
-        TileBuilder::new().with_layer(0, TileLayer::no_flip(1, 2)),
+        TileBuilder::new().with_layer(0, TileLayer::no_flip_at(1, 2)),
     );
 
     commands.entity(entity).insert((

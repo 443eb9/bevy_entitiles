@@ -15,7 +15,7 @@ use bevy::{
 use crate::{
     render::{
         buffer::TilemapBuffers,
-        extract::{TilemapInstances, TilemapMaterialInstances},
+        extract::{TilemapInstances, TilemapMaterialIds},
         material::{ExtractedTilemapMaterialWrapper, TilemapMaterial},
         pipeline::EntiTilesPipeline,
         texture::TilemapTexturesStorage,
@@ -84,11 +84,11 @@ pub fn bind_materials<M: TilemapMaterial>(
     render_device: Res<RenderDevice>,
     images: Res<RenderAssets<GpuImage>>,
     fallback_image: Res<FallbackImage>,
-    extracted_materials: Res<TilemapMaterialInstances<M>>,
+    material_ids: Res<TilemapMaterialIds<M>>,
     mut bind_groups: ResMut<TilemapBindGroups<M>>,
     material_assets: Res<RenderAssets<ExtractedTilemapMaterialWrapper<M>>>,
 ) {
-    for id in extracted_materials.values() {
+    for id in material_ids.values() {
         if let Some(material) = material_assets.get(*id) {
             let bind_group = material
                 .as_bind_group(

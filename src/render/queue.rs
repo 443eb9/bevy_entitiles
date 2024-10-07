@@ -12,7 +12,7 @@ use bevy::{
 
 use crate::render::{
     draw::{DrawTilemapNonTextured, DrawTilemapTextured},
-    extract::TilemapInstances,
+    extract::{TilemapInstances, TilemapMaterialIds},
     material::TilemapMaterial,
     pipeline::{EntiTilesPipeline, EntiTilesPipelineKey},
 };
@@ -26,6 +26,7 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
     msaa: Res<Msaa>,
     tilemap_instances: Res<TilemapInstances>,
     mut transparent_phase: ResMut<ViewSortedRenderPhases<Transparent2d>>,
+    material_ids: Res<TilemapMaterialIds<M>>,
 ) {
     for view_entity in views_query.iter_mut() {
         let Some(transparent_phase) = transparent_phase.get_mut(&view_entity) else {
@@ -33,7 +34,10 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
         };
 
         // TODO optimize this
-        let mut tilemaps = tilemap_instances.iter().collect::<Vec<_>>();
+        let mut tilemaps = tilemap_instances
+            .iter()
+            .filter(|(t, _)| material_ids.contains_key(*t))
+            .collect::<Vec<_>>();
         radsort::sort_by_key(&mut tilemaps, |(_, m)| m.transform.z_index);
 
         for (entity, tilemap) in tilemaps {

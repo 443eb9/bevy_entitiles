@@ -4,8 +4,9 @@ use bevy::{
     ecs::schedule::IntoSystemConfigs,
     prelude::{Handle, Plugin, Shader},
     render::{
-        mesh::MeshVertexAttribute, render_asset::RenderAssetPlugin, render_resource::VertexFormat,
-        view::VisibilitySystems, ExtractSchedule, Render, RenderApp, RenderSet,
+        extract_instances::ExtractInstancesPlugin, mesh::MeshVertexAttribute,
+        render_asset::RenderAssetPlugin, render_resource::VertexFormat, view::VisibilitySystems,
+        ExtractSchedule, Render, RenderApp, RenderSet,
     },
 };
 
@@ -14,6 +15,7 @@ use crate::{
         buffer::TilemapBuffers,
         chunk::{ChunkUnload, RenderChunkSort, RenderChunkStorage, UnloadRenderChunk},
         cull::FrustumCulling,
+        extract::ExtractedTilemap,
         texture::TilemapTexturesStorage,
     },
     tilemap::map::TilemapTextures,
@@ -84,7 +86,10 @@ impl Plugin for EntiTilesRendererPlugin {
         .init_resource::<RenderChunkSort>()
         .register_type::<UnloadRenderChunk>()
         .add_event::<ChunkUnload>()
-        .add_plugins(RenderAssetPlugin::<TilemapTextures, ()>::default());
+        .add_plugins((
+            RenderAssetPlugin::<TilemapTextures>::default(),
+            ExtractInstancesPlugin::<ExtractedTilemap>::new(),
+        ));
 
         #[cfg(feature = "baking")]
         {

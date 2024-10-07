@@ -32,7 +32,7 @@ use crate::{
 
 pub type TilemapInstances = ExtractedInstances<ExtractedTilemap>;
 
-pub type TilemapMaterialInstances<M> = ExtractedInstances<AssetId<M>>;
+pub type TilemapMaterialIds<M> = ExtractedInstances<AssetId<M>>;
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {

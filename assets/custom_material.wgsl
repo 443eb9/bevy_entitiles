@@ -3,7 +3,7 @@
 // They are already filled with comments and easy to understand.
 #import bevy_entitiles::common::TilemapVertexOutput;
 
-@group(2) @binding(0)
+@group(1) @binding(0)
 var<uniform> speed_and_time: vec2<f32>;
 
 // The fragment entry name of your shader must be tilemap_fragment

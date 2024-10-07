@@ -24,7 +24,6 @@ use crate::render::{
     binding::{self, TilemapBindGroups},
     chunk::{self},
     draw::{DrawTilemapNonTextured, DrawTilemapTextured},
-    extract::ExtractedTilemap,
     pipeline::EntiTilesPipeline,
     prepare, queue,
 };
@@ -35,7 +34,6 @@ pub struct EntiTilesMaterialPlugin<M: TilemapMaterial>(PhantomData<M>);
 impl<M: TilemapMaterial> Plugin for EntiTilesMaterialPlugin<M> {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            ExtractInstancesPlugin::<ExtractedTilemap>::new(),
             ExtractInstancesPlugin::<AssetId<M>>::new(),
             RenderAssetPlugin::<ExtractedTilemapMaterialWrapper<M>>::default(),
         ))
@@ -97,7 +95,7 @@ pub trait TilemapMaterial: Default + Asset + AsBindGroup + TypePath + Clone {
 }
 
 #[derive(Deref, DerefMut)]
-pub struct ExtractedTilemapMaterialWrapper<M>(M);
+pub struct ExtractedTilemapMaterialWrapper<M: TilemapMaterial>(M);
 
 impl<M> RenderAsset for ExtractedTilemapMaterialWrapper<M>
 where
