@@ -72,9 +72,8 @@ pub fn camera_chunk_update(
                 // Which means we need to first detect the chunks that are intersected with the detect aabb,
                 // and if every one is visible, then do nothing else load/generate chunks that are intersected with the update aabb.
 
-                let detect_aabb = cam_aabb
-                    .0
-                    .with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));
+                let detect_aabb =
+                    cam_aabb.with_scale(Vec2::splat(cam_updater.detect_scale), Vec2::splat(0.5));
 
                 let detected = storage
                     .reserved
@@ -92,9 +91,8 @@ pub fn camera_chunk_update(
                     return;
                 }
 
-                let update_aabb = cam_aabb
-                    .0
-                    .with_scale(Vec2::splat(cam_updater.update_scale), Vec2::splat(0.5));
+                let update_aabb =
+                    cam_aabb.with_scale(Vec2::splat(cam_updater.update_scale), Vec2::splat(0.5));
 
                 let mut cur_visible = HashSet::with_capacity(cam_updater.last_updation.len());
 

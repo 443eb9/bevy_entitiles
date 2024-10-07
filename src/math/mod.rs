@@ -7,7 +7,7 @@ use bevy::{
         system::{Commands, Query},
     },
     math::{IRect, IVec2, Rect, Vec3Swizzles},
-    prelude::UVec2,
+    prelude::{Deref, DerefMut, UVec2, With, Without},
     reflect::Reflect,
     render::camera::{Camera, OrthographicProjection},
     transform::components::Transform,
@@ -28,10 +28,13 @@ impl Plugin for EntiTilesMathPlugin {
     }
 }
 
-#[derive(Component, Default, Debug, Clone, Copy, Reflect)]
-pub struct CameraAabb2d(pub Rect);
+#[derive(Component, Default, Debug, Clone, Copy, Reflect, Deref, DerefMut)]
+pub struct CameraAabb2d(Rect);
 
-pub fn camera_aabb_adder(mut commands: Commands, cameras_query: Query<Entity, Added<Camera>>) {
+pub fn camera_aabb_adder(
+    mut commands: Commands,
+    cameras_query: Query<Entity, (With<Camera>, Without<CameraAabb2d>)>,
+) {
     cameras_query.iter().for_each(|e| {
         commands.entity(e).insert(CameraAabb2d::default());
     });

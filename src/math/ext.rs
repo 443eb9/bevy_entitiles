@@ -380,7 +380,7 @@ pub trait RectTransformation<T> {
 }
 
 macro_rules! impl_rect_transformation {
-    ($rect_ty: ident, $data_ty: ident) => {
+    ($rect_ty: ident, $data_ty: ident, $precision: ident) => {
         impl RectTransformation<$data_ty> for $rect_ty {
             #[inline]
             fn with_translation(mut self, x: $data_ty) -> Self {
@@ -402,17 +402,17 @@ macro_rules! impl_rect_transformation {
 
             #[inline]
             fn scale(&mut self, x: $data_ty, pivot: $data_ty) {
-                let offset = pivot * (self.size() * ($data_ty::ONE - x));
+                let offset = pivot * (($data_ty::ONE - x) / (2 as $precision) * self.size());
                 self.min += offset;
-                self.max += offset;
+                self.max -= offset;
             }
         }
     };
 }
 
-impl_rect_transformation!(Rect, Vec2);
-impl_rect_transformation!(IRect, IVec2);
-impl_rect_transformation!(URect, UVec2);
+impl_rect_transformation!(Rect, Vec2, f32);
+impl_rect_transformation!(IRect, IVec2, i32);
+impl_rect_transformation!(URect, UVec2, u32);
 
 #[cfg(test)]
 mod test {

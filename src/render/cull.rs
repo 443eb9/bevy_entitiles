@@ -1,3 +1,5 @@
+// TODO Frustum culling!!!
+#![allow(unused)]
 use bevy::{
     ecs::system::{Res, Resource},
     prelude::{Query, ResMut},
@@ -31,13 +33,13 @@ pub fn cull_tilemaps(
         return;
     }
 
-    cameras.iter().for_each(|camera| {
-        tilemaps.par_iter_mut().for_each(|(aabbs, mut visibility)| {
-            if !aabbs.world_aabb.intersect(camera.0).is_empty() {
-                visibility.set();
-            }
-        });
-    });
+    // cameras.iter().for_each(|camera| {
+    //     tilemaps.par_iter_mut().for_each(|(aabbs, mut visibility)| {
+    //         if !aabbs.world_aabb.intersect(camera.0).is_empty() {
+    //             visibility.set();
+    //         }
+    //     });
+    // });
 }
 
 pub fn cull_chunks(
