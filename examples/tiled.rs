@@ -1,3 +1,4 @@
+use avian2d::prelude::*;
 use bevy::{
     app::{App, PluginGroup, Startup, Update},
     color::Color,
@@ -21,7 +22,6 @@ use bevy_entitiles::{
     EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{TiledClass, TiledCustomTile, TiledEnum, TiledObject};
-use bevy_xpbd_2d::plugins::{PhysicsDebugPlugin, PhysicsPlugins};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

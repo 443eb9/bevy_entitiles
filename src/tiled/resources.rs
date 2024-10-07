@@ -498,7 +498,7 @@ impl TiledAssets {
                         material_assets.add(TiledSpriteMaterial {
                             image: image.clone(),
                             data: SpriteUniform {
-                                atlas: [Vec2::ZERO, Vec2::ONE],
+                                atlas: [0., 0., 1., 1.].into(),
                                 tint: Vec4::new(
                                     layer.tint.r,
                                     layer.tint.g,
@@ -758,7 +758,7 @@ impl TiledAssets {
                     material_assets.add(TiledSpriteMaterial {
                         image: tileset.texture.texture.clone(),
                         data: SpriteUniform {
-                            atlas: [aabb.min, aabb.max],
+                            atlas: [aabb.min.x, aabb.min.y, aabb.max.x, aabb.max.y].into(),
                             tint: (*tint).into(),
                         },
                     }),

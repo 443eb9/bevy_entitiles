@@ -1,6 +1,6 @@
 use bevy::{
     asset::{Asset, Handle},
-    math::{Vec2, Vec4},
+    math::Vec4,
     reflect::Reflect,
     render::{
         render_resource::{AsBindGroup, ShaderType},
@@ -14,7 +14,7 @@ use crate::tiled::TILED_SPRITE_SHADER;
 #[derive(ShaderType, Debug, Clone, Reflect)]
 pub struct SpriteUniform {
     /// min max
-    pub atlas: [Vec2; 2],
+    pub atlas: Vec4,
     pub tint: Vec4,
 }
 
