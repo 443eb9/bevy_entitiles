@@ -1,5 +1,5 @@
-static TILED_DEFAULT_ATTR: &str = "tiled_default";
-static CALLBACK_ATTR: &str = "callback";
+const TILED_DEFAULT_ATTR: &str = "tiled_default";
+const CALLBACK_ATTR: &str = "callback";
 
 pub fn expand_tiled_custom_tiles_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;

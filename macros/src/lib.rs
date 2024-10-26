@@ -28,7 +28,7 @@ pub fn derive_ldtk_entity_tags(input: proc_macro::TokenStream) -> proc_macro::To
     TiledObject,
     attributes(
         tiled_default,
-        shape_as_collider,
+        shape_instantiation,
         spawn_sprite,
         global_object,
         callback

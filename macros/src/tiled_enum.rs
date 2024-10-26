@@ -1,4 +1,4 @@
-static TILED_NAME_ATTR: &str = "tiled_name";
+const TILED_NAME_ATTR: &str = "tiled_name";
 
 pub fn expand_tiled_enum_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = &input.ident;

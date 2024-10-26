@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="8" nextobjectid="12">
+<map version="1.10" tiledversion="1.11.0" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="8" tileheight="8" infinite="0" backgroundcolor="#fa171c39" nextlayerid="8" nextobjectid="16">
  <tileset firstgid="1" source="../tilesets/Tileset1.tsx"/>
  <tileset firstgid="385" source="../tilesets/Squares.tsx"/>
  <tileset firstgid="389" source="../tilesets/Isometric.tsx"/>
@@ -39,6 +39,12 @@
    </object>
    <object id="4" name="WaterFall" type="DetectAreaBundle" x="136" y="88">
     <polygon points="0,0 0,32 -8,32 -8,48 16,48 16,32 8,32 8,0"/>
+   </object>
+   <object id="13" name="Start" type="PointMarker" x="33.2569" y="15.9921">
+    <point/>
+   </object>
+   <object id="14" name="Destination" type="PointMarker" x="144.727" y="68.9091">
+    <point/>
    </object>
   </objectgroup>
   <objectgroup id="5" name="Tiles" opacity="0.66" tintcolor="#aaaaff">

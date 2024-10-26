@@ -1,5 +1,5 @@
-static LDTK_NAME_ATTR: &str = "ldtk_name";
-static WRAPPER_DERIVE_ATTR: &str = "wrapper_derive";
+const LDTK_NAME_ATTR: &str = "ldtk_name";
+const WRAPPER_DERIVE_ATTR: &str = "wrapper_derive";
 
 pub fn expand_ldtk_enum_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = &input.ident;

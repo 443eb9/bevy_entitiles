@@ -34,6 +34,7 @@ fn main() {
         .register_tiled_object::<PlainBlockBundle>("PlainBlockBundle")
         .register_tiled_object::<PlayerBundle>("PlayerBundle")
         .register_tiled_object::<DetectAreaBundle>("DetectAreaBundle")
+        .register_tiled_object::<PointMarker>("PointMarker")
         .register_tiled_custom_tile::<TileBundle>("TileBundle")
         .register_type::<Block>()
         .register_type::<TileInfos>()
@@ -143,12 +144,17 @@ pub enum ShapeType {
     Eclipse,
 }
 
+#[derive(TiledObject, Component)]
+// `shape_instantiation` means to spawn the shape as a certain component.
+// - For points, this object will be added a `TiledPointObject` component.
+// - For others, a collider will be added. (If you've enabled `physics` feature)
+#[shape_instantiation]
+pub struct PointMarker;
+
 #[derive(TiledObject, Bundle, Default)]
 #[spawn_sprite]
 #[global_object]
-// Generate the collider according to the shape.
-// The won't spawn with rigidbody or friction.
-#[shape_as_collider]
+#[shape_instantiation]
 pub struct PlayerBundle {
     pub player: Player,
     pub moveable: MoveableObject,
@@ -176,7 +182,7 @@ pub struct MoveableObject {
 }
 
 #[derive(TiledObject, Bundle, Default)]
-#[shape_as_collider]
+#[shape_instantiation]
 pub struct DetectAreaBundle {
     pub detect_area: DetectArea,
 }

@@ -1,4 +1,4 @@
-static TILED_NAME_ATTR: &str = "tiled_name";
+const TILED_NAME_ATTR: &str = "tiled_name";
 
 pub fn expand_tiled_class_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let syn::Data::Struct(data_struct) = input.data else {

@@ -3,6 +3,7 @@ use std::fmt::Formatter;
 use bevy::{
     ecs::system::EntityCommands,
     math::{IVec2, Vec2},
+    prelude::{Component, Deref, DerefMut},
     reflect::Reflect,
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
@@ -534,6 +535,10 @@ impl<'de> Deserialize<'de> for TiledObjectInstance {
                             shape = Some(ObjectShape::Ellipse);
                         }
                         "polygon" => shape = Some(ObjectShape::Polygon(map.next_value()?)),
+                        "point" => {
+                            map.next_value::<IgnoredAny>()?;
+                            shape = Some(ObjectShape::Point);
+                        }
                         _ => panic!("Unknown key for TiledObjectInstance: {}", key),
                     }
                 }
@@ -560,11 +565,7 @@ impl<'de> Deserialize<'de> for TiledObjectInstance {
 }
 
 impl TiledObjectInstance {
-    pub fn spawn_sprite(
-        &self,
-        commands: &mut EntityCommands,
-        tiled_assets: &TiledAssets,
-    ) {
+    pub fn spawn_sprite(&self, commands: &mut EntityCommands, tiled_assets: &TiledAssets) {
         if self.visible {
             commands.insert(MaterialMesh2dBundle {
                 material: tiled_assets.clone_object_material_handle(self.id),
@@ -574,14 +575,38 @@ impl TiledObjectInstance {
         }
     }
 
+    #[cfg(not(feature = "physics"))]
+    pub fn shape_instantiation(&self, commands: &mut EntityCommands) {
+        if !matches!(self.shape, ObjectShape::Point) {
+            bevy::log::error!("To spawn colliders, please enable `physics` feature first.");
+            return;
+        }
+
+        commands.insert(match self.shape {
+            ObjectShape::Point => TiledPointObject(Vec2 {
+                x: self.x,
+                y: self.y,
+            }),
+            ObjectShape::Ellipse | ObjectShape::Polygon(_) | ObjectShape::Rect => unreachable!(),
+        });
+    }
+
     #[cfg(feature = "physics")]
-    pub fn shape_as_collider(&self, commands: &mut EntityCommands) {
-        commands.insert(match &self.shape {
-            ObjectShape::Ellipse => Collider::ellipse(self.width / 2., self.height / 2.),
+    pub fn shape_instantiation(&self, commands: &mut EntityCommands) {
+        match &self.shape {
+            ObjectShape::Point => {
+                commands.insert(TiledPointObject(Vec2 {
+                    x: self.x,
+                    y: self.y,
+                }));
+            }
+            ObjectShape::Ellipse => {
+                commands.insert(Collider::ellipse(self.width / 2., self.height / 2.));
+            }
             ObjectShape::Polygon(polygon) => {
                 let mut points = polygon.points.clone();
                 points.push(polygon.points[0]);
-                Collider::polyline(
+                commands.insert(Collider::polyline(
                     points
                         .into_iter()
                         .map(|v| {
@@ -590,10 +615,10 @@ impl TiledObjectInstance {
                         })
                         .collect(),
                     None,
-                )
+                ));
             }
             ObjectShape::Rect => {
-                if self.gid.is_none() {
+                commands.insert(if self.gid.is_none() {
                     Collider::rectangle(self.width, self.height)
                 } else {
                     Collider::convex_hull(
@@ -608,15 +633,19 @@ impl TiledObjectInstance {
                         .collect(),
                     )
                     .unwrap()
-                }
+                });
             }
-        });
+        };
     }
 }
+
+#[derive(Component, Default, Clone, Copy, Deref, DerefMut)]
+pub struct TiledPointObject(pub Vec2);
 
 #[derive(Debug, Default, Clone, Reflect, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ObjectShape {
+    Point,
     Ellipse,
     Polygon(Polygon),
     #[default]

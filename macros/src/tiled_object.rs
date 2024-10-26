@@ -1,8 +1,8 @@
-static TILED_DEFAULT_ATTR: &str = "tiled_default";
-static SHAPE_AS_COLLIDER_ATTR: &str = "shape_as_collider";
-static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
-static GLOBAL_OBJECT_ATTR: &str = "global_object";
-static CALLBACK_ATTR: &str = "callback";
+const TILED_DEFAULT_ATTR: &str = "tiled_default";
+const SHAPE_INSTANTIATION_ATTR: &str = "shape_instantiation";
+const SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
+const GLOBAL_OBJECT_ATTR: &str = "global_object";
+const CALLBACK_ATTR: &str = "callback";
 
 pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
@@ -10,7 +10,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
 
     let shape_as_collider_attr = attrs
         .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == SHAPE_AS_COLLIDER_ATTR);
+        .find(|attr| attr.path().get_ident().unwrap() == SHAPE_INSTANTIATION_ATTR);
 
     let spawn_sprite_attr = attrs
         .iter()
@@ -24,10 +24,10 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
         .iter()
         .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
 
-    let shape_as_collider = {
+    let shape_instantiation = {
         if shape_as_collider_attr.is_some() {
             quote::quote!(
-                object_instance.shape_as_collider(commands);
+                object_instance.shape_instantiation(commands);
             )
         } else {
             quote::quote!()
@@ -76,41 +76,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
         panic!("TiledObject can only be derived for structs");
     };
 
-    let ctor = {
-        let syn::Fields::Named(fields) = &data_struct.fields else {
-            panic!("TiledObject can only be derived for structs with named fields!");
-        };
-        let fields = &fields.named;
-        let mut fields_cton = Vec::new();
-
-        for field in fields.iter() {
-            let field_name = field.ident.as_ref().unwrap();
-            let field_type = &field.ty;
-
-            let default = field
-                .attrs
-                .iter()
-                .find(|attr| attr.path().get_ident().unwrap() == TILED_DEFAULT_ATTR);
-            if default.is_some() {
-                continue;
-            }
-
-            fields_cton.push(expand_object_fields(field_name, field_type));
-        }
-
-        let default = if fields_cton.len() < fields.len() {
-            quote::quote!(..Default::default())
-        } else {
-            quote::quote!()
-        };
-
-        quote::quote!(
-            Self {
-                #(#fields_cton)*
-                #default
-            }
-        )
-    };
+    let ctor = generate_constructor(data_struct);
 
     quote::quote! {
         impl bevy_entitiles::tiled::traits::TiledObject for #ty {
@@ -126,7 +92,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
             ) {
                 #callback
                 #spawn_sprite
-                #shape_as_collider
+                #shape_instantiation
                 #global_object
 
                 commands.insert(#ctor);
@@ -142,5 +108,45 @@ fn expand_object_fields(
 ) -> proc_macro2::TokenStream {
     quote::quote!(
         #field_name: <#field_type as bevy_entitiles::tiled::traits::TiledClass>::create(&components),
+    )
+}
+
+fn generate_constructor(data_struct: &syn::DataStruct) -> proc_macro2::TokenStream {
+    if data_struct.fields.is_empty() {
+        return quote::quote!(Self);
+    }
+
+    let syn::Fields::Named(fields) = &data_struct.fields else {
+        panic!("TiledObject can only be derived for structs with named fields or unit structs!");
+    };
+    let fields = &fields.named;
+    let mut fields_cton = Vec::new();
+
+    for field in fields.iter() {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;
+
+        let default = field
+            .attrs
+            .iter()
+            .find(|attr| attr.path().get_ident().unwrap() == TILED_DEFAULT_ATTR);
+        if default.is_some() {
+            continue;
+        }
+
+        fields_cton.push(expand_object_fields(field_name, field_type));
+    }
+
+    let default = if fields_cton.len() < fields.len() {
+        quote::quote!(..Default::default())
+    } else {
+        quote::quote!()
+    };
+
+    quote::quote!(
+        Self {
+            #(#fields_cton)*
+            #default
+        }
     )
 }

@@ -1,8 +1,8 @@
-static LDTK_DEFAULT_ATTR: &str = "ldtk_default";
-static LDTK_NAME_ATTR: &str = "ldtk_name";
-static SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
-static GLOBAL_ENTITY_ATTR: &str = "global_entity";
-static CALLBACK_ATTR: &str = "callback";
+const LDTK_DEFAULT_ATTR: &str = "ldtk_default";
+const LDTK_NAME_ATTR: &str = "ldtk_name";
+const SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
+const GLOBAL_ENTITY_ATTR: &str = "global_entity";
+const CALLBACK_ATTR: &str = "callback";
 
 pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenStream {
     let ty = input.ident;
