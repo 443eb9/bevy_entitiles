@@ -145,16 +145,16 @@ pub enum ShapeType {
 }
 
 #[derive(TiledObject, Component)]
-// `shape_instantiation` means to spawn the shape as a certain component.
+// `instantiate_shape` means to spawn the shape as a certain component.
 // - For points, this object will be added a `TiledPointObject` component.
 // - For others, a collider will be added. (If you've enabled `physics` feature)
-#[shape_instantiation]
+#[instantiate_shape]
 pub struct PointMarker;
 
 #[derive(TiledObject, Bundle, Default)]
 #[spawn_sprite]
 #[global_object]
-#[shape_instantiation]
+#[instantiate_shape]
 pub struct PlayerBundle {
     pub player: Player,
     pub moveable: MoveableObject,
@@ -182,7 +182,7 @@ pub struct MoveableObject {
 }
 
 #[derive(TiledObject, Bundle, Default)]
-#[shape_instantiation]
+#[instantiate_shape]
 pub struct DetectAreaBundle {
     pub detect_area: DetectArea,
 }

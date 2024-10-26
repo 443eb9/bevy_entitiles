@@ -1,14 +1,8 @@
 # What's New:
 
-- Replaced the custom struct `*Aabb2d` with `*Rect` in Bevy.
-- Switched to `avian2d` for physics.
-- If `atlas` feature is enabled, add `no_flip_at`, `flip_h_at`, `flip_v_at` and `flip_both_at` for `TileLayer` , instead of adding one extra parameter.
-- Renamed `TileArea` into `GridRect` .
-- Use `AssetServer` for level loading. (`ldtk` and `tiled`)
-- Use events for level loading and unloading. (`ldtk` ans `tiled`)
-- Material bind groups are switched to `1` instead of `2` .
+- Supported `point`s contained by Tiled objects.
+- Renamed `shape_as_collider` macro to `instantiate_shape` .
 
 # What's Fixed:
 
-- Crashes when targeting WASM platforms, as `StorageBuffer` was used in versions in the past.
-- Incorrect size of aabbs everywhere in this project. :( They always get shrunk by 1 unit, as I didn't know the `max` value of `IRect` is exclusive.
+- 

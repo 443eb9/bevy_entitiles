@@ -576,7 +576,7 @@ impl TiledObjectInstance {
     }
 
     #[cfg(not(feature = "physics"))]
-    pub fn shape_instantiation(&self, commands: &mut EntityCommands) {
+    pub fn instantiate_shape(&self, commands: &mut EntityCommands) {
         if !matches!(self.shape, ObjectShape::Point) {
             bevy::log::error!("To spawn colliders, please enable `physics` feature first.");
             return;
@@ -592,7 +592,7 @@ impl TiledObjectInstance {
     }
 
     #[cfg(feature = "physics")]
-    pub fn shape_instantiation(&self, commands: &mut EntityCommands) {
+    pub fn instantiate_shape(&self, commands: &mut EntityCommands) {
         match &self.shape {
             ObjectShape::Point => {
                 commands.insert(TiledPointObject(Vec2 {

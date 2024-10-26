@@ -1,5 +1,5 @@
 const TILED_DEFAULT_ATTR: &str = "tiled_default";
-const SHAPE_INSTANTIATION_ATTR: &str = "shape_instantiation";
+const INSTANTIATE_SHAPE_ATTR: &str = "instantiate_shape";
 const SPAWN_SPRITE_ATTR: &str = "spawn_sprite";
 const GLOBAL_OBJECT_ATTR: &str = "global_object";
 const CALLBACK_ATTR: &str = "callback";
@@ -10,7 +10,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
 
     let shape_as_collider_attr = attrs
         .iter()
-        .find(|attr| attr.path().get_ident().unwrap() == SHAPE_INSTANTIATION_ATTR);
+        .find(|attr| attr.path().get_ident().unwrap() == INSTANTIATE_SHAPE_ATTR);
 
     let spawn_sprite_attr = attrs
         .iter()
@@ -24,10 +24,10 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
         .iter()
         .find(|attr| attr.path().get_ident().unwrap() == CALLBACK_ATTR);
 
-    let shape_instantiation = {
+    let instantiate_shape = {
         if shape_as_collider_attr.is_some() {
             quote::quote!(
-                object_instance.shape_instantiation(commands);
+                object_instance.instantiate_shape(commands);
             )
         } else {
             quote::quote!()
@@ -92,7 +92,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
             ) {
                 #callback
                 #spawn_sprite
-                #shape_instantiation
+                #instantiate_shape
                 #global_object
 
                 commands.insert(#ctor);
