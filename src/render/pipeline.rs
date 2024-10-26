@@ -65,7 +65,7 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
 
         #[cfg(not(feature = "atlas"))]
         let array_buffers_layout = render_device.create_bind_group_layout(
-            "animation_buffer_layout",
+            "array_buffers_layout",
             &BindGroupLayoutEntries::single(
                 ShaderStages::VERTEX_FRAGMENT,
                 GpuArrayBuffer::<i32>::binding_layout(&render_device),
@@ -74,7 +74,7 @@ impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
 
         #[cfg(feature = "atlas")]
         let array_buffers_layout = render_device.create_bind_group_layout(
-            "animation_buffer_layout",
+            "array_buffers_layout",
             &BindGroupLayoutEntries::sequential(
                 ShaderStages::VERTEX_FRAGMENT,
                 (
@@ -135,7 +135,11 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
         #[cfg(feature = "atlas")]
         shader_defs.push("ATLAS".into());
         #[cfg(target_arch = "wasm32")]
-        shader_defs.push("WASM".into());
+        {
+            shader_defs.push("WASM".into());
+            // shader_defs.push(ShaderDefVal::UInt("ANIM_SEQ_LEN".into(), key.anim_seq_len));
+            // shader_defs.push(ShaderDefVal::UInt("TEX_DESC_LEN".into(), key.tex_desc_len));
+        }
 
         let mut vtx_fmt = vec![
             // position

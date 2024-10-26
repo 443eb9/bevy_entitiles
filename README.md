@@ -85,15 +85,15 @@ The x and y axes in the tilemaps are the index axes. And those x and y on a sing
 
 *It doesn't mean all the features from the corresponding versions of LDtk and Tiled are supported, but this crate is using the source tilemap file generated from them!*
 
-| Bevy ver | EntiTiles ver | LDtk ver      | Tiled ver     |
-| -------- | ------------- | ------------- | ------------- |
-| 0.14.x   | 0.10.0        | 1.5.3         | 1.11.0        |
-| 0.13.x   | 0.6.0-0.9.0   | 1.5.3         | 1.10.2        |
-| 0.12.x   | 0.4.0-0.5.0   | 1.5.3         | 1.10.2        |
-| 0.12.x   | 0.3.0         | 1.5.3         | Not supported |
-| 0.12.x   | 0.2.7         | 1.5.1         | Not supported |
-| 0.12.x   | 0.2.3-0.2.6   | 1.4.1         | Not supported |
-| 0.12.x   | 0.2.0-0.2.2   | Not supported | Not supported |
-| 0.11.x   | 0.1.x         | Not supported | Not supported |
+| Bevy ver | EntiTiles ver | LDtk ver      | Tiled ver     | WASM Support |
+| -------- | ------------- | ------------- | ------------- | ------------ |
+| 0.14.x   | 0.10.0-0.11.0 | 1.5.3         | 1.11.0        | No           |
+| 0.13.x   | 0.6.0-0.9.0   | 1.5.3         | 1.10.2        | No           |
+| 0.12.x   | 0.4.0-0.5.0   | 1.5.3         | 1.10.2        | No           |
+| 0.12.x   | 0.3.0         | 1.5.3         | Not supported | No           |
+| 0.12.x   | 0.2.7         | 1.5.1         | Not supported | No           |
+| 0.12.x   | 0.2.3-0.2.6   | 1.4.1         | Not supported | No           |
+| 0.12.x   | 0.2.0-0.2.2   | Not supported | Not supported | No           |
+| 0.11.x   | 0.1.x         | Not supported | Not supported | No           |
 
 *Versions before 0.3.0 are not named following [`Semantic Versioning`](https://semver.org/)*

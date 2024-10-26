@@ -296,6 +296,9 @@ pub fn prepare_tilemap_textures(
             size: Extent3d {
                 width: textures.max_size.x,
                 height: textures.max_size.y,
+                #[cfg(target_arch = "wasm32")]
+                depth_or_array_layers: (textures.textures.len()).max(2) as u32,
+                #[cfg(not(target_arch = "wasm32"))]
                 depth_or_array_layers: textures.textures.len() as u32,
             },
             mip_level_count: 1,

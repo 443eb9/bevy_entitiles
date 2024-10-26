@@ -70,6 +70,15 @@ pub mod prelude {
     pub use crate::EntiTilesPlugin;
 }
 
+#[cfg(all(
+    target_arch = "wasm32",
+    any(not(feature = "atlas"), feature = "multi-threaded")
+))]
+compile_error!(
+    "To use this crate on WASM platforms, make sure `atlas` feature is enabled \
+    and `multi-threaded` feature is disabled."
+);
+
 pub struct EntiTilesPlugin;
 
 impl Plugin for EntiTilesPlugin {

@@ -25,11 +25,13 @@ pub struct TilemapUniform {
 }
 
 #[cfg(feature = "atlas")]
-#[derive(ShaderType, Clone)]
+#[derive(ShaderType, Default, Clone)]
 pub struct GpuTilemapTextureDescriptor {
-    pub tile_count: bevy::math::UVec2,
     pub tile_uv_size: Vec2,
     pub uv_scale: Vec2,
+    pub tile_count: bevy::math::UVec2,
+    #[cfg(target_arch = "wasm32")]
+    pub _padding: [u32; 2],
 }
 
 #[derive(Default)]
@@ -112,6 +114,7 @@ pub fn prepare_tilemap_buffers(
                         tile_count: t.desc.size / t.desc.tile_size,
                         tile_uv_size: t.desc.tile_size.as_vec2() / t.desc.size.as_vec2(),
                         uv_scale: textures.uv_scales[i],
+                        ..Default::default()
                     });
                 }
 
