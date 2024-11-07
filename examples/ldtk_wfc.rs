@@ -90,7 +90,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             GridRect::new(IVec2::ZERO, UVec2 { x: 4, y: 4 }),
             None,
         ),
-        // you can also switch this to MultiMap mode
+        // You can also switch this to MultiMap mode
         // which will apply the result on a single tilemap
         WfcSource::LdtkMapPattern {
             json: file.id(),
@@ -113,6 +113,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.spawn(LevelChange(UVec2::ZERO));
     commands.insert_resource(LdtkFile(file));
+
+    commands.spawn(TextBundle::from_section(
+        "You can also spawn these patterns into individual tilemaps. Check the code.",
+        Default::default(),
+    ));
 }
 
 // The rest of the code is used to control the player and load the level.

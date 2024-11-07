@@ -57,6 +57,7 @@ const HEX_DIR: [&'static str; 6] = [
 pub struct WfcRules(pub Vec<Vec<u128>>);
 
 impl WfcRules {
+    // TODO use asset_server
     pub fn from_file(rule_path: &str, ty: TilemapType) -> Self {
         let rule_vec: Vec<Vec<Vec<u8>>> =
             ron::from_str(std::fs::read_to_string(rule_path).unwrap().as_str()).unwrap();

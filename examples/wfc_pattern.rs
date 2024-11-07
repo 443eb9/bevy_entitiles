@@ -1,3 +1,4 @@
+#![allow(unused)]
 use bevy::prelude::*;
 use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
@@ -83,33 +84,36 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardTilemapMat
         });
     });
 
-    // If you are running this example for the first time,
-    // you need to comment the code below and run it once.
-    // So the patterns are generated and saved to disk.
-    bevy::log::info!("=============================");
-    bevy::log::info!("Program panicked? Look here!!");
-    bevy::log::info!("=============================");
-
-    let entity = commands.spawn_empty().id();
-
-    let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
-
-    commands.entity(entity).insert((
-        WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules, None),
-        WfcRunner::new(
-            TilemapType::Square,
-            rules,
-            GridRect::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
-            Some(0),
-        ),
-        StandardPureColorTilemapBundle {
-            name: TilemapName("wfc_map".to_string()),
-            tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
-            slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
-            ty: TilemapType::Square,
-            storage: TilemapStorage::new(16, entity),
-            material: materials.add(StandardTilemapMaterial::default()),
-            ..Default::default()
-        },
+    commands.spawn(TextBundle::from_section(
+        "Ok so, there's nothing, right? Please go to `wfc_pattern` example, \n\
+        There's some code you need to uncomment.",
+        Default::default(),
     ));
+
+    // If you are running this example for the first time,
+    // you need to comment the code below out and run it once.
+    // So the patterns are generated and saved to disk.
+
+    // let entity = commands.spawn_empty().id();
+
+    // let rules = WfcRules::from_file("examples/wfc_config.ron", TilemapType::Square);
+
+    // commands.entity(entity).insert((
+    //     WfcSource::from_pattern_path(PATTERNS_PATH.to_string(), PREFIX.to_string(), &rules, None),
+    //     WfcRunner::new(
+    //         TilemapType::Square,
+    //         rules,
+    //         GridRect::new(IVec2::ZERO, UVec2 { x: 80, y: 80 } / PATTERN_SIZE),
+    //         Some(0),
+    //     ),
+    //     StandardPureColorTilemapBundle {
+    //         name: TilemapName("wfc_map".to_string()),
+    //         tile_render_size: TileRenderSize(Vec2::new(8., 8.)),
+    //         slot_size: TilemapSlotSize(Vec2::new(8., 8.)),
+    //         ty: TilemapType::Square,
+    //         storage: TilemapStorage::new(16, entity),
+    //         material: materials.add(StandardTilemapMaterial::default()),
+    //         ..Default::default()
+    //     },
+    // ));
 }

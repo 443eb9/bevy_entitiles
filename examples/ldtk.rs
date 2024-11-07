@@ -103,6 +103,11 @@ struct LdtkFile(Handle<LdtkJson>);
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
     commands.insert_resource(LdtkFile(asset_server.load("ldtk/ignore grid_vania.ldtk")));
+    commands.spawn(TextBundle::from_section(
+        "Press digit from 1-7 to load levels.\n\
+        Press space to unload all levels.",
+        Default::default(),
+    ));
 }
 
 macro_rules! level_control {
@@ -143,30 +148,6 @@ fn load(
         loaded_level.unload_all_at(file.id(), &mut event);
     }
 }
-
-// fn hot_reload(
-//     input: Res<ButtonInput<KeyCode>>,
-//     mut manager: ResMut<LdtkLevelManager>,
-//     config: Res<LdtkLevelConfig>,
-//     mut assets: ResMut<LdtkAssets>,
-//     asset_server: Res<AssetServer>,
-//     mut atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
-//     mut entity_material_assets: ResMut<Assets<LdtkEntityMaterial>>,
-//     mut mesh_assets: ResMut<Assets<Mesh>>,
-// ) {
-//     if input.just_pressed(KeyCode::Enter) {
-//         manager.reload_json(&config);
-//         assets.initialize(
-//             &config,
-//             &manager,
-//             &asset_server,
-//             &mut atlas_layouts,
-//             &mut entity_material_assets,
-//             &mut mesh_assets,
-//         );
-//         println!("Hot reloaded!")
-//     }
-// }
 
 fn player_control(
     mut query: Query<&mut LinearVelocity, With<Player>>,

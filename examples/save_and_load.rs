@@ -89,6 +89,12 @@ fn setup(
     );
 
     commands.entity(entity).insert((tilemap, physics_tilemap));
+
+    commands.spawn(TextBundle::from_section(
+        "Press digit 1 to save tilemap, and 2 to load.\n\
+        Make sure you've saved before loading.",
+        Default::default(),
+    ));
 }
 
 fn save_and_load(
@@ -97,7 +103,7 @@ fn save_and_load(
     tilemap: Query<Entity, With<TilemapStorage>>,
 ) {
     // save
-    if input.just_pressed(KeyCode::Space) {
+    if input.just_pressed(KeyCode::Digit1) {
         for t in tilemap.iter() {
             commands.entity(t).insert(TilemapSaver {
                 path: "generated/save_and_load".to_string(),
@@ -111,7 +117,7 @@ fn save_and_load(
     }
 
     // load
-    if input.just_pressed(KeyCode::AltRight) {
+    if input.just_pressed(KeyCode::Digit2) {
         commands.spawn(TilemapLoader {
             path: "generated/save_and_load".to_string(),
             map_name: "test_map".to_string(),

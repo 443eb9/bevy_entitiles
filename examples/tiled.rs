@@ -70,6 +70,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ]
         .into(),
     ));
+
+    commands.spawn(TextBundle::from_section(
+        "Press digit 1-5 to switch between maps.",
+        Default::default(),
+    ));
 }
 
 macro_rules! map_switching {
