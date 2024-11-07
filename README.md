@@ -54,7 +54,7 @@ You should **NEVER** install the following versions! They contain critical bugs 
 | `debug`          | Show some debug info including aabbs for chunks and tilemaps, path finding results etc. |
 | `ldtk`           | [LDtk](https://ldtk.io/) support.                                                       |
 | `multi-threaded` | Support algorithms to run asynchronously. Disable this if you are targeting wasm.       |
-| `physics`        | Physics support using [`bevy_xpbd`](https://github.com/Jondolf/bevy_xpbd).              |
+| `physics`        | Physics support using [`avian`](https://github.com/Jondolf/avian).              |
 | `serializing`    | Save and load the tilemap from files. Also contains tools for upgrading files.          |
 | `tiled`          | [Tiled](https://www.mapeditor.org/) support.                                            |
 

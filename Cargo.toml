@@ -26,8 +26,8 @@ avian2d = { version = "0.1", optional = true }
 bitflags = "2"
 futures-lite = { version = "2", optional = true }
 hashbrown = { version = "0.14", features = ["rayon"] }
-indexmap = { version = "2.5", features = ["rayon"] }
-quick-xml = { version = "0.36", optional = true, features = [
+indexmap = { version = "2", features = ["rayon"] }
+quick-xml = { version = "0.37", optional = true, features = [
     "serialize",
     "overlapped-lists",
 ] }
@@ -37,7 +37,7 @@ rayon = "1.10"
 ron = { version = "0.8", optional = true }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
-thiserror = "1.0.64"
+thiserror = "2"
 
 [dev-dependencies]
 bevy = { version = "0.14", default-features = false, features = [
