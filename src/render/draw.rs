@@ -9,7 +9,7 @@ use bevy::{
             SystemParamItem,
         },
     },
-    log::error,
+    log::warn,
     render::{
         mesh::GpuBufferInfo,
         render_phase::{RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass},
@@ -71,8 +71,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             );
             RenderCommandResult::Success
         } else {
-            error!(
-                "Failed to draw tilemap {}: Failed to get tilemap uniform bind group!",
+            warn!(
+                "Failed to draw tilemap {}: Failed to get tilemap uniform bind group! \
+                Skipping rendering this frame.",
                 item.entity
             );
             RenderCommandResult::Failure
@@ -106,8 +107,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!(
-                "Failed to draw tilemap {}: Failed to get material bind group!",
+            warn!(
+                "Failed to draw tilemap {}: Failed to get material bind group! \
+                Skipping rendering this frame.",
                 item.entity
             );
             RenderCommandResult::Failure
@@ -141,8 +143,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!(
-                "Failed to draw tilemap {}: Failed to get storage bind group!",
+            warn!(
+                "Failed to draw tilemap {}: Failed to get storage bind group! \
+                Skipping rendering this frame.",
                 item.entity
             );
             RenderCommandResult::Failure
@@ -173,8 +176,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             .get(&item.entity)
             .and_then(|inst| inst.texture.as_ref())
         else {
-            error!(
-                "Failed to draw tilemap {}: Failed to get tilemap instance.",
+            warn!(
+                "Failed to draw tilemap {}: Failed to get tilemap instance. \
+                Skipping rendering this frame.",
                 item.entity
             );
             return RenderCommandResult::Failure;
@@ -184,8 +188,9 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
-            error!(
-                "Failed to draw tilemap {}: Failed to get color texture bind group!",
+            warn!(
+                "Failed to draw tilemap {}: Failed to get color texture bind group! \
+                Skipping rendering this frame.",
                 item.entity
             );
             RenderCommandResult::Failure

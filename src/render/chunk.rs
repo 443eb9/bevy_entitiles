@@ -339,16 +339,6 @@ impl Default for RenderChunkStorage {
 }
 
 impl RenderChunkStorage {
-    // /// Update the mesh for all chunks of a tilemap.
-    // pub fn prepare_chunks(&mut self, tilemap: &ExtractedTilemap<M>, render_device: &RenderDevice) {
-    //     if let Some(chunks) = self.value.get_mut(&tilemap.id) {
-    //         chunks
-    //             .value
-    //             .values_mut()
-    //             .for_each(|c| c.try_update_mesh(render_device));
-    //     }
-    // }
-
     #[inline]
     pub fn get_chunks(&self, tilemap: Entity) -> Option<&TilemapRenderChunks> {
         self.value.get(&tilemap)
