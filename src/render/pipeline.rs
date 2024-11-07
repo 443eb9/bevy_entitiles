@@ -45,6 +45,10 @@ pub struct EntiTilesPipelineKey {
     pub msaa: u32,
     pub map_type: TilemapType,
     pub is_pure_color: bool,
+    #[cfg(target_arch = "wasm32")]
+    pub anim_seq_len: u32,
+    #[cfg(target_arch = "wasm32")]
+    pub tex_desc_len: u32,
 }
 
 impl<M: TilemapMaterial> FromWorld for EntiTilesPipeline<M> {
@@ -137,8 +141,8 @@ impl<M: TilemapMaterial> SpecializedRenderPipeline for EntiTilesPipeline<M> {
         #[cfg(target_arch = "wasm32")]
         {
             shader_defs.push("WASM".into());
-            // shader_defs.push(ShaderDefVal::UInt("ANIM_SEQ_LEN".into(), key.anim_seq_len));
-            // shader_defs.push(ShaderDefVal::UInt("TEX_DESC_LEN".into(), key.tex_desc_len));
+            shader_defs.push(ShaderDefVal::UInt("ANIM_SEQ_LEN".into(), key.anim_seq_len));
+            shader_defs.push(ShaderDefVal::UInt("TEX_DESC_LEN".into(), key.tex_desc_len));
         }
 
         let mut vtx_fmt = vec![

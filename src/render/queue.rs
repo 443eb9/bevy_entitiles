@@ -27,6 +27,7 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
     tilemap_instances: Res<TilemapInstances>,
     mut transparent_phase: ResMut<ViewSortedRenderPhases<Transparent2d>>,
     material_ids: Res<TilemapMaterialIds<M>>,
+    #[cfg(target_arch = "wasm32")] render_device: Res<bevy::render::renderer::RenderDevice>,
 ) {
     for view_entity in views_query.iter_mut() {
         let Some(transparent_phase) = transparent_phase.get_mut(&view_entity) else {
@@ -41,15 +42,26 @@ pub fn queue_tilemaps<M: TilemapMaterial>(
         radsort::sort_by_key(&mut tilemaps, |(_, m)| m.transform.z_index);
 
         for (entity, tilemap) in tilemaps {
-            let pipeline = sp_entitiles_pipeline.specialize(
-                &pipeline_cache,
-                &entitiles_pipeline,
-                EntiTilesPipelineKey {
-                    msaa: msaa.samples(),
-                    map_type: tilemap.ty,
-                    is_pure_color: tilemap.texture.is_none(),
-                },
-            );
+            let pipeline =
+                sp_entitiles_pipeline.specialize(
+                    &pipeline_cache,
+                    &entitiles_pipeline,
+                    EntiTilesPipelineKey {
+                        msaa: msaa.samples(),
+                        map_type: tilemap.ty,
+                        is_pure_color: tilemap.texture.is_none(),
+                        #[cfg(target_arch = "wasm32")]
+                        anim_seq_len: bevy::render::render_resource::GpuArrayBuffer::<
+                            bevy::math::IVec4,
+                        >::batch_size(&render_device)
+                        .unwrap(),
+                        #[cfg(target_arch = "wasm32")]
+                        tex_desc_len: bevy::render::render_resource::GpuArrayBuffer::<
+                            crate::render::buffer::GpuTilemapTextureDescriptor,
+                        >::batch_size(&render_device)
+                        .unwrap(),
+                    },
+                );
 
             let draw_function = {
                 if tilemap.texture.is_none() {

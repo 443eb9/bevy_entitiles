@@ -76,8 +76,7 @@ var color_texture_sampler: sampler;
 
 #ifdef WASM
 @group(3) @binding(0)
-// TODO: use length passed from cpu.
-var<uniform> anim_seqs: array<vec4i, 128>;
+var<uniform> anim_seqs: array<vec4i, #ANIM_SEQ_LEN>;
 #else // WASM
 @group(3) @binding(0)
 var<storage> anim_seqs: array<i32>;
@@ -86,8 +85,7 @@ var<storage> anim_seqs: array<i32>;
 #ifdef ATLAS
 #ifdef WASM
 @group(3) @binding(1)
-// TODO: use length passed from cpu.
-var<uniform> texture_descs: array<TilemapTextureDescriptor, 128>;
+var<uniform> texture_descs: array<TilemapTextureDescriptor, #TEX_DESC_LEN>;
 #else // WASM
 @group(3) @binding(1)
 var<storage> texture_descs: array<TilemapTextureDescriptor>;
