@@ -2,7 +2,7 @@ use avian2d::{
     prelude::{PhysicsDebugPlugin, PhysicsGizmos},
     PhysicsPlugins,
 };
-use bevy::{prelude::*, render::render_resource::FilterMode, utils::HashMap};
+use bevy::{prelude::*, utils::HashMap};
 use bevy_entitiles::{
     algorithm::wfc::LdtkWfcMode,
     ldtk::{

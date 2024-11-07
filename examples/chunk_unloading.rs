@@ -1,47 +1,7 @@
 #![allow(unused_imports)]
-use avian2d::{
-    prelude::{PhysicsDebugPlugin, PhysicsGizmos},
-    PhysicsPlugins,
-};
-use bevy::{
-    app::{App, PluginGroup, Startup, Update},
-    asset::{AssetServer, Assets},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        entity::Entity,
-        event::{Event, EventReader},
-        query::With,
-        system::{Commands, Query, Res, ResMut},
-    },
-    gizmos::{config::GizmoConfig, AppGizmoBuilder},
-    math::{IVec2, UVec2, Vec2},
-    render::render_resource::FilterMode,
-    utils::HashSet,
-    window::{Window, WindowPlugin},
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    debug::CameraAabbScale,
-    render::{cull::FrustumCulling, material::StandardTilemapMaterial},
-    serializing::{
-        chunk::{
-            load::{ChunkLoadCache, ChunkLoadConfig},
-            save::{ChunkSaveCache, ChunkSaveConfig},
-        },
-        map::TilemapLayer,
-    },
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
-        map::{
-            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-        physics::{PhysicsTile, PhysicsTilemap},
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin,
-};
+use avian2d::prelude::*;
+use bevy::prelude::*;
+use bevy_entitiles::{debug::CameraAabbScale, prelude::*, render::cull::FrustumCulling};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

@@ -7,19 +7,7 @@ use bevy::{
     render::render_resource::FilterMode,
     DefaultPlugins,
 };
-use bevy_entitiles::{
-    math::GridRect,
-    render::material::StandardTilemapMaterial,
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures,
-        },
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin, DEFAULT_CHUNK_SIZE,
-};
+use bevy_entitiles::{prelude::*, DEFAULT_CHUNK_SIZE};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

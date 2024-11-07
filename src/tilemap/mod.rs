@@ -29,7 +29,7 @@ pub struct EntiTilesTilemapPlugin;
 
 impl Plugin for EntiTilesTilemapPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(PreUpdate, despawn::despawn_applier)
+        app.add_systems(PreUpdate, despawn::despawn_component_remover)
             .add_systems(
                 Update,
                 (
@@ -37,6 +37,7 @@ impl Plugin for EntiTilesTilemapPlugin {
                     map::queued_chunk_aabb_calculator,
                     map::tilemap_aabb_calculator,
                     tile::tile_updater,
+                    tile::tile_rearranger,
                     chunking::camera::camera_chunk_update,
                 ),
             )

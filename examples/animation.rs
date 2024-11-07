@@ -1,25 +1,5 @@
-use bevy::{
-    app::{App, Startup},
-    asset::{AssetServer, Assets},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::{Commands, Res, ResMut},
-    math::{IVec2, UVec2, Vec2},
-    render::render_resource::FilterMode,
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    math::GridRect,
-    render::material::StandardTilemapMaterial,
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-        tile::{RawTileAnimation, TileBuilder},
-    },
-    EntiTilesPlugin,
-};
+use bevy::prelude::*;
+use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

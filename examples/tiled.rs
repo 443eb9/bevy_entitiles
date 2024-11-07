@@ -1,13 +1,13 @@
 use avian2d::prelude::*;
 use bevy::{prelude::*, utils::HashMap};
 use bevy_entitiles::{
+    prelude::*,
     render::chunk::RenderChunkSort,
     tiled::{
         app_ext::TiledApp,
         events::{TiledMapEvent, TiledMapLoader},
-        resources::{PackedTiledTilemap, TiledLoadConfig, TiledLoadedMaps},
+        resources::{PackedTiledTilemap, TiledLoadedMaps},
     },
-    EntiTilesPlugin,
 };
 use bevy_entitiles_derive::{TiledClass, TiledCustomTile, TiledEnum, TiledObject};
 use helpers::EntiTilesHelpersPlugin;

@@ -1,33 +1,7 @@
 use std::time::Duration;
 
-use bevy::{
-    app::Update,
-    asset::Assets,
-    ecs::{
-        schedule::IntoSystemConfigs,
-        system::{Query, ResMut},
-    },
-    math::IVec2,
-    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::render_resource::FilterMode,
-    time::common_conditions::on_real_timer,
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    algorithm::pathfinding::{PathFinder, PathFindingQueue, PathTilemaps},
-    math::GridRect,
-    render::material::StandardTilemapMaterial,
-    tilemap::{
-        algorithm::path::{PathTile, PathTilemap},
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin,
-};
+use bevy::{prelude::*, time::common_conditions::on_real_timer};
+use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

@@ -335,7 +335,7 @@ impl LdtkLayers {
                                     PathTilemap {
                                         storage: ChunkedStorage::from_mapper(
                                             path_tilemap.clone(),
-                                            None,
+                                            DEFAULT_CHUNK_SIZE,
                                         ),
                                     },
                                 );

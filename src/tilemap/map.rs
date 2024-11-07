@@ -24,8 +24,8 @@ use crate::{
     tilemap::{
         buffers::TileBuilderBuffer,
         chunking::storage::{ChunkedStorage, EntityChunkedStorage},
-        despawn::DespawnMe,
-        tile::{RawTileAnimation, TileAnimation, TileBuilder, TileUpdater},
+        despawn::{DespawnMe, DespawnedTilemap},
+        tile::{RawTileAnimation, TileAnimation, TileBuilder, TileRearrange, TileUpdater},
     },
 };
 
@@ -459,6 +459,32 @@ impl Default for TilemapStorage {
 }
 
 impl TilemapStorage {
+    /// Rearrange all tiles according to the new `chunk_size`.
+    ///
+    /// This method can be extremely expensive.
+    #[inline]
+    pub fn rearrange(&mut self, chunk_size: u32, commands: &mut Commands) {
+        self.storage.rearrange(chunk_size);
+        // To reset render world resource.
+        commands
+            .entity(self.tilemap)
+            .insert(DespawnedTilemap(self.tilemap));
+        commands.insert_or_spawn_batch(
+            self.storage
+                .chunked_iter_some()
+                .map(|(ci, i, e)| {
+                    (
+                        *e,
+                        TileRearrange {
+                            chunk_index: ci,
+                            in_chunk_index: i,
+                        },
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+    }
+
     /// Get a tile.
     #[inline]
     pub fn get(&self, index: IVec2) -> Option<Entity> {

@@ -1,40 +1,6 @@
-use avian2d::{
-    prelude::{Collider, LinearVelocity, PhysicsDebugPlugin, RigidBody},
-    PhysicsPlugins,
-};
-use bevy::{
-    app::{FixedUpdate, Update},
-    asset::Assets,
-    color::Color,
-    ecs::{
-        component::Component,
-        event::EventReader,
-        query::With,
-        system::{Query, ResMut},
-    },
-    input::{keyboard::KeyCode, ButtonInput},
-    math::{primitives::Circle, IVec2, Vec3},
-    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::{mesh::Mesh, render_resource::FilterMode},
-    sprite::{ColorMaterial, ColorMesh2dBundle},
-    transform::components::Transform,
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    math::GridRect,
-    prelude::DataPhysicsTilemap,
-    render::material::StandardTilemapMaterial,
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapTransform, TilemapType,
-        },
-        physics::{PhysicsTile, PhysicsTileSpawn, PhysicsTilemap},
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin,
-};
+use avian2d::prelude::*;
+use bevy::prelude::*;
+use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

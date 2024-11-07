@@ -274,6 +274,12 @@ impl Into<TileBuilder> for Tile {
     }
 }
 
+#[derive(Component)]
+pub(crate) struct TileRearrange {
+    pub chunk_index: IVec2,
+    pub in_chunk_index: usize,
+}
+
 pub fn tile_updater(
     commands: ParallelCommands,
     mut tiles_query: Query<(Entity, &mut Tile, &TileUpdater)>,
@@ -305,5 +311,20 @@ pub fn tile_updater(
             commands.command_scope(|mut c| {
                 c.entity(entity).remove::<TileUpdater>();
             });
+        });
+}
+
+pub(crate) fn tile_rearranger(
+    commands: ParallelCommands,
+    mut tiles_query: Query<(Entity, &mut Tile, &TileRearrange)>,
+) {
+    tiles_query
+        .par_iter_mut()
+        .for_each(|(entity, mut tile, rearrange)| {
+            tile.chunk_index = rearrange.chunk_index;
+            tile.in_chunk_index = rearrange.in_chunk_index;
+            commands.command_scope(|mut c| {
+                c.entity(entity).remove::<TileRearrange>();
+            })
         });
 }

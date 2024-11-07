@@ -1,37 +1,5 @@
-use bevy::{
-    app::{App, PluginGroup, Startup, Update},
-    asset::{AssetServer, Assets},
-    color::{palettes::css::ORANGE_RED, LinearRgba},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::{
-        entity::Entity,
-        system::{Commands, Query, Res, ResMut},
-    },
-    math::{IVec2, UVec2, Vec2, Vec4},
-    render::{
-        render_resource::FilterMode,
-        texture::{Image, ImagePlugin},
-    },
-    sprite::{Sprite, SpriteBundle},
-    window::{PresentMode, Window, WindowPlugin},
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    math::GridRect,
-    render::{
-        bake::{BakedTilemap, TilemapBaker},
-        material::StandardTilemapMaterial,
-    },
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapLayerOpacities, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin,
-};
+use bevy::{color::palettes::css::ORANGE_RED, prelude::*, window::PresentMode};
+use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

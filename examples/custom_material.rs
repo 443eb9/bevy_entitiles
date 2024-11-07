@@ -1,27 +1,8 @@
 use bevy::{
-    app::{App, Startup, Update},
-    asset::{Asset, AssetServer, Assets},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::{Commands, Res, ResMut},
-    math::{IVec2, UVec2, Vec2},
-    reflect::TypePath,
-    render::render_resource::{AsBindGroup, FilterMode, ShaderRef},
-    time::Time,
-    DefaultPlugins,
+    prelude::*,
+    render::render_resource::{AsBindGroup, ShaderRef},
 };
-use bevy_entitiles::{
-    math::GridRect,
-    render::material::{EntiTilesMaterialPlugin, TilemapMaterial},
-    tilemap::{
-        bundles::MaterialTilemapBundle,
-        map::{
-            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures,
-        },
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin, DEFAULT_CHUNK_SIZE,
-};
+use bevy_entitiles::{prelude::*, DEFAULT_CHUNK_SIZE};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

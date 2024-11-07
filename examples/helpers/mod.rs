@@ -4,6 +4,7 @@ use bevy::{
     prelude::{default, Color, Commands, IntoSystemConfigs, Plugin, Startup, TextBundle, Update},
     text::{TextSection, TextStyle},
     time::common_conditions::on_real_timer,
+    ui::{PositionType, Style, Val},
 };
 
 use crate::helpers::camera_movement::camera_control;
@@ -72,6 +73,11 @@ pub fn debug_startup(mut commands: Commands) {
                     ..default()
                 },
             ),
-        ]),
+        ])
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            right: Val::Px(0.),
+            ..Default::default()
+        }),
     ));
 }

@@ -1,39 +1,6 @@
-use avian2d::{prelude::PhysicsDebugPlugin, PhysicsPlugins};
-use bevy::{
-    app::Update,
-    asset::Assets,
-    ecs::{
-        entity::Entity,
-        query::With,
-        system::{Query, ResMut},
-    },
-    input::{keyboard::KeyCode, ButtonInput},
-    math::IVec2,
-    prelude::{App, AssetServer, Camera2dBundle, Commands, Res, Startup, UVec2, Vec2},
-    render::render_resource::FilterMode,
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    algorithm::pathfinding::PathTilemaps,
-    math::GridRect,
-    render::material::StandardTilemapMaterial,
-    serializing::map::{
-        load::TilemapLoader,
-        save::{TilemapSaver, TilemapSaverMode},
-        TilemapLayer,
-    },
-    tilemap::{
-        algorithm::path::{PathTile, PathTilemap},
-        bundles::StandardTilemapBundle,
-        map::{
-            TilePivot, TileRenderSize, TilemapName, TilemapSlotSize, TilemapStorage,
-            TilemapTexture, TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-        physics::{PhysicsTile, PhysicsTilemap},
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin,
-};
+use avian2d::prelude::*;
+use bevy::prelude::*;
+use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;

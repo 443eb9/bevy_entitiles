@@ -2,7 +2,7 @@ use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::{Or, With},
+        query::With,
         system::{Commands, ParallelCommands, Query},
     },
     math::IVec2,
@@ -10,7 +10,7 @@ use bevy::{
 
 use crate::tilemap::{map::TilemapStorage, tile::Tile};
 
-/// Marks an tilemap/tile/physics_tilemap to be despawned.
+/// Marks an tilemap/tile/physics_tilemap to be despawned on both CPU and GPU side.
 #[derive(Component)]
 pub struct DespawnMe;
 
@@ -26,15 +26,16 @@ pub struct DespawnedTile {
     pub in_chunk_index: usize,
 }
 
-pub fn despawn_applier(
-    commands: ParallelCommands,
-    query: Query<Entity, Or<(With<DespawnedTilemap>, With<DespawnedTile>, With<DespawnMe>)>>,
-) {
-    query.par_iter().for_each(|e| {
-        commands.command_scope(|mut c| {
-            c.entity(e).despawn();
-        });
-    });
+// This is kinda special. Theoretically, to despawn a tilemap, just insert `DespanwnMe`. But for those
+// who want to reset render resources for tilemaps, they insert `DespawnTilemap`, and the actual entity
+// won't be despawned.
+pub fn despawn_component_remover(mut commands: Commands, query: Query<Entity>) {
+    for entity in &query {
+        commands
+            .entity(entity)
+            .remove::<DespawnedTilemap>()
+            .remove::<DespawnedTile>();
+    }
 }
 
 pub fn despawn_tilemap(
@@ -45,20 +46,22 @@ pub fn despawn_tilemap(
 
     query.iter().for_each(|entity| {
         despawned_tilemaps.push(DespawnedTilemap(entity));
+        commands.entity(entity).despawn();
     });
 
     commands.spawn_batch(despawned_tilemaps);
 }
 
-pub fn despawn_tiles(mut commands: Commands, query: Query<&Tile, With<DespawnMe>>) {
+pub fn despawn_tiles(mut commands: Commands, query: Query<(Entity, &Tile), With<DespawnMe>>) {
     let mut despawned_tiles = Vec::new();
 
-    query.iter().for_each(|tile| {
+    query.iter().for_each(|(entity, tile)| {
         despawned_tiles.push(DespawnedTile {
             tilemap: tile.tilemap_id,
             chunk_index: tile.chunk_index,
             in_chunk_index: tile.in_chunk_index,
         });
+        commands.entity(entity).despawn();
     });
 
     commands.spawn_batch(despawned_tiles);

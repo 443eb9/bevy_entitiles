@@ -46,12 +46,20 @@ impl<T: Debug + Clone + Reflect> ChunkedStorage<T> {
         }
     }
 
-    pub fn from_mapper(mapper: HashMap<IVec2, T>, chunk_size: Option<u32>) -> Self {
-        let mut storage = Self::new(chunk_size.unwrap_or(32));
+    pub fn from_mapper(mapper: HashMap<IVec2, T>, chunk_size: u32) -> Self {
+        let mut storage = Self::new(chunk_size);
         mapper.into_iter().for_each(|(index, elem)| {
             storage.set_elem(index, elem);
         });
         storage
+    }
+
+    pub fn rearrange(&mut self, chunk_size: u32) {
+        let this = std::mem::replace(self, Self::default());
+        let _ = std::mem::replace(
+            self,
+            ChunkedStorage::from_mapper(this.into_mapper(), chunk_size),
+        );
     }
 
     pub fn get_elem(&self, index: IVec2) -> Option<&T> {

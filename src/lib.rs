@@ -29,7 +29,7 @@ pub const DEFAULT_CHUNK_SIZE: u32 = 16;
 pub mod prelude {
     #[cfg(feature = "algorithm")]
     pub use crate::algorithm::{
-        pathfinding::{Path, PathFinder},
+        pathfinding::{Path, PathFinder, PathFindingQueue, PathTilemaps},
         wfc::{WfcRules, WfcRunner, WfcSource},
     };
     #[cfg(feature = "ldtk")]
@@ -43,31 +43,46 @@ pub mod prelude {
         resources::{LdtkAssets, LdtkLevelConfig, LdtkLoadedLevels},
     };
     pub use crate::math::GridRect;
+    #[cfg(feature = "baking")]
+    pub use crate::render::bake::{BakedTilemap, TilemapBaker};
+    pub use crate::render::material::{
+        EntiTilesMaterialPlugin, StandardTilemapMaterial, TilemapMaterial,
+    };
     #[cfg(feature = "serializing")]
     pub use crate::serializing::{
         chunk::{
             load::{ChunkLoadCache, ChunkLoadConfig},
             save::{ChunkSaveCache, ChunkSaveConfig},
         },
-        map::{load::TilemapLoader, save::TilemapSaver},
+        map::{
+            load::TilemapLoader,
+            save::{TilemapSaver, TilemapSaverMode},
+            TilemapLayer,
+        },
     };
     #[cfg(feature = "tiled")]
     pub use crate::tiled::resources::TiledLoadConfig;
+    #[cfg(feature = "algorithm")]
+    pub use crate::tilemap::algorithm::path::{PathTile, PathTilemap};
     #[cfg(feature = "physics")]
     pub use crate::tilemap::physics::{
         DataPhysicsTilemap, PhysicsTile, PhysicsTileSpawn, PhysicsTilemap,
     };
     pub use crate::tilemap::{
+        bundles::MaterialTilemapBundle,
         bundles::{StandardPureColorTilemapBundle, StandardTilemapBundle},
         chunking::camera::{CameraChunkUpdater, CameraChunkUpdation},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
             TilemapSlotSize, TilemapStorage, TilemapTexture, TilemapTextureDescriptor,
-            TilemapTransform, TilemapType,
+            TilemapTextures, TilemapTransform, TilemapType,
         },
-        tile::{RawTileAnimation, TileBuilder, TileLayer, TileUpdater},
+        tile::{
+            LayerUpdater, RawTileAnimation, TileBuilder, TileLayer, TileLayerPosition, TileUpdater,
+        },
     };
     pub use crate::EntiTilesPlugin;
+    pub use bevy::render::render_resource::FilterMode;
 }
 
 #[cfg(all(

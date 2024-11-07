@@ -2,28 +2,8 @@
 // Chunk sizes are must be n^2, so in this case, it must be 1^2, which is really
 // inefficient. Maybe in the future, it will be allowed to set non-squre chunk sizes.
 
-use bevy::{
-    app::{App, Startup},
-    asset::{AssetServer, Assets},
-    core_pipeline::core_2d::Camera2dBundle,
-    ecs::system::{Commands, Res, ResMut},
-    math::{IVec2, UVec2, Vec2},
-    render::render_resource::FilterMode,
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    math::GridRect,
-    render::{chunk::RenderChunkSort, material::StandardTilemapMaterial},
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-        tile::{TileBuilder, TileLayer},
-    },
-    EntiTilesPlugin,
-};
+use bevy::prelude::*;
+use bevy_entitiles::{prelude::*, render::chunk::RenderChunkSort};
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
@@ -36,9 +16,14 @@ fn main() {
             EntiTilesHelpersPlugin::default(),
         ))
         .add_systems(Startup, setup)
+        .add_systems(Update, rearrange)
+        // Make sure you have specified the sorting method.
         .insert_resource(RenderChunkSort::XReverseThenYReverse)
         .run();
 }
+
+#[derive(Component)]
+struct HintText;
 
 fn setup(
     mut commands: Commands,
@@ -53,10 +38,16 @@ fn setup(
         tile_render_size: TileRenderSize(Vec2::splat(32.)),
         slot_size: TilemapSlotSize(Vec2::new(32., 16.)),
         ty: TilemapType::Isometric,
+
         // We can't take advantage of chunking for 3d isometric tilemaps.
         // Stacking tiles needs to do z test, and requires a depth texture for the pipeline.
         // But bevy doesn't support adding depth attachments to the pass in RenderCommand
-        storage: TilemapStorage::new(1, entity),
+        // storage: TilemapStorage::new(1, entity),
+
+        // Here I want to demonstrate how to change the chunk_size after tilemap has spawned.
+        // So I'll spawn a tilemap with a chunk_size of 32.
+        storage: TilemapStorage::new(32, entity),
+
         material: materials.add(StandardTilemapMaterial::default()),
         textures: textures.add(TilemapTextures::single(
             TilemapTexture::new(
@@ -76,4 +67,24 @@ fn setup(
     );
 
     commands.entity(entity).insert(tilemap);
+
+    commands.spawn((
+        HintText,
+        TextBundle::from_section("Press Space to change chunk size.", TextStyle::default()),
+    ));
+}
+
+fn rearrange(
+    mut commands: Commands,
+    mut tilemaps_query: Query<&mut TilemapStorage>,
+    mut text: Query<&mut Text, With<HintText>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    if input.just_pressed(KeyCode::Space) {
+        for mut storage in &mut tilemaps_query {
+            storage.rearrange(1, &mut commands);
+        }
+
+        text.single_mut().sections[0].value = "Chunk size changed!".to_owned();
+    }
 }

@@ -1,24 +1,5 @@
-use bevy::{
-    asset::{AssetServer, Assets},
-    ecs::system::{Res, ResMut},
-    math::IVec2,
-    prelude::{App, Camera2dBundle, Commands, Startup, UVec2, Vec2},
-    render::render_resource::FilterMode,
-    DefaultPlugins,
-};
-use bevy_entitiles::{
-    algorithm::wfc::{WfcRules, WfcRunner, WfcSource},
-    math::GridRect,
-    render::material::StandardTilemapMaterial,
-    tilemap::{
-        bundles::StandardTilemapBundle,
-        map::{
-            TileRenderSize, TilemapSlotSize, TilemapStorage, TilemapTexture,
-            TilemapTextureDescriptor, TilemapTextures, TilemapType,
-        },
-    },
-    EntiTilesPlugin,
-};
+use bevy::prelude::*;
+use bevy_entitiles::prelude::*;
 use helpers::EntiTilesHelpersPlugin;
 
 mod helpers;
