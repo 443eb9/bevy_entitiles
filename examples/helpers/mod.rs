@@ -13,8 +13,8 @@ use self::{
     common::{debug_info_display, DebugFpsText},
 };
 
-pub mod camera_movement;
-pub mod common;
+mod camera_movement;
+mod common;
 
 pub struct EntiTilesHelpersPlugin {
     #[allow(unused)]

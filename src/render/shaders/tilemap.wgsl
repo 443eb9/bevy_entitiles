@@ -1,6 +1,6 @@
 #import bevy_entitiles::common::{
-    TilemapVertexInput, TilemapVertexOutput, tilemap, view, atlas_uvs,
-    anim_seqs, material, texture_descs
+    TilemapVertexInput, TilemapVertexOutput,
+    tilemap, view, material, anim_seqs, texture_descs
 }
 
 // Here the three different imports are for the three different tilemap types.
@@ -31,9 +31,12 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
 
     var position_model = (translations[input.v_index % 4u] - tilemap.pivot)
                           * tilemap.tile_render_size + mesh_origin;
-    var position_world = vec4<f32>((tilemap.rot_mat * position_model) + tilemap.translation, 0., 1.);
+    var position_world = vec4<f32>(
+        position_model.x * tilemap.rot_mat.xy + position_model.y * tilemap.rot_mat.zw + tilemap.translation, 0., 1.
+    );
 
     output.position = view.clip_from_world * position_world;
+    // output.position = view.clip_from_world * vec4f(translations[input.v_index % 4u] * tilemap.tile_render_size , 0., 1.);
     // output.position = view.clip_from_world * vec4f(translations[input.v_index % 4u] * 10. , 0., 1.);
     output.tint = input.tint;
 
@@ -96,9 +99,9 @@ fn tilemap_vertex(input: TilemapVertexInput) -> TilemapVertexOutput {
 
 @fragment
 fn tilemap_fragment(input: TilemapVertexOutput) -> @location(0) vec4<f32> {
-    // return vec4f(1.);
 #ifdef PURE_COLOR
     return input.tint;
+    // return vec4f(1.);
 #else // PURE_COLOR
     var color = vec4<f32>(0., 0., 0., 0.);
 

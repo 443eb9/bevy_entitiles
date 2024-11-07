@@ -30,7 +30,7 @@ struct TilemapVertexOutput {
     @builtin(position) position: vec4f,
     @location(0) tint: vec4f,
 #ifndef PURE_COLOR
-    @location(1) uv: vec2<f32>,
+    @location(1) uv: vec2f,
     @location(2) atlas_indices: vec4i,
     // Indicates whether the tile is animated.
     @location(3) anim_flag: i32,
@@ -41,14 +41,15 @@ struct TilemapVertexOutput {
 }
 
 struct Tilemap {
-    translation: vec2f,
-    rot_mat: mat2x2f,
+    // For memory alignment
+    rot_mat: vec4f,
+    layer_opacities: vec4f,
     tile_render_size: vec2f,
+    translation: vec2f,
     slot_size: vec2f,
     pivot: vec2f,
-    layer_opacities: vec4f,
     axis_dir: vec2f,
-    // this value will only be meaningful when the tilemap is hexagonal!
+    // // this value will only be meaningful when the tilemap is hexagonal!
     hex_legs: f32,
     time: f32,
 }
@@ -92,5 +93,4 @@ var<uniform> texture_descs: array<TilemapTextureDescriptor, 128>;
 var<storage> texture_descs: array<TilemapTextureDescriptor>;
 #endif // WASM
 #endif // ATLAS
-
 #endif // PURE_COLOR

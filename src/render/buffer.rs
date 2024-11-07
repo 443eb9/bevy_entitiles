@@ -1,6 +1,6 @@
 use bevy::{
     ecs::entity::EntityHashMap,
-    math::{Mat2, Vec4},
+    math::Vec4,
     prelude::{Res, ResMut, Resource, Vec2},
     render::{
         render_resource::{DynamicUniformBuffer, GpuArrayBuffer, ShaderType},
@@ -13,12 +13,13 @@ use crate::{render::extract::TilemapInstances, tilemap::map::TilemapType};
 
 #[derive(ShaderType, Clone, Copy)]
 pub struct TilemapUniform {
-    pub translation: Vec2,
-    pub rotation: Mat2,
+    // For memory alignment
+    pub rotation: Vec4,
+    pub layer_opacities: Vec4,
     pub tile_render_size: Vec2,
+    pub translation: Vec2,
     pub slot_size: Vec2,
     pub pivot: Vec2,
-    pub layer_opacities: Vec4,
     pub axis_dir: Vec2,
     pub hex_legs: f32,
     pub time: f32,
@@ -41,7 +42,10 @@ pub struct SharedTilemapBuffers {
 }
 
 pub struct UnsharedTilemapBuffers {
+    #[cfg(not(target_arch = "wasm32"))]
     pub animation: GpuArrayBuffer<i32>,
+    #[cfg(target_arch = "wasm32")]
+    pub animation: GpuArrayBuffer<bevy::math::IVec4>,
     #[cfg(feature = "atlas")]
     pub texture_desc: GpuArrayBuffer<GpuTilemapTextureDescriptor>,
 }
@@ -77,7 +81,7 @@ pub fn prepare_tilemap_buffers(
     for (entity, tilemap) in tilemap_instances.iter() {
         let index = tilemap_buffers.shared.uniform.push(&TilemapUniform {
             translation: tilemap.transform.translation,
-            rotation: tilemap.transform.get_rotation_matrix(),
+            rotation: Vec4::from_array(tilemap.transform.get_rotation_matrix().to_cols_array()),
             tile_render_size: tilemap.tile_render_size,
             slot_size: tilemap.slot_size,
             pivot: tilemap.tile_pivot,
@@ -97,7 +101,10 @@ pub fn prepare_tilemap_buffers(
             .or_insert_with(|| UnsharedTilemapBuffers::new(&render_device));
         if let Some(anim) = &tilemap.changed_animations {
             for data in &anim.0 {
+                #[cfg(not(target_arch = "wasm32"))]
                 unshared.animation.push(*data);
+                #[cfg(target_arch = "wasm32")]
+                unshared.animation.push(bevy::math::IVec4::new(*data, 0, 0, 0));
             }
             unshared
                 .animation

@@ -2,6 +2,7 @@
 
 - Supported `point`s contained by Tiled objects.
 - Renamed `shape_as_collider` macro to `instantiate_shape` .
+- WASM, finally supported.
 
 # What's Fixed:
 
