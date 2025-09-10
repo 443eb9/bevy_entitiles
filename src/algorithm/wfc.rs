@@ -1,15 +1,13 @@
 /// Direction order: up, right, left, down
-use std::{collections::VecDeque, path::Path};
+use std::{collections::{HashMap, HashSet, VecDeque}, path::Path};
 
 use bevy::{
     asset::Assets,
     ecs::{entity::Entity, system::ResMut},
-    log::warn,
     math::IVec2,
-    prelude::{Commands, Component, Query, UVec2},
+    prelude::{Commands, Component, Query, UVec2, warn},
     reflect::Reflect,
     render::render_resource::FilterMode,
-    utils::{HashMap, HashSet},
 };
 use rand::{
     distributions::{Uniform, WeightedIndex},

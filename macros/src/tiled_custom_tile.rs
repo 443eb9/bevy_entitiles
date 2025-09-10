@@ -72,7 +72,7 @@ pub fn expand_tiled_custom_tiles_derive(input: syn::DeriveInput) -> proc_macro::
             fn initialize(
                 commands: &mut bevy::ecs::system::EntityCommands,
                 custom_tile_instance: &bevy_entitiles::tiled::resources::TiledCustomTileInstance,
-                components: &bevy::utils::HashMap<
+                components: &std::collections::HashMap<
                     String,
                     bevy_entitiles::tiled::xml::property::ClassInstance,
                 >,

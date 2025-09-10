@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use avian2d::prelude::*;
-use bevy::{prelude::*, utils::HashMap};
+use bevy::prelude::*;
 use bevy_entitiles::{
     prelude::*,
     render::chunk::RenderChunkSort,
@@ -81,7 +83,7 @@ macro_rules! map_switching {
     ($key:ident, $map:expr, $input:expr, $loaded_maps:expr, $event:expr, $tiled_maps: expr) => {
         if $input.just_pressed(KeyCode::$key) {
             $loaded_maps.unload_all(&mut $event);
-            $event.send(TiledMapEvent::Load(TiledMapLoader {
+            $event.write(TiledMapEvent::Load(TiledMapLoader {
                 map: $tiled_maps[$map].id(),
                 trans_ovrd: None,
             }));

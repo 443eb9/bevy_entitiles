@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use bevy::{
     ecs::{component::Component, entity::Entity, system::Commands},
-    utils::HashMap,
 };
 
 #[derive(Component, Debug, Clone)]

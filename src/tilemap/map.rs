@@ -1,7 +1,7 @@
-use std::{f32::consts::SQRT_2, fmt::Debug};
+use std::{collections::{HashMap, HashSet}, f32::consts::SQRT_2, fmt::Debug};
 
 use bevy::{
-    asset::{Asset, Handle},
+    asset::{Asset, AssetId, Handle},
     ecs::{
         component::Component,
         query::Changed,
@@ -14,9 +14,8 @@ use bevy::{
         render_asset::{PrepareAssetError, RenderAsset},
         render_resource::FilterMode,
     },
-    sprite::TextureAtlasLayout,
+    prelude::TextureAtlasLayout,
     transform::components::Transform,
-    utils::{HashMap, HashSet},
 };
 
 use crate::{
@@ -203,6 +202,7 @@ impl RenderAsset for TilemapTextures {
 
     fn prepare_asset(
         source_asset: Self::SourceAsset,
+        _asset_id: AssetId<TilemapTextures>,
         _param: &mut SystemParamItem<Self::Param>,
     ) -> Result<Self, PrepareAssetError<Self::SourceAsset>> {
         Ok(source_asset)
@@ -255,6 +255,48 @@ impl TilemapTextures {
 
     pub fn iter_packed(&self) -> impl Iterator<Item = (&TilemapTexture, u32)> {
         self.textures.iter().zip(self.start_index.iter().cloned())
+    }
+}
+
+/// Component wrapper for Handle<TilemapTextures> to make it compatible with Bevy 0.16
+#[derive(Component, Debug, Clone, Default)]
+pub struct TilemapTexturesHandle(pub Handle<TilemapTextures>);
+
+impl From<Handle<TilemapTextures>> for TilemapTexturesHandle {
+    fn from(handle: Handle<TilemapTextures>) -> Self {
+        Self(handle)
+    }
+}
+
+impl std::ops::Deref for TilemapTexturesHandle {
+    type Target = Handle<TilemapTextures>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Component wrapper for Handle<M> to make it compatible with Bevy 0.16
+#[derive(Component, Debug, Clone)]
+pub struct TilemapMaterialHandle<M: Asset>(pub Handle<M>);
+
+impl<M: Asset> Default for TilemapMaterialHandle<M> {
+    fn default() -> Self {
+        Self(Handle::default())
+    }
+}
+
+impl<M: Asset> From<Handle<M>> for TilemapMaterialHandle<M> {
+    fn from(handle: Handle<M>) -> Self {
+        Self(handle)
+    }
+}
+
+impl<M: Asset> std::ops::Deref for TilemapMaterialHandle<M> {
+    type Target = Handle<M>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

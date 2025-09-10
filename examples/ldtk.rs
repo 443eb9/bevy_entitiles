@@ -3,9 +3,11 @@
 // If you are using the LDtk maps from the tutorials, you need to delete the internal
 // icons tileset. Otherwise the program will panic due to the missing asset.
 
+use std::collections::HashMap;
+
 use avian2d::prelude::*;
 use bevy::{
-    ecs::system::EntityCommands, prelude::*, render::render_resource::FilterMode, utils::HashMap,
+    ecs::system::EntityCommands, prelude::*, render::render_resource::FilterMode,
 };
 use bevy_entitiles::{
     ldtk::{
@@ -114,13 +116,13 @@ macro_rules! level_control {
     ($key:ident, $level:expr, $input:expr, $file:expr, $event:expr) => {
         if $input.pressed(KeyCode::ControlLeft) {
             if $input.just_pressed(KeyCode::$key) {
-                $event.send(LdtkLevelEvent::Unload(LdtkLevelUnloader {
+                $event.write(LdtkLevelEvent::Unload(LdtkLevelUnloader {
                     json: $file.id(),
                     level: LdtkLevel::Identifier($level.into()),
                 }));
             }
         } else if $input.just_pressed(KeyCode::$key) {
-            $event.send(LdtkLevelEvent::Load(LdtkLevelLoader {
+            $event.write(LdtkLevelEvent::Load(LdtkLevelLoader {
                 json: $file.id(),
                 level: LdtkLevel::Identifier($level.into()),
                 mode: LdtkLevelLoaderMode::Tilemap,

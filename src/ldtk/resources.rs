@@ -1,19 +1,17 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use bevy::{
     asset::{io::Reader, Asset, AssetId, AssetLoader, AssetServer, Assets, Handle, LoadContext},
-    ecs::{entity::Entity, system::Resource},
-    log::error,
+    ecs::entity::Entity,
     math::{IVec2, UVec2, Vec2},
-    prelude::{Deref, DerefMut, EventWriter},
+    prelude::{Deref, DerefMut, EventWriter, error, Resource, TextureAtlasLayout},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
         render_asset::RenderAssetUsages,
         render_resource::{FilterMode, PrimitiveTopology},
     },
-    sprite::{Mesh2dHandle, SpriteBundle, TextureAtlasLayout},
-    utils::HashMap,
+    sprite::Sprite,
 };
 use futures_lite::AsyncReadExt;
 use thiserror::Error;
@@ -43,7 +41,7 @@ pub struct LdtkPatterns {
         Option<LayerIid>,
     )>,
     #[reflect(ignore)]
-    pub backgrounds: Vec<Option<SpriteBundle>>,
+    pub backgrounds: Vec<Option<crate::ldtk::layer::LdtkBackground>>,
     pub idents: Vec<String>,
     pub idents_to_index: HashMap<String, usize>,
 }
@@ -90,7 +88,7 @@ impl LdtkPatterns {
         layer[pattern_index] = Some(pattern);
     }
 
-    pub fn add_background(&mut self, identifier: &str, background: SpriteBundle) {
+    pub fn add_background(&mut self, identifier: &str, background: crate::ldtk::layer::LdtkBackground) {
         let pattern_index = self.idents_to_index[identifier];
         if pattern_index >= self.backgrounds.len() {
             self.backgrounds.resize(pattern_index + 1, None);
@@ -145,7 +143,7 @@ pub struct LdtkAssets {
     /// entity identifier to entity definition
     pub(crate) entity_defs: HashMap<String, EntityDef>,
     /// entity iid to mesh handle
-    pub(crate) meshes: HashMap<String, Mesh2dHandle>,
+    pub(crate) meshes: HashMap<String, Handle<Mesh>>,
     /// entity iid to material handle
     pub(crate) materials: HashMap<String, Handle<LdtkEntityMaterial>>,
 }
@@ -163,7 +161,7 @@ impl LdtkAssets {
         self.entity_defs.get(identifier).unwrap()
     }
 
-    pub fn clone_mesh_handle(&self, iid: &String) -> Mesh2dHandle {
+    pub fn clone_mesh_handle(&self, iid: &String) -> Handle<Mesh> {
         self.meshes.get(iid).unwrap().clone()
     }
 

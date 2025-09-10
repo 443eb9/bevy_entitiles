@@ -1,4 +1,6 @@
-use bevy::{ecs::system::Resource, reflect::Reflect, utils::HashMap};
+use std::collections::HashMap;
+
+use bevy::{prelude::Resource, reflect::Reflect};
 
 use crate::tilemap::physics::PhysicsTile;
 

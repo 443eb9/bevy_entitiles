@@ -1,14 +1,13 @@
-use std::{cmp::Ordering, collections::BinaryHeap};
+use std::{cmp::Ordering, collections::{BinaryHeap, hash_map::Entry, HashMap, HashSet}};
 
 use bevy::{
     ecs::{
         entity::EntityHashMap,
-        system::{Commands, Query, Res, Resource},
+        system::{Commands, Query, Res},
     },
     math::IVec2,
-    prelude::{Component, Entity},
+    prelude::{Component, Entity, Resource},
     reflect::Reflect,
-    utils::{Entry, HashMap, HashSet},
 };
 
 use crate::{

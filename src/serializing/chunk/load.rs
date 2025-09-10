@@ -1,15 +1,17 @@
 use std::{collections::VecDeque, path::Path};
 
+use std::collections::HashMap;
+
 use bevy::{
     ecs::{
         component::Component,
         entity::{Entity, EntityHashMap},
         query::With,
-        system::{Commands, ParallelCommands, Query, Res, ResMut, Resource},
+        system::{Commands, Query, Res, ResMut},
     },
     math::IVec2,
+    prelude::Resource,
     reflect::Reflect,
-    utils::HashMap,
 };
 
 use crate::{
@@ -96,7 +98,7 @@ impl ChunkLoadCache {
 }
 
 pub fn load_color_layer(
-    commands: ParallelCommands,
+    mut commands: Commands,
     mut tilemaps_query: Query<
         (Entity, &TilemapName, &mut TilemapStorage),
         With<ScheduledLoadChunks>,

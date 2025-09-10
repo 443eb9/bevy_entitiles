@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use bevy::{
     ecs::{
         component::Component,
@@ -8,9 +10,8 @@ use bevy::{
     },
     math::{IVec2, Vec2},
     reflect::Reflect,
-    render::camera::OrthographicProjection,
+    render::camera::Projection,
     transform::components::Transform,
-    utils::HashSet,
 };
 
 use crate::{
@@ -57,7 +58,7 @@ impl CameraChunkUpdater {
 pub fn camera_chunk_update(
     mut camera_query: Query<
         (&CameraAabb2d, &mut CameraChunkUpdater),
-        Or<(Changed<OrthographicProjection>, Changed<Transform>)>,
+        Or<(Changed<Projection>, Changed<Transform>)>,
     >,
     mut tilemaps_query: Query<(Entity, &TilemapStorage)>,
     mut updation_event: EventWriter<CameraChunkUpdation>,
@@ -99,11 +100,11 @@ pub fn camera_chunk_update(
                 storage.reserved.iter().for_each(|(chunk_index, aabb)| {
                     if !update_aabb.intersect(*aabb).is_empty() {
                         if !cam_updater.last_updation.contains(chunk_index) {
-                            updation_event.send(CameraChunkUpdation::Entered(entity, *chunk_index));
+                            updation_event.write(CameraChunkUpdation::Entered(entity, *chunk_index));
                         }
                         cur_visible.insert(*chunk_index);
                     } else if cam_updater.last_updation.contains(chunk_index) {
-                        updation_event.send(CameraChunkUpdation::Left(entity, *chunk_index));
+                        updation_event.write(CameraChunkUpdation::Left(entity, *chunk_index));
                     }
                 });
 

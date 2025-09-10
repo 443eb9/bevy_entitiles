@@ -1,7 +1,7 @@
 use bevy::{
     app::{Plugin, Update},
-    ecs::system::Resource,
     math::Vec2,
+    prelude::Resource,
 };
 
 pub mod drawing;

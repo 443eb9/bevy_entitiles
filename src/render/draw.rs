@@ -1,5 +1,12 @@
 use std::marker::PhantomData;
 
+// TODO: Replace with proper logging when render system is updated
+macro_rules! warn {
+    ($($arg:tt)*) => {
+        eprintln!("WARN: {}", format!($($arg)*))
+    };
+}
+
 use bevy::{
     core_pipeline::core_2d::Transparent2d,
     ecs::{
@@ -9,9 +16,7 @@ use bevy::{
             SystemParamItem,
         },
     },
-    log::warn,
     render::{
-        mesh::GpuBufferInfo,
         render_phase::{RenderCommand, RenderCommandResult, SetItemPipeline, TrackedRenderPass},
         view::ViewUniformOffset,
     },
@@ -62,7 +67,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
     ) -> RenderCommandResult {
         if let (Some(tilemap_uniform_bind_group), Some(index)) = (
             bind_groups.into_inner().uniform_buffer.as_ref(),
-            tilemap_buffers.shared.indices.get(&item.entity),
+            tilemap_buffers.shared.indices.get(&item.entity.0),
         ) {
             pass.set_bind_group(
                 I,
@@ -72,11 +77,11 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             RenderCommandResult::Success
         } else {
             warn!(
-                "Failed to draw tilemap {}: Failed to get tilemap uniform bind group! \
+                "Failed to draw tilemap {:?}: Failed to get tilemap uniform bind group! \
                 Skipping rendering this frame.",
                 item.entity
             );
-            RenderCommandResult::Failure
+            RenderCommandResult::Skip
         }
     }
 }
@@ -101,18 +106,18 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         if let Some(bind_group) = material_ids
-            .get(&item.entity)
-            .and_then(|id| bind_groups.into_inner().materials.get(id))
+            .get(&item.entity.1)
+            .and_then(|id| bind_groups.into_inner().materials.get(&id.asset_id))
         {
             pass.set_bind_group(I, bind_group, &[]);
             RenderCommandResult::Success
         } else {
             warn!(
-                "Failed to draw tilemap {}: Failed to get material bind group! \
+                "Failed to draw tilemap {:?}: Failed to get material bind group! \
                 Skipping rendering this frame.",
                 item.entity
             );
-            RenderCommandResult::Failure
+            RenderCommandResult::Skip
         }
     }
 }
@@ -136,7 +141,7 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         bind_groups: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(bind_group) = bind_groups.into_inner().array_buffers.get(&item.entity) {
+        if let Some(bind_group) = bind_groups.into_inner().array_buffers.get(&item.entity.0) {
             #[cfg(target_arch = "wasm32")]
             pass.set_bind_group(I, bind_group, &[0, 0]);
             #[cfg(not(target_arch = "wasm32"))]
@@ -144,11 +149,11 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             RenderCommandResult::Success
         } else {
             warn!(
-                "Failed to draw tilemap {}: Failed to get storage bind group! \
+                "Failed to draw tilemap {:?}: Failed to get storage bind group! \
                 Skipping rendering this frame.",
                 item.entity
             );
-            RenderCommandResult::Failure
+            RenderCommandResult::Skip
         }
     }
 }
@@ -173,15 +178,15 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
         let Some(textures) = instances
-            .get(&item.entity)
+            .get(&item.entity.1)
             .and_then(|inst| inst.texture.as_ref())
         else {
             warn!(
-                "Failed to draw tilemap {}: Failed to get tilemap instance. \
+                "Failed to draw tilemap {:?}: Failed to get tilemap instance. \
                 Skipping rendering this frame.",
                 item.entity
             );
-            return RenderCommandResult::Failure;
+            return RenderCommandResult::Skip;
         };
 
         if let Some(bind_group) = &bind_groups.into_inner().textures.get(textures) {
@@ -189,11 +194,11 @@ impl<const I: usize, M: TilemapMaterial> RenderCommand<Transparent2d>
             RenderCommandResult::Success
         } else {
             warn!(
-                "Failed to draw tilemap {}: Failed to get color texture bind group! \
+                "Failed to draw tilemap {:?}: Failed to get color texture bind group! \
                 Skipping rendering this frame.",
                 item.entity
             );
-            RenderCommandResult::Failure
+            RenderCommandResult::Skip
         }
     }
 }
@@ -215,28 +220,18 @@ impl<M: TilemapMaterial> RenderCommand<Transparent2d> for DrawTileMesh<M> {
         render_chunks: SystemParamItem<'w, '_, Self::Param>,
         pass: &mut TrackedRenderPass<'w>,
     ) -> RenderCommandResult {
-        if let Some(chunks) = render_chunks.into_inner().get_chunks(item.entity) {
+        if let Some(chunks) = render_chunks.into_inner().get_chunks(item.entity.0) {
             for chunk in chunks.value.values() {
                 if !chunk.visible {
                     continue;
                 }
 
-                if let Some(gpu_mesh) = &chunk.gpu_mesh {
-                    pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
-                    match &gpu_mesh.buffer_info {
-                        GpuBufferInfo::Indexed {
-                            buffer,
-                            count,
-                            index_format,
-                        } => {
-                            pass.set_index_buffer(buffer.slice(..), 0, *index_format);
-                            pass.draw_indexed(0..*count, 0, 0..1);
-                        }
-                        GpuBufferInfo::NonIndexed => {
-                            pass.draw(0..gpu_mesh.vertex_count, 0..1);
-                        }
-                    }
-                }
+                // TODO: Update drawing logic for Bevy 0.16 RenderMesh/MeshAllocator API
+                // if let Some(gpu_mesh) = &chunk.gpu_mesh {
+                //     pass.set_vertex_buffer(0, gpu_mesh.vertex_buffer.slice(..));
+                //     // Drawing logic needs to be updated for new buffer management
+                //     pass.draw(0..gpu_mesh.vertex_count, 0..1);
+                // }
             }
         }
 

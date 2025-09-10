@@ -9,7 +9,7 @@ use bevy::{
     math::{IRect, IVec2, Rect, Vec3Swizzles},
     prelude::{Deref, DerefMut, UVec2, With, Without},
     reflect::Reflect,
-    render::camera::{Camera, OrthographicProjection},
+    render::camera::{Camera, Projection},
     transform::components::Transform,
 };
 
@@ -43,11 +43,11 @@ pub fn camera_aabb_adder(
 pub fn camera_aabb_updater(
     mut commands: Commands,
     mut cameras_query: Query<
-        (Entity, &OrthographicProjection, &Transform),
+        (Entity, &Projection, &Transform),
         Or<(
-            Changed<OrthographicProjection>,
+            Changed<Projection>,
             Changed<Transform>,
-            Added<OrthographicProjection>,
+            Added<Projection>,
         )>,
     >,
     #[cfg(feature = "debug")] camera_aabb_scale: bevy::ecs::system::Res<
@@ -55,23 +55,25 @@ pub fn camera_aabb_updater(
     >,
 ) {
     cameras_query.iter_mut().for_each(|(entity, proj, trans)| {
-        #[cfg(feature = "debug")]
-        commands.entity(entity).insert(CameraAabb2d(
-            Rect {
-                min: proj.area.min,
-                max: proj.area.max,
-            }
-            .with_translation(trans.translation.xy())
-            .with_scale(camera_aabb_scale.0, bevy::math::Vec2::splat(0.5)),
-        ));
-        #[cfg(not(feature = "debug"))]
-        commands.entity(entity).insert(CameraAabb2d(
-            Rect {
-                min: proj.area.min,
-                max: proj.area.max,
-            }
-            .with_translation(trans.translation.xy()),
-        ));
+        if let Projection::Orthographic(ortho_proj) = proj {
+            #[cfg(feature = "debug")]
+            commands.entity(entity).insert(CameraAabb2d(
+                Rect {
+                    min: ortho_proj.area.min,
+                    max: ortho_proj.area.max,
+                }
+                .with_translation(trans.translation.xy())
+                .with_scale(camera_aabb_scale.0, bevy::math::Vec2::splat(0.5)),
+            ));
+            #[cfg(not(feature = "debug"))]
+            commands.entity(entity).insert(CameraAabb2d(
+                Rect {
+                    min: ortho_proj.area.min,
+                    max: ortho_proj.area.max,
+                }
+                .with_translation(trans.translation.xy()),
+            ));
+        }
     });
 }
 

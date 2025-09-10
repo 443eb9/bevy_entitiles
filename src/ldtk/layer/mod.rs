@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::{
     asset::{AssetId, AssetServer, Assets},
     color::LinearRgba,
@@ -6,10 +8,9 @@ use bevy::{
         system::{Commands, EntityCommands},
     },
     math::{IVec2, Vec2},
-    prelude::{Component, SpatialBundle},
-    sprite::SpriteBundle,
+    prelude::{Component, GlobalTransform, Visibility, InheritedVisibility, ViewVisibility, Image},
+    sprite::Sprite,
     transform::components::Transform,
-    utils::HashMap,
 };
 
 use crate::{
@@ -110,6 +111,7 @@ impl PackedLdtkEntity {
 }
 
 pub type LayerOpacity = f32;
+pub type LdtkBackground = (Sprite, bevy::asset::Handle<Image>, Transform, GlobalTransform, Visibility, InheritedVisibility, ViewVisibility);
 
 #[derive(Component)]
 pub struct LdtkLayers {
@@ -122,7 +124,7 @@ pub struct LdtkLayers {
     pub tilesets: HashMap<i32, TilemapTexture>,
     pub translation: Vec2,
     pub base_z_index: f32,
-    pub background: SpriteBundle,
+    pub background: LdtkBackground,
     #[cfg(feature = "algorithm")]
     pub path_layer: Option<(
         path::LdtkPathLayer,
@@ -142,7 +144,7 @@ impl LdtkLayers {
         translation: Vec2,
         base_z_index: f32,
         ty: LdtkLevelLoaderMode,
-        background: SpriteBundle,
+        background: LdtkBackground,
     ) -> Self {
         Self {
             assets_id,
@@ -372,10 +374,11 @@ impl LdtkLayers {
                         entities,
                         background: bg,
                     },
-                    SpatialBundle {
-                        transform: Transform::from_translation(self.translation.extend(0.)),
-                        ..Default::default()
-                    },
+                    Transform::from_translation(self.translation.extend(0.)),
+                    GlobalTransform::default(),
+                    Visibility::default(),
+                    InheritedVisibility::default(),
+                    ViewVisibility::default(),
                     LevelIid(self.level.iid.clone()),
                 ));
             }

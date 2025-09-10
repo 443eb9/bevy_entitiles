@@ -1,27 +1,29 @@
+use std::collections::{HashMap, HashSet};
+
 use bevy::{
+    image::BevyDefault,
     asset::{Assets, Handle},
     ecs::{
         entity::Entity,
         query::With,
-        system::{Commands, Query, Res, ResMut, Resource},
+        system::{Commands, Query, Res, ResMut},
     },
-    prelude::Image,
+    prelude::{Image, Resource},
     render::{
         render_asset::RenderAssets,
         render_resource::{
-            AddressMode, Extent3d, ImageCopyTexture, Origin3d, SamplerDescriptor, TextureAspect,
+            AddressMode, Extent3d, TexelCopyTextureInfo, Origin3d, SamplerDescriptor, TextureAspect,
             TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
             TextureViewDescriptor, TextureViewDimension,
         },
         renderer::{RenderDevice, RenderQueue},
-        texture::{BevyDefault, GpuImage},
+        texture::GpuImage,
     },
-    utils::{HashMap, HashSet},
 };
 
 use crate::{
     render::extract::TilemapInstances,
-    tilemap::map::{TilemapTextures, WaitForTextureUsageChange},
+    tilemap::map::{TilemapTextures, TilemapTexturesHandle, WaitForTextureUsageChange},
 };
 
 #[derive(Resource, Default)]
@@ -53,13 +55,13 @@ impl TilemapTexturesStorage {
 
 pub fn set_texture_usage(
     mut commands: Commands,
-    tilemaps_query: Query<(Entity, &Handle<TilemapTextures>), With<WaitForTextureUsageChange>>,
+    tilemaps_query: Query<(Entity, &TilemapTexturesHandle), With<WaitForTextureUsageChange>>,
     mut image_assets: ResMut<Assets<Image>>,
     textures_assets: Res<Assets<TilemapTextures>>,
 ) {
     // Bevy doesn't set the `COPY_SRC` usage for images by default, so we need to do it manually.
     tilemaps_query.iter().for_each(|(entity, textures)| {
-        let Some(t) = &textures_assets.get(textures) else {
+        let Some(t) = &textures_assets.get(&**textures) else {
             panic!(
                 "Failed to fetch the TilemapTexture, did you forget to add that on your tilemap?"
             )
@@ -170,6 +172,7 @@ pub fn prepare_tilemap_textures(
             base_array_layer: 0,
             mip_level_count: None,
             array_layer_count: Some(tile_count),
+            usage: None,
         });
 
         let gpu_image = GpuImage {
@@ -178,7 +181,11 @@ pub fn prepare_tilemap_textures(
             texture,
             texture_view,
             sampler,
-            size: desc.tile_size,
+            size: Extent3d {
+                width: desc.tile_size.x,
+                height: desc.tile_size.y,
+                depth_or_array_layers: 1,
+            },
         };
 
         texture_storage
@@ -233,7 +240,7 @@ pub fn queue_tilemap_textures(
             for index_y in 0..tile_count.y {
                 for index_x in 0..tile_count.x {
                     command_encoder.copy_texture_to_texture(
-                        ImageCopyTexture {
+                        TexelCopyTextureInfo {
                             texture: &raw_gpu_image.texture,
                             mip_level: 0,
                             origin: Origin3d {
@@ -243,7 +250,7 @@ pub fn queue_tilemap_textures(
                             },
                             aspect: TextureAspect::All,
                         },
-                        ImageCopyTexture {
+                        TexelCopyTextureInfo {
                             texture: &array_gpu_image.texture,
                             mip_level: 0,
                             origin: Origin3d {
@@ -384,13 +391,13 @@ pub fn queue_tilemap_textures(
             };
 
             command_encoder.copy_texture_to_texture(
-                ImageCopyTexture {
+                TexelCopyTextureInfo {
                     texture: &source.texture,
                     mip_level: 0,
                     origin: Origin3d::ZERO,
                     aspect: TextureAspect::All,
                 },
-                ImageCopyTexture {
+                TexelCopyTextureInfo {
                     texture: &destination.texture,
                     mip_level: 0,
                     origin: Origin3d {

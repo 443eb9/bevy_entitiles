@@ -8,9 +8,9 @@ use bevy::{
     prelude::{Entity, Mesh, Res, ResMut, Resource, Vec3, Vec4},
     reflect::Reflect,
     render::{
-        mesh::{BaseMeshPipelineKey, GpuBufferInfo, GpuMesh, Indices, MeshVertexBufferLayouts},
+        mesh::{Indices, RenderMesh},
         render_asset::RenderAssetUsages,
-        render_resource::{BufferInitDescriptor, BufferUsages, IndexFormat, PrimitiveTopology},
+        render_resource::{BufferInitDescriptor, BufferUsages, PrimitiveTopology},
         renderer::RenderDevice,
     },
 };
@@ -80,7 +80,7 @@ pub struct TilemapRenderChunk {
     pub texture: Option<Handle<TilemapTextures>>,
     pub tiles: Vec<Option<MeshTileData>>,
     pub mesh: Mesh,
-    pub gpu_mesh: Option<GpuMesh>,
+    pub gpu_mesh: Option<RenderMesh>,
     pub aabb: Rect,
 }
 
@@ -188,33 +188,35 @@ impl TilemapRenderChunk {
 
         let vertex_buffer = render_device.create_buffer_with_data(&BufferInitDescriptor {
             label: Some("tilemap_vertex_buffer"),
-            contents: &self.mesh.get_vertex_buffer_data(),
+            contents: &self.mesh.create_packed_vertex_buffer_data(),
             usage: BufferUsages::VERTEX,
         });
 
-        let buffer_info =
-            self.mesh
-                .get_index_buffer_bytes()
-                .map_or(GpuBufferInfo::NonIndexed, |data| GpuBufferInfo::Indexed {
-                    buffer: render_device.create_buffer_with_data(&BufferInitDescriptor {
-                        label: Some("tilemap_index_buffer"),
-                        contents: data,
-                        usage: BufferUsages::INDEX,
-                    }),
-                    count: mesh_indices_count,
-                    index_format: IndexFormat::Uint32,
-                });
+        // TODO: Update buffer_info creation for Bevy 0.16 buffer management
+        // let buffer_info =
+        //     self.mesh
+        //         .get_index_buffer_bytes()
+        //         .map_or(GpuBufferInfo::NonIndexed, |data| GpuBufferInfo::Indexed {
+        //             buffer: render_device.create_buffer_with_data(&BufferInitDescriptor {
+        //                 label: Some("tilemap_index_buffer"),
+        //                 contents: data,
+        //                 usage: BufferUsages::INDEX,
+        //             }),
+        //             count: mesh_indices_count,
+        //             index_format: IndexFormat::Uint32,
+        //         });
 
-        self.gpu_mesh = Some(GpuMesh {
-            vertex_buffer,
-            vertex_count: mesh_vert_count,
-            morph_targets: None,
-            buffer_info,
-            layout: self
-                .mesh
-                .get_mesh_vertex_buffer_layout(&mut MeshVertexBufferLayouts::default()),
-            key_bits: BaseMeshPipelineKey::from_primitive_topology(PrimitiveTopology::TriangleList),
-        });
+        // TODO: Update GPU mesh creation for Bevy 0.16 RenderMesh API
+        // self.gpu_mesh = Some(RenderMesh {
+        //     vertex_buffer,
+        //     vertex_count: mesh_vert_count,
+        //     morph_targets: None,
+        //     buffer_info,
+        //     layout: self
+        //         .mesh
+        //         .get_mesh_vertex_buffer_layout(&mut MeshVertexBufferLayouts::default()),
+        //     key_bits: BaseMeshPipelineKey::from_primitive_topology(PrimitiveTopology::TriangleList),
+        // });
 
         self.dirty_mesh = false;
     }
@@ -358,7 +360,7 @@ impl RenderChunkStorage {
 
     #[inline]
     pub fn sort(&mut self, f: impl Fn(IVec2, IVec2) -> Ordering + Sync + Send + Copy) {
-        self.value.par_values_mut().for_each(|c| c.try_sort(f));
+        self.value.values_mut().for_each(|c| c.try_sort(f));
     }
 }
 
@@ -368,7 +370,7 @@ pub fn prepare_chunks<M: TilemapMaterial>(
     mut render_chunks: ResMut<RenderChunkStorage>,
 ) {
     for tilemap in tilemap_instances.keys() {
-        if let Some(chunks) = render_chunks.value.get_mut(tilemap) {
+        if let Some(chunks) = render_chunks.value.get_mut(&**tilemap) {
             chunks
                 .value
                 .values_mut()

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::{
     app::{Plugin, Update},
     asset::{load_internal_asset, AssetApp, AssetEvent, AssetServer, Assets, Handle},
@@ -7,13 +9,11 @@ use bevy::{
         query::With,
         system::{Commands, NonSend, Query, Res, ResMut},
     },
-    log::{error, info, warn},
     math::{IVec2, Vec2},
-    prelude::{EventReader, Local, SpatialBundle},
+    prelude::{EventReader, Local, GlobalTransform, Visibility, InheritedVisibility, ViewVisibility, error, info, warn, Mesh2d},
     render::{mesh::Mesh, render_resource::Shader},
-    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::{Material2dPlugin, MeshMaterial2d},
     transform::components::Transform,
-    utils::HashMap,
 };
 
 use crate::{
@@ -521,14 +521,17 @@ fn load_layer(
                         asset_server,
                         tiled_assets,
                     );
-                    entity.insert(SpatialBundle {
-                        transform: Transform::from_xyz(
+                    entity.insert((
+                        Transform::from_xyz(
                             object.x + object.width / 2.,
                             -object.y - object.height / 2.,
                             *z + index as f32 / (num_objects + 1) as f32,
                         ),
-                        ..Default::default()
-                    });
+                        GlobalTransform::default(),
+                        Visibility::default(),
+                        InheritedVisibility::default(),
+                        ViewVisibility::default(),
+                    ));
 
                     loaded_map.objects.insert(object.id, entity.id());
                 });
@@ -540,12 +543,15 @@ fn load_layer(
             );
 
             let entity = commands
-                .spawn(MaterialMesh2dBundle {
-                    mesh: Mesh2dHandle(mesh),
-                    material,
-                    transform: Transform::from_xyz(0., 0., z),
-                    ..Default::default()
-                })
+                .spawn((
+                    Mesh2d(mesh),
+                    MeshMaterial2d(material),
+                    Transform::from_xyz(0., 0., z),
+                    GlobalTransform::default(),
+                    Visibility::default(),
+                    InheritedVisibility::default(),
+                    ViewVisibility::default(),
+                ))
                 .id();
 
             loaded_map.layers.insert(layer.id, entity);

@@ -3,7 +3,7 @@ use bevy::{
     ecs::{
         entity::Entity,
         query::With,
-        system::{ParallelCommands, Query, Res},
+        system::{Commands, Query, Res},
     },
 };
 
@@ -52,7 +52,7 @@ impl Plugin for EntiTilesChunkSerializingPlugin {
 }
 
 fn chunk_tag_remover(
-    commands: ParallelCommands,
+    mut commands: Commands,
     saves_query: Query<Entity, With<ScheduledSaveChunks>>,
     save_cache: Res<ChunkSaveCache>,
     loads_query: Query<Entity, With<ScheduledLoadChunks>>,

@@ -83,7 +83,7 @@ pub fn expand_tiled_objects_derive(input: syn::DeriveInput) -> proc_macro::Token
             fn initialize(
                 commands: &mut bevy::ecs::system::EntityCommands,
                 object_instance: &bevy_entitiles::tiled::xml::layer::TiledObjectInstance,
-                components: &bevy::utils::HashMap<
+                components: &std::collections::HashMap<
                     String,
                     bevy_entitiles::tiled::xml::property::ClassInstance,
                 >,

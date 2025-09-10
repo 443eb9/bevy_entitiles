@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use avian2d::{
     prelude::{PhysicsDebugPlugin, PhysicsGizmos},
     PhysicsPlugins,
 };
-use bevy::{prelude::*, utils::HashMap};
+use bevy::prelude::*;
 use bevy_entitiles::{
     algorithm::wfc::LdtkWfcMode,
     ldtk::{
@@ -165,7 +167,7 @@ fn load_level(
     query.iter().for_each(|(e, l)| {
         if let Some(ident) = wfc_manager.get_ident(l.0) {
             loaded_levels.unload_all_at(file.id(), &mut event);
-            event.send(LdtkLevelEvent::Load(LdtkLevelLoader {
+            event.write(LdtkLevelEvent::Load(LdtkLevelLoader {
                 json: file.id(),
                 level: LdtkLevel::Identifier(ident),
                 mode: LdtkLevelLoaderMode::Tilemap,

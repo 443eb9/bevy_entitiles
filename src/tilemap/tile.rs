@@ -1,6 +1,6 @@
 use bevy::{
     color::LinearRgba,
-    ecs::system::{ParallelCommands, Query},
+    ecs::system::{Commands, Query},
     math::IVec2,
     prelude::{Component, Entity},
     reflect::Reflect,
@@ -281,11 +281,14 @@ pub(crate) struct TileRearrange {
 }
 
 pub fn tile_updater(
-    commands: ParallelCommands,
+    mut commands: Commands,
     mut tiles_query: Query<(Entity, &mut Tile, &TileUpdater)>,
 ) {
+    // Collect entities that need TileUpdater removed
+    let mut entities_to_remove = Vec::new();
+    
     tiles_query
-        .par_iter_mut()
+        .iter_mut()
         .for_each(|(entity, mut tile, updater)| {
             if let Some(layer) = &updater.layer {
                 if let TileTexture::Static(ref mut tex) = tile.texture {
@@ -308,23 +311,32 @@ pub fn tile_updater(
             if let Some(color) = updater.tint {
                 tile.tint = color;
             }
-            commands.command_scope(|mut c| {
-                c.entity(entity).remove::<TileUpdater>();
-            });
+            entities_to_remove.push(entity);
         });
+
+    // Remove TileUpdater components after processing
+    for entity in entities_to_remove {
+        commands.entity(entity).remove::<TileUpdater>();
+    }
 }
 
 pub(crate) fn tile_rearranger(
-    commands: ParallelCommands,
+    mut commands: Commands,
     mut tiles_query: Query<(Entity, &mut Tile, &TileRearrange)>,
 ) {
+    // Collect entities that need TileRearrange removed
+    let mut entities_to_remove = Vec::new();
+    
     tiles_query
-        .par_iter_mut()
+        .iter_mut()
         .for_each(|(entity, mut tile, rearrange)| {
             tile.chunk_index = rearrange.chunk_index;
             tile.in_chunk_index = rearrange.in_chunk_index;
-            commands.command_scope(|mut c| {
-                c.entity(entity).remove::<TileRearrange>();
-            })
+            entities_to_remove.push(entity);
         });
+
+    // Remove TileRearrange components after processing
+    for entity in entities_to_remove {
+        commands.entity(entity).remove::<TileRearrange>();
+    }
 }

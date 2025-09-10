@@ -42,7 +42,7 @@ pub fn expand_tiled_class_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
     quote::quote!(
         impl bevy_entitiles::tiled::traits::TiledClass for #ty {
             fn create(
-                classes: &bevy::utils::HashMap<String, bevy_entitiles::tiled::xml::property::ClassInstance>,
+                classes: &std::collections::HashMap<String, bevy_entitiles::tiled::xml::property::ClassInstance>,
             ) -> Self {
                 #ctor
             }

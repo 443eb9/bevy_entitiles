@@ -1,4 +1,6 @@
-use bevy::{asset::Asset, color::Color, math::Vec4, reflect::Reflect, utils::HashMap};
+use std::collections::HashMap;
+
+use bevy::{asset::Asset, color::Color, math::Vec4, reflect::Reflect};
 use serde::{de::Visitor, Deserialize, Serialize};
 
 use crate::ldtk::json::{definitions::Definitions, level::Level};

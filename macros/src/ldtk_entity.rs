@@ -110,7 +110,7 @@ pub fn expand_ldtk_entity_derive(input: syn::DeriveInput) -> proc_macro::TokenSt
             fn initialize(
                 commands: &mut bevy::ecs::system::EntityCommands,
                 entity_instance: &bevy_entitiles::ldtk::json::level::EntityInstance,
-                fields: &bevy::utils::HashMap<String, bevy_entitiles::ldtk::json::field::FieldInstance>,
+                fields: &std::collections::HashMap<String, bevy_entitiles::ldtk::json::field::FieldInstance>,
                 asset_server: &bevy::prelude::AssetServer,
                 ldtk_assets: &bevy_entitiles::ldtk::resources::LdtkAssets,
             ) {

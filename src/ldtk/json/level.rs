@@ -1,5 +1,8 @@
 use bevy::{
-    ecs::system::EntityCommands, reflect::Reflect, sprite::MaterialMesh2dBundle,
+    ecs::system::EntityCommands, 
+    prelude::{GlobalTransform, Visibility, InheritedVisibility, ViewVisibility, Mesh2d},
+    reflect::Reflect, 
+    sprite::MeshMaterial2d,
     transform::components::Transform,
 };
 use serde::{Deserialize, Serialize};
@@ -358,11 +361,14 @@ impl EntityInstance {
             return;
         }
 
-        commands.insert(MaterialMesh2dBundle {
-            mesh: assets.clone_mesh_handle(&self.iid),
-            material: assets.clone_material_handle(&self.iid),
-            transform: Transform::from_xyz(self.local_pos[0] as f32, -self.local_pos[1] as f32, 0.),
-            ..Default::default()
-        });
+        commands.insert((
+            Mesh2d(assets.clone_mesh_handle(&self.iid)),
+            MeshMaterial2d(assets.clone_material_handle(&self.iid)),
+            Transform::from_xyz(self.local_pos[0] as f32, -self.local_pos[1] as f32, 0.),
+            GlobalTransform::default(),
+            Visibility::default(),
+            InheritedVisibility::default(),
+            ViewVisibility::default(),
+        ));
     }
 }

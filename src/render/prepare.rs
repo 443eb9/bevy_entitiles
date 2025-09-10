@@ -1,5 +1,6 @@
 use bevy::{
     ecs::entity::Entity,
+    render::sync_world::MainEntity,
     math::IVec2,
     prelude::{Query, Res, ResMut},
 };
@@ -20,7 +21,7 @@ pub fn prepare_tiles<M: TilemapMaterial>(
     tilemap_instances: Res<TilemapInstances>,
 ) {
     extracted_tiles.iter().for_each(|tile| {
-        let Some(tilemap) = tilemap_instances.get(&tile.tilemap_id) else {
+        let Some(tilemap) = tilemap_instances.get(&MainEntity::from(tile.tilemap_id)) else {
             return;
         };
 
@@ -50,7 +51,7 @@ pub fn prepare_despawned_tilemaps<M: TilemapMaterial>(
     tilemaps_query.iter().for_each(|map| {
         render_chunks.remove_tilemap(map.0);
         // storage_buffers.remove(map.0);
-        tilemap_instances.remove(&map.0);
+        tilemap_instances.remove(&MainEntity::from(map.0));
     });
 }
 

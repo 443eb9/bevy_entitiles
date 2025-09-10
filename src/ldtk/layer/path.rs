@@ -1,4 +1,6 @@
-use bevy::{ecs::system::Resource, math::IVec2, reflect::Reflect, utils::HashMap};
+use std::collections::HashMap;
+
+use bevy::{math::IVec2, prelude::Resource, reflect::Reflect};
 
 use crate::{
     ldtk::json::{definitions::LayerType, level::LayerInstance},

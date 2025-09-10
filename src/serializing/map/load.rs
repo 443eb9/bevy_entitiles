@@ -8,7 +8,7 @@ use bevy::{
         entity::Entity,
         system::{Commands, Query, Res, ResMut},
     },
-    hierarchy::DespawnRecursiveExt,
+    // hierarchy::DespawnRecursiveExt, // TODO: Fix this import for Bevy 0.16
 };
 use serde::de::DeserializeOwned;
 

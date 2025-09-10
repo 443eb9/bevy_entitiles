@@ -1,4 +1,6 @@
-use bevy::{color::Color, reflect::Reflect, utils::HashMap};
+use std::collections::HashMap;
+
+use bevy::{color::Color, reflect::Reflect};
 use serde::{
     de::{IgnoredAny, Visitor},
     Deserialize, Serialize,

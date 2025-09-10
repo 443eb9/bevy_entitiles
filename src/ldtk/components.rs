@@ -1,9 +1,10 @@
+use std::collections::HashMap;
+
 use bevy::{
     ecs::{component::Component, entity::Entity, system::Commands},
     math::Vec2,
     prelude::Deref,
     reflect::Reflect,
-    utils::HashMap,
 };
 
 use crate::ldtk::resources::LdtkGlobalEntityRegistry;

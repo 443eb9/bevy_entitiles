@@ -1,8 +1,8 @@
 // TODO Frustum culling!!!
 #![allow(unused)]
 use bevy::{
-    ecs::system::{Res, Resource},
-    prelude::{Query, ResMut},
+    ecs::system::{Res},
+    prelude::{Query, ResMut, Resource},
     render::view::ViewVisibility,
 };
 

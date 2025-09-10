@@ -1,11 +1,9 @@
 use bevy::{
     asset::{Asset, Handle},
     math::Vec4,
+    prelude::Image,
     reflect::Reflect,
-    render::{
-        render_resource::{AsBindGroup, ShaderType},
-        texture::Image,
-    },
+    render::render_resource::{AsBindGroup, ShaderType},
     sprite::Material2d,
 };
 

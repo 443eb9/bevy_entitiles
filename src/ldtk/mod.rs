@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::hash_map::Entry, path::Path};
 
 use bevy::{
     app::{Plugin, Update},
@@ -6,15 +6,14 @@ use bevy::{
     ecs::{
         entity::Entity,
         query::{Added, With},
-        system::{Commands, NonSend, ParallelCommands, Query, Res, ResMut},
+        system::{Commands, NonSend, Query, Res, ResMut},
     },
     log::{error, info, warn},
     math::{UVec2, Vec2},
-    prelude::{EventReader, Local},
+    prelude::{EventReader, Local, GlobalTransform, Visibility, InheritedVisibility, ViewVisibility, Image, TextureAtlasLayout},
     render::{mesh::Mesh, render_resource::Shader},
-    sprite::{Material2dPlugin, Sprite, SpriteBundle, TextureAtlasLayout},
+    sprite::{Material2dPlugin, Sprite},
     transform::components::Transform,
-    utils::Entry,
 };
 
 use crate::{
@@ -146,7 +145,7 @@ fn global_entity_registerer(
 }
 
 fn ldtk_temp_tranform_applier(
-    commands: ParallelCommands,
+    mut commands: Commands,
     mut entities_query: Query<(Entity, &mut Transform, &LdtkTempTransform)>,
 ) {
     entities_query
@@ -444,26 +443,30 @@ fn load_background(
     level_px: UVec2,
     asset_server: &AssetServer,
     config: &LdtkLevelConfig,
-) -> SpriteBundle {
+) -> (Sprite, Handle<Image>, Transform, GlobalTransform, Visibility, InheritedVisibility, ViewVisibility) {
     let texture = level
         .bg_rel_path
         .as_ref()
-        .map(|path| asset_server.load(Path::new(&config.asset_path_prefix).join(path)));
+        .map(|path| asset_server.load(Path::new(&config.asset_path_prefix).join(path)))
+        .unwrap_or_default();
 
-    SpriteBundle {
-        sprite: Sprite {
+    (
+        Sprite {
             color: level.bg_color.into(),
             custom_size: Some(level_px.as_vec2()),
             ..Default::default()
         },
-        texture: texture.unwrap_or_default(),
-        transform: Transform::from_xyz(
+        texture,
+        Transform::from_xyz(
             level_px.x as f32 / 2. + translation.x,
             -(level_px.y as f32) / 2. + translation.y,
             config.z_index as f32 - level.layer_instances.len() as f32 - 1.,
         ),
-        ..Default::default()
-    }
+        GlobalTransform::default(),
+        Visibility::default(),
+        InheritedVisibility::default(),
+        ViewVisibility::default(),
+    )
 }
 
 fn load_layer(

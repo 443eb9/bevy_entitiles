@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 
-use bevy::{math::IVec2, reflect::Reflect, utils::HashMap};
+use std::collections::HashMap;
+
+use bevy::{math::IVec2, reflect::Reflect};
 
 use crate::{
     math::GridRect,

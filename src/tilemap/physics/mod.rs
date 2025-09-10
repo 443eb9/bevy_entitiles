@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use avian2d::prelude::{Collider, Friction, RigidBody};
 use bevy::{
     app::{App, Plugin, Update},
     ecs::{component::Component, entity::Entity, event::Event, system::Commands},
     math::{IVec2, UVec2, Vec2},
     reflect::Reflect,
-    utils::HashMap,
 };
 
 use crate::{

@@ -1,9 +1,8 @@
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 
 use bevy::{
     asset::AssetServer,
     ecs::{bundle::Bundle, system::EntityCommands},
-    utils::HashMap,
 };
 
 use crate::tiled::{

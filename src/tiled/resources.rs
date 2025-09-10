@@ -1,18 +1,17 @@
-use std::{f32::consts::PI, path::PathBuf};
+use std::{collections::HashMap, f32::consts::PI, path::PathBuf};
 
 use bevy::{
     asset::{io::Reader, Asset, AssetId, AssetLoader, AssetServer, Assets, Handle, LoadContext},
-    ecs::{entity::Entity, system::Resource},
-    log::{error, warn},
+    ecs::entity::Entity,
+    prelude::Resource,
     math::{Rect, UVec2, Vec2, Vec4},
-    prelude::{Deref, EventWriter},
+    prelude::{Deref, EventWriter, error, warn},
     reflect::Reflect,
     render::{
         mesh::{Indices, Mesh},
         render_asset::RenderAssetUsages,
         render_resource::{FilterMode, PrimitiveTopology},
     },
-    utils::HashMap,
 };
 use futures_lite::AsyncReadExt;
 use thiserror::Error;

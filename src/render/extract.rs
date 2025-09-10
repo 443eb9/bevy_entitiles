@@ -23,7 +23,7 @@ use crate::{
         despawn::{DespawnedTile, DespawnedTilemap},
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapAxisFlip, TilemapLayerOpacities,
-            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures, TilemapTransform,
+            TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures, TilemapTexturesHandle, TilemapTransform,
             TilemapType,
         },
         tile::Tile,
@@ -32,7 +32,26 @@ use crate::{
 
 pub type TilemapInstances = ExtractedInstances<ExtractedTilemap>;
 
-pub type TilemapMaterialIds<M> = ExtractedInstances<AssetId<M>>;
+#[derive(Component, Debug, Clone)]
+pub struct ExtractedTilemapMaterial<M: bevy::asset::Asset> {
+    pub asset_id: AssetId<M>,
+}
+
+impl<M> ExtractInstance for ExtractedTilemapMaterial<M>
+where
+    M: bevy::asset::Asset + Send + Sync + 'static,
+{
+    type QueryData = Read<crate::tilemap::map::TilemapMaterialHandle<M>>;
+    type QueryFilter = ();
+
+    fn extract(item: QueryItem<'_, Self::QueryData>) -> Option<Self> {
+        Some(ExtractedTilemapMaterial {
+            asset_id: item.id(),
+        })
+    }
+}
+
+pub type TilemapMaterialIds<M> = ExtractedInstances<ExtractedTilemapMaterial<M>>;
 
 #[derive(Component, Debug)]
 pub struct ExtractedTilemap {
@@ -60,7 +79,7 @@ impl ExtractInstance for ExtractedTilemap {
         Read<TilemapTransform>,
         Read<TilemapAxisFlip>,
         Read<TilemapStorage>,
-        Option<Read<Handle<TilemapTextures>>>,
+        Option<Read<TilemapTexturesHandle>>,
         Option<Ref<'static, TilemapAnimations>>,
     );
 
@@ -97,7 +116,7 @@ impl ExtractInstance for ExtractedTilemap {
             layer_opacities: layer_opacities.0,
             transform: *transform,
             axis_flip: *axis_flip,
-            texture: texture.cloned(),
+            texture: texture.as_ref().map(|h| h.0.clone()),
             changed_animations: animations
                 .as_ref()
                 .is_some_and(|a| a.is_changed())

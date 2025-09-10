@@ -1,5 +1,4 @@
 use bevy::{
-    asset::Handle,
     ecs::bundle::Bundle,
     render::view::{InheritedVisibility, ViewVisibility, Visibility},
 };
@@ -8,8 +7,8 @@ use crate::{
     render::material::{StandardTilemapMaterial, TilemapMaterial},
     tilemap::map::{
         TilePivot, TileRenderSize, TilemapAabbs, TilemapAnimations, TilemapAxisFlip,
-        TilemapLayerOpacities, TilemapName, TilemapSlotSize, TilemapStorage, TilemapTextures,
-        TilemapTransform, TilemapType, WaitForTextureUsageChange,
+        TilemapLayerOpacities, TilemapMaterialHandle, TilemapName, TilemapSlotSize, TilemapStorage,
+        TilemapTexturesHandle, TilemapTransform, TilemapType, WaitForTextureUsageChange,
     },
 };
 
@@ -57,8 +56,8 @@ pub struct MaterialTilemapBundle<M: TilemapMaterial> {
     pub storage: TilemapStorage,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
-    pub material: Handle<M>,
-    pub textures: Handle<TilemapTextures>,
+    pub material: TilemapMaterialHandle<M>,
+    pub textures: TilemapTexturesHandle,
     pub animations: TilemapAnimations,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -79,8 +78,8 @@ pub struct StandardTilemapBundle {
     pub storage: TilemapStorage,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
-    pub material: Handle<StandardTilemapMaterial>,
-    pub textures: Handle<TilemapTextures>,
+    pub material: TilemapMaterialHandle<StandardTilemapMaterial>,
+    pub textures: TilemapTexturesHandle,
     pub animations: TilemapAnimations,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
@@ -137,7 +136,7 @@ pub struct PureColorTilemapBundle<M: TilemapMaterial> {
     pub storage: TilemapStorage,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
-    pub material: Handle<M>,
+    pub material: TilemapMaterialHandle<M>,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
@@ -157,7 +156,7 @@ pub struct StandardPureColorTilemapBundle {
     pub storage: TilemapStorage,
     pub transform: TilemapTransform,
     pub axis_flip: TilemapAxisFlip,
-    pub material: Handle<StandardTilemapMaterial>,
+    pub material: TilemapMaterialHandle<StandardTilemapMaterial>,
     pub visibility: Visibility,
     pub inherited_visibility: InheritedVisibility,
     pub view_visibility: ViewVisibility,
@@ -167,7 +166,7 @@ pub struct StandardPureColorTilemapBundle {
 impl StandardPureColorTilemapBundle {
     pub fn convert_to_texture_bundle(
         self,
-        textures: Handle<TilemapTextures>,
+        textures: TilemapTexturesHandle,
         animations: TilemapAnimations,
     ) -> StandardTilemapBundle {
         StandardTilemapBundle {

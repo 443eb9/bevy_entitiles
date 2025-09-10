@@ -58,7 +58,7 @@ pub fn spawn_colliders(
             };
             let tile_entity = packed_tile.spawn(&mut commands);
 
-            spawn_event.send(PhysicsTileSpawn {
+            spawn_event.write(PhysicsTileSpawn {
                 tilemap: entity,
                 tile: tile_entity,
                 int_repr: maybe_int_repr,

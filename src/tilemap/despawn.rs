@@ -3,7 +3,7 @@ use bevy::{
         component::Component,
         entity::Entity,
         query::With,
-        system::{Commands, ParallelCommands, Query},
+        system::{Commands, Query},
     },
     math::IVec2,
 };
@@ -69,7 +69,7 @@ pub fn despawn_tiles(mut commands: Commands, query: Query<(Entity, &Tile), With<
 
 #[cfg(feature = "physics")]
 pub fn despawn_physics_tilemaps(
-    commands: ParallelCommands,
+    mut commands: Commands,
     query: Query<(Entity, &super::physics::PhysicsTilemap), With<DespawnMe>>,
 ) {
     query.par_iter().for_each(|(entity, physics_tilemap)| {

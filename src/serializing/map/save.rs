@@ -20,7 +20,7 @@ use crate::{
         despawn::DespawnMe,
         map::{
             TilePivot, TileRenderSize, TilemapAnimations, TilemapLayerOpacities, TilemapName,
-            TilemapSlotSize, TilemapStorage, TilemapTextures, TilemapTransform, TilemapType,
+            TilemapSlotSize, TilemapStorage, TilemapTextures, TilemapTexturesHandle, TilemapTransform, TilemapType,
         },
         tile::{Tile, TileBuilder},
     },
@@ -78,7 +78,7 @@ pub fn save<M: TilemapMaterial + Serialize>(
         &mut TilemapStorage,
         &TilemapTransform,
         &Handle<M>,
-        Option<&Handle<TilemapTextures>>,
+        Option<&TilemapTexturesHandle>,
         Option<&TilemapAnimations>,
         &TilemapSaver,
     )>,
@@ -89,7 +89,9 @@ pub fn save<M: TilemapMaterial + Serialize>(
     #[cfg(feature = "physics")] physics_tilemaps_query: Query<
         &crate::tilemap::physics::PhysicsTilemap,
     >,
-) {
+) where
+    Handle<M>: Component,
+{
     for (
         entity,
         name,
